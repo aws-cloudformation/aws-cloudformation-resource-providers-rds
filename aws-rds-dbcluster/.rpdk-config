@@ -1,0 +1,15 @@
+{
+    "typeName": "AWS::RDS::DBCluster",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbcluster.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbcluster.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbcluster"
+        ]
+    }
+}
