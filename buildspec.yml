@@ -9,7 +9,7 @@ phases:
   build:
     commands:
       - pre-commit run --all-files
-    #   - cd "$CODEBUILD_SRC_DIR/my_resource"
-    #   - mvn clean verify --no-transfer-progress
-    # finally:
-    #   - cat "$CODEBUILD_SRC_DIR/my_resource/rpdk.log"
+      - cd "$CODEBUILD_SRC_DIR/aws-rds-dbclusterparametergroup"
+      - mvn clean verify --no-transfer-progress
+    finally:
+      - cat "$CODEBUILD_SRC_DIR/aws-rds-dbclusterparametergroup/rpdk.log"
