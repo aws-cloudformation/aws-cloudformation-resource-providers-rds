@@ -2,6 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterRole;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -10,7 +11,10 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.Logger;
 
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static software.amazon.rds.dbcluster.Translator.listTagsForResourceRequest;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -19,23 +23,23 @@ public class ReadHandler extends BaseHandlerStd {
                                                                           final CallbackContext callbackContext,
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
-
-
-        ResourceModel model = request.getDesiredResourceState();
-        return proxy.initiate("rds::describe-db-cluster", proxyClient, model, callbackContext)
+        return proxy.initiate("rds::describe-db-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .request(Translator::describeDbClustersRequest)
-                .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeDBClusters))
-                .done((r) -> {
+                .call((describeDbClustersRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbClustersRequest, proxyInvocation.client()::describeDBClusters))
+                .done((describeDbClustersResponse) -> {
 
-                    final DBCluster targetDBCluster = r.dbClusters().stream().findFirst().get();
-                    final ListTagsForResourceResponse listTagsForResourceResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.listTagsForResourceRequest(targetDBCluster.dbClusterArn()), proxyClient.client()::listTagsForResource);
+                    final Function<DBClusterRole, software.amazon.rds.dbcluster.DBClusterRole> roleTransform = (DBClusterRole dbClusterRole) -> new software.amazon.rds.dbcluster.DBClusterRole(dbClusterRole.roleArn(), dbClusterRole.featureName());
+                    final DBCluster targetDBCluster = describeDbClustersResponse.dbClusters().stream().findFirst().get();
+                    final ListTagsForResourceResponse listTagsForResourceResponse = proxyClient.injectCredentialsAndInvokeV2(listTagsForResourceRequest(targetDBCluster.dbClusterArn()), proxyClient.client()::listTagsForResource);
 
                     return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
-                            .applyImmediately(model.getApplyImmediately())
-                            .associatedRoles(targetDBCluster.associatedRoles().stream().map(
-                                    dbClusterRole -> DBClusterRole.builder().roleArn(dbClusterRole.roleArn())
-                                    .featureName(dbClusterRole.featureName()).build()
-                            ).collect(Collectors.toList()))
+                            // read only properties GetAtt
+                            .endpoint(Endpoint.builder()
+                                    .address(targetDBCluster.endpoint())
+                                    .port(targetDBCluster.port().toString()).build())
+                            .readEndpoint(targetDBCluster.readerEndpoint())
+
+                            .associatedRoles(targetDBCluster.associatedRoles().stream().map(roleTransform).collect(Collectors.toList()))
                             .availabilityZones(targetDBCluster.availabilityZones())
                             .backtrackWindow(Translator.castToInt(targetDBCluster.backtrackWindow()))
                             .backupRetentionPeriod(targetDBCluster.backupRetentionPeriod())
@@ -60,7 +64,6 @@ public class ReadHandler extends BaseHandlerStd {
                             .storageEncrypted(targetDBCluster.storageEncrypted())
                             .tags(Translator.translateTagsFromSdk(listTagsForResourceResponse.tagList()))
                             .vpcSecurityGroupIds(targetDBCluster.vpcSecurityGroups().stream().map(VpcSecurityGroupMembership::vpcSecurityGroupId).collect(Collectors.toList()))
-                            /*....*/
                             .build());
                 });
     }

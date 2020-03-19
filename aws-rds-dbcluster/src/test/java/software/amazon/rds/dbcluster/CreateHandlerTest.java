@@ -163,7 +163,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_ClusterRestoreSuccess() {
+    public void handleRequest_ClusterRestoreInProgress() {
 
         final RestoreDbClusterFromSnapshotResponse restoreDbClusterFromSnapshotResponse = RestoreDbClusterFromSnapshotResponse.builder().build();
         when(proxyRdsClient.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class))).thenReturn(restoreDbClusterFromSnapshotResponse);
@@ -172,11 +172,41 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ModifyDbClusterResponse modifyDbClusterResponse = ModifyDbClusterResponse.builder().build();
         when(proxyRdsClient.client().modifyDBCluster(any(ModifyDbClusterRequest.class))).thenReturn(modifyDbClusterResponse);
 
+        CallbackContext callbackContext = new CallbackContext();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_ON_RESTORE).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+
+        callbackContext.setModified(true);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualTo(callbackContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(60);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client()).modifyDBCluster(any(ModifyDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ClusterRestoreSuccess() {
+
+        final RestoreDbClusterFromSnapshotResponse restoreDbClusterFromSnapshotResponse = RestoreDbClusterFromSnapshotResponse.builder().build();
+        when(proxyRdsClient.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class))).thenReturn(restoreDbClusterFromSnapshotResponse);
+        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
+        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setModified(true);
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_ON_RESTORE).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -188,7 +218,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
         verify(proxyRdsClient.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).modifyDBCluster(any(ModifyDbClusterRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 

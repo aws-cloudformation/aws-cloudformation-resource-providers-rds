@@ -93,12 +93,14 @@ public class AbstractTestBase {
                 .build();
 
         DBCLUSTER_ACTIVE = DBCluster.builder()
+                .dbClusterArn("arn")
                 .associatedRoles(software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
                 .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
+                .deletionProtection(false)
                 .engine(RESOURCE_MODEL.getEngine())
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
-                .status(DBClusterStatus.Status.Available.toString())
+                .status(DBClusterStatus.Available.toString())
                 .build();
 
         DBCLUSTER_ACTIVE_NO_ROLE = DBCluster.builder()
@@ -106,7 +108,7 @@ public class AbstractTestBase {
                 .engine(RESOURCE_MODEL.getEngine())
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
-                .status(DBClusterStatus.Status.Available.toString())
+                .status(DBClusterStatus.Available.toString())
                 .build();
 
         DBCLUSTER_DELETED = DBCluster.builder()
@@ -114,7 +116,7 @@ public class AbstractTestBase {
                 .engine(RESOURCE_MODEL.getEngine())
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
-                .status(DBClusterStatus.Status.Deleted.toString())
+                .status(DBClusterStatus.Deleted.toString())
                 .build();
 
         DBCLUSTER_INPROGRESS = DBCluster.builder()
@@ -122,7 +124,7 @@ public class AbstractTestBase {
                 .engine(RESOURCE_MODEL.getEngine())
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
-                .status(DBClusterStatus.Status.Creating.toString())
+                .status(DBClusterStatus.Creating.toString())
                 .build();
 
     }

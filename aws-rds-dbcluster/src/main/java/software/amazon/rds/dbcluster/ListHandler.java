@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -21,16 +22,15 @@ public class ListHandler extends BaseHandler<CallbackContext> {
         final CallbackContext callbackContext,
         final Logger logger) {
 
-        final DescribeDbClustersResponse dbClustersResponse = proxy.injectCredentialsAndInvokeV2(DescribeDbClustersRequest.builder().build(), ClientBuilder.getClient()::describeDBClusters);
-
-        final List<ResourceModel> models = dbClustersResponse.dbClusters().stream()
-                .map(dbCluster -> ResourceModel.builder().build())
-                .collect(Collectors.toList());
-        // TODO
+        final DescribeDbClustersResponse describeDbClustersResponse = proxy.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(request.getNextToken()), ClientBuilder.getClient()::describeDBClusters);
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                .resourceModels(models)
-                .nextToken(dbClustersResponse.marker())
+                .resourceModels(describeDbClustersResponse.dbClusters()
+                        .stream()
+                        .map(dbCluster -> ResourceModel.builder()
+                                .dBClusterIdentifier(dbCluster.dbClusterIdentifier()).build())
+                        .collect(Collectors.toList()))
+                .nextToken(describeDbClustersResponse.marker())
                 .status(OperationStatus.SUCCESS)
                 .build();
     }

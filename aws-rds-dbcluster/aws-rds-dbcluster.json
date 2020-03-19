@@ -2,87 +2,28 @@
   "typeName": "AWS::RDS::DBCluster",
   "description": "The AWS::RDS::DBCluster resource creates an Amazon Aurora DB cluster.",
   "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-  "definitions": {
-    "DBClusterRole": {
-      "description": "Describes an AWS Identity and Access Management (IAM) role that is associated with a DB cluster.",
-      "type": "object",
-      "properties": {
-        "FeatureName": {
-          "description": "The name of the feature associated with the AWS Identity and Access Management (IAM) role. For the list of supported feature names, see DBEngineVersion in the Amazon RDS API Reference.",
-          "type": "string"
-        },
-        "RoleArn": {
-          "description": "The Amazon Resource Name (ARN) of the IAM role that is associated with the DB cluster.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "RoleArn"
-      ]
-    },
-    "ScalingConfiguration": {
-      "description": "The ScalingConfiguration property type specifies the scaling configuration of an Aurora Serverless DB cluster.",
-      "type": "object",
-      "properties": {
-        "AutoPause": {
-          "description": "A value that indicates whether to allow or disallow automatic pause for an Aurora DB cluster in serverless DB engine mode. A DB cluster can be paused only when it's idle (it has no connections).",
-          "type": "boolean"
-        },
-        "MaxCapacity": {
-          "description": "The maximum capacity for an Aurora DB cluster in serverless DB engine mode.\nFor Aurora MySQL, valid capacity values are 1, 2, 4, 8, 16, 32, 64, 128, and 256.\nFor Aurora PostgreSQL, valid capacity values are 2, 4, 8, 16, 32, 64, 192, and 384.\nThe maximum capacity must be greater than or equal to the minimum capacity.",
-          "type": "integer"
-        },
-        "MinCapacity": {
-          "description": "The minimum capacity for an Aurora DB cluster in serverless DB engine mode.\nFor Aurora MySQL, valid capacity values are 1, 2, 4, 8, 16, 32, 64, 128, and 256.\nFor Aurora PostgreSQL, valid capacity values are 2, 4, 8, 16, 32, 64, 192, and 384.\nThe minimum capacity must be less than or equal to the maximum capacity.",
-          "type": "integer"
-        },
-        "SecondsUntilAutoPause": {
-          "description": "The time, in seconds, before an Aurora DB cluster in serverless mode is paused.",
-          "type": "integer"
-        }
-      }
-    },
-    "Tag": {
-      "description": "A key-value pair to associate with a resource.",
-      "type": "object",
-      "properties": {
-        "Key": {
-          "type": "string",
-          "description": "The key name of the tag. You can specify a value that is 1 to 127 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
-          "minLength": 1,
-          "maxLength": 127
-        },
-        "Value": {
-          "type": "string",
-          "description": "The value for the tag. You can specify a value that is 1 to 255 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
-          "minLength": 1,
-          "maxLength": 255
-        }
-      },
-      "required": [
-        "Key",
-        "Value"
-      ]
-    }
-  },
   "properties": {
-    "ApplyImmediately": {
-      "description": "",
-      "type": "boolean"
+    "Endpoint": {
+      "$ref": "#/definitions/Endpoint"
+    },
+    "ReadEndpoint": {
+      "type": "string"
     },
     "AssociatedRoles": {
       "description": "Provides a list of the AWS Identity and Access Management (IAM) roles that are associated with the DB cluster. IAM roles that are associated with a DB cluster grant permission for the DB cluster to access other AWS services on your behalf.",
+      "type": "array",
+      "uniqueItems": true,
       "items": {
         "$ref": "#/definitions/DBClusterRole"
-      },
-      "type": "array"
+      }
     },
     "AvailabilityZones": {
       "description": "A list of Availability Zones (AZs) where instances in the DB cluster can be created. For information on AWS Regions and Availability Zones, see Choosing the Regions and Availability Zones in the Amazon Aurora User Guide.",
+      "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "string"
-      },
-      "type": "array"
+      }
     },
     "BacktrackWindow": {
       "description": "The target backtrack window, in seconds. To disable backtracking, set this value to 0.",
@@ -120,10 +61,11 @@
     },
     "EnableCloudwatchLogsExports": {
       "description": "The list of log types that need to be enabled for exporting to CloudWatch Logs. The values in the list depend on the DB engine being used. For more information, see Publishing Database Logs to Amazon CloudWatch Logs in the Amazon Aurora User Guide.",
+      "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "string"
-      },
-      "type": "array"
+      }
     },
     "EnableHttpEndpoint": {
       "description": "A value that indicates whether to enable the HTTP endpoint for an Aurora Serverless DB cluster. By default, the HTTP endpoint is disabled.",
@@ -210,13 +152,97 @@
     },
     "VpcSecurityGroupIds": {
       "description": "",
+      "uniqueItems": true,
       "items": {
         "type": "string"
       },
       "type": "array"
     }
   },
+  "definitions": {
+    "Endpoint": {
+      "description": "Describes an AWS Identity and Access Management (IAM) role that is associated with a DB cluster.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Address": {
+          "type": "string"
+        },
+        "Port": {
+          "type": "string"
+        }
+      }
+    },
+    "DBClusterRole": {
+      "description": "Describes an AWS Identity and Access Management (IAM) role that is associated with a DB cluster.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "FeatureName": {
+          "description": "The name of the feature associated with the AWS Identity and Access Management (IAM) role. For the list of supported feature names, see DBEngineVersion in the Amazon RDS API Reference.",
+          "type": "string"
+        },
+        "RoleArn": {
+          "description": "The Amazon Resource Name (ARN) of the IAM role that is associated with the DB cluster.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "RoleArn"
+      ]
+    },
+    "ScalingConfiguration": {
+      "description": "The ScalingConfiguration property type specifies the scaling configuration of an Aurora Serverless DB cluster.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "AutoPause": {
+          "description": "A value that indicates whether to allow or disallow automatic pause for an Aurora DB cluster in serverless DB engine mode. A DB cluster can be paused only when it's idle (it has no connections).",
+          "type": "boolean"
+        },
+        "MaxCapacity": {
+          "description": "The maximum capacity for an Aurora DB cluster in serverless DB engine mode.\nFor Aurora MySQL, valid capacity values are 1, 2, 4, 8, 16, 32, 64, 128, and 256.\nFor Aurora PostgreSQL, valid capacity values are 2, 4, 8, 16, 32, 64, 192, and 384.\nThe maximum capacity must be greater than or equal to the minimum capacity.",
+          "type": "integer"
+        },
+        "MinCapacity": {
+          "description": "The minimum capacity for an Aurora DB cluster in serverless DB engine mode.\nFor Aurora MySQL, valid capacity values are 1, 2, 4, 8, 16, 32, 64, 128, and 256.\nFor Aurora PostgreSQL, valid capacity values are 2, 4, 8, 16, 32, 64, 192, and 384.\nThe minimum capacity must be less than or equal to the maximum capacity.",
+          "type": "integer"
+        },
+        "SecondsUntilAutoPause": {
+          "description": "The time, in seconds, before an Aurora DB cluster in serverless mode is paused.",
+          "type": "integer"
+        }
+      }
+    },
+    "Tag": {
+      "description": "A key-value pair to associate with a resource.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Key": {
+          "type": "string",
+          "description": "The key name of the tag. You can specify a value that is 1 to 127 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "Value": {
+          "type": "string",
+          "description": "The value for the tag. You can specify a value that is 1 to 255 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "Key",
+        "Value"
+      ]
+    }
+  },
   "additionalProperties": false,
+  "readOnlyProperties": [
+    "/properties/Endpoint",
+    "/properties/ReadEndpoint"
+  ],
   "createOnlyProperties": [
     "/properties/AvailabilityZones",
     "/properties/DatabaseName",
@@ -249,22 +275,36 @@
   "handlers": {
     "create": {
       "permissions": [
-        "initech:CreateReport"
+        "rds:CreateDBCluster",
+        "rds:RestoreDBClusterFromSnapshot",
+        "rds:RestoreDBClusterToPointInTime",
+        "rds:ModifyDBCluster",
+        "rds:DescribeDBClusters",
+        "rds:AddRoleToDBCluster",
+        "rds:ListTagsForResource"
       ]
     },
     "read": {
       "permissions": [
-        "initech:DescribeReport"
+        "rds:DescribeDBClusters",
+        "rds:ListTagsForResource"
       ]
     },
     "update": {
       "permissions": [
-        "initech:UpdateReport"
+        "rds:ModifyDBCluster",
+        "rds:DescribeDBClusters",
+        "rds:AddRoleToDBCluster",
+        "rds:RemoveRoleFromDBCluster",
+        "rds:ListTagsForResource",
+        "rds:RemoveTagsFromResource",
+        "rds:AddTagsFromResource"
       ]
     },
     "delete": {
       "permissions": [
-        "initech:DeleteReport"
+        "rds:DescribeDBClusters",
+        "rds:DeleteDBCluster"
       ]
     },
     "list": {

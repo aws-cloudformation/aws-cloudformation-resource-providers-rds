@@ -1,8 +1,11 @@
 package software.amazon.rds.dbcluster;
 
+import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -31,6 +34,7 @@ public class Translator {
         return CreateDbClusterRequest.builder()
                 .availabilityZones(model.getAvailabilityZones())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .copyTagsToSnapshot(true)
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
@@ -55,7 +59,6 @@ public class Translator {
                 .deletionProtection(model.getDeletionProtection())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .build();
-
     }
 
     static RestoreDbClusterToPointInTimeRequest restoreDbClusterToPointInTimeRequest(final ResourceModel model) {
@@ -119,7 +122,6 @@ public class Translator {
     static ModifyDbClusterRequest modifyDbClusterRequest(final ResourceModel model,
                                                          final CloudwatchLogsExportConfiguration config) {
         return ModifyDbClusterRequest.builder()
-                .applyImmediately(model.getApplyImmediately())
                 .backtrackWindow(castToLong(model.getBacktrackWindow()))
                 .cloudwatchLogsExportConfiguration(config)
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
@@ -161,9 +163,24 @@ public class Translator {
                 .build();
     }
 
+    static DeleteDbClusterRequest deleteDbClusterRequest(final ResourceModel model,
+                                                         final String snapshotIdentifier) {
+        return DeleteDbClusterRequest.builder()
+                .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .finalDBSnapshotIdentifier(snapshotIdentifier)
+                .skipFinalSnapshot(false)
+                .build();
+    }
+
     static DescribeDbClustersRequest describeDbClustersRequest(final ResourceModel model) {
         return DescribeDbClustersRequest.builder()
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .build();
+    }
+
+    static DescribeDbClustersRequest describeDbClustersRequest(final String nextToken) {
+        return DescribeDbClustersRequest.builder()
+                .marker(nextToken)
                 .build();
     }
 

@@ -23,11 +23,18 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                - "initech:CreateReport"
-                - "initech:DeleteReport"
-                - "initech:DescribeReport"
                 - "initech:ListReports"
-                - "initech:UpdateReport"
+                - "rds:AddRoleToDBCluster"
+                - "rds:AddTagsFromResource"
+                - "rds:CreateDBCluster"
+                - "rds:DeleteDBCluster"
+                - "rds:DescribeDBClusters"
+                - "rds:ListTagsForResource"
+                - "rds:ModifyDBCluster"
+                - "rds:RemoveRoleFromDBCluster"
+                - "rds:RemoveTagsFromResource"
+                - "rds:RestoreDBClusterFromSnapshot"
+                - "rds:RestoreDBClusterToPointInTime"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

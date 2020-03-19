@@ -91,9 +91,30 @@ public class UpdateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_InProgress() {
         final ModifyDbClusterResponse modifyDbClusterResponse = ModifyDbClusterResponse.builder().build();
         when(proxyRdsClient.client().modifyDBCluster(any(ModifyDbClusterRequest.class))).thenReturn(modifyDbClusterResponse);
+
+        CallbackContext callbackContext = new CallbackContext();
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL).previousResourceState(RESOURCE_MODEL).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+        callbackContext.setModified(true);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualTo(callbackContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(60);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).modifyDBCluster(any(ModifyDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccess() {
+
         final DescribeDbClustersResponse describeInProgressDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_INPROGRESS).build();
         final DescribeDbClustersResponse describeActiveDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
         final RemoveRoleFromDBClusterResponse removeRoleFromDBClusterResponse = RemoveRoleFromDBClusterResponse.builder().build();
@@ -122,23 +143,24 @@ public class UpdateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
         when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setModified(true);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL).previousResourceState(RESOURCE_MODEL).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(proxyRdsClient.client()).modifyDBCluster(any(ModifyDbClusterRequest.class));
-        verify(proxyRdsClient.client(), times(5)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(6)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+
     }
 }
