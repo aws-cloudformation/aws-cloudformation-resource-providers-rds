@@ -23,7 +23,6 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                - "initech:ListReports"
                 - "rds:AddRoleToDBCluster"
                 - "rds:AddTagsFromResource"
                 - "rds:CreateDBCluster"

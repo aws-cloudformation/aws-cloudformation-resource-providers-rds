@@ -7,7 +7,7 @@
       "$ref": "#/definitions/Endpoint"
     },
     "ReadEndpoint": {
-      "type": "string"
+      "$ref": "#/definitions/ReadEndpoint"
     },
     "AssociatedRoles": {
       "description": "Provides a list of the AWS Identity and Access Management (IAM) roles that are associated with the DB cluster. IAM roles that are associated with a DB cluster grant permission for the DB cluster to access other AWS services on your behalf.",
@@ -45,11 +45,13 @@
     },
     "DBClusterIdentifier": {
       "description": "The DB cluster identifier. This parameter is stored as a lowercase string.",
-      "type": "string"
+      "type": "string",
+      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
     },
     "DBClusterParameterGroupName": {
       "description": "The name of the DB cluster parameter group to associate with this DB cluster.",
-      "type": "string"
+      "type": "string",
+      "default": "default.aurora5.6"
     },
     "DBSubnetGroupName": {
       "description": "A DB subnet group that you want to associate with this DB cluster.",
@@ -76,12 +78,24 @@
       "type": "boolean"
     },
     "Engine": {
-      "description": "The name of the database engine to be used for this DB cluster.",
-      "type": "string"
+      "description": "The name of the database engine to be used for this DB cluster. Valid Values: aurora (for MySQL 5.6-compatible Aurora), aurora-mysql (for MySQL 5.7-compatible Aurora), and aurora-postgresql",
+      "type": "string",
+      "enum": [
+        "aurora",
+        "aurora-mysql",
+        "aurora-postgres"
+      ]
     },
     "EngineMode": {
       "description": "The DB engine mode of the DB cluster, either provisioned, serverless, parallelquery, global, or multimaster.",
-      "type": "string"
+      "type": "string",
+      "enum": [
+        "provisioned",
+        "serverless",
+        "parallelquery",
+        "global",
+        "multimaster"
+      ]
     },
     "EngineVersion": {
       "description": "The version number of the database engine to use.",
@@ -92,17 +106,16 @@
       "type": "string"
     },
     "MasterUsername": {
-      "description": "The name of the master user for the DB cluster.",
-      "type": "string"
+      "description": "The name of the master user for the DB cluster. You must specify MasterUsername, unless you specify SnapshotIdentifier. In that case, don't specify MasterUsername.",
+      "type": "string",
+      "pattern": "^[a-zA-Z]{1}[a-zA-Z0-9]{0,15}$"
     },
     "MasterUserPassword": {
       "description": "The master password for the DB instance.",
       "type": "string"
     },
     "Port": {
-      "description": "The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.",
-      "default": 3306,
-      "type": "integer"
+      "$ref": "#/definitions/Port"
     },
     "PreferredBackupWindow": {
       "description": "The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter. The default is a 30-minute window selected at random from an 8-hour block of time for each AWS Region. To see the time blocks available, see Adjusting the Preferred DB Cluster Maintenance Window in the Amazon Aurora User Guide.",
@@ -118,7 +131,12 @@
     },
     "RestoreType": {
       "description": "The type of restore to be performed. You can specify one of the following values:\nfull-copy - The new DB cluster is restored as a full copy of the source DB cluster.\ncopy-on-write - The new DB cluster is restored as a clone of the source DB cluster.",
-      "type": "string"
+      "type": "string",
+      "enum": [
+        "full-copy",
+        "copy-on-write"
+      ],
+      "default": "full-copy"
     },
     "ScalingConfiguration": {
       "description": "The ScalingConfiguration property type specifies the scaling configuration of an Aurora Serverless DB cluster.",
@@ -151,7 +169,7 @@
       "type": "boolean"
     },
     "VpcSecurityGroupIds": {
-      "description": "",
+      "description": "A list of EC2 VPC security groups to associate with this DB cluster.",
       "uniqueItems": true,
       "items": {
         "type": "string"
@@ -159,16 +177,84 @@
       "type": "array"
     }
   },
+  "allOf": [
+    {
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "MasterUsername"
+              ]
+            },
+            {
+              "required": [
+                "SnapshotIdentifier"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "oneOf": [
+                {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "SourceDBClusterIdentifier"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "SnapshotIdentifier"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "required": [
+                    "MasterUserPassword"
+                  ]
+                }
+              ]
+            },
+            {
+              "required": [
+                "MasterUsername"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "required": [
+        "Engine"
+      ]
+    }
+  ],
   "definitions": {
     "Endpoint": {
-      "description": "Describes an AWS Identity and Access Management (IAM) role that is associated with a DB cluster.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "Address": {
+          "description": "The connection endpoint for the DB cluster.",
           "type": "string"
         },
         "Port": {
+          "description": "The port number that will accept connections on this DB cluster.",
+          "type": "string"
+        }
+      }
+    },
+    "ReadEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Address": {
+          "description": "The reader endpoint for the DB cluster.",
           "type": "string"
         }
       }
@@ -190,6 +276,47 @@
       "required": [
         "RoleArn"
       ]
+    },
+    "Port": {
+      "description": "The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.",
+      "type": "integer",
+      "default": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "Engine": "aurora"
+                    }
+                  },
+                  {
+                    "properties": {
+                      "Engine": "aurora-mysql"
+                    }
+                  }
+                ]
+              },
+              {
+                "const": 3306
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "properties": {
+                  "Engine": "aurora-postgres"
+                }
+              },
+              {
+                "const": 5432
+              }
+            ]
+          }
+        ]
+      }
     },
     "ScalingConfiguration": {
       "description": "The ScalingConfiguration property type specifies the scaling configuration of an Aurora Serverless DB cluster.",
@@ -223,13 +350,13 @@
           "type": "string",
           "description": "The key name of the tag. You can specify a value that is 1 to 127 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
           "minLength": 1,
-          "maxLength": 127
+          "maxLength": 128
         },
         "Value": {
           "type": "string",
           "description": "The value for the tag. You can specify a value that is 1 to 255 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
           "minLength": 1,
-          "maxLength": 255
+          "maxLength": 256
         }
       },
       "required": [
@@ -258,9 +385,6 @@
     "/properties/SourceDBClusterIdentifier",
     "/properties/StorageEncrypted",
     "/properties/UseLatestRestorableTime"
-  ],
-  "required": [
-    "Engine"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterIdentifier"
@@ -309,7 +433,7 @@
     },
     "list": {
       "permissions": [
-        "initech:ListReports"
+        "rds:DescribeDBClusters"
       ]
     }
   }
