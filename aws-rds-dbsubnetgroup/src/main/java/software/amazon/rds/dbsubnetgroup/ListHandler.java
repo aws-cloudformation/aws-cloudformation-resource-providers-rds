@@ -1,13 +1,15 @@
 package software.amazon.rds.dbsubnetgroup;
 
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.OperationStatus;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ListHandler extends BaseHandler<CallbackContext> {
 
@@ -20,10 +22,16 @@ public class ListHandler extends BaseHandler<CallbackContext> {
 
         final List<ResourceModel> models = new ArrayList<>();
 
-        // TODO : put your code here
+        final DescribeDbSubnetGroupsResponse describeDbSubnetGroupsResponse =
+            proxy.injectCredentialsAndInvokeV2(Translator.describeDbSubnetGroupsRequest(request.getNextToken()),
+                ClientBuilder.getClient()::describeDBSubnetGroups);
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
-            .resourceModels(models)
+            .resourceModels(describeDbSubnetGroupsResponse.dbSubnetGroups()
+            .stream().map(dbSubnetGroup -> ResourceModel.builder()
+                    .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName()).build())
+                .collect(Collectors.toList()))
+            .nextToken(describeDbSubnetGroupsResponse.marker())
             .status(OperationStatus.SUCCESS)
             .build();
     }

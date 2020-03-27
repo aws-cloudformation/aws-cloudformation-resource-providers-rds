@@ -23,11 +23,11 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                - "initech:DeleteReport"
-                - "initech:ListReports"
-                - "initech:UpdateReport"
                 - "rds:CreateDBSubnetGroup"
+                - "rds:DeleteDBSubnetGroup"
                 - "rds:DescribeDBSubnetGroups"
+                - "rds:ListTagsForResource"
+                - "rds:ModifyDBSubnetGroup"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

@@ -1,12 +1,12 @@
 package software.amazon.rds.dbsubnetgroup;
 
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbSubnetGroupRequest;
-import software.amazon.awssdk.services.rds.model.ModifyDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbSubnetGroupRequest;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 
 import java.util.Collection;
@@ -30,6 +30,12 @@ public class Translator {
                 .build();
     }
 
+    static DescribeDbSubnetGroupsRequest describeDbSubnetGroupsRequest(final String nextToken) {
+        return DescribeDbSubnetGroupsRequest.builder()
+            .marker(nextToken)
+            .build();
+    }
+
     static ModifyDbSubnetGroupRequest modifyDbSubnetGroupRequest(final ResourceModel model) {
         return ModifyDbSubnetGroupRequest.builder()
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
@@ -50,16 +56,18 @@ public class Translator {
                 .build();
     }
 
-    static AddTagsToResourceRequest addTagsToResourceRequest(final String dbClusterParameterGroupArn,
-                                                             final Set<software.amazon.rds.dbsubnetgroup.Tag> tags) {
+  static AddTagsToResourceRequest addTagsToResourceRequest(
+      final String dbClusterParameterGroupArn,
+      final Set<software.amazon.rds.dbsubnetgroup.Tag> tags) {
         return AddTagsToResourceRequest.builder()
                 .resourceName(dbClusterParameterGroupArn)
                 .tags(translateTagsToSdk(tags))
                 .build();
     }
 
-    static RemoveTagsFromResourceRequest removeTagsFromResourceRequest(final String dbClusterParameterGroupArn,
-                                                                       final Set<software.amazon.rds.dbsubnetgroup.Tag> tags) {
+  static RemoveTagsFromResourceRequest removeTagsFromResourceRequest(
+      final String dbClusterParameterGroupArn,
+      final Set<software.amazon.rds.dbsubnetgroup.Tag> tags) {
         return RemoveTagsFromResourceRequest.builder()
                 .resourceName(dbClusterParameterGroupArn)
                 .tagKeys(tags
@@ -79,7 +87,10 @@ public class Translator {
     static Set<software.amazon.rds.dbsubnetgroup.Tag> translateTagsFromSdk(final Collection<Tag> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptySet())
                 .stream()
-                .map(tag -> software.amazon.rds.dbsubnetgroup.Tag.builder().key(tag.key()).value(tag.value()).build())
+                .map(tag -> software.amazon.rds.dbsubnetgroup.Tag.builder()
+                    .key(tag.key())
+                    .value(tag.value())
+                    .build())
                 .collect(Collectors.toSet());
     }
 }

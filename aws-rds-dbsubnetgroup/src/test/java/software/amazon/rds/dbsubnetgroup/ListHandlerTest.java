@@ -1,5 +1,7 @@
 package software.amazon.rds.dbsubnetgroup;
 
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -12,7 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest {
@@ -33,6 +38,13 @@ public class ListHandlerTest {
     public void handleRequest_SimpleSuccess() {
         final ListHandler handler = new ListHandler();
 
+        final DescribeDbSubnetGroupsResponse describeDbSubnetGroupsResponse =
+            DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(
+                DBSubnetGroup.builder()
+                    .dbSubnetGroupName("sampleName").build()
+            ).build();
+        doReturn(describeDbSubnetGroupsResponse).when(proxy)
+            .injectCredentialsAndInvokeV2(any(), any());
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
@@ -50,5 +62,6 @@ public class ListHandlerTest {
         assertThat(response.getResourceModels()).isNotNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
+        verify(proxy).injectCredentialsAndInvokeV2(any(), any());
     }
 }

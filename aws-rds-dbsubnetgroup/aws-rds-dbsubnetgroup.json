@@ -7,7 +7,8 @@
       "type": "string"
     },
     "DBSubnetGroupName": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^(?!default$)[a-zA-Z0-9-_\\s]{1,255}$"
     },
     "SubnetIds": {
       "type": "array",
@@ -63,9 +64,6 @@
   "primaryIdentifier": [
     "/properties/DBSubnetGroupName"
   ],
-  "readOnlyProperties": [
-    "/properties/DBSubnetGroupName"
-  ],
   "handlers": {
     "create": {
       "permissions": [
@@ -96,7 +94,7 @@
     },
     "list": {
       "permissions": [
-        "initech:ListReports"
+        "rds:DescribeDBSubnetGroups"
       ]
     }
   }
