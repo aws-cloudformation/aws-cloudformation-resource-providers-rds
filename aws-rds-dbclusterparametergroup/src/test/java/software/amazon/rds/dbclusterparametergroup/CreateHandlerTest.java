@@ -158,7 +158,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
-        System.out.println(response);
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
         assertThat(response.getCallbackContext()).isNotNull();

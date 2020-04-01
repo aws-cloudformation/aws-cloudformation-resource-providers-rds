@@ -116,7 +116,7 @@ public class Translator {
                 .collect(Collectors.toSet());
     }
 
-    protected static Parameter modifyParameter(final Map<String, Object> parameters,
+    private static Parameter modifyParameter(final Map<String, Object> parameters,
                                                final Parameter parameter) {
         if (!parameter.isModifiable()) throw new CfnInvalidRequestException("Unmodifiable DB Parameter: " + parameter.parameterName());
 
