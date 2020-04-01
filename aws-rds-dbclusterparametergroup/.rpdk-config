@@ -1,0 +1,15 @@
+{
+    "typeName": "AWS::RDS::DBClusterParameterGroup",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbclusterparametergroup.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbclusterparametergroup.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbclusterparametergroup"
+        ]
+    }
+}
