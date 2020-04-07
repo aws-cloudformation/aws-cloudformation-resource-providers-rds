@@ -1,0 +1,16 @@
+{
+    "typeName": "AWS::RDS::EventSubscription",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.eventsubscription.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.eventsubscription.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "eventsubscription"
+        ],
+        "codegen_template_path": "guided_aws"
+    }
+}

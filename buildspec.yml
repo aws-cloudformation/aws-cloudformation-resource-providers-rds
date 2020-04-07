@@ -13,6 +13,9 @@ phases:
       - mvn clean verify --no-transfer-progress
       - cd "$CODEBUILD_SRC_DIR/aws-rds-dbclusterparametergroup"
       - mvn clean verify --no-transfer-progress
+      - cd "$CODEBUILD_SRC_DIR/aws-rds-eventsubscription"
+      - mvn clean verify --no-transfer-progress
     finally:
       - cat "$CODEBUILD_SRC_DIR/aws-rds-dbsubnetgroup/rpdk.log"
       - cat "$CODEBUILD_SRC_DIR/aws-rds-dbclusterparametergroup/rpdk.log"
+      - cat "$CODEBUILD_SRC_DIR/aws-rds-eventsubscription/rpdk.log"
