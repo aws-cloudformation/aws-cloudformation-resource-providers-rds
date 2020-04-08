@@ -89,27 +89,37 @@
   "handlers": {
     "create": {
       "permissions": [
-        "initech:CreateReport"
+        "rds:CreateEventSubscription",
+        "rds:DescribeEventSubscriptions",
+        "rds:ListTagsForResource"
       ]
     },
     "read": {
       "permissions": [
-        "initech:DescribeReport"
+        "rds:DescribeEventSubscriptions",
+        "rds:ListTagsForResource"
       ]
     },
     "update": {
       "permissions": [
-        "initech:UpdateReport"
+        "rds:ModifyEventSubscription",
+        "rds:AddSourceIdentifierToSubscription",
+        "rds:RemoveSourceIdentifierFromSubscription",
+        "rds:DescribeEventSubscriptions",
+        "rds:ListTagsForResource",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource"
       ]
     },
     "delete": {
       "permissions": [
-        "initech:DeleteReport"
+        "rds:DeleteEventSubscription",
+        "rds:DescribeEventSubscriptions"
       ]
     },
     "list": {
       "permissions": [
-        "initech:ListReports"
+        "rds:DescribeEventSubscriptions"
       ]
     }
   }
