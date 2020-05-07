@@ -1,0 +1,15 @@
+{
+    "typeName": "AWS::RDS::DBSubnetGroup",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbsubnetgroup.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbsubnetgroup.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbsubnetgroup"
+        ]
+    }
+}
