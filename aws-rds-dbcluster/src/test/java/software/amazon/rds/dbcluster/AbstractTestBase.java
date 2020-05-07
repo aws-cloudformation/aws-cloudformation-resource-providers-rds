@@ -1,11 +1,20 @@
 package software.amazon.rds.dbcluster;
 
 import com.google.common.collect.Lists;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import software.amazon.awssdk.awscore.AwsRequest;
+import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
+import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 
 import org.slf4j.LoggerFactory;
+import software.amazon.cloudformation.proxy.ProxyClient;
 
 public class AbstractTestBase {
 
@@ -81,6 +90,14 @@ public class AbstractTestBase {
                 .engineMode(ENGINE_MODE)
                 .masterUsername(USER_NAME)
                 .masterUserPassword(USER_PASSWORD)
+                .scalingConfiguration(
+                    ScalingConfiguration.builder()
+                        .autoPause(true)
+                        .minCapacity(1)
+                        .maxCapacity(10)
+                        .secondsUntilAutoPause(5)
+                    .build()
+                )
                 .build();
 
         RESOURCE_MODEL_ON_RESTORE_IN_TIME = ResourceModel.builder()
@@ -101,6 +118,14 @@ public class AbstractTestBase {
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Available.toString())
+                .scalingConfigurationInfo(
+                    ScalingConfigurationInfo.builder()
+                        .autoPause(true)
+                        .maxCapacity(10)
+                        .minCapacity(1)
+                        .secondsUntilAutoPause(5)
+                        .build()
+                )
                 .build();
 
         DBCLUSTER_ACTIVE_NO_ROLE = DBCluster.builder()
@@ -127,5 +152,39 @@ public class AbstractTestBase {
                 .status(DBClusterStatus.Creating.toString())
                 .build();
 
+    }
+
+    static ProxyClient<RdsClient> MOCK_PROXY(
+        final AmazonWebServicesClientProxy proxy,
+        final RdsClient rdsClient
+    ) {
+        return new ProxyClient<RdsClient>() {
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+            ResponseT
+            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
+                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+            CompletableFuture<ResponseT>
+            injectCredentialsAndInvokeV2Async(RequestT request,
+                Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
+            IterableT
+            injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
+                return proxy.injectCredentialsAndInvokeIterableV2(request, requestFunction);
+            }
+
+            @Override
+            public RdsClient client() {
+                return rdsClient;
+            }
+        };
     }
 }

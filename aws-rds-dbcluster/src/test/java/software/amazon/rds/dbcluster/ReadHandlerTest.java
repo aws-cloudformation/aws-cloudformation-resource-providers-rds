@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import org.junit.jupiter.api.AfterEach;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
@@ -24,7 +25,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -47,36 +50,16 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @AfterEach
     public void post_execute() {
-        verifyNoMoreInteractions(proxyRdsClient.client());
+        verify(rds, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(rds);
     }
 
     @BeforeEach
     public void setup() {
-
         handler = new ReadHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Aync(RequestT request,
-                                             Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rds;
-            }
-        };
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @Test
@@ -98,7 +81,7 @@ public class ReadHandlerTest extends AbstractTestBase {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(rds).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rds).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 }

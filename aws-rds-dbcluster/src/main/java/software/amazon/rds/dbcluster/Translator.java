@@ -1,11 +1,8 @@
 package software.amazon.rds.dbcluster;
 
-import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -34,7 +31,6 @@ public class Translator {
         return CreateDbClusterRequest.builder()
                 .availabilityZones(model.getAvailabilityZones())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
-                .copyTagsToSnapshot(true)
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
@@ -160,15 +156,6 @@ public class Translator {
         return DeleteDbClusterRequest.builder()
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .skipFinalSnapshot(true)
-                .build();
-    }
-
-    static DeleteDbClusterRequest deleteDbClusterRequest(final ResourceModel model,
-                                                         final String snapshotIdentifier) {
-        return DeleteDbClusterRequest.builder()
-                .dbClusterIdentifier(model.getDBClusterIdentifier())
-                .finalDBSnapshotIdentifier(snapshotIdentifier)
-                .skipFinalSnapshot(false)
                 .build();
     }
 

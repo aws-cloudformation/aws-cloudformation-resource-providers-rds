@@ -24,13 +24,13 @@ public class ReadHandler extends BaseHandlerStd {
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
         return proxy.initiate("rds::describe-db-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .request(Translator::describeDbClustersRequest)
-                .call((describeDbClustersRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbClustersRequest, proxyInvocation.client()::describeDBClusters))
-                .done((describeDbClustersResponse) -> {
+                .translateToServiceRequest(Translator::describeDbClustersRequest)
+                .makeServiceCall((describeDbClustersRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbClustersRequest, proxyInvocation.client()::describeDBClusters))
+                .done((describeDbClustersRequest, describeDbClustersResponse, proxyInvocation, model, context) -> {
 
                     final Function<DBClusterRole, software.amazon.rds.dbcluster.DBClusterRole> roleTransform = (DBClusterRole dbClusterRole) -> new software.amazon.rds.dbcluster.DBClusterRole(dbClusterRole.roleArn(), dbClusterRole.featureName());
                     final DBCluster targetDBCluster = describeDbClustersResponse.dbClusters().stream().findFirst().get();
-                    final ListTagsForResourceResponse listTagsForResourceResponse = proxyClient.injectCredentialsAndInvokeV2(listTagsForResourceRequest(targetDBCluster.dbClusterArn()), proxyClient.client()::listTagsForResource);
+                    final ListTagsForResourceResponse listTagsForResourceResponse = proxyInvocation.injectCredentialsAndInvokeV2(listTagsForResourceRequest(targetDBCluster.dbClusterArn()), proxyInvocation.client()::listTagsForResource);
 
                     return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
                             // read only properties GetAtt

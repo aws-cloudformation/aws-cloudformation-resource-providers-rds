@@ -115,7 +115,9 @@
       "type": "string"
     },
     "Port": {
-      "$ref": "#/definitions/Port"
+      "description": "The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.",
+      "type": "integer",
+      "default": 3306
     },
     "PreferredBackupWindow": {
       "description": "The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter. The default is a 30-minute window selected at random from an 8-hour block of time for each AWS Region. To see the time blocks available, see Adjusting the Preferred DB Cluster Maintenance Window in the Amazon Aurora User Guide.",
@@ -276,47 +278,6 @@
       "required": [
         "RoleArn"
       ]
-    },
-    "Port": {
-      "description": "The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.",
-      "type": "integer",
-      "default": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "anyOf": [
-                  {
-                    "properties": {
-                      "Engine": "aurora"
-                    }
-                  },
-                  {
-                    "properties": {
-                      "Engine": "aurora-mysql"
-                    }
-                  }
-                ]
-              },
-              {
-                "const": 3306
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "properties": {
-                  "Engine": "aurora-postgres"
-                }
-              },
-              {
-                "const": 5432
-              }
-            ]
-          }
-        ]
-      }
     },
     "ScalingConfiguration": {
       "description": "The ScalingConfiguration property type specifies the scaling configuration of an Aurora Serverless DB cluster.",

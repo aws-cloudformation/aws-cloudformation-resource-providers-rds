@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import org.junit.jupiter.api.AfterEach;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -23,6 +24,7 @@ import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -44,34 +46,18 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     private DeleteHandler handler;
 
+    @AfterEach
+    public void post_execute() {
+        verify(rds, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(rds);
+    }
 
     @BeforeEach
     public void setup() {
-
         handler = new DeleteHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Aync(RequestT request,
-                                             Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rds;
-            }
-        };
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @Test
@@ -102,6 +88,5 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).deleteDBCluster(any(DeleteDbClusterRequest.class));
         verify(proxyRdsClient.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verifyNoMoreInteractions(proxyRdsClient.client());
     }
 }

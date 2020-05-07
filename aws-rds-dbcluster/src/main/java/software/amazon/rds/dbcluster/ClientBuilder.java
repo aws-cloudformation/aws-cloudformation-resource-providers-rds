@@ -1,10 +1,12 @@
 package software.amazon.rds.dbcluster;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.cloudformation.LambdaWrapper;
 
 public class ClientBuilder {
-    private static class LazyHolder { static final RdsClient RDS_CLIENT = RdsClient.create();}
     public static RdsClient getClient() {
-        return LazyHolder.RDS_CLIENT;
+        return RdsClient.builder()
+            .httpClient(LambdaWrapper.HTTP_CLIENT)
+            .build();
     }
 }

@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import org.junit.jupiter.api.AfterEach;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
@@ -36,6 +37,7 @@ import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -58,36 +60,16 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @AfterEach
     public void post_execute() {
-        verifyNoMoreInteractions(proxyRdsClient.client());
+        verify(rds, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(rds);
     }
 
     @BeforeEach
     public void setup() {
-
         handler = new CreateHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Aync(RequestT request,
-                                             Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rds;
-            }
-        };
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @Test
@@ -116,14 +98,13 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createDBCluster(any(CreateDbClusterRequest.class));
-        verify(proxyRdsClient.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(proxyRdsClient.client()).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
     public void handleRequest_CreateWithStabilizationSuccess() {
-
         final CreateDbClusterResponse createDbClusterResponse = CreateDbClusterResponse.builder().build();
         when(proxyRdsClient.client().createDBCluster(any(CreateDbClusterRequest.class))).thenReturn(createDbClusterResponse);
         final DescribeDbClustersResponse describeInProgressDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_INPROGRESS).build();
@@ -157,14 +138,13 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createDBCluster(any(CreateDbClusterRequest.class));
-        verify(proxyRdsClient.client(), times(5)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(proxyRdsClient.client()).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
     public void handleRequest_ClusterRestoreInProgress() {
-
         final RestoreDbClusterFromSnapshotResponse restoreDbClusterFromSnapshotResponse = RestoreDbClusterFromSnapshotResponse.builder().build();
         when(proxyRdsClient.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class))).thenReturn(restoreDbClusterFromSnapshotResponse);
         final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
@@ -194,7 +174,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_ClusterRestoreSuccess() {
-
         final RestoreDbClusterFromSnapshotResponse restoreDbClusterFromSnapshotResponse = RestoreDbClusterFromSnapshotResponse.builder().build();
         when(proxyRdsClient.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class))).thenReturn(restoreDbClusterFromSnapshotResponse);
         final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
@@ -217,7 +196,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
-        verify(proxyRdsClient.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
@@ -243,7 +222,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
-        verify(proxyRdsClient.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 }

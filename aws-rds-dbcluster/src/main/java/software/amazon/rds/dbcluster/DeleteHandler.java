@@ -20,17 +20,13 @@ public class DeleteHandler extends BaseHandlerStd {
                                                                           final CallbackContext callbackContext,
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
-        final ResourceModel model = request.getDesiredResourceState();
-        final String snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(SNAPSHOT_PREFIX + model.getDBClusterIdentifier(), request.getClientRequestToken(), DBCLUSTER_SNAPSHOT_ID_MAX_LENGTH).toLowerCase();
-        final Function<ResourceModel, DeleteDbClusterRequest> deleteDBClusterRequest = (resourceModel) -> isSnapshot() ? deleteDbClusterRequest(resourceModel, snapshotIdentifier) : deleteDbClusterRequest(resourceModel);
-
-        return proxy.initiate("rds::delete-dbcluster", proxyClient, model, callbackContext)
+        return proxy.initiate("rds::delete-dbcluster", proxyClient, request.getDesiredResourceState(), callbackContext)
                 // request to delete db cluster
-                .request(deleteDBClusterRequest)
-                .retry(CONSTANT)
-                .call((deleteDbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteDbClusterRequest, proxyInvocation.client()::deleteDBCluster))
+                .translateToServiceRequest(Translator::deleteDbClusterRequest)
+                .backoffDelay(BACKOFF_STRATEGY)
+                .makeServiceCall((deleteDbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteDbClusterRequest, proxyInvocation.client()::deleteDBCluster))
                 // wait until deleted
-                .stabilize((deleteDbClusterRequest, deleteDbClusterResponse, proxyInvocation, resourceModel, context) -> isDBClusterStabilized(proxyInvocation, resourceModel, DBClusterStatus.Deleted))
+                .stabilize((deleteDbClusterRequest, deleteDbClusterResponse, proxyInvocation, model, context) -> isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Deleted))
                 .success();
     }
 }
