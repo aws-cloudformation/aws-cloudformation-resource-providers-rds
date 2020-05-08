@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -39,17 +40,22 @@ public class UpdateHandler extends BaseHandlerStd {
         final ProxyClient<RdsClient> proxyClient,
         final ProgressEvent<ResourceModel, CallbackContext> progress,
         final List<DBClusterRole> roles) {
-    final ResourceModel model = progress.getResourceModel();
-    final CallbackContext callbackContext = progress.getCallbackContext();
-    for(final DBClusterRole dbClusterRole: Optional.ofNullable(roles).orElse(Collections.emptyList())) {
-      final ProgressEvent<ResourceModel, CallbackContext> progressEvent =  proxy.initiate("rds::remove-roles-to-dbcluster", proxyClient, model, callbackContext)
-          .translateToServiceRequest(modelRequest -> removeRoleFromDbClusterRequest(modelRequest.getDBClusterIdentifier(), dbClusterRole.getRoleArn(), dbClusterRole.getFeatureName()))
-          .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modelRequest, proxyInvocation.client()::removeRoleFromDBCluster))
-          .stabilize((removeRoleFromDbClusterRequest, removeRoleFromDBClusterResponse, proxyInvocation, modelRequest, callbackContext1) ->
-              isRoleStabilized(proxyInvocation, modelRequest, dbClusterRole, false))
-          .success();
-      if (!progressEvent.isSuccess()) return progressEvent;
+      final ResourceModel model = progress.getResourceModel();
+      final CallbackContext callbackContext = progress.getCallbackContext();
+      for(final DBClusterRole dbClusterRole: Optional.ofNullable(roles).orElse(Collections.emptyList())) {
+        final ProgressEvent<ResourceModel, CallbackContext> progressEvent =  proxy.initiate("rds::remove-roles-to-dbcluster", proxyClient, model, callbackContext)
+            .translateToServiceRequest(modelRequest -> removeRoleFromDbClusterRequest(modelRequest.getDBClusterIdentifier(), dbClusterRole.getRoleArn(), dbClusterRole.getFeatureName()))
+            .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modelRequest, proxyInvocation.client()::removeRoleFromDBCluster))
+            .stabilize((removeRoleFromDbClusterRequest, removeRoleFromDBClusterResponse, proxyInvocation, modelRequest, callbackContext1) ->
+                isRoleStabilized(proxyInvocation, modelRequest, dbClusterRole, false))
+            .handleError((removeRoleFromDbClusterRequest, exception, proxyInvocation, resourceModel, context) -> {
+              if (exception instanceof DbClusterRoleNotFoundException)
+                return ProgressEvent.success(resourceModel, context);
+              throw exception;
+            })
+            .success();
+        if (!progressEvent.isSuccess()) return progressEvent;
+      }
+      return ProgressEvent.progress(model, callbackContext);
     }
-    return ProgressEvent.progress(model, callbackContext);
-  }
 }

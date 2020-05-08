@@ -54,7 +54,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected boolean isDBClusterStabilized(final ProxyClient<RdsClient> proxyClient,
                                             final ResourceModel model,
                                             final DBClusterStatus expectedStatus) {
-
         // describe status of a resource to make sure it's ready
         // describe db cluster
         try {
@@ -133,6 +132,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 dbCluster.roleArn().equals(addedRole.getRoleArn()) &&
                 (dbCluster.featureName().equals(addedRole.getFeatureName()) || StringUtils.isNullOrEmpty(dbCluster.featureName()));
         final Predicate<software.amazon.awssdk.services.rds.model.DBClusterRole> isDetached = dbCluster -> !dbCluster.roleArn().equals(addedRole.getRoleArn());
+
         final DBCluster dbCluster = proxyClient.injectCredentialsAndInvokeV2(
             Translator.describeDbClustersRequest(model),
             proxyClient.client()::describeDBClusters).dbClusters().stream().findFirst().get();

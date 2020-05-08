@@ -5,6 +5,8 @@ import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -92,6 +94,47 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).modifyDBCluster(any(ModifyDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessRoleNotFound() {
+
+        final DescribeDbClustersResponse describeActiveDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
+        when(proxyRdsClient.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class))).thenThrow(
+            DbClusterRoleNotFoundException.class);
+        final DescribeDbClustersResponse describeDbClustersResponseWithNoRole = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE_NO_ROLE).build();
+
+        final AddRoleToDBClusterResponse addRoleToDBClusterResponse = AddRoleToDBClusterResponse.builder().build();
+        when(proxyRdsClient.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class))).thenReturn(addRoleToDBClusterResponse);
+
+        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeActiveDbClustersResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
+        when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setModified(true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL).previousResourceState(RESOURCE_MODEL).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+
     }
 
     @Test

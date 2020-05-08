@@ -111,7 +111,8 @@ public class AbstractTestBase {
 
         DBCLUSTER_ACTIVE = DBCluster.builder()
                 .dbClusterArn("arn")
-                .associatedRoles(software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
+                .associatedRoles(
+                    software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
                 .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
                 .deletionProtection(false)
                 .engine(RESOURCE_MODEL.getEngine())
