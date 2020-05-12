@@ -37,6 +37,7 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .globalClusterIdentifier(model.getGlobalClusterIdentifier())
                 .kmsKeyId(model.getKmsKeyId())
                 .masterUsername(model.getMasterUsername())
                 .masterUserPassword(model.getMasterUserPassword())
