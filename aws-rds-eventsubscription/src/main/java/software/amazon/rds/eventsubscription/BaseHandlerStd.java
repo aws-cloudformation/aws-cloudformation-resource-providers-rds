@@ -63,9 +63,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         // only stabilization is necessary so this is a dummy call
         // Function.identity() takes ResourceModel as an input and returns (the same) ResourceModel
         // Function.identity() is roughly similar to `model -> model`
-        .request(Function.identity())
+        .translateToServiceRequest(Function.identity())
         // this skips the call and goes directly to stabilization
-        .call(EMPTY_CALL)
+        .makeServiceCall(EMPTY_CALL)
         .stabilize((resourceModel, response, proxyInvocation, model, callbackContext) -> isStabilized(resourceModel, proxyInvocation)).progress();
   }
 
@@ -75,29 +75,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
       final ProgressEvent<ResourceModel, CallbackContext> progress,
       final Map<String, String> tags) {
     return proxy.initiate("rds::tag-event-subscription", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-        .request(Translator::describeEventSubscriptionsRequest)
-        .call((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
+        .translateToServiceRequest(Translator::describeEventSubscriptionsRequest)
+        .makeServiceCall((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
         .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, resourceModel, context) -> {
-          final String arn = describeEventSubscriptionsResponse.eventSubscriptionsList()
-              .stream().findFirst().get().eventSubscriptionArn();
+          final String arn = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get().eventSubscriptionArn();
 
-          final Set<Tag> currentTags = new HashSet<>(Optional.ofNullable(mapToTags(tags))
-              .orElse(Collections.emptySet()));
+          final Set<Tag> currentTags = new HashSet<>(Optional.ofNullable(mapToTags(tags)).orElse(Collections.emptySet()));
 
-          final Set<Tag> existingTags = Translator.translateTagsFromSdk(
-              proxyInvocation.injectCredentialsAndInvokeV2(
-                  listTagsForResourceRequest(arn),
-                  proxyInvocation.client()::listTagsForResource).tagList());
+          final Set<Tag> existingTags = Translator.translateTagsFromSdk(proxyInvocation.injectCredentialsAndInvokeV2(listTagsForResourceRequest(arn), proxyInvocation.client()::listTagsForResource).tagList());
 
           final Set<Tag> tagsToRemove = Sets.difference(existingTags, currentTags);
           final Set<Tag> tagsToAdd = Sets.difference(currentTags, existingTags);
 
-          proxyInvocation.injectCredentialsAndInvokeV2(
-              removeTagsFromResourceRequest(arn, tagsToRemove),
-              proxyInvocation.client()::removeTagsFromResource);
-          proxyInvocation.injectCredentialsAndInvokeV2(
-              addTagsToResourceRequest(arn, tagsToAdd),
-              proxyInvocation.client()::addTagsToResource);
+          proxyInvocation.injectCredentialsAndInvokeV2(removeTagsFromResourceRequest(arn, tagsToRemove), proxyInvocation.client()::removeTagsFromResource);
+          proxyInvocation.injectCredentialsAndInvokeV2(addTagsToResourceRequest(arn, tagsToAdd), proxyInvocation.client()::addTagsToResource);
           return ProgressEvent.progress(resourceModel, context);
         });
   }

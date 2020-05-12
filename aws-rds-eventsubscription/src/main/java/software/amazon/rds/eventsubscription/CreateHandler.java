@@ -10,20 +10,19 @@ import software.amazon.cloudformation.resource.IdentifierUtils;
 
 public class CreateHandler extends BaseHandlerStd {
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-      final AmazonWebServicesClientProxy proxy,
-      final ResourceHandlerRequest<ResourceModel> request,
-      final CallbackContext callbackContext,
-      final ProxyClient<RdsClient> proxyClient,
-      final Logger logger) {
-
+        final AmazonWebServicesClientProxy proxy,
+        final ResourceHandlerRequest<ResourceModel> request,
+        final CallbackContext callbackContext,
+        final ProxyClient<RdsClient> proxyClient,
+        final Logger logger) {
         ResourceModel model = request.getDesiredResourceState();
 
-        model.setId(IdentifierUtils
+        model.setSubscriptionName(IdentifierUtils
             .generateResourceIdentifier(request.getLogicalResourceIdentifier(), request.getClientRequestToken(), 255).toLowerCase());
 
         return proxy.initiate("rds::create-event-subscription", proxyClient, model, callbackContext)
-            .request((resourceModel) -> Translator.createEventSubscriptionRequest(model, request.getDesiredResourceTags()))
-            .call((createEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createEventSubscriptionRequest, proxyInvocation.client()::createEventSubscription))
+            .translateToServiceRequest((resourceModel) -> Translator.createEventSubscriptionRequest(model, request.getDesiredResourceTags()))
+            .makeServiceCall((createEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createEventSubscriptionRequest, proxyInvocation.client()::createEventSubscription))
             .stabilize((createEventSubscriptionRequest, createEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
                 isStabilized(resourceModel, proxyInvocation))
             .progress()

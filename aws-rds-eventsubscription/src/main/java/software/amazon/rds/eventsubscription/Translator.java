@@ -22,7 +22,7 @@ public class Translator {
       final ResourceModel model,
       final Map<String, String> tags) {
     return CreateEventSubscriptionRequest.builder()
-        .subscriptionName(model.getId())
+        .subscriptionName(model.getSubscriptionName())
         .snsTopicArn(model.getSnsTopicArn())
         .sourceType(model.getSourceType())
         .eventCategories(model.getEventCategories())
@@ -34,7 +34,7 @@ public class Translator {
 
   static DescribeEventSubscriptionsRequest describeEventSubscriptionsRequest(final ResourceModel model) {
     return DescribeEventSubscriptionsRequest.builder()
-        .subscriptionName(model.getId())
+        .subscriptionName(model.getSubscriptionName())
         .build();
   }
 
@@ -46,13 +46,13 @@ public class Translator {
 
   static DeleteEventSubscriptionRequest deleteEventSubscriptionRequest(final ResourceModel model) {
     return DeleteEventSubscriptionRequest.builder()
-        .subscriptionName(model.getId())
+        .subscriptionName(model.getSubscriptionName())
         .build();
   }
 
   static ModifyEventSubscriptionRequest modifyEventSubscriptionRequest(final ResourceModel model) {
     return ModifyEventSubscriptionRequest.builder()
-        .subscriptionName(model.getId())
+        .subscriptionName(model.getSubscriptionName())
         .snsTopicArn(model.getSnsTopicArn())
         .sourceType(model.getSourceType())
         .eventCategories(model.getEventCategories())
@@ -61,21 +61,21 @@ public class Translator {
   }
 
   static RemoveSourceIdentifierFromSubscriptionRequest removeSourceIdentifierFromSubscriptionRequest(
-      final String subscriptionName,
+      final ResourceModel model,
       final String sourceId
   ) {
     return RemoveSourceIdentifierFromSubscriptionRequest.builder()
-        .subscriptionName(subscriptionName)
+        .subscriptionName(model.getSubscriptionName())
         .sourceIdentifier(sourceId)
         .build();
   }
 
   static AddSourceIdentifierToSubscriptionRequest addSourceIdentifierToSubscriptionRequest(
-      final String subscriptionName,
+      final ResourceModel model,
       final String sourceId
   ) {
     return AddSourceIdentifierToSubscriptionRequest.builder()
-        .subscriptionName(subscriptionName)
+        .subscriptionName(model.getSubscriptionName())
         .sourceIdentifier(sourceId)
         .build();
   }
@@ -115,7 +115,6 @@ public class Translator {
 
   // Translate tags
   static Set<Tag> translateTagsToSdk(final Map<String, String> tags) {
-    System.out.println(tags);
     if (tags == null) return Collections.emptySet();
     return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
         .stream()

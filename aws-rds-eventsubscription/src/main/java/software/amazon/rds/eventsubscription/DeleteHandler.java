@@ -16,8 +16,8 @@ public class DeleteHandler extends BaseHandlerStd {
       final ProxyClient<RdsClient> proxyClient,
       final Logger logger) {
         return proxy.initiate("rds::delete-event-subscription", proxyClient, request.getDesiredResourceState(), callbackContext)
-            .request(Translator::deleteEventSubscriptionRequest)
-            .call((deleteEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteEventSubscriptionRequest, proxyInvocation.client()::deleteEventSubscription))
+            .translateToServiceRequest(Translator::deleteEventSubscriptionRequest)
+            .makeServiceCall((deleteEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteEventSubscriptionRequest, proxyInvocation.client()::deleteEventSubscription))
             .stabilize((deleteEventSubscriptionRequest, deleteEventSubscriptionResponse, proxyInvocation, model, context) ->
                 isDeleted(model, proxyInvocation))
             .success();
@@ -25,9 +25,7 @@ public class DeleteHandler extends BaseHandlerStd {
     protected boolean isDeleted(final ResourceModel model,
         final ProxyClient<RdsClient> proxyClient) {
         try {
-            proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeEventSubscriptionsRequest(model),
-                proxyClient.client()::describeEventSubscriptions);
+            proxyClient.injectCredentialsAndInvokeV2(Translator.describeEventSubscriptionsRequest(model), proxyClient.client()::describeEventSubscriptions);
             return false;
         } catch (SubscriptionNotFoundException e) {
             return true;

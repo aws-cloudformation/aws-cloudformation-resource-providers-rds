@@ -20,8 +20,8 @@ public class ReadHandler extends BaseHandlerStd {
       final ProxyClient<RdsClient> proxyClient,
       final Logger logger) {
         return proxy.initiate("rds::read-event-subscription", proxyClient, request.getDesiredResourceState(), callbackContext)
-            .request(Translator::describeEventSubscriptionsRequest)
-            .call((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
+            .translateToServiceRequest(Translator::describeEventSubscriptionsRequest)
+            .makeServiceCall((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
             .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, model, context) -> {
                 final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
                 final ListTagsForResourceResponse listTagsForResourceResponse = proxyInvocation.injectCredentialsAndInvokeV2(Translator.listTagsForResourceRequest(eventSubscription.eventSubscriptionArn()), proxyInvocation.client()::listTagsForResource);
@@ -30,7 +30,7 @@ public class ReadHandler extends BaseHandlerStd {
                     ResourceModel.builder()
                         .enabled(eventSubscription.enabled())
                         .eventCategories(eventSubscription.eventCategoriesList())
-                        .id(model.getId())
+                        .subscriptionName(model.getSubscriptionName())
                         .snsTopicArn(eventSubscription.snsTopicArn())
                         .sourceType(eventSubscription.sourceType())
                         .sourceIds(new HashSet<>(eventSubscription.sourceIdsList()))

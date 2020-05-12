@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,18 +46,19 @@ public class UpdateHandlerTest extends AbstractTestBase {
     private ProxyClient<RdsClient> proxyRdsClient;
 
     @Mock
-    RdsClient rdsClient;
+    RdsClient rds;
 
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        rdsClient = mock(RdsClient.class);
-        proxyRdsClient = MOCK_PROXY(proxy, rdsClient);
+        rds = mock(RdsClient.class);
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @AfterEach
     public void post_execute() {
-        verifyNoMoreInteractions(proxyRdsClient.client());
+        verify(rds, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(rds);
     }
 
     @Test
@@ -150,7 +152,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
             AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         final ResourceModel model = ResourceModel.builder()
-            .id("sampleId")
+            .subscriptionName("sampleId")
             .sourceIds(Sets.newHashSet("sampleNewId")).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

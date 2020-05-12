@@ -37,8 +37,10 @@
         "$ref": "#/definitions/Tag"
       }
     },
-    "Id": {
-      "type": "string"
+    "SubscriptionName": {
+      "description": "The name of the subscription.",
+      "type": "string",
+      "maxLength": 255
     },
     "Enabled": {
       "description": "A Boolean value; set to true to activate the subscription, set to false to create the subscription but not active it.",
@@ -84,7 +86,7 @@
     "/properties/SnsTopicArn"
   ],
   "primaryIdentifier": [
-    "/properties/Id"
+    "/properties/SubscriptionName"
   ],
   "handlers": {
     "create": {

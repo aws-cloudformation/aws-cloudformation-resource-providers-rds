@@ -18,57 +18,33 @@ public class UpdateHandler extends BaseHandlerStd {
       final CallbackContext callbackContext,
       final ProxyClient<RdsClient> proxyClient,
       final Logger logger) {
-        return proxy.initiate("rds::update-event-subscription", proxyClient, request.getDesiredResourceState(), callbackContext)
-            .request(Translator::modifyEventSubscriptionRequest)
-            .call((modifyEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyEventSubscriptionRequest, proxyInvocation.client()::modifyEventSubscription))
-            .done((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, model, context) -> {
-              final ResourceModel previousModel = request.getPreviousResourceState();
+      final ResourceModel model = request.getDesiredResourceState();
+      final ResourceModel previousModel = request.getPreviousResourceState();
+      final Set<String> currentSourceIds = Optional.ofNullable(model.getSourceIds()).orElse(Collections.emptySet());
+      final Set<String> previousSourceIds = Optional.ofNullable(previousModel.getSourceIds()).orElse(Collections.emptySet());
 
-              final Set<String> currentSourceIds = Optional.ofNullable(model.getSourceIds()).orElse(
-                  Collections.emptySet());
-
-              final Set<String> previousSourceIds = Optional
-                  .ofNullable(previousModel.getSourceIds()).orElse(
-                      Collections.emptySet());
-
-              final Set<String> sourceIdsToAdd = Sets
-                  .difference(currentSourceIds, previousSourceIds);
-              final Set<String> sourceIdsToRemove = Sets
-                  .difference(previousSourceIds, currentSourceIds);
-
-              sourceIdsToAdd.forEach(
-                  sourceId ->
-                      proxy
-                          .initiate("rds::add-source-id-event-subscription", proxyInvocation, model,
-                              context)
-                          .request((resourceModel) -> Translator
-                              .addSourceIdentifierToSubscriptionRequest(resourceModel.getId(), sourceId))
-                          .call((addSourceIdentifierToSubscriptionRequest, proxyCall) -> {
-                            System.out.println(sourceId);
-                            return proxyCall.injectCredentialsAndInvokeV2(
-                                addSourceIdentifierToSubscriptionRequest,
-                                proxyCall.client()::addSourceIdentifierToSubscription);
-                          })
-              );
-
-              sourceIdsToRemove.forEach(
-                  sourceId ->
-                      proxy.initiate("rds::remove-source-id-event-subscription", proxyInvocation,
-                          model, context)
-                          .request((resourceModel) -> Translator
-                              .removeSourceIdentifierFromSubscriptionRequest(resourceModel.getId(),
-                                  sourceId))
-                          .call(
-                              (removeSourceIdentifierFromSubscriptionRequest, proxyCall) -> proxyCall
-                                  .injectCredentialsAndInvokeV2(
-                                      removeSourceIdentifierFromSubscriptionRequest,
-                                      proxyCall.client()::removeSourceIdentifierFromSubscription))
-              );
-
-              return ProgressEvent.progress(model, context);
-            })
-            .then(progress -> waitForEventSubscription(proxy, proxyClient, progress))
-            .then(progress -> tagResource(proxy, proxyClient, progress, request.getDesiredResourceTags()))
-            .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+      return proxy.initiate("rds::update-event-subscription", proxyClient, model, callbackContext)
+          .translateToServiceRequest(Translator::modifyEventSubscriptionRequest)
+          .makeServiceCall((modifyEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyEventSubscriptionRequest, proxyInvocation.client()::modifyEventSubscription))
+          .progress()
+          .then(progress -> {
+            Sets.difference(currentSourceIds, previousSourceIds).forEach(
+                sourceId -> proxy.initiate("rds::add-source-id-event-subscription", proxyClient, model, callbackContext)
+                    .translateToServiceRequest((resourceModel) -> Translator.addSourceIdentifierToSubscriptionRequest(resourceModel, sourceId))
+                    .makeServiceCall((addSourceIdentifierToSubscriptionRequest, proxyCall) -> proxyCall.injectCredentialsAndInvokeV2(addSourceIdentifierToSubscriptionRequest, proxyCall.client()::addSourceIdentifierToSubscription))
+            );
+            return progress;
+          })
+          .then(progress -> {
+            Sets.difference(previousSourceIds, currentSourceIds).forEach(
+                sourceId -> proxy.initiate("rds::remove-source-id-event-subscription", proxyClient, model, callbackContext)
+                    .translateToServiceRequest((resourceModel) -> Translator.removeSourceIdentifierFromSubscriptionRequest(resourceModel, sourceId))
+                    .makeServiceCall((removeSourceIdentifierFromSubscriptionRequest, proxyCall) -> proxyCall.injectCredentialsAndInvokeV2(removeSourceIdentifierFromSubscriptionRequest, proxyCall.client()::removeSourceIdentifierFromSubscription))
+            );
+            return progress;
+          })
+          .then(progress -> waitForEventSubscription(proxy, proxyClient, progress))
+          .then(progress -> tagResource(proxy, proxyClient, progress, request.getDesiredResourceTags()))
+          .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }
