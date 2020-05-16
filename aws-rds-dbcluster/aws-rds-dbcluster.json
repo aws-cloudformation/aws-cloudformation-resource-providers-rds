@@ -152,6 +152,10 @@
       "description": "The identifier of the source DB cluster from which to restore.",
       "type": "string"
     },
+    "SourceRegion": {
+      "description": "The AWS Region which contains the source DB cluster when replicating a DB cluster. For example, us-east-1.",
+      "type": "string"
+    },
     "StorageEncrypted": {
       "description": "Indicates whether the DB instance is encrypted.\nIf you specify the DBClusterIdentifier, SnapshotIdentifier, or SourceDBInstanceIdentifier property, don't specify this property. The value is inherited from the cluster, snapshot, or source DB instance.",
       "type": "boolean"
@@ -344,6 +348,7 @@
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",
+    "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/UseLatestRestorableTime"
   ],
@@ -355,6 +360,7 @@
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",
+    "/properties/SourceRegion",
     "/properties/UseLatestRestorableTime"
   ],
   "handlers": {
