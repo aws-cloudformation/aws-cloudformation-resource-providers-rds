@@ -54,6 +54,7 @@ public class Translator {
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .deletionProtection(model.getDeletionProtection())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
+                .sourceRegion(model.getSourceRegion())
                 .build();
     }
 
