@@ -1,79 +1,79 @@
 {
-    "typeName": "AWS::RDS::GlobalCluster",
-    "description": "An example resource schema demonstrating some basic constructs and validation rules.",
-    "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-    "properties": {
-        "DatabaseName": {
-            "description": "The name for your database of up to 64 alpha-numeric characters. If you do not provide a name, Amazon Aurora will not create a database in the global database cluster you are creating.",
-            "type": "string"
-        },
-        "Engine": {
-            "description": "The name of the database engine to be used for this DB cluster. Valid Values: aurora (for MySQL 5.6-compatible Aurora), aurora-mysql (for MySQL 5.7-compatible Aurora).\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
-            "type": "string",
-            "enum": [
-                "aurora",
-                "aurora-mysql",
-                "aurora-postgres"
-            ]
-        },
-        "EngineVersion": {
-            "description": "The version number of the database engine to use. If you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
-            "type": "string"
-        },
-        "DeletionProtection": {
-            "description": "The deletion protection setting for the new global database. The global database can't be deleted when deletion protection is enabled.",
-            "type": "boolean"
-        },
-        "GlobalClusterIdentifier": {
-            "description": "The cluster identifier of the new global database cluster. This parameter is stored as a lowercase string.",
-            "type": "string"
-        },
-        "SourceDBClusterIdentifier": {
-            "description": " The Amazon Resource Name (ARN) to use as the primary cluster of the global database. This parameter is optional. This parameter is stored as a lowercase string.",
-            "type": "string"
-        },
-        "StorageEncrypted": {
-            "description": " The storage encryption setting for the new global database cluster.\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
-            "type": "boolean"
-        },
-        "DBClusterIdentifier": {
-            "description": "The cluster identifier of the global database cluster. This parameter is used to remove cluster from global cluster. This parameter is stored as a lowercase string.",
-            "type": "string"
-        },
-        "GlobalClusterMembers": {
-            "description": "The list of cluster IDs for secondary clusters within the global database cluster.",
-            "type": "array",
-            "uniqueItems": true,
-            "items": {
-                "$ref": "#/definitions/GlobalClusterMember"
-            }
-        }
+  "typeName": "AWS::RDS::GlobalCluster",
+  "description": "An example resource schema demonstrating some basic constructs and validation rules.",
+  "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+  "properties": {
+    "DatabaseName": {
+      "description": "The name for your database of up to 64 alpha-numeric characters. If you do not provide a name, Amazon Aurora will not create a database in the global database cluster you are creating.",
+      "type": "string"
     },
-    "definitions": {
-    "GlobalClusterMember": {
-        "description": "The list of cluster IDs for secondary clusters within the global database cluster.",
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-            "DBClusterArn": {
-                "type": "string",
-                "description": "The Amazon Resource Name (ARN) for each Aurora cluster."
-            },
-            "IsWriter": {
-                "type": "boolean",
-                "description": "Specifies whether the Aurora cluster is the primary cluster (that is, has read-write capability) for the Aurora global database with which it is associated. "
-            },
-            "Readers": {
-                "type": "array",
-                "description": "The Amazon Resource Name (ARN) for each read-only secondary cluster associated with the Aurora global database.",
-                "uniqueItems": true,
-                "items": {
-                    "type": "string"
-                }
-            }
-        }
+    "Engine": {
+      "description": "The name of the database engine to be used for this DB cluster. Valid Values: aurora (for MySQL 5.6-compatible Aurora), aurora-mysql (for MySQL 5.7-compatible Aurora).\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
+      "type": "string",
+      "enum": [
+        "aurora",
+        "aurora-mysql",
+        "aurora-postgres"
+      ]
+    },
+    "EngineVersion": {
+      "description": "The version number of the database engine to use. If you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
+      "type": "string"
+    },
+    "DeletionProtection": {
+      "description": "The deletion protection setting for the new global database. The global database can't be deleted when deletion protection is enabled.",
+      "type": "boolean"
+    },
+    "GlobalClusterIdentifier": {
+      "description": "The cluster identifier of the new global database cluster. This parameter is stored as a lowercase string.",
+      "type": "string"
+    },
+    "SourceDBClusterIdentifier": {
+      "description": " The Amazon Resource Name (ARN) to use as the primary cluster of the global database. This parameter is optional. This parameter is stored as a lowercase string.",
+      "type": "string"
+    },
+    "StorageEncrypted": {
+      "description": " The storage encryption setting for the new global database cluster.\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
+      "type": "boolean"
+    },
+    "DBClusterIdentifier": {
+      "description": "The cluster identifier of the global database cluster. This parameter is used to remove cluster from global cluster. This parameter is stored as a lowercase string.",
+      "type": "string"
+    },
+    "GlobalClusterMembers": {
+      "description": "The list of cluster IDs for secondary clusters within the global database cluster.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/GlobalClusterMember"
+      }
     }
-},
+  },
+  "definitions": {
+    "GlobalClusterMember": {
+      "description": "The list of cluster IDs for secondary clusters within the global database cluster.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "DBClusterArn": {
+          "type": "string",
+          "description": "The Amazon Resource Name (ARN) for each Aurora cluster."
+        },
+        "IsWriter": {
+          "type": "boolean",
+          "description": "Specifies whether the Aurora cluster is the primary cluster (that is, has read-write capability) for the Aurora global database with which it is associated. "
+        },
+        "Readers": {
+          "type": "array",
+          "description": "The Amazon Resource Name (ARN) for each read-only secondary cluster associated with the Aurora global database.",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
   "oneOf": [
     {
       "required": [
@@ -86,53 +86,53 @@
       ]
     }
   ],
-    "additionalProperties": false,
-    "readOnlyProperties": [
-        "/properties/GlobalClusterMembers"
-    ],
-    "createOnlyProperties": [
-        "/properties/GlobalClusterIdentifier",
-        "/properties/SourceDBClusterIdentifier",
-        "/properties/EngineVersion",
-        "/properties/Engine",
-        "/properties/DatabaseName"
-    ],
-    "primaryIdentifier": [
-        "/properties/GlobalClusterIdentifier"
-    ],
-    "handlers": {
-        "create": {
-            "permissions": [
-                "rds:CreateDBCluster",
-                "rds:CreateGlobalDBCluster",
-                "rds:ModifyDBCluster",
-                "rds:DescribeDBClusters",
-                "rds:DescribeGlobalDBCluster",
-                "rds:ModifyGlobalDBCluster"
-            ]
-        },
-        "read": {
-            "permissions": [
-                "rds:DescribeGlobalDBCluster"
-            ]
-        },
-        "update": {
-            "permissions": [
-                "rds:ModifyGlobalDBCluster",
-                "rds:DescribeGlobalDBCluster",
-                "rds:RemoveFromGlobalCluster"
-            ]
-        },
-        "delete": {
-            "permissions": [
-                "rds:DescribeGlobalDBCluster",
-                "rds:DeleteGlobalDBCluster"
-            ]
-        },
-        "list": {
-            "permissions": [
-                "rds:DescribeGlobalDBCluster"
-            ]
-        }
+  "additionalProperties": false,
+  "readOnlyProperties": [
+    "/properties/GlobalClusterMembers"
+  ],
+  "createOnlyProperties": [
+    "/properties/GlobalClusterIdentifier",
+    "/properties/SourceDBClusterIdentifier",
+    "/properties/EngineVersion",
+    "/properties/Engine",
+    "/properties/DatabaseName"
+  ],
+  "primaryIdentifier": [
+    "/properties/GlobalClusterIdentifier"
+  ],
+  "handlers": {
+    "create": {
+      "permissions": [
+        "rds:CreateDBCluster",
+        "rds:CreateGlobalDBCluster",
+        "rds:ModifyDBCluster",
+        "rds:DescribeDBClusters",
+        "rds:DescribeGlobalDBCluster",
+        "rds:ModifyGlobalDBCluster"
+      ]
+    },
+    "read": {
+      "permissions": [
+        "rds:DescribeGlobalDBCluster"
+      ]
+    },
+    "update": {
+      "permissions": [
+        "rds:ModifyGlobalDBCluster",
+        "rds:DescribeGlobalDBCluster",
+        "rds:RemoveFromGlobalCluster"
+      ]
+    },
+    "delete": {
+      "permissions": [
+        "rds:DescribeGlobalDBCluster",
+        "rds:DeleteGlobalDBCluster"
+      ]
+    },
+    "list": {
+      "permissions": [
+        "rds:DescribeGlobalDBCluster"
+      ]
     }
+  }
 }
