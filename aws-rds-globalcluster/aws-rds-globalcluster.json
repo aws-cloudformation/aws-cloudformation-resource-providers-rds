@@ -12,7 +12,8 @@
             "type": "string",
             "enum": [
                 "aurora",
-                "aurora-mysql"
+                "aurora-mysql",
+                "aurora-postgres"
             ]
         },
         "EngineVersion": {
@@ -25,10 +26,6 @@
         },
         "GlobalClusterIdentifier": {
             "description": "The cluster identifier of the new global database cluster. This parameter is stored as a lowercase string.",
-            "type": "string"
-        },
-        "NewGlobalClusterIdentifier": {
-            "description": "The new cluster identifier for the global database cluster when modifying a global database cluster. This value is stored as a lowercase string.This property is only used for udpate handler, don't specify it for other handlers",
             "type": "string"
         },
         "SourceDBClusterIdentifier": {
@@ -77,15 +74,25 @@
         }
     }
 },
-    "additionalProperties": false,
-    "required": [
+  "oneOf": [
+    {
+      "required": [
+        "SourceDBClusterIdentifier"
+      ]
+    },
+    {
+      "required": [
         "Engine"
-    ],
+      ]
+    }
+  ],
+    "additionalProperties": false,
     "readOnlyProperties": [
-        "/properties/GlobalClusterResourceId"
+        "/properties/GlobalClusterMembers"
     ],
     "createOnlyProperties": [
         "/properties/GlobalClusterIdentifier",
+        "/properties/SourceDBClusterIdentifier",
         "/properties/EngineVersion",
         "/properties/Engine",
         "/properties/DatabaseName"
