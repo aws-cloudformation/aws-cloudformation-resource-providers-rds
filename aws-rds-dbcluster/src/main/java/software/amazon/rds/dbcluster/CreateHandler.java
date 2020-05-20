@@ -3,7 +3,8 @@ package software.amazon.rds.dbcluster;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
-import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
+import software.amazon.cloudformation.exceptions.CfnAlreadyExistsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -31,7 +32,13 @@ public class CreateHandler extends BaseHandlerStd {
                     return proxy.initiate("rds::restore-dbcluster-in-time", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(Translator::restoreDbClusterToPointInTimeRequest)
                         .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterToPointInTime))
+                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> {
+                            try{
+                                return proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterToPointInTime);
+                            } catch (DbClusterAlreadyExistsException e) {
+                                throw new CfnAlreadyExistsException(e);
+                            }
+                        })
                         .progress();
                 }
                 return progress;
@@ -43,7 +50,13 @@ public class CreateHandler extends BaseHandlerStd {
                     return proxy.initiate("rds::restore-dbcluster-snapshot", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(Translator::restoreDbClusterFromSnapshotRequest)
                         .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterFromSnapshot))
+                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> {
+                            try {
+                                return proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterFromSnapshot);
+                            } catch (DbClusterAlreadyExistsException e) {
+                                throw new CfnAlreadyExistsException(e);
+                            }
+                        })
                         .progress();
                 }
                 return progress;
@@ -56,7 +69,13 @@ public class CreateHandler extends BaseHandlerStd {
                         .initiate("rds::create-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(Translator::createDbClusterRequest)
                         .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::createDBCluster))
+                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> {
+                            try{
+                                return proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::createDBCluster);
+                            } catch (DbClusterAlreadyExistsException e) {
+                                throw new CfnAlreadyExistsException(e);
+                            }
+                    })
                         .progress();
                 }
                 return progress;
