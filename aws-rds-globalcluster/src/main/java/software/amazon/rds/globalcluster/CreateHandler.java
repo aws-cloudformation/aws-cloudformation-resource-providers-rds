@@ -2,6 +2,8 @@ package software.amazon.rds.globalcluster;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.GlobalClusterAlreadyExistsException;
+import software.amazon.cloudformation.exceptions.CfnAlreadyExistsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -27,7 +29,13 @@ public class CreateHandler extends BaseHandlerStd {
         return proxy.initiate("rds::create-global-cluster", proxyClient, model, callbackContext)
                 // request to create global cluster
                 .translateToServiceRequest(Translator::createGlobalClusterRequest)
-                .makeServiceCall((createGlobalClusterRequest, proxyClient1) -> proxyClient1.injectCredentialsAndInvokeV2(createGlobalClusterRequest, proxyClient1.client()::createGlobalCluster))
+                .makeServiceCall((createGlobalClusterRequest, proxyClient1) -> {
+                        try{
+                            return proxyClient1.injectCredentialsAndInvokeV2(createGlobalClusterRequest, proxyClient1.client()::createGlobalCluster);
+                        } catch(GlobalClusterAlreadyExistsException e) {
+                            throw new CfnAlreadyExistsException(e);
+                        }
+                })
                 .stabilize(((createGlobalClusterRequest, createGlobalClusterResponse, proxyClient1, resourceModel, callbackContext1) ->
                         isGlobalClusterStabilized(proxyClient1, model, GlobalClusterStatus.Available)))
                 .success();

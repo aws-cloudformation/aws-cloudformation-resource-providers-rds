@@ -46,6 +46,7 @@ public class Translator {
             .databaseName(model.getDatabaseName())
             .engine(model.getEngine())
             .engineVersion(model.getEngineVersion())
+            .storageEncrypted(model.getStorageEncrypted())
             .deletionProtection(model.getDeletionProtection())
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
             .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
@@ -57,14 +58,6 @@ public class Translator {
     return RemoveFromGlobalClusterRequest.builder()
             .dbClusterIdentifier(model.getDBClusterIdentifier())
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
-            .build();
-  }
-
-  static ModifyGlobalClusterRequest modifyGlobalClusterRequest(final ResourceModel model) {
-    return ModifyGlobalClusterRequest.builder()
-            .globalClusterIdentifier(model.getGlobalClusterIdentifier())
-            .newGlobalClusterIdentifier(model.getNewGlobalClusterIdentifier())
-            .deletionProtection(model.getDeletionProtection())
             .build();
   }
 
@@ -83,6 +76,12 @@ public class Translator {
   static DescribeGlobalClustersRequest describeGlobalClusterRequest(final String nextToken) {
     return DescribeGlobalClustersRequest.builder()
             .marker(nextToken)
+            .build();
+  }
+
+  static DescribeDbClustersRequest describeDbClustersRequest(final ResourceModel model) {
+    return DescribeDbClustersRequest.builder()
+            .dbClusterIdentifier(model.getDBClusterIdentifier())
             .build();
   }
 }

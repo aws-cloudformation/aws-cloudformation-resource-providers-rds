@@ -20,4 +20,3 @@ Resources:
       Handler: software.amazon.rds.globalcluster.HandlerWrapper::testEntrypoint
       Runtime: java8
       CodeUri: ./target/aws-rds-globalcluster-handler-1.0-SNAPSHOT.jar
-

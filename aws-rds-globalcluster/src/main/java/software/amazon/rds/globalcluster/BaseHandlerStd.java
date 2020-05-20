@@ -87,33 +87,27 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
   }
 
-  // Modify or Post Create
-  protected ProgressEvent<ResourceModel, CallbackContext> modifyGlobalCluster(final AmazonWebServicesClientProxy proxy,
-                                                                          final ProxyClient<RdsClient> proxyClient,
-                                                                          final ProgressEvent<ResourceModel, CallbackContext> progress) {
-    if (progress.getCallbackContext().isModified()) return progress;
-    return proxy.initiate("rds::modify-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-            .translateToServiceRequest(Translator::modifyGlobalClusterRequest)
-            .makeServiceCall((modifyGlobalClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyGlobalClusterRequest, proxyInvocation.client()::modifyGlobalCluster))
-            .done((modifyGlobalClusterRequest, modifyGlobalClusterResponse, proxyInvocation, resourceModel, callbackContext) ->  {
-              callbackContext.setModified(true);
-              return ProgressEvent.defaultInProgressHandler(callbackContext, PAUSE_TIME_SECONDS, resourceModel);
-            });
-  }
+  // DBCluster Stabilization
+  protected boolean isDBClusterStabilized(final ProxyClient<RdsClient> proxyClient,
+                                          final ResourceModel model,
+                                          final DBClusterStatus expectedStatus) {
+    // describe status of a resource to make sure it's ready
+    // describe db cluster
+    try {
+      final Optional<DBCluster> dbCluster =
+              proxyClient.injectCredentialsAndInvokeV2(
+                      Translator.describeDbClustersRequest(model),
+                      proxyClient.client()::describeDBClusters).dbClusters().stream().findFirst();
 
-  // Modify or Post Create
-  protected ProgressEvent<ResourceModel, CallbackContext> removeFromGlobalCluster(final AmazonWebServicesClientProxy proxy,
-                                                                              final ProxyClient<RdsClient> proxyClient,
-                                                                              final ProgressEvent<ResourceModel, CallbackContext> progress) {
-    if (progress.getCallbackContext().isModified()) return progress;
-    return proxy.initiate("rds::remove-from-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-            .translateToServiceRequest(Translator::removeFromGlobalClusterRequest)
-            .backoffDelay(BACKOFF_STRATEGY)
-            .makeServiceCall((removeFromGlobalClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(removeFromGlobalClusterRequest, proxyInvocation.client()::removeFromGlobalCluster))
-            .done((removeFromGlobalClusterRequest, removeFromGlobalClusterResponse, proxyInvocation, resourceModel, callbackContext) ->  {
-              callbackContext.setModified(true);
-              return ProgressEvent.defaultInProgressHandler(callbackContext, PAUSE_TIME_SECONDS, resourceModel);
-            });
+      if (!dbCluster.isPresent())
+        throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBClusterIdentifier());
+
+      return expectedStatus.equalsString(dbCluster.get().status());
+    } catch (DbClusterNotFoundException e) {
+      throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
+    } catch (Exception e) {
+      throw new CfnNotStabilizedException(MESSAGE_FORMAT_FAILED_TO_STABILIZE, model.getDBClusterIdentifier(), e);
+    }
   }
 
   protected boolean isDeleted(final ResourceModel model,
