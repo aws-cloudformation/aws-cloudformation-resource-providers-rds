@@ -65,4 +65,3 @@ public class DeleteHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 }
-

@@ -66,4 +66,3 @@ public class ListHandlerTest extends AbstractTestBase {
         verify(proxy).injectCredentialsAndInvokeV2(any(), any());
     }
 }
-

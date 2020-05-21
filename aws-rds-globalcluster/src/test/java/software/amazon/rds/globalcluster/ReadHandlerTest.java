@@ -66,4 +66,3 @@ public class ReadHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 }
-
