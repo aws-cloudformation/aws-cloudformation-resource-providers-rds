@@ -24,24 +24,35 @@ public class ListHandlerTest extends AbstractTestBase {
     private AmazonWebServicesClientProxy proxy;
 
     @Mock
-    private Logger logger;
+    private ProxyClient<RdsClient> proxyRdsClient;
+
+    @Mock
+    RdsClient rds;
+
+    private ListHandler handler;
+
+    @AfterEach
+    public void post_execute() {
+        verifyNoMoreInteractions(rds);
+    }
 
     @BeforeEach
     public void setup() {
-        proxy = mock(AmazonWebServicesClientProxy.class);
-        logger = mock(Logger.class);
+        handler = new ListHandler();
+        rds = mock(RdsClient.class);
+        proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final ListHandler handler = new ListHandler();
         final DescribeGlobalClustersResponse describeGlobalClusterResponse =
                 DescribeGlobalClustersResponse.builder().globalClusters(
                         GlobalCluster.builder()
                             .globalClusterIdentifier("sampleId").build()
                 ).build();
 
-        when(proxy.injectCredentialsAndInvokeV2(any(), any())).thenReturn(describeGlobalClusterResponse);
+        when(proxyRdsClient.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class))).thenReturn(describeGlobalClusterResponse);
 
         final ResourceModel expectedModel = ResourceModel.builder().globalClusterIdentifier("sampleId").build();
 
@@ -52,7 +63,7 @@ public class ListHandlerTest extends AbstractTestBase {
                 .desiredResourceState(model)
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, null, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -63,6 +74,6 @@ public class ListHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModels()).containsExactly(expectedModel);
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
-        verify(proxy).injectCredentialsAndInvokeV2(any(), any());
+        verify(proxyRdsClient.client()).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 }

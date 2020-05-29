@@ -13,18 +13,15 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.List;
 
 // Placeholder for the functionality that could be shared across Create/Read/Update/Delete/List Handlers
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
   protected static final int GLOBAL_CLUSTER_ID_MAX_LENGTH = 63;
   protected static final int PAUSE_TIME_SECONDS = 60;
-  protected static final Constant BACKOFF_STRATEGY = Constant.of().timeout(Duration.ofMinutes(120L)).delay(Duration.ofSeconds(30L)).build();
+  protected static final Constant BACKOFF_STRATEGY = Constant.of().timeout(Duration.ofMinutes(180L)).delay(Duration.ofSeconds(30L)).build();
   private static final String MESSAGE_FORMAT_FAILED_TO_STABILIZE = "GlobalCluster %s failed to stabilize.";
   protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
 
@@ -51,21 +48,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
   // Global Cluster Stabilization
   protected boolean isGlobalClusterStabilized(final ProxyClient<RdsClient> proxyClient,
-                                              final ResourceModel model,
-                                              final GlobalClusterStatus expectedStatus) {
+                                              final ResourceModel model) {
     // describe status of a resource to make sure it's ready
     try {
-      final Optional<GlobalCluster> globalCluster =
+      final List<GlobalCluster> globalClusters =
               proxyClient.injectCredentialsAndInvokeV2(
-                      Translator.describeGlobalClusterRequest(model),
-                      proxyClient.client()::describeGlobalClusters).globalClusters().stream().findFirst();
-
-      if (!globalCluster.isPresent())
-        throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getGlobalClusterIdentifier());
-
-      return expectedStatus.equalsString(globalCluster.get().status());
+                      Translator.describeGlobalClustersRequest(model),
+                      proxyClient.client()::describeGlobalClusters).globalClusters();
+      if(globalClusters == null || globalClusters.size() == 0) {
+        return false;
+      }
+      return GlobalClusterStatus.Available.equalsString(globalClusters.get(0).status());
     } catch (GlobalClusterNotFoundException e) {
-      throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
+      return false;
     } catch (Exception e) {
       throw new CfnNotStabilizedException(MESSAGE_FORMAT_FAILED_TO_STABILIZE, model.getGlobalClusterIdentifier(), e);
     }
@@ -76,7 +71,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                               final ProxyClient<RdsClient> proxyClient) {
     try {
       proxyClient.injectCredentialsAndInvokeV2(
-              Translator.describeGlobalClusterRequest(model),
+              Translator.describeGlobalClustersRequest(model),
               proxyClient.client()::describeGlobalClusters);
       return false;
     } catch (GlobalClusterNotFoundException e) {

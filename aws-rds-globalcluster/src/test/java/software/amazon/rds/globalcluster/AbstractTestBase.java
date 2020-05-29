@@ -1,6 +1,5 @@
 package software.amazon.rds.globalcluster;
 
-import com.google.common.collect.Lists;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -10,7 +9,6 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
@@ -42,8 +40,6 @@ public class AbstractTestBase {
   protected static final ResourceModel RESOURCE_MODEL_WITH_MASTER;
 
   protected static final GlobalCluster GLOBAL_CLUSTER_ACTIVE;
-  protected static final GlobalCluster GLOBAL_CLUSTER_DELETED;
-  protected static final GlobalCluster GLOBAL_CLUSTER_INPROGRESS;
 
   static {
     System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -91,23 +87,6 @@ public class AbstractTestBase {
             .engineVersion(RESOURCE_MODEL.getEngineVersion())
             .status(GlobalClusterStatus.Available.toString())
             .build();
-
-    GLOBAL_CLUSTER_DELETED = GlobalCluster.builder()
-            .globalClusterIdentifier(RESOURCE_MODEL.getGlobalClusterIdentifier())
-            .deletionProtection(false)
-            .engine(RESOURCE_MODEL.getEngine())
-            .engineVersion(RESOURCE_MODEL.getEngineVersion())
-            .status(GlobalClusterStatus.Deleted.toString())
-            .build();
-
-    GLOBAL_CLUSTER_INPROGRESS = GlobalCluster.builder()
-            .globalClusterIdentifier(RESOURCE_MODEL.getGlobalClusterIdentifier())
-            .deletionProtection(false)
-            .engine(RESOURCE_MODEL.getEngine())
-            .engineVersion(RESOURCE_MODEL.getEngineVersion())
-            .status(GlobalClusterStatus.Creating.toString())
-            .build();
-
 
     RESOURCE_MODEL_UPDATE = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)

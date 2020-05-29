@@ -51,7 +51,7 @@ public class Translator {
             .build();
   }
 
-  static DescribeGlobalClustersRequest describeGlobalClusterRequest(final ResourceModel model) {
+  static DescribeGlobalClustersRequest describeGlobalClustersRequest(final ResourceModel model) {
     return DescribeGlobalClustersRequest.builder()
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
             .build();

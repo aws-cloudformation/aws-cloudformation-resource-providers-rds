@@ -29,6 +29,7 @@ public class CreateHandler extends BaseHandlerStd {
         return proxy.initiate("rds::create-global-cluster", proxyClient, model, callbackContext)
                 // request to create global cluster
                 .translateToServiceRequest(Translator::createGlobalClusterRequest)
+                .backoffDelay(BACKOFF_STRATEGY)
                 .makeServiceCall((createGlobalClusterRequest, proxyClient1) -> {
                         try{
                             return proxyClient1.injectCredentialsAndInvokeV2(createGlobalClusterRequest, proxyClient1.client()::createGlobalCluster);
@@ -37,7 +38,8 @@ public class CreateHandler extends BaseHandlerStd {
                         }
                 })
                 .stabilize(((createGlobalClusterRequest, createGlobalClusterResponse, proxyClient1, resourceModel, callbackContext1) ->
-                        isGlobalClusterStabilized(proxyClient1, model, GlobalClusterStatus.Available)))
-                .success();
+                        isGlobalClusterStabilized(proxyClient1, model)))
+                .progress()
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

@@ -1,9 +1,7 @@
 package software.amazon.rds.globalcluster;
 
 public enum GlobalClusterStatus {
-    Available("available"),
-    Creating("creating"),
-    Deleted("deleted");
+    Available("available");
 
     private String value;
 
