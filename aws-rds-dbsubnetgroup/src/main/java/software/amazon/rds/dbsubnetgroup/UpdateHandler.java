@@ -16,9 +16,9 @@ public class UpdateHandler extends BaseHandlerStd {
       final ProxyClient<RdsClient> proxyClient,
       final Logger logger) {
         return proxy.initiate("rds::update-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .request(Translator::modifyDbSubnetGroupRequest)
-                .retry(CONSTANT)
-                .call((modifyDbSubnetGroupRequest, proxyInvocation) ->
+                .translateToServiceRequest(Translator::modifyDbSubnetGroupRequest)
+                .backoffDelay(CONSTANT)
+                .makeServiceCall((modifyDbSubnetGroupRequest, proxyInvocation) ->
                     proxyInvocation.injectCredentialsAndInvokeV2(modifyDbSubnetGroupRequest, proxyInvocation.client()::modifyDBSubnetGroup))
                 .stabilize((modifyDbSubnetGroupRequest, modifyDbSubnetGroupResponse, proxyInvocation, resourceModel, context) ->
                     isStabilized(resourceModel, proxyInvocation)).progress()

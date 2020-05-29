@@ -71,8 +71,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final ProxyClient<RdsClient> proxyClient,
         final ProgressEvent<ResourceModel, CallbackContext> progress) {
       return proxy.initiate("rds::tag-dbsubnet-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-          .request(Translator::describeDbSubnetGroupsRequest)
-          .call((describeDbSubnetGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupsRequest, proxyInvocation.client()::describeDBSubnetGroups))
+          .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
+          .makeServiceCall((describeDbSubnetGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupsRequest, proxyInvocation.client()::describeDBSubnetGroups))
           .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, resourceModel, context) -> {
             final String arn = describeDbSubnetGroupsResponse.dbSubnetGroups()
                 .stream().findFirst().get().dbSubnetGroupArn();
