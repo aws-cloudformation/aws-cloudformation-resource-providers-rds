@@ -15,8 +15,8 @@ public class DeleteHandler extends BaseHandlerStd {
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
         return proxy.initiate("rds::delete-db-cluster-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .request(Translator::deleteDbClusterParameterGroupRequest)
-                .call((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBClusterParameterGroup))
+                .translateToServiceRequest(Translator::deleteDbClusterParameterGroupRequest)
+                .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBClusterParameterGroup))
                 .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(resourceModel));
     }
 }

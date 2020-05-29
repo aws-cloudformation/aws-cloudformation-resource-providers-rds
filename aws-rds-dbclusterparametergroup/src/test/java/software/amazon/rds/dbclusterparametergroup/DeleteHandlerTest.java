@@ -25,6 +25,7 @@ import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verify;
@@ -50,6 +51,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @AfterEach
     public void post_execute() {
+        verify(rds, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(proxyRdsClient.client());
     }
 
@@ -59,26 +61,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         handler = new DeleteHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Aync(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rds;
-            }
-        };
+        proxyRdsClient = proxyRdsClient = MOCK_PROXY(proxy, rds);
 
 
         PARAMS = new HashMap<>();

@@ -21,8 +21,8 @@ public class UpdateHandler extends BaseHandlerStd {
                     .done((paramGroupRequest, paramGroupResponse, rdsProxyClient, resourceModel, cxt) -> tagResource(paramGroupResponse, proxyClient, resourceModel, request.getDesiredResourceTags()));
 
         return proxy.initiate("rds::update-db-cluster-parameter-group", proxyClient, model, callbackContext)
-                .request(Translator::resetDbClusterParameterGroupRequest)
-                .call((resetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(resetGroupRequest, proxyInvocation.client()::resetDBClusterParameterGroup))
+                .translateToServiceRequest(Translator::resetDbClusterParameterGroupRequest)
+                .makeServiceCall((resetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(resetGroupRequest, proxyInvocation.client()::resetDBClusterParameterGroup))
                 .done((resetGroupRequest, resetGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context))
                 .then(progress -> describeDbClusterParameterGroup(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                                 .done((paramGroupRequest, paramGroupResponse, rdsProxyClient, resourceModel, cxt) -> tagResource(paramGroupResponse, proxyClient, resourceModel, request.getDesiredResourceTags())));

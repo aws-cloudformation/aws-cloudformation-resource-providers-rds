@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRe
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -34,6 +35,7 @@ import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verify;
@@ -59,6 +61,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @AfterEach
     public void post_execute() {
+        verify(rds, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(proxyRdsClient.client());
     }
 
@@ -68,26 +71,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         handler = new CreateHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Aync(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rds;
-            }
-        };
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
 
 
         PARAMS = new HashMap<>();
@@ -235,8 +219,8 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .logicalResourceIdentifier("logicalId").build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
-        } catch (TerminalException e) {
-            assertThat(e.getMessage()).isEqualTo("Unmodifiable DB Parameter: param2");
+        } catch (CfnInvalidRequestException e) {
+            assertThat(e.getMessage()).isEqualTo("Invalid request provided: Unmodifiable DB Parameter: param");
         }
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
@@ -259,8 +243,8 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .logicalResourceIdentifier("logicalId").build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
-        } catch (TerminalException e) {
-            assertThat(e.getMessage()).isEqualTo("Invalid / Unsupported DB Parameter: param");
+        } catch (CfnInvalidRequestException e) {
+            assertThat(e.getMessage()).isEqualTo("Invalid request provided: Invalid / Unsupported DB Parameter: param");
         }
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));

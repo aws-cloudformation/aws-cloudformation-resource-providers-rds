@@ -24,8 +24,8 @@ public class CreateHandler extends BaseHandlerStd {
 
 
         return proxy.initiate("rds::create-db-cluster-parameter-group", proxyClient, model, callbackContext)
-                .request((resourceModel) -> Translator.createDbClusterParameterGroupRequest(resourceModel, request.getDesiredResourceTags()))
-                .call((paramGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(paramGroupRequest, proxyInvocation.client()::createDBClusterParameterGroup))
+                .translateToServiceRequest((resourceModel) -> Translator.createDbClusterParameterGroupRequest(resourceModel, request.getDesiredResourceTags()))
+                .makeServiceCall((paramGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(paramGroupRequest, proxyInvocation.client()::createDBClusterParameterGroup))
                 .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context))
                 .then(progress -> ProgressEvent.defaultSuccessHandler(progress.getResourceModel()));
     }
