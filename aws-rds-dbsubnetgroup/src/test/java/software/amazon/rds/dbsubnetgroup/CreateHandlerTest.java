@@ -1,10 +1,13 @@
 package software.amazon.rds.dbsubnetgroup;
 
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
+import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -17,12 +20,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -43,31 +50,12 @@ public class CreateHandlerTest extends AbstractTestBase {
         handler = new CreateHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Aync(RequestT request,
-                                             Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rds;
-            }
-        };
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @AfterEach
     public void post_execute() {
+        verify(rds, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(proxyRdsClient.client());
     }
 

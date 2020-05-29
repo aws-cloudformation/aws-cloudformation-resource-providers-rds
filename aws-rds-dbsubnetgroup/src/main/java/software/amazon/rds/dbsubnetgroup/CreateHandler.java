@@ -25,9 +25,9 @@ public class CreateHandler extends BaseHandlerStd {
           request.getClientRequestToken(), DB_SUBNET_GROUP_NAME_LENGTH).toLowerCase());
 
     return proxy.initiate("rds::create-dbsubnet-group", proxyClient, model, callbackContext)
-        .request(Translator::createDbSubnetGroupRequest)
-        .retry(CONSTANT)
-        .call((createDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createDbSubnetGroupRequest, proxyInvocation.client()::createDBSubnetGroup))
+        .translateToServiceRequest(Translator::createDbSubnetGroupRequest)
+        .backoffDelay(CONSTANT)
+        .makeServiceCall((createDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createDbSubnetGroupRequest, proxyInvocation.client()::createDBSubnetGroup))
         .stabilize(((createDbSubnetGroupRequest, createDbSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isStabilized(resourceModel, proxyInvocation))).progress()
         .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
   }

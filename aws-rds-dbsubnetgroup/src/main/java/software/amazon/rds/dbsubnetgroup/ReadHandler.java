@@ -22,9 +22,9 @@ public class ReadHandler extends BaseHandlerStd {
       final ProxyClient<RdsClient> proxyClient,
       final Logger logger) {
     return proxy.initiate("rds::read-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
-        .request(Translator::describeDbSubnetGroupsRequest)
-        .retry(CONSTANT)
-        .call((describeDbSubnetGroupRequest, proxyInvocation) ->
+        .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
+        .backoffDelay(CONSTANT)
+        .makeServiceCall((describeDbSubnetGroupRequest, proxyInvocation) ->
           proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupRequest, proxyInvocation.client()::describeDBSubnetGroups))
         .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, model, context) -> {
           final DBSubnetGroup dbSubnetGroup = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get();

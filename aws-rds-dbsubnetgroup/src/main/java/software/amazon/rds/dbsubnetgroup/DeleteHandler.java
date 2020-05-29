@@ -15,10 +15,10 @@ public class DeleteHandler extends BaseHandlerStd {
         final ProxyClient<RdsClient> proxyClient,
         final Logger logger) {
         return proxy.initiate("rds::delete-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
-            .request(Translator::deleteDbSubnetGroupRequest)
-            .retry(CONSTANT)
-            .call((deleteDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteDbSubnetGroupRequest, proxyInvocation.client()::deleteDBSubnetGroup))
-            .stabilize((deleteDbSubnetGroupRequest, deleteDBSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isDeleted(resourceModel, proxyInvocation))
+            .translateToServiceRequest(Translator::deleteDbSubnetGroupRequest)
+            .backoffDelay(CONSTANT)
+            .makeServiceCall((deleteDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteDbSubnetGroupRequest, proxyInvocation.client()::deleteDBSubnetGroup))
+            .stabilize((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isDeleted(resourceModel, proxyInvocation))
             .success();
     }
 }
