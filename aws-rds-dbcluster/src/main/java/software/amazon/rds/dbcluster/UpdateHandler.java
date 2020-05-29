@@ -11,8 +11,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.Logger;
 
-import java.util.function.Function;
-
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 import static software.amazon.rds.dbcluster.Translator.cloudwatchLogsExportConfiguration;
 import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
