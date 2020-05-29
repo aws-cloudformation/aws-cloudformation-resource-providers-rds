@@ -3,7 +3,6 @@ package software.amazon.rds.dbcluster;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
-import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
