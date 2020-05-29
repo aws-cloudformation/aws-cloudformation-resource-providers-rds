@@ -1,0 +1,16 @@
+{
+    "typeName": "AWS::RDS::GlobalCluster",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.globalcluster.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.globalcluster.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "globalcluster"
+        ],
+        "codegen_template_path": "guided_aws"
+    }
+}
