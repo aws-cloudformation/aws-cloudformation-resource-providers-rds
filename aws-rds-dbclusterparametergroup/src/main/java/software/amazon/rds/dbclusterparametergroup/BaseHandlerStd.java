@@ -76,8 +76,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             paramNames.removeAll(params.stream().map(Parameter::parameterName).collect(Collectors.toSet()));
 
             progress = proxy.initiate("rds::modify-db-cluster-parameter-group::" + marker, proxyClient, model, callbackContext)
-                    .request((resourceModel) -> Translator.modifyDbClusterParameterGroupRequest(resourceModel, params))
-                    .call((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::modifyDBClusterParameterGroup))
+                    .translateToServiceRequest((resourceModel) -> Translator.modifyDbClusterParameterGroupRequest(resourceModel, params))
+                    .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::modifyDBClusterParameterGroup))
                     .progress(CALLBACK_DELAY_SECONDS);
         } while (!StringUtils.isNullOrEmpty(marker));
         // if there are parameters left that couldn't be found in rds api then they are invalid
@@ -95,8 +95,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                              final ResourceModel model,
                                                              final CallbackContext callbackContext) {
         return proxy.initiate("rds::describe-db-cluster-parameter-group::", proxyClient, model, callbackContext)
-                .request(Translator::describeDbClusterParameterGroupsRequest)
-                .call((describeDbClusterParameterGroupsRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(describeDbClusterParameterGroupsRequest, rdsClientProxyClient.client()::describeDBClusterParameterGroups));
+                .translateToServiceRequest(Translator::describeDbClusterParameterGroupsRequest)
+                .makeServiceCall((describeDbClusterParameterGroupsRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(describeDbClusterParameterGroupsRequest, rdsClientProxyClient.client()::describeDBClusterParameterGroups));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> tagResource(final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse,

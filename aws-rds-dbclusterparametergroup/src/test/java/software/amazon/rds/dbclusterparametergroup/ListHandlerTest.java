@@ -33,27 +33,31 @@ public class ListHandlerTest extends AbstractTestBase {
     @Mock
     private AmazonWebServicesClientProxy proxy;
 
-    private ListHandler handler;
+    @Mock
+    private ProxyClient<RdsClient> proxyRdsClient;
 
+    @Mock
+    RdsClient rds;
+
+    private ListHandler handler;
 
     @AfterEach
     public void post_execute() {
-        verifyNoMoreInteractions(proxy);
+        verifyNoMoreInteractions(proxyRdsClient.client());
     }
 
     @BeforeEach
     public void setup() {
-
         handler = new ListHandler();
-        proxy = mock(AmazonWebServicesClientProxy.class);
+        rds = mock(RdsClient.class);
+        proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
     @Test
     public void handleRequest_SimpleSuccess() {
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder().build();
-        doReturn(describeDbClusterParameterGroupsResponse)
-                .when(proxy)
-                .injectCredentialsAndInvokeV2(any(), any());
+        when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
@@ -61,7 +65,7 @@ public class ListHandlerTest extends AbstractTestBase {
             .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-            handler.handleRequest(proxy, request, null, logger);
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -71,6 +75,6 @@ public class ListHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModels()).isNotNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
-        verify(proxy).injectCredentialsAndInvokeV2(any(), any());
+        verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
     }
 }
