@@ -61,7 +61,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).modifyGlobalCluster(any(ModifyGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(1)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 
 }

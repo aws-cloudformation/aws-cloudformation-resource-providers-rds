@@ -26,7 +26,6 @@ public class Translator {
 
   static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model) {
     return CreateGlobalClusterRequest.builder()
-            .databaseName(model.getDatabaseName())
             .engine(model.getEngine())
             .engineVersion(model.getEngineVersion())
             .storageEncrypted(model.getStorageEncrypted())
@@ -40,7 +39,6 @@ public class Translator {
   static ModifyGlobalClusterRequest modifyGlobalClusterRequest(final ResourceModel model) {
     return ModifyGlobalClusterRequest.builder()
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
-            .newGlobalClusterIdentifier(model.getNewGlobalClusterIdentifier())
             .deletionProtection(model.getDeletionProtection())
             .build();
   }

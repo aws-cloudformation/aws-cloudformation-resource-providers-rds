@@ -23,6 +23,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .makeServiceCall((modifyGlobalClusterRequest, proxyClient1) -> proxyClient1.injectCredentialsAndInvokeV2(modifyGlobalClusterRequest, proxyClient1.client()::modifyGlobalCluster))
                 .stabilize(((modifyGlobalClusterRequest, modifyGlobalClusterResponse, proxyClient1, resourceModel, callbackContext1) ->
                         isGlobalClusterStabilized(proxyClient1, model)))
-                .success();
+                .progress()
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

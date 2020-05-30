@@ -27,11 +27,9 @@ public class AbstractTestBase {
   protected static final Integer BACKUP_RETENTION_PERIOD;
   protected static final Integer BACKTRACK_WINDOW;
   protected static final String GLOBALCLUSTER_IDENTIFIER;
-  protected static final String NEW_GLOBALCLUSTER_IDENTIFIER;
   protected static final String SOURCECLUSTER_IDENTIFIER;
   protected static final String ENGINE_VERSION;
   protected static final String ENGINE;
-  protected static final String DATABASE_NAME;
   protected static final boolean DELETION_PROTECTION;
 
   protected static final ResourceModel RESOURCE_MODEL;
@@ -51,9 +49,7 @@ public class AbstractTestBase {
 
     BACKUP_RETENTION_PERIOD = 1;
     BACKTRACK_WINDOW = 1;
-    DATABASE_NAME = "my-database";
     GLOBALCLUSTER_IDENTIFIER = "my-sample-globalcluster";
-    NEW_GLOBALCLUSTER_IDENTIFIER = "my-sample-globalcluster-new";
     SOURCECLUSTER_IDENTIFIER = "my-sample-dbcluster";
     ENGINE = "aurora";
     ENGINE_VERSION = "5.6.mysql_aurora.1.22.2";
@@ -67,7 +63,6 @@ public class AbstractTestBase {
 
     RESOURCE_MODEL_ALTERNATIVE = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
-            .databaseName(DATABASE_NAME)
             .engineVersion(ENGINE_VERSION)
             .engine(ENGINE)
             .build();
@@ -75,7 +70,6 @@ public class AbstractTestBase {
     RESOURCE_MODEL_WITH_MASTER = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
             .sourceDBClusterIdentifier(SOURCECLUSTER_IDENTIFIER)
-            .databaseName(DATABASE_NAME)
             .engineVersion(ENGINE_VERSION)
             .engine(ENGINE)
             .build();
@@ -90,7 +84,6 @@ public class AbstractTestBase {
 
     RESOURCE_MODEL_UPDATE = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
-            .newGlobalClusterIdentifier(NEW_GLOBALCLUSTER_IDENTIFIER)
             .deletionProtection(DELETION_PROTECTION)
             .build();
   }

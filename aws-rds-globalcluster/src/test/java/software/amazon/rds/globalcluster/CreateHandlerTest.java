@@ -74,7 +74,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(1)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 
     @Test
@@ -94,7 +94,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(1)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 
     @Test
@@ -114,6 +114,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(1)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 }
