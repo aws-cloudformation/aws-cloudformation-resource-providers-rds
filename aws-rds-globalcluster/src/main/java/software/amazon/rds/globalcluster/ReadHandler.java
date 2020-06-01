@@ -24,10 +24,6 @@ public class ReadHandler extends BaseHandlerStd {
 
                     return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
                             .globalClusterIdentifier(targetGlobalCluster.globalClusterIdentifier())
-                            .engine(targetGlobalCluster.engine())
-                            .engineVersion(targetGlobalCluster.engineVersion())
-                            .deletionProtection(targetGlobalCluster.deletionProtection())
-                            .storageEncrypted(targetGlobalCluster.storageEncrypted())
                             .build());
                 });
     }

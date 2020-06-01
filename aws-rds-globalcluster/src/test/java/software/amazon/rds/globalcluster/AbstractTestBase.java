@@ -36,6 +36,7 @@ public class AbstractTestBase {
   protected static final ResourceModel RESOURCE_MODEL_UPDATE;
   protected static final ResourceModel RESOURCE_MODEL_ALTERNATIVE;
   protected static final ResourceModel RESOURCE_MODEL_WITH_MASTER;
+  protected static final ResourceModel RESOURCE_MODEL_EMPTY_IDENTIFIER;
 
   protected static final GlobalCluster GLOBAL_CLUSTER_ACTIVE;
 
@@ -71,6 +72,11 @@ public class AbstractTestBase {
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
             .sourceDBClusterIdentifier(SOURCECLUSTER_IDENTIFIER)
             .engineVersion(ENGINE_VERSION)
+            .engine(ENGINE)
+            .build();
+
+    RESOURCE_MODEL_EMPTY_IDENTIFIER = ResourceModel.builder()
+            .globalClusterIdentifier(null)
             .engine(ENGINE)
             .build();
 
