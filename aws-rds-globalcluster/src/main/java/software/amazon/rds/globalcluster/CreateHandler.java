@@ -26,6 +26,10 @@ public class CreateHandler extends BaseHandlerStd {
                     request.getClientRequestToken(), GLOBAL_CLUSTER_ID_MAX_LENGTH).toLowerCase());
         }
 
+        if(!StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier())) {
+            model.setSourceDBClusterIdentifier(getDBClusterArn(model, proxyClient));
+        }
+
         return proxy.initiate("rds::create-global-cluster", proxyClient, model, callbackContext)
                 // request to create global cluster
                 .translateToServiceRequest(Translator::createGlobalClusterRequest)

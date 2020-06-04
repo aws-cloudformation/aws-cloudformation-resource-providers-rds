@@ -1,8 +1,10 @@
 package software.amazon.rds.globalcluster;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -76,6 +78,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
       return false;
     } catch (GlobalClusterNotFoundException e) {
       return true;
+    }
+  }
+
+  protected String getDBClusterArn(final ResourceModel model,
+                                   final ProxyClient<RdsClient> proxyClient) {
+    try {
+      final List<DBCluster> dbClusters =
+              proxyClient.injectCredentialsAndInvokeV2(
+                      Translator.describeDbClustersRequest(model),
+                      proxyClient.client()::describeDBClusters).dbClusters();
+      return dbClusters.get(0).dbClusterArn();
+    } catch (DbClusterNotFoundException e) {
+      throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
+    } catch (Exception e) {
+      throw new CfnNotStabilizedException(MESSAGE_FORMAT_FAILED_TO_STABILIZE, model.getSourceDBClusterIdentifier(), e);
     }
   }
 

@@ -3,17 +3,12 @@ package software.amazon.rds.globalcluster;
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
-import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.CreateGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.DeleteGlobalClusterRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * This class is a centralized placeholder for
@@ -58,6 +53,12 @@ public class Translator {
   static DescribeGlobalClustersRequest describeGlobalClusterRequest(final String nextToken) {
     return DescribeGlobalClustersRequest.builder()
             .marker(nextToken)
+            .build();
+  }
+
+  static DescribeDbClustersRequest describeDbClustersRequest(final ResourceModel model) {
+    return DescribeDbClustersRequest.builder()
+            .dbClusterIdentifier(model.getSourceDBClusterIdentifier())
             .build();
   }
 }
