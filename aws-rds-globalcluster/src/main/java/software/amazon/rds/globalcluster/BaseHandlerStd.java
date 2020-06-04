@@ -1,5 +1,6 @@
 package software.amazon.rds.globalcluster;
 
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
@@ -13,6 +14,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.resource.IdentifierUtils;
 
 import java.time.Duration;
 import java.util.function.BiFunction;
@@ -94,4 +96,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
   }
 
+  protected boolean validateSourceDBClusterIdentifier(final ResourceModel model) {
+    //if soureDBClusterIdentifier is empty, create handler creates an empty global cluster, proceed with creation
+    if(StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier())){
+      return true;
+      //only arn is allowed to have ":", which means identifier is already in arn format, proceed with creation
+    }else if(model.getSourceDBClusterIdentifier().contains(":")) {
+      return true;
+      //for all other case, return false, getDBClusterArn will have further checks.
+    }else {
+      return false;
+    }
+  }
 }

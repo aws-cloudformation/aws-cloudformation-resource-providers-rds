@@ -26,7 +26,7 @@ public class CreateHandler extends BaseHandlerStd {
                     request.getClientRequestToken(), GLOBAL_CLUSTER_ID_MAX_LENGTH).toLowerCase());
         }
 
-        if(!StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier())) {
+        if(!StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier()) && !validateSourceDBClusterIdentifier(model)) {
             model.setSourceDBClusterIdentifier(getDBClusterArn(model, proxyClient));
         }
 
