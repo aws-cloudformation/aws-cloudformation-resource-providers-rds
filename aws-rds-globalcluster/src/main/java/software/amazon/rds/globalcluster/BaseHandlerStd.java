@@ -91,8 +91,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
       return dbClusters.get(0).dbClusterArn();
     } catch (DbClusterNotFoundException e) {
       throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
-    } catch (Exception e) {
-      throw new CfnNotStabilizedException(MESSAGE_FORMAT_FAILED_TO_STABILIZE, model.getSourceDBClusterIdentifier(), e);
     }
   }
 
