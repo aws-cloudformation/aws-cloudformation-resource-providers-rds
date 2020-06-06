@@ -1,9 +1,16 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
+import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
@@ -15,13 +22,13 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,13 +36,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,6 +64,9 @@ public class UpdateHandlerTest extends AbstractTestBase {
     private ResourceModel RESOURCE_MODEL;
 
     private Map<String, Object> PARAMS;
+
+    private ResourceHandlerRequest<ResourceModel> requestSameParams;
+    private ResourceHandlerRequest<ResourceModel> requestUpdParams;
 
     @AfterEach
     public void post_execute() {
@@ -85,11 +94,24 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         RESOURCE_MODEL = ResourceModel.builder()
                 .description(DESCRIPTION)
-                .id(null)
+                .dBClusterParameterGroupName("SampleName")
                 .family(FAMILY)
                 .parameters(PARAMS)
                 .tags(TAG_SET)
                 .build();
+
+        requestSameParams = ResourceHandlerRequest.<ResourceModel>builder()
+            .clientRequestToken("token")
+            .desiredResourceState(RESOURCE_MODEL)
+            .previousResourceState(RESOURCE_MODEL)
+            .desiredResourceTags(translateTagsToMap(TAG_SET))
+            .logicalResourceIdentifier("logicalId").build();
+        requestUpdParams = ResourceHandlerRequest.<ResourceModel>builder()
+            .clientRequestToken("token")
+            .desiredResourceState(RESOURCE_MODEL)
+            .previousResourceState(RESOURCE_MODEL_PREV)
+            .desiredResourceTags(translateTagsToMap(TAG_SET))
+            .logicalResourceIdentifier("logicalId").build();
     }
 
     @Test
@@ -97,6 +119,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(true);
 
         final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
         when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
@@ -112,14 +135,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken("token")
-                .desiredResourceState(RESOURCE_MODEL)
-                .previousResourceState(RESOURCE_MODEL_PREV)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
-                .logicalResourceIdentifier("logicalId").build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -131,17 +147,134 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
-
     }
 
+    @Test
+    public void handleRequest_StabilizationWithNextPage(){
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(false);
+
+        final DBCluster dbCluster = DBCluster.builder()
+            .dbClusterParameterGroup("SampleName")
+            .status("available").build();
+
+        final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
+        when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
+        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder()
+            .dbClusters(Lists.newArrayList(dbCluster))
+            .marker("token")
+            .build();
+        when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(30);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getNextToken()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_StabilizationWithoutNextPage(){
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(false);
+
+        final DBCluster dbCluster = DBCluster.builder()
+            .dbClusterParameterGroup("SampleName")
+            .status("available").build();
+
+        final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
+        when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
+        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder()
+            .dbClusters(Lists.newArrayList(dbCluster))
+            .build();
+        when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+            .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn("arn")
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+            .tagList(Tag.builder().key("key").value("value").build()).build();
+        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
+        when(rds.removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getNextToken()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
+        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_StabilizationModifying(){
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(false);
+
+        final DBCluster dbCluster = DBCluster.builder()
+            .dbClusterParameterGroup("SampleName")
+            .status("modifying").build();
+
+        final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
+        when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
+        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder()
+            .dbClusters(Lists.newArrayList(dbCluster))
+            .build();
+        when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(30);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getNextToken()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
 
     @Test
     public void handleRequest_SimpleSuccessSameParams(){
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(true);
 
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
                 .dbClusterParameterGroups(DBClusterParameterGroup.builder()
@@ -155,14 +288,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken("token")
-                .desiredResourceState(RESOURCE_MODEL)
-                .previousResourceState(RESOURCE_MODEL)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
-                .logicalResourceIdentifier("logicalId").build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestSameParams, callbackContext, proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -173,9 +299,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
-
     }
 }

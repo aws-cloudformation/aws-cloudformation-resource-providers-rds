@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRe
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
@@ -33,7 +34,7 @@ public class Translator {
     static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(final ResourceModel model,
                                                                                      final Map<String, String> tags) {
         return CreateDbClusterParameterGroupRequest.builder()
-                .dbClusterParameterGroupName(model.getId())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbParameterGroupFamily(model.getFamily())
                 .description(model.getDescription())
                 .tags(translateTagsToSdk(tags))
@@ -43,21 +44,30 @@ public class Translator {
     static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model,
                                                                                  final String nextToken) {
         return DescribeDbClusterParametersRequest.builder()
-                .dbClusterParameterGroupName(model.getId())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .marker(nextToken)
                 .maxRecords(MAX_RECORDS_TO_DESCRIBE)
                 .build();
     }
 
+    static DescribeDbClustersRequest describeDbClustersRequest(final String nextToken) {
+        return DescribeDbClustersRequest.builder()
+            .marker(nextToken)
+            .maxRecords(20)
+            .build();
+    }
+
+
+
     static DeleteDbClusterParameterGroupRequest deleteDbClusterParameterGroupRequest(final ResourceModel model) {
         return DeleteDbClusterParameterGroupRequest.builder()
-                .dbClusterParameterGroupName(model.getId())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .build();
     }
 
     static DescribeDbClusterParameterGroupsRequest describeDbClusterParameterGroupsRequest(final ResourceModel model) {
         return DescribeDbClusterParameterGroupsRequest.builder()
-                .dbClusterParameterGroupName(model.getId())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .build();
     }
 
@@ -70,14 +80,14 @@ public class Translator {
     static ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest(final ResourceModel model,
                                                                                      final Set<Parameter> parameters) {
         return ModifyDbClusterParameterGroupRequest.builder()
-                .dbClusterParameterGroupName(model.getId())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .parameters(parameters)
                 .build();
     }
 
     static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
         return ResetDbClusterParameterGroupRequest.builder()
-                .dbClusterParameterGroupName(model.getId())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .resetAllParameters(true)
                 .build();
     }

@@ -2,27 +2,29 @@ package software.amazon.rds.dbclusterparametergroup;
 
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
+import java.lang.reflect.Proxy;
+import java.util.Map;
+import java.util.Set;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
-import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.CallChain.Completed;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.CallChain;
 
-import java.util.*;
 
 import java.util.stream.Collectors;
 
 import static software.amazon.rds.dbclusterparametergroup.Translator.mapToTags;
-import static software.amazon.rds.dbclusterparametergroup.Translator.translateTagsToSdk;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -44,7 +46,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                    CallbackContext callbackContext,
                                                                                    ProxyClient<RdsClient> client,
                                                                                    Logger logger);
-
 
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
                                                                             final ProxyClient<RdsClient> proxyClient,
@@ -86,22 +87,30 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return progress;
     }
 
-    protected CallChain.Stabilizer<DescribeDbClusterParameterGroupsRequest,
-            DescribeDbClusterParameterGroupsResponse,
-            RdsClient,
-            ResourceModel,
-            CallbackContext> describeDbClusterParameterGroup(final AmazonWebServicesClientProxy proxy,
+    protected Completed<DescribeDbClusterParameterGroupsRequest,
+                DescribeDbClusterParameterGroupsResponse,
+                RdsClient,
+                ResourceModel,
+                CallbackContext> describeDbClusterParameterGroup(final AmazonWebServicesClientProxy proxy,
                                                              final ProxyClient<RdsClient> proxyClient,
                                                              final ResourceModel model,
                                                              final CallbackContext callbackContext) {
         return proxy.initiate("rds::describe-db-cluster-parameter-group::", proxyClient, model, callbackContext)
                 .translateToServiceRequest(Translator::describeDbClusterParameterGroupsRequest)
-                .makeServiceCall((describeDbClusterParameterGroupsRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(describeDbClusterParameterGroupsRequest, rdsClientProxyClient.client()::describeDBClusterParameterGroups));
+                .makeServiceCall((describeDbClusterParameterGroupsRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(describeDbClusterParameterGroupsRequest, rdsClientProxyClient.client()::describeDBClusterParameterGroups))
+                .handleError((describeDbClusterParameterGroupsRequest, exception, client, resourceModel, cxt) -> {
+                    if (exception instanceof DbParameterGroupNotFoundException)
+                        return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
+                    throw exception;
+                });
     }
+
+
 
     protected ProgressEvent<ResourceModel, CallbackContext> tagResource(final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse,
                                                                         final ProxyClient<RdsClient> proxyClient,
                                                                         final ResourceModel model,
+                                                                        final CallbackContext callbackContext,
                                                                         final Map<String, String> tags) {
         final String arn = describeDbClusterParameterGroupsResponse.dbClusterParameterGroups().stream().findFirst().get().dbClusterParameterGroupArn();
 
@@ -112,7 +121,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         proxyClient.injectCredentialsAndInvokeV2(Translator.removeTagsFromResourceRequest(arn, tagsToRemove), proxyClient.client()::removeTagsFromResource);
         proxyClient.injectCredentialsAndInvokeV2(Translator.addTagsToResourceRequest(arn, tagsToAdd), proxyClient.client()::addTagsToResource);
-        return ProgressEvent.defaultSuccessHandler(model);
+        return ProgressEvent.progress(model, callbackContext);
     }
 
     protected Set<Tag> listTags(final ProxyClient<RdsClient> proxyClient,

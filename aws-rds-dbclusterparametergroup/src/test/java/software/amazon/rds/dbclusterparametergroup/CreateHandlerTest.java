@@ -1,21 +1,31 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.security.InvalidParameterException;
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
+import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.DeleteDBClusterParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
-import software.amazon.cloudformation.exceptions.TerminalException;
 
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -27,11 +37,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
@@ -81,7 +88,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         RESOURCE_MODEL = ResourceModel.builder()
                 .description(DESCRIPTION)
-                .id(null)
+                .dBClusterParameterGroupName(null)
                 .family(FAMILY)
                 .parameters(PARAMS)
                 .tags(TAG_SET)
@@ -91,6 +98,20 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess(){
+
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
+        when(proxyRdsClient.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
+
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+            .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn("arn")
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+            .tagList(Tag.builder().key("key").value("value").build()).build();
+        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
@@ -111,6 +132,8 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
+        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
@@ -135,6 +158,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ModifyDbClusterParameterGroupResponse modifyDbClusterParameterGroupResponse = ModifyDbClusterParameterGroupResponse.builder().build();
         when(rds.modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class))).thenReturn(modifyDbClusterParameterGroupResponse);
 
+        RESOURCE_MODEL.setDBClusterParameterGroupName("sampleName");
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)

@@ -26,7 +26,7 @@ public class ListHandler extends BaseHandlerStd {
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                 .resourceModels(describeDbClusterParameterGroupsResponse
                         .dbClusterParameterGroups()
-                        .stream().map(dbClusterParameterGroup -> ResourceModel.builder().id(dbClusterParameterGroup.dbClusterParameterGroupName()).build())
+                        .stream().map(dbClusterParameterGroup -> ResourceModel.builder().dBClusterParameterGroupName(dbClusterParameterGroup.dbClusterParameterGroupName()).build())
                         .collect(Collectors.toList()))
                 .nextToken(describeDbClusterParameterGroupsResponse.marker())
                 .status(OperationStatus.SUCCESS)
