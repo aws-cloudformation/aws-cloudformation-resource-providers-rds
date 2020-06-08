@@ -15,10 +15,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
 public class UpdateHandler extends BaseHandlerStd {
-    private static final String ACCESS_DENIED_ERROR_CODE = "AccessDenied";
     private static final String AVAILABLE = "available";
     protected static final Constant BACKOFF_STRATEGY = Constant.of().timeout(Duration.ofMinutes(120L)).delay(Duration.ofSeconds(30L)).build();
-
 
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
@@ -43,26 +41,21 @@ public class UpdateHandler extends BaseHandlerStd {
                 final CallbackContext cxt = progress.getCallbackContext();
 
                 if (!cxt.isClusterStabilized()) { // if not stabilized then we keep describing clusters and memoizing into the set
-                    try {
-                        final DescribeDbClustersResponse describeDbClustersResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(cxt.getMarker()), proxyClient.client()::describeDBClusters);
 
-                        if(describeDbClustersResponse.dbClusters().stream()
-                            .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equals(resourceModel.getDBClusterParameterGroupName())) // all db clusters that use param group
-                            .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE))) { // if all stabilized then move to the next page
+                    final DescribeDbClustersResponse describeDbClustersResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(cxt.getMarker()), proxyClient.client()::describeDBClusters);
 
-                            if (describeDbClustersResponse.marker() != null) { // more pages left
-                                cxt.setMarker(describeDbClustersResponse.marker());
-                                progress.setCallbackDelaySeconds(30); // if there are more to describe
-                            } else { // nothing left to stabilized
-                                cxt.setClusterStabilized(true);
-                            }
-                        } else {
-                            progress.setCallbackDelaySeconds(30); // if some still in transition status need some delay to describe
-                        }
-                    } catch (final TerminalException e) { // soft fail in case of bad permission
-                        if (e.getCause() instanceof RdsException && StringUtils.equals(ACCESS_DENIED_ERROR_CODE, ((AmazonServiceException)e.getCause()).getErrorCode())) {
+                    if(describeDbClustersResponse.dbClusters().stream()
+                        .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equals(resourceModel.getDBClusterParameterGroupName())) // all db clusters that use param group
+                        .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE))) { // if all stabilized then move to the next page
+
+                        if (describeDbClustersResponse.marker() != null) { // more pages left
+                            cxt.setMarker(describeDbClustersResponse.marker());
+                            progress.setCallbackDelaySeconds(30); // if there are more to describe
+                        } else { // nothing left to stabilized
                             cxt.setClusterStabilized(true);
                         }
+                    } else {
+                        progress.setCallbackDelaySeconds(30); // if some still in transition status need some delay to describe
                     }
                 }
                 progress.setCallbackContext(cxt);
