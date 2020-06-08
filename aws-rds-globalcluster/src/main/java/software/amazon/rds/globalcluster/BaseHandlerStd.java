@@ -5,16 +5,18 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.GlobalClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
+import software.amazon.cloudformation.exceptions.CfnAlreadyExistsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
-import software.amazon.cloudformation.resource.IdentifierUtils;
+import java.util.function.Function;
 
 import java.time.Duration;
 import java.util.function.BiFunction;
@@ -83,19 +85,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
   }
 
-  protected String getDBClusterArn(final ResourceModel model,
-                                   final ProxyClient<RdsClient> proxyClient) {
-    try {
-      final List<DBCluster> dbClusters =
-              proxyClient.injectCredentialsAndInvokeV2(
-                      Translator.describeDbClustersRequest(model),
-                      proxyClient.client()::describeDBClusters).dbClusters();
-      return dbClusters.get(0).dbClusterArn();
-    } catch (DbClusterNotFoundException e) {
-      throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
-    }
-  }
-
   protected boolean validateSourceDBClusterIdentifier(final ResourceModel model) {
     //if soureDBClusterIdentifier is empty, create handler creates an empty global cluster, proceed with creation
     if(StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier())){
@@ -103,9 +92,66 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
       //only arn is allowed to have ":", which means identifier is already in arn format, proceed with creation
     }else if(model.getSourceDBClusterIdentifier().contains(":")) {
       return true;
-      //for all other case, return false, getDBClusterArn will have further checks.
+      //for all other case, return false
     }else {
       return false;
+    }
+  }
+
+  protected ProgressEvent<ResourceModel, CallbackContext> waitForGlobalClusterAvailableStatus(
+          final AmazonWebServicesClientProxy proxy,
+          final ProxyClient<RdsClient> proxyClient,
+          final ProgressEvent<ResourceModel, CallbackContext> progress) {
+    // this is a stabilizer for global cluster
+    return proxy.initiate("rds::stabilize-global-cluster" + getClass().getSimpleName(), proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+            // only stabilization is necessary so this is a dummy call
+            // Function.identity() takes ResourceModel as an input and returns (the same) ResourceModel
+            // Function.identity() is roughly similar to `model -> model`
+            .translateToServiceRequest(Function.identity())
+            // this skips the call and goes directly to stabilization
+            .makeServiceCall(EMPTY_CALL)
+            .stabilize((resourceModel, response, proxyInvocation, model, callbackContext) ->
+                    isGlobalClusterStabilized(proxyInvocation, model)).progress();
+  }
+
+  protected ProgressEvent<ResourceModel, CallbackContext> createGlobalCluster(final AmazonWebServicesClientProxy proxy,
+                                                                          final ProxyClient<RdsClient> proxyClient,
+                                                                          final ProgressEvent<ResourceModel, CallbackContext> progress) {
+
+    if(progress.getCallbackContext().isGlobalClusterCreated()) return progress;
+    //check if sourceDbCluster is not null and is in format of Identifier
+    if(!StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBClusterIdentifier())
+            && !validateSourceDBClusterIdentifier(progress.getResourceModel())) {
+      return proxy.initiate("rds::create-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+              .translateToServiceRequest(Translator::describeDbClustersRequest)
+              .backoffDelay(BACKOFF_STRATEGY)
+              .makeServiceCall((describeDbClustersRequest, proxyClient1) -> proxyClient1.injectCredentialsAndInvokeV2(describeDbClustersRequest, proxyClient1.client()::describeDBClusters))
+              .done((describeDbClusterRequest, describeDbClusterResponse, proxyClient2, resourceModel, callbackContext) -> {
+                final String arn = describeDbClusterResponse.dbClusters().get(0).dbClusterArn();
+                try {
+                  proxyClient2.injectCredentialsAndInvokeV2(Translator.createGlobalClusterRequest(resourceModel, arn), proxyClient2.client()::createGlobalCluster);
+                  callbackContext.setGlobalClusterCreated(true);
+                }catch(GlobalClusterAlreadyExistsException e) {
+                  throw new CfnAlreadyExistsException(e);
+                }
+                return ProgressEvent.defaultInProgressHandler(callbackContext, PAUSE_TIME_SECONDS, resourceModel);
+              });
+    } else {
+      return proxy.initiate("rds::create-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+              // request to create global cluster
+              .translateToServiceRequest(Translator::createGlobalClusterRequest)
+              .backoffDelay(BACKOFF_STRATEGY)
+              .makeServiceCall((createGlobalClusterRequest, proxyClient1) -> {
+                try{
+                  return proxyClient1.injectCredentialsAndInvokeV2(createGlobalClusterRequest, proxyClient1.client()::createGlobalCluster);
+                } catch(GlobalClusterAlreadyExistsException e) {
+                  throw new CfnAlreadyExistsException(e);
+                }
+              })
+              .done((describeDbClusterRequest, describeDbClusterResponse, proxyClient2, resourceModel, callbackContext) -> {
+                callbackContext.setGlobalClusterCreated(true);
+                return ProgressEvent.defaultInProgressHandler(callbackContext, PAUSE_TIME_SECONDS, resourceModel);
+              });
     }
   }
 }

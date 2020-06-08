@@ -1,8 +1,5 @@
 package software.amazon.rds.globalcluster;
 
-import com.google.common.collect.Lists;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.rds.model.CreateGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
@@ -27,6 +24,18 @@ public class Translator {
             .deletionProtection(model.getDeletionProtection())
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
             .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
+            .storageEncrypted(model.getStorageEncrypted())
+            .build();
+  }
+
+  static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model, String dbClusterArn) {
+    return CreateGlobalClusterRequest.builder()
+            .engine(model.getEngine())
+            .engineVersion(model.getEngineVersion())
+            .storageEncrypted(model.getStorageEncrypted())
+            .deletionProtection(model.getDeletionProtection())
+            .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+            .sourceDBClusterIdentifier(dbClusterArn)
             .storageEncrypted(model.getStorageEncrypted())
             .build();
   }
