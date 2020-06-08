@@ -66,6 +66,9 @@
   "writeOnlyProperties": [
     "/properties/Parameters"
   ],
+  "readOnlyProperties": [
+    "/properties/DBClusterParameterGroupName"
+  ],
   "primaryIdentifier": [
     "/properties/DBClusterParameterGroupName"
   ],
