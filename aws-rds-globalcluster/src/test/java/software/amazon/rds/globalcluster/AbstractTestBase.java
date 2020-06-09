@@ -29,6 +29,7 @@ public class AbstractTestBase {
   protected static final Integer BACKTRACK_WINDOW;
   protected static final String GLOBALCLUSTER_IDENTIFIER;
   protected static final String SOURCECLUSTER_IDENTIFIER;
+  protected static final String SOURCECLUSTER_ARN;
   protected static final String ENGINE_VERSION;
   protected static final String ENGINE;
   protected static final boolean DELETION_PROTECTION;
@@ -37,6 +38,7 @@ public class AbstractTestBase {
   protected static final ResourceModel RESOURCE_MODEL_UPDATE;
   protected static final ResourceModel RESOURCE_MODEL_ALTERNATIVE;
   protected static final ResourceModel RESOURCE_MODEL_WITH_MASTER;
+  protected static final ResourceModel RESOURCE_MODEL_WITH_MASTER_ARN;
   protected static final ResourceModel RESOURCE_MODEL_EMPTY_IDENTIFIER;
 
   protected static final GlobalCluster GLOBAL_CLUSTER_ACTIVE;
@@ -54,6 +56,7 @@ public class AbstractTestBase {
     BACKTRACK_WINDOW = 1;
     GLOBALCLUSTER_IDENTIFIER = "my-sample-globalcluster";
     SOURCECLUSTER_IDENTIFIER = "my-sample-dbcluster";
+    SOURCECLUSTER_ARN = "arn:aws:rds:us-east-1:340834135580:cluster:sample-globalcluster";
     ENGINE = "aurora";
     ENGINE_VERSION = "5.6.mysql_aurora.1.22.2";
     DELETION_PROTECTION = false;
@@ -73,6 +76,13 @@ public class AbstractTestBase {
     RESOURCE_MODEL_WITH_MASTER = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
             .sourceDBClusterIdentifier(SOURCECLUSTER_IDENTIFIER)
+            .engineVersion(ENGINE_VERSION)
+            .engine(ENGINE)
+            .build();
+
+    RESOURCE_MODEL_WITH_MASTER_ARN = ResourceModel.builder()
+            .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
+            .sourceDBClusterIdentifier(SOURCECLUSTER_ARN)
             .engineVersion(ENGINE_VERSION)
             .engine(ENGINE)
             .build();
