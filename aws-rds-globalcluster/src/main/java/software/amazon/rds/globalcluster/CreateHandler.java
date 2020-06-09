@@ -26,8 +26,7 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
-                    if(!StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBClusterIdentifier())
-                            && !validateSourceDBClusterIdentifier(progress.getResourceModel())) {
+                    if(!validateSourceDBClusterIdentifier(progress.getResourceModel())) {
                         return createGlobalClusterWithSourceDBCluster(proxy, proxyClient, progress);
                     }
                     return progress;

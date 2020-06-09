@@ -87,12 +87,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
   protected boolean validateSourceDBClusterIdentifier(final ResourceModel model) {
     //if soureDBClusterIdentifier is empty, create handler creates an empty global cluster, proceed with creation
-    if(StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier())){
+    //only arn is allowed to have ':', use this to check if input is in arn format
+    if(StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier()) || model.getSourceDBClusterIdentifier().contains(":")){
       return true;
-      //only arn is allowed to have ":", which means identifier is already in arn format, proceed with creation
-    }else if(model.getSourceDBClusterIdentifier().contains(":")) {
-      return true;
-      //for all other case, return false
     }else {
       return false;
     }
