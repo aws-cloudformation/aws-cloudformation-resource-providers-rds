@@ -31,9 +31,7 @@ public class ListHandler extends BaseHandlerStd {
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
             .resourceModels(describeDbSubnetGroupsResponse.dbSubnetGroups()
-            .stream().map(dbSubnetGroup -> ResourceModel.builder()
-                    .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName()).build())
-                .collect(Collectors.toList()))
+            .stream().map(dbSubnetGroup -> ResourceModel.builder().dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName()).build()).collect(Collectors.toList()))
             .nextToken(describeDbSubnetGroupsResponse.marker())
             .status(OperationStatus.SUCCESS)
             .build();

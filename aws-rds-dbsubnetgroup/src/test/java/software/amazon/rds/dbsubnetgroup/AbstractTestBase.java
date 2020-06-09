@@ -2,8 +2,12 @@ package software.amazon.rds.dbsubnetgroup;
 
 
 import com.google.common.collect.Lists;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.mockito.internal.util.collections.Sets;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -29,6 +33,7 @@ public class AbstractTestBase {
     protected static final ResourceModel RESOURCE_MODEL_ALTERNATIVE;
     protected static final DBSubnetGroup DB_SUBNET_GROUP_CREATING;
     protected static final DBSubnetGroup DB_SUBNET_GROUP_ACTIVE;
+    protected static final Set<Tag> TAG_SET;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -55,7 +60,15 @@ public class AbstractTestBase {
 
         DB_SUBNET_GROUP_ACTIVE = DBSubnetGroup.builder()
                 .subnetGroupStatus("Complete").build();
+        TAG_SET = Sets.newSet(Tag.builder().key("key").value("value").build());
     }
+
+    static Map<String, String> translateTagsToMap(final Set<Tag> tags) {
+        return tags.stream()
+            .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+
+    }
+
     static ProxyClient<RdsClient> MOCK_PROXY(
         final AmazonWebServicesClientProxy proxy,
         final RdsClient rdsClient

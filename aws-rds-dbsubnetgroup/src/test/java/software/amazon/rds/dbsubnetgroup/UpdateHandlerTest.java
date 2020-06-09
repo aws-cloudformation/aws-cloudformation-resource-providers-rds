@@ -1,10 +1,14 @@
 package software.amazon.rds.dbsubnetgroup;
 
+import java.security.InvalidParameterException;
 import org.junit.jupiter.api.AfterEach;
 import software.amazon.awssdk.services.rds.RdsClient;
 
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
@@ -14,6 +18,7 @@ import software.amazon.awssdk.services.rds.model.ModifyDbSubnetGroupResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -82,11 +87,13 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
@@ -97,5 +104,53 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessNotFound() {
+
+        when(proxyRdsClient.client().modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class))).thenThrow(
+            DbSubnetGroupNotFoundException.class);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+            .desiredResourceState(RESOURCE_MODEL_ALTERNATIVE)
+            .logicalResourceIdentifier("dbsubnet")
+            .clientRequestToken("4b90a7e4-b791-4512-a137-0cf12a23451e")
+            .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
+
+        verify(proxyRdsClient.client()).modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleException() {
+        when(proxyRdsClient.client().modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class))).thenThrow(
+            InvalidParameterException.class
+        );
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+            .desiredResourceState(RESOURCE_MODEL)
+            .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
+
+        verify(proxyRdsClient.client()).modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class));
     }
 }
