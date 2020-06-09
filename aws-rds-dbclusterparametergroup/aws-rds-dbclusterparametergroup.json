@@ -40,7 +40,8 @@
       "type": "object"
     },
     "DBClusterParameterGroupName": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$"
     },
     "Tags": {
       "description": "The list of tags for the cluster parameter group.",

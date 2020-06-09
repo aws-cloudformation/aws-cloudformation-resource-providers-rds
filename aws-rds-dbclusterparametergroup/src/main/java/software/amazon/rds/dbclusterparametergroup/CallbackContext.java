@@ -1,6 +1,5 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import java.util.Set;
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 
 
