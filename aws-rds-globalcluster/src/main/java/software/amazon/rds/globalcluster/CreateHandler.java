@@ -2,8 +2,6 @@ package software.amazon.rds.globalcluster;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.GlobalClusterAlreadyExistsException;
-import software.amazon.cloudformation.exceptions.CfnAlreadyExistsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -26,20 +24,21 @@ public class CreateHandler extends BaseHandlerStd {
                     request.getClientRequestToken(), GLOBAL_CLUSTER_ID_MAX_LENGTH).toLowerCase());
         }
 
-        return proxy.initiate("rds::create-global-cluster", proxyClient, model, callbackContext)
-                // request to create global cluster
-                .translateToServiceRequest(Translator::createGlobalClusterRequest)
-                .backoffDelay(BACKOFF_STRATEGY)
-                .makeServiceCall((createGlobalClusterRequest, proxyClient1) -> {
-                        try{
-                            return proxyClient1.injectCredentialsAndInvokeV2(createGlobalClusterRequest, proxyClient1.client()::createGlobalCluster);
-                        } catch(GlobalClusterAlreadyExistsException e) {
-                            throw new CfnAlreadyExistsException(e);
-                        }
+        return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> {
+                    if(!validateSourceDBClusterIdentifier(progress.getResourceModel())) {
+                        return createGlobalClusterWithSourceDBCluster(proxy, proxyClient, progress);
+                    }
+                    return progress;
                 })
-                .stabilize(((createGlobalClusterRequest, createGlobalClusterResponse, proxyClient1, resourceModel, callbackContext1) ->
-                        isGlobalClusterStabilized(proxyClient1, model)))
-                .progress()
+                .then(progress -> {
+                    //check if source cluster identifier is null or is in arn format
+                    if(validateSourceDBClusterIdentifier(progress.getResourceModel())) {
+                        return createGlobalCluster(proxy, proxyClient, progress);
+                    }
+                    return progress;
+                })
+                .then(progress -> waitForGlobalClusterAvailableStatus(proxy, proxyClient, progress))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

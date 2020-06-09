@@ -6,6 +6,8 @@ import software.amazon.awssdk.services.rds.model.CreateGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.CreateGlobalClusterResponse;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -23,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -74,7 +75,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 
     @Test
@@ -94,17 +94,16 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithMaster() {
+    public void handleRequest_SimpleSuccessWithMasterArn() {
         final CreateGlobalClusterResponse createGlobalClusterResponse = CreateGlobalClusterResponse.builder().build();
         when(proxyRdsClient.client().createGlobalCluster(any(CreateGlobalClusterRequest.class))).thenReturn(createGlobalClusterResponse);
         final DescribeGlobalClustersResponse describeGlobalClustersResponse = DescribeGlobalClustersResponse.builder().globalClusters(GLOBAL_CLUSTER_ACTIVE).build();
         when(proxyRdsClient.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class))).thenReturn(describeGlobalClustersResponse);
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_WITH_MASTER).build();
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_WITH_MASTER_ARN).build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -114,7 +113,26 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessWithMaster() {
+        final CreateGlobalClusterResponse createGlobalClusterResponse = CreateGlobalClusterResponse.builder().build();
+        when(proxyRdsClient.client().createGlobalCluster(any(CreateGlobalClusterRequest.class))).thenReturn(createGlobalClusterResponse);
+        final DescribeGlobalClustersResponse describeGlobalClustersResponse = DescribeGlobalClustersResponse.builder().globalClusters(GLOBAL_CLUSTER_ACTIVE).build();
+        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
+        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_WITH_MASTER).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(60);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
     }
 
     @Test
@@ -139,6 +157,5 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 }

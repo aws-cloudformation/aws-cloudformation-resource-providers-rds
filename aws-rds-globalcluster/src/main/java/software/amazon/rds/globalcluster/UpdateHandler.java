@@ -1,6 +1,7 @@
 package software.amazon.rds.globalcluster;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
