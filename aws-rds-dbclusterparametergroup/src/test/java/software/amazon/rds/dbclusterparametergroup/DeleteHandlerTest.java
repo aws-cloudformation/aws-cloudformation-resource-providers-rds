@@ -1,12 +1,14 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.security.InvalidParameterException;
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDBClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -20,8 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -70,7 +70,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
         RESOURCE_MODEL = ResourceModel.builder()
                 .description(DESCRIPTION)
-                .id(null)
+                .dBClusterParameterGroupName(null)
                 .family(FAMILY)
                 .parameters(PARAMS)
                 .tags(TAG_SET)
@@ -93,6 +93,54 @@ public class DeleteHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessNotFound() {
+        final DeleteDBClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDBClusterParameterGroupResponse.builder().build();
+        when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
+            .thenThrow(DbParameterGroupNotFoundException.class);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+            .desiredResourceState(ResourceModel.builder()
+                .build())
+            .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
+
+        verify(proxyRdsClient.client()).deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleInvalid() {
+        final DeleteDBClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDBClusterParameterGroupResponse.builder().build();
+        when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
+            .thenThrow(InvalidParameterException.class);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+            .desiredResourceState(ResourceModel.builder()
+                .build())
+            .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
 
         verify(proxyRdsClient.client()).deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class));
     }

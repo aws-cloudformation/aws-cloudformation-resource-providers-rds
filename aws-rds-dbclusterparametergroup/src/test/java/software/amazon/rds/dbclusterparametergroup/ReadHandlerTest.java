@@ -1,8 +1,6 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
@@ -24,8 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,7 +70,7 @@ public class ReadHandlerTest extends AbstractTestBase {
 
         RESOURCE_MODEL = ResourceModel.builder()
                 .description(DESCRIPTION)
-                .id(null)
+                .dBClusterParameterGroupName(null)
                 .family(FAMILY)
                 .tags(TAG_SET)
                 .build();
@@ -86,7 +82,7 @@ public class ReadHandlerTest extends AbstractTestBase {
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
                 .dbClusterParameterGroups(DBClusterParameterGroup.builder()
                         .dbClusterParameterGroupArn("arn")
-                        .dbClusterParameterGroupName(RESOURCE_MODEL.getId())
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
                         .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
                         .description(RESOURCE_MODEL.getDescription()).build()).build();
         when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);

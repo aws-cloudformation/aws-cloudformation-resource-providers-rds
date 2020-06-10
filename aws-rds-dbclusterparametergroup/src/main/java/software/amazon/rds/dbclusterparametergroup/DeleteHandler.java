@@ -1,7 +1,10 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.Logger;
@@ -17,6 +20,11 @@ public class DeleteHandler extends BaseHandlerStd {
         return proxy.initiate("rds::delete-db-cluster-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbClusterParameterGroupRequest)
                 .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBClusterParameterGroup))
-                .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(resourceModel));
+            .handleError((deleteGroupRequest, exception, client, resourceModel, cxt) -> {
+              if (exception instanceof DbParameterGroupNotFoundException)
+                return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
+              throw exception;
+            })
+            .done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(resourceModel));
     }
 }

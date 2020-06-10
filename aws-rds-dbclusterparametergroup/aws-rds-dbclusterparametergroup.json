@@ -39,8 +39,9 @@
       "description": "An array of parameters to be modified. A maximum of 20 parameters can be modified in a single request.",
       "type": "object"
     },
-    "Id": {
-      "type": "string"
+    "DBClusterParameterGroupName": {
+      "type": "string",
+      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$"
     },
     "Tags": {
       "description": "The list of tags for the cluster parameter group.",
@@ -66,11 +67,11 @@
   "writeOnlyProperties": [
     "/properties/Parameters"
   ],
-  "primaryIdentifier": [
-    "/properties/Id"
-  ],
   "readOnlyProperties": [
-    "/properties/Id"
+    "/properties/DBClusterParameterGroupName"
+  ],
+  "primaryIdentifier": [
+    "/properties/DBClusterParameterGroupName"
   ],
   "handlers": {
     "create": {
@@ -88,6 +89,7 @@
     },
     "update": {
       "permissions": [
+        "rds:DescribeDbClusters",
         "rds:DescribeDbClusterParameters",
         "rds:ListTagsForResource",
         "rds:AddTagsToResource",
