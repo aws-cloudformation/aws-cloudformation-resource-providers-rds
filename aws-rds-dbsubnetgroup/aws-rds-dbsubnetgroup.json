@@ -82,6 +82,8 @@
       "permissions": [
         "rds:ModifyDBSubnetGroup",
         "rds:DescribeDBSubnetGroups",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource",
         "rds:ListTagsForResource"
       ]
     },

@@ -1,7 +1,9 @@
 package software.amazon.rds.dbsubnetgroup;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -19,6 +21,11 @@ public class DeleteHandler extends BaseHandlerStd {
             .backoffDelay(CONSTANT)
             .makeServiceCall((deleteDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteDbSubnetGroupRequest, proxyInvocation.client()::deleteDBSubnetGroup))
             .stabilize((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isDeleted(resourceModel, proxyInvocation))
-            .success();
+            .handleError((deleteDbSubnetGroupRequest, exception, client, resourceModel, cxt) -> {
+                if (exception instanceof DbSubnetGroupNotFoundException)
+                    return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
+                throw exception;
+            })
+            .done((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, client, model, cxt) -> ProgressEvent.defaultSuccessHandler(model));
     }
 }

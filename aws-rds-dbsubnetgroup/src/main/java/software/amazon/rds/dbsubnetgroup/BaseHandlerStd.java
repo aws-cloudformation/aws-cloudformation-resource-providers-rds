@@ -1,5 +1,6 @@
 package software.amazon.rds.dbsubnetgroup;
 
+import java.util.Map;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -18,6 +19,7 @@ import java.util.Set;
 
 import static software.amazon.rds.dbsubnetgroup.Translator.addTagsToResourceRequest;
 import static software.amazon.rds.dbsubnetgroup.Translator.listTagsForResourceRequest;
+import static software.amazon.rds.dbsubnetgroup.Translator.mapToTags;
 import static software.amazon.rds.dbsubnetgroup.Translator.removeTagsFromResourceRequest;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
@@ -69,31 +71,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
         final AmazonWebServicesClientProxy proxy,
         final ProxyClient<RdsClient> proxyClient,
-        final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final Map<String, String> tags) {
       return proxy.initiate("rds::tag-dbsubnet-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
           .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
           .makeServiceCall((describeDbSubnetGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupsRequest, proxyInvocation.client()::describeDBSubnetGroups))
           .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, resourceModel, context) -> {
-            final String arn = describeDbSubnetGroupsResponse.dbSubnetGroups()
-                .stream().findFirst().get().dbSubnetGroupArn();
+            final String arn = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get().dbSubnetGroupArn();
 
-            final Set<Tag> currentTags = new HashSet<>(Optional.ofNullable(resourceModel.getTags())
-                .orElse(Collections.emptySet()));
+            final Set<Tag> currentTags = mapToTags(tags);
 
-            final Set<Tag> existingTags = Translator.translateTagsFromSdk(
-                proxyInvocation.injectCredentialsAndInvokeV2(
-                    listTagsForResourceRequest(arn),
-                    proxyInvocation.client()::listTagsForResource).tagList());
+            final Set<Tag> existingTags = Translator.translateTagsFromSdk(proxyInvocation.injectCredentialsAndInvokeV2(listTagsForResourceRequest(arn), proxyInvocation.client()::listTagsForResource).tagList());
 
             final Set<Tag> tagsToRemove = Sets.difference(existingTags, currentTags);
             final Set<Tag> tagsToAdd = Sets.difference(currentTags, existingTags);
 
-            proxyInvocation.injectCredentialsAndInvokeV2(
-                removeTagsFromResourceRequest(arn, tagsToRemove),
-                proxyInvocation.client()::removeTagsFromResource);
-            proxyInvocation.injectCredentialsAndInvokeV2(
-                addTagsToResourceRequest(arn, tagsToAdd),
-                proxyInvocation.client()::addTagsToResource);
+            proxyInvocation.injectCredentialsAndInvokeV2(removeTagsFromResourceRequest(arn, tagsToRemove), proxyInvocation.client()::removeTagsFromResource);
+            proxyInvocation.injectCredentialsAndInvokeV2(addTagsToResourceRequest(arn, tagsToAdd), proxyInvocation.client()::addTagsToResource);
             return ProgressEvent.progress(resourceModel, context);
           });
     }

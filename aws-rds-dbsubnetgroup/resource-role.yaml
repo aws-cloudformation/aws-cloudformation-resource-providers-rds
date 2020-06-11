@@ -23,11 +23,13 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "rds:AddTagsToResource"
                 - "rds:CreateDBSubnetGroup"
                 - "rds:DeleteDBSubnetGroup"
                 - "rds:DescribeDBSubnetGroups"
                 - "rds:ListTagsForResource"
                 - "rds:ModifyDBSubnetGroup"
+                - "rds:RemoveTagsFromResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

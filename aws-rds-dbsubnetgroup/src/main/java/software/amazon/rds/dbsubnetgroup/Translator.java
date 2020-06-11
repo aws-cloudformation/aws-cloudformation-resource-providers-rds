@@ -1,5 +1,6 @@
 package software.amazon.rds.dbsubnetgroup;
 
+import java.util.Map;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbSubnetGroupRequest;
@@ -16,12 +17,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Translator {
-    static CreateDbSubnetGroupRequest createDbSubnetGroupRequest(final ResourceModel model) {
-        return CreateDbSubnetGroupRequest.builder()
-                .dbSubnetGroupName(model.getDBSubnetGroupName())
-                .dbSubnetGroupDescription(model.getDBSubnetGroupDescription())
-                .subnetIds(model.getSubnetIds())
-                .tags(translateTagsToSdk(model.getTags())).build();
+    static CreateDbSubnetGroupRequest createDbSubnetGroupRequest(final ResourceModel model,
+        final Map<String, String> tags) {
+      return CreateDbSubnetGroupRequest.builder()
+          .dbSubnetGroupName(model.getDBSubnetGroupName())
+          .dbSubnetGroupDescription(model.getDBSubnetGroupDescription())
+          .subnetIds(model.getSubnetIds())
+          .tags(translateTagsToSdk(tags)).build();
     }
 
     static DescribeDbSubnetGroupsRequest describeDbSubnetGroupsRequest(final ResourceModel model) {
@@ -76,21 +78,35 @@ public class Translator {
                         .collect(Collectors.toSet()))
                 .build();
     }
-
+    // Translate tags
     static Set<Tag> translateTagsToSdk(final Collection<software.amazon.rds.dbsubnetgroup.Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
-                .collect(Collectors.toSet());
+      return Optional.ofNullable(tags).orElse(Collections.emptySet())
+          .stream()
+          .map(tag -> Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
+          .collect(Collectors.toSet());
+    }
+
+    // Translate tags
+    static Set<Tag> translateTagsToSdk(final Map<String, String> tags) {
+      return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
+          .stream()
+          .map(tag -> Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
+          .collect(Collectors.toSet());
+    }
+
+    static Set<software.amazon.rds.dbsubnetgroup.Tag> mapToTags(final Map<String, String> tags) {
+      return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
+          .stream()
+          .map(entry -> software.amazon.rds.dbsubnetgroup.Tag.builder().key(entry.getKey()).value(entry.getValue()).build())
+          .collect(Collectors.toSet());
     }
 
     static Set<software.amazon.rds.dbsubnetgroup.Tag> translateTagsFromSdk(final Collection<Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> software.amazon.rds.dbsubnetgroup.Tag.builder()
-                    .key(tag.key())
-                    .value(tag.value())
-                    .build())
-                .collect(Collectors.toSet());
+      return Optional.ofNullable(tags).orElse(Collections.emptySet())
+          .stream()
+          .map(tag -> software.amazon.rds.dbsubnetgroup.Tag.builder()
+              .key(tag.key())
+              .value(tag.value()).build())
+          .collect(Collectors.toSet());
     }
 }
