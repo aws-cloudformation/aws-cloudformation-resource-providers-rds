@@ -25,19 +25,7 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> {
-                    if(!validateSourceDBClusterIdentifier(progress.getResourceModel())) {
-                        return createGlobalClusterWithSourceDBCluster(proxy, proxyClient, progress);
-                    }
-                    return progress;
-                })
-                .then(progress -> {
-                    //check if source cluster identifier is null or is in arn format
-                    if(validateSourceDBClusterIdentifier(progress.getResourceModel())) {
-                        return createGlobalCluster(proxy, proxyClient, progress);
-                    }
-                    return progress;
-                })
+                .then(progress -> createGlobalCluster(proxy, proxyClient, progress))
                 .then(progress -> waitForGlobalClusterAvailableStatus(proxy, proxyClient, progress))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
