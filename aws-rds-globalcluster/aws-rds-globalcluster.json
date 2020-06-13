@@ -25,36 +25,18 @@
       "type": "string",
       "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
     },
-    "SourceDBClusterIdentifier": {
-      "description": "The Amazon Resource Name (ARN) to use as the primary cluster of the global database. This parameter is optional. This parameter is stored as a lowercase string.",
-      "type": "string",
-      "oneOf": [
-        {
-          "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
-        },
-        {
-          "pattern": "^(?=.{40,128}$)arn.*"
-        }
-      ]
-    },
     "StorageEncrypted": {
       "description": " The storage encryption setting for the new global database cluster.\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
       "type": "boolean"
     }
   },
-  "oneOf": [
-    {
-      "required": [
-        "SourceDBClusterIdentifier"
-      ]
-    },
-    {
-      "required": [
-        "Engine"
-      ]
-    }
+  "required": [
+    "Engine"
   ],
   "additionalProperties": false,
+  "createOnlyProperties": [
+    "/properties/GlobalClusterIdentifier"
+  ],
   "primaryIdentifier": [
     "/properties/GlobalClusterIdentifier"
   ],
