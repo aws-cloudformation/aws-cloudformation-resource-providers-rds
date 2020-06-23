@@ -61,6 +61,7 @@ public class AbstractTestBase {
     ENGINE_VERSION = "5.6.mysql_aurora.1.22.2";
     DELETION_PROTECTION = false;
 
+
     RESOURCE_MODEL = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
             .engineVersion(ENGINE_VERSION)
@@ -100,14 +101,14 @@ public class AbstractTestBase {
             .status(GlobalClusterStatus.Available.toString())
             .build();
 
+    DBCLUSTER_ACTIVE = DBCluster.builder()
+            .dbClusterIdentifier(RESOURCE_MODEL_WITH_MASTER.getSourceDBClusterIdentifier())
+            .dbClusterArn("123")
+            .build();
+
     RESOURCE_MODEL_UPDATE = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
             .deletionProtection(DELETION_PROTECTION)
-            .build();
-
-    DBCLUSTER_ACTIVE = DBCluster.builder()
-            .dbClusterIdentifier(RESOURCE_MODEL.getSourceDBClusterIdentifier())
-            .dbClusterArn("123")
             .build();
   }
 

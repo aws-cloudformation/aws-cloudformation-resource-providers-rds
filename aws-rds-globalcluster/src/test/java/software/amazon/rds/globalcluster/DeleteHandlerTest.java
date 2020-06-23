@@ -51,9 +51,9 @@ public class DeleteHandlerTest extends AbstractTestBase {
         final DeleteGlobalClusterResponse deleteGlobalClusterResponse = DeleteGlobalClusterResponse.builder().build();
         when(proxyRdsClient.client().deleteGlobalCluster(any(DeleteGlobalClusterRequest.class))).thenReturn(deleteGlobalClusterResponse);
         when(proxyRdsClient.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class))).thenThrow(GlobalClusterNotFoundException.class);
-
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL).build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
@@ -62,6 +62,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).deleteGlobalCluster(any(DeleteGlobalClusterRequest.class));
-        verify(proxyRdsClient.client()).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 }
