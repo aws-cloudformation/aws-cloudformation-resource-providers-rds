@@ -62,6 +62,7 @@
     "create": {
       "permissions": [
         "rds:CreateGlobalCluster",
+        "rds:DescribeDBCluster",
         "rds:DescribeGlobalCluster"
       ]
     },
@@ -79,7 +80,9 @@
     "delete": {
       "permissions": [
         "rds:DescribeGlobalCluster",
-        "rds:DeleteGlobalCluster"
+        "rds:DeleteGlobalCluster",
+        "rds:RemoveFromGlobalCluster",
+        "rds:DescribeDBCluster"
       ]
     },
     "list": {

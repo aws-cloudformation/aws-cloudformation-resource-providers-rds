@@ -103,10 +103,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxyClient.injectCredentialsAndInvokeV2(
                         Translator.describeGlobalClustersRequest(model),
                         proxyClient.client()::describeGlobalClusters).globalClusters();
-        if (globalClusters == null || globalClusters.size() == 0) {
-          return false;
-        }
-        return globalClusters.get(0).globalClusterMembers().size() == 1;
+        return globalClusters != null && globalClusters.size() > 0 && globalClusters.get(0).globalClusterMembers().size() == 1;
       }catch (GlobalClusterNotFoundException e) {
         return false;
       }
