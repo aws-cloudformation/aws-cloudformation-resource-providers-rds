@@ -1,5 +1,6 @@
 package software.amazon.rds.globalcluster;
 
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -13,12 +14,17 @@ public class DeleteHandler extends BaseHandlerStd {
                                                                           final CallbackContext callbackContext,
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
-        return proxy.initiate("rds::delete-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
-                // request to create global cluster
-                .translateToServiceRequest(Translator::deleteGlobalClusterRequest)
-                .backoffDelay(BACKOFF_STRATEGY)
-                .makeServiceCall((deleteGlobalClusterRequest, proxyClient1) -> proxyClient1.injectCredentialsAndInvokeV2(deleteGlobalClusterRequest, proxyClient1.client()::deleteGlobalCluster))
-                .stabilize(((deleteGlobalClusterRequest, deleteGlobalClusterResponse, proxyClient1, model, context) -> isDeleted(model, proxyClient1)))
-                .success();
+        ResourceModel model = request.getDesiredResourceState();
+
+        return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> removeFromGlobalCluster(proxy, proxyClient, progress))
+                .then(progress -> waitForDBClusterAvailableStatus(proxy, proxyClient, progress))
+                .then(progress -> proxy.initiate("rds::delete-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
+                        .translateToServiceRequest(Translator::deleteGlobalClusterRequest)
+                        .backoffDelay(BACKOFF_STRATEGY)
+                        .makeServiceCall((deleteGlobalClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGlobalClusterRequest, proxyInvocation.client()::deleteGlobalCluster))
+                        // wait until deleted
+                        .stabilize(((deleteGlobalClusterRequest, deleteGlobalClusterResponse, proxyClient1, model1, context) -> isDeleted(model1, proxyClient1)))
+                        .success());
     }
 }

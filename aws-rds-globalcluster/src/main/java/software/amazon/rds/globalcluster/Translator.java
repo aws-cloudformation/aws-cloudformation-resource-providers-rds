@@ -5,6 +5,7 @@ import software.amazon.awssdk.services.rds.model.ModifyGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.DeleteGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 
 
 /**
@@ -50,6 +51,13 @@ public class Translator {
   static DeleteGlobalClusterRequest deleteGlobalClusterRequest(final ResourceModel model) {
     return DeleteGlobalClusterRequest.builder()
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+            .build();
+  }
+
+  static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final ResourceModel model, String arn) {
+    return RemoveFromGlobalClusterRequest.builder()
+            .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+            .dbClusterIdentifier(arn)
             .build();
   }
 
