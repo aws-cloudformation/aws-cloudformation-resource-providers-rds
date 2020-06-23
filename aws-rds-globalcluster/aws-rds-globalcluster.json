@@ -55,6 +55,9 @@
     }
   ],
   "additionalProperties": false,
+  "createOnlyProperties": [
+    "/properties/GlobalClusterIdentifier"
+  ],
   "primaryIdentifier": [
     "/properties/GlobalClusterIdentifier"
   ],
