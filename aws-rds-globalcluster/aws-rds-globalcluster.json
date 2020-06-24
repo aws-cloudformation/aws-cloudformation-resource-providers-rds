@@ -55,6 +55,10 @@
     }
   ],
   "additionalProperties": false,
+  "createOnlyProperties": [
+    "/properties/GlobalClusterIdentifier",
+    "/properties/SourceDBClusterIdentifier"
+  ],
   "primaryIdentifier": [
     "/properties/GlobalClusterIdentifier"
   ],
