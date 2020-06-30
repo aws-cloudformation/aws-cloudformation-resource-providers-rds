@@ -10,6 +10,7 @@
             "amazon",
             "rds",
             "dbclusterparametergroup"
-        ]
+        ],
+        "protocolVersion": "2.0.0"
     }
 }
