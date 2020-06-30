@@ -11,6 +11,7 @@
             "rds",
             "eventsubscription"
         ],
-        "codegen_template_path": "guided_aws"
+        "codegen_template_path": "guided_aws",
+        "protocolVersion": "2.0.0"
     }
 }
