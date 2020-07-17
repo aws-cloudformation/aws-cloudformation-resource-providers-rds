@@ -66,32 +66,32 @@
     "create": {
       "permissions": [
         "rds:CreateGlobalCluster",
-        "rds:DescribeDBCluster",
-        "rds:DescribeGlobalCluster"
+        "rds:DescribeDBClusters",
+        "rds:DescribeGlobalClusters"
       ]
     },
     "read": {
       "permissions": [
-        "rds:DescribeGlobalCluster"
+        "rds:DescribeGlobalClusters"
       ]
     },
     "update": {
       "permissions": [
         "rds:ModifyGlobalCluster",
-        "rds:DescribeGlobalCluster"
+        "rds:DescribeGlobalClusters"
       ]
     },
     "delete": {
       "permissions": [
-        "rds:DescribeGlobalCluster",
+        "rds:DescribeGlobalClusters",
         "rds:DeleteGlobalCluster",
         "rds:RemoveFromGlobalCluster",
-        "rds:DescribeDBCluster"
+        "rds:DescribeDBClusters"
       ]
     },
     "list": {
       "permissions": [
-        "rds:DescribeGlobalCluster"
+        "rds:DescribeGlobalClusters"
       ]
     }
   }
