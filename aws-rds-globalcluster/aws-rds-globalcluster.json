@@ -9,7 +9,7 @@
       "enum": [
         "aurora",
         "aurora-mysql",
-        "aurora-postgres"
+        "aurora-postgresql"
       ]
     },
     "EngineVersion": {
