@@ -1,0 +1,17 @@
+{
+    "typeName": "AWS::RDS::OptionGroup",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.optiongroup.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.optiongroup.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "optiongroup"
+        ],
+        "codegen_template_path": "guided_aws",
+        "protocolVersion": "2.0.0"
+    }
+}
