@@ -41,6 +41,11 @@ jobs:
         cd "${GITHUB_WORKSPACE}/aws-rds-dbparametergroup"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
+    - name: AWS::RDS::DbInstance
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbinstance"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
     - name: Verify AWS::RDS::DBSubnetGroup
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-dbsubnetgroup"
