@@ -1,6 +1,10 @@
 package software.amazon.rds.globalcluster;
 
+import java.util.List;
+
+import com.google.common.annotations.VisibleForTesting;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.GlobalClusterMember;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -22,9 +26,34 @@ public class ReadHandler extends BaseHandlerStd {
 
                     final GlobalCluster targetGlobalCluster = describeGlobalClustersResponse.globalClusters().stream().findFirst().get();
 
-                    return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
-                            .globalClusterIdentifier(targetGlobalCluster.globalClusterIdentifier())
-                            .build());
+                    return ProgressEvent.defaultSuccessHandler(toResourceModel(targetGlobalCluster));
                 });
+    }
+
+    @VisibleForTesting
+    ResourceModel toResourceModel(GlobalCluster cluster) {
+
+        ResourceModel.ResourceModelBuilder builder = ResourceModel.builder();
+
+        builder.globalClusterIdentifier(cluster.globalClusterIdentifier());
+        builder.engine(cluster.engine());
+        builder.engineVersion(cluster.engineVersion());
+        builder.storageEncrypted(cluster.storageEncrypted());
+        builder.deletionProtection(cluster.deletionProtection());
+
+        if (cluster.hasGlobalClusterMembers()) {
+
+            List<GlobalClusterMember> globalClusterMembers = cluster.globalClusterMembers();
+
+            for (GlobalClusterMember globalClusterMember : globalClusterMembers) {
+                if (globalClusterMember.isWriter()) {
+                    builder.sourceDBClusterIdentifier(globalClusterMember.dbClusterArn());
+
+                    break;
+                }
+            }
+        }
+
+        return builder.build();
     }
 }
