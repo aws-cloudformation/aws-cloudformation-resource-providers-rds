@@ -1,4 +1,4 @@
 {
   "GlobalClusterIdentifier": "cf-contract-test-global-cluster-0",
-  "Engine" : "aurora-mysql"
+  "Engine": "aurora-mysql"
 }
