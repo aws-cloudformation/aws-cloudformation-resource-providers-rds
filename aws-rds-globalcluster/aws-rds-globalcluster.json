@@ -57,9 +57,7 @@
   "additionalProperties": false,
   "createOnlyProperties": [
     "/properties/GlobalClusterIdentifier",
-    "/properties/SourceDBClusterIdentifier",
-    "/properties/Engine",
-    "/properties/StorageEncrypted"
+    "/properties/SourceDBClusterIdentifier"
   ],
   "primaryIdentifier": [
     "/properties/GlobalClusterIdentifier"
