@@ -88,21 +88,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
   }
 
   protected boolean validateSourceDBClusterIdentifier(final ResourceModel model) {
-    //if soureDBClusterIdentifier is empty, create handler creates an empty global cluster, proceed with creation
+    //if sourceDBClusterIdentifier is empty, create handler creates an empty global cluster, proceed with creation
     //only arn is allowed to have ':', use this to check if input is in arn format
-    if(StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier()) || model.getSourceDBClusterIdentifier().contains(":")){
-      return true;
-    }else {
-      return false;
-    }
+    return StringUtils.isNullOrEmpty(model.getSourceDBClusterIdentifier()) || model.getSourceDBClusterIdentifier().contains(":");
   }
 
-  protected boolean GlobalClusterContainsOnlyMaster(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
+  protected boolean globalClusterContainsOnlyMaster(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
       try {
         final List<GlobalCluster> globalClusters =
                 proxyClient.injectCredentialsAndInvokeV2(
                         Translator.describeGlobalClustersRequest(model),
                         proxyClient.client()::describeGlobalClusters).globalClusters();
+
         return globalClusters != null && globalClusters.size() > 0 && globalClusters.get(0).globalClusterMembers().size() == 1;
       }catch (GlobalClusterNotFoundException e) {
         return false;
@@ -140,6 +137,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     if(StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBClusterIdentifier())) {
       return progress;
     }
+
     return proxy.initiate("rds::stabilize-dbcluster" + getClass().getSimpleName(), proxyClient, progress.getResourceModel(), progress.getCallbackContext())
             // only stabilization is necessary so this is a dummy call
             // Function.identity() takes ResourceModel as an input and returns (the same) ResourceModel
@@ -171,7 +169,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress) {
 
-    if(!GlobalClusterContainsOnlyMaster(progress.getResourceModel(), proxyClient) || progress.getCallbackContext().isRemoved()) return progress;
+    if(!globalClusterContainsOnlyMaster(progress.getResourceModel(), proxyClient) || progress.getCallbackContext().isRemoved()) return progress;
     //check if sourceDbCluster is not null and is in format of Identifier
     return proxy.initiate("rds::remove-from-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
             .translateToServiceRequest(Translator::describeDbClustersRequest)
