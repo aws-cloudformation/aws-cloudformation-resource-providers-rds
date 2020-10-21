@@ -18,22 +18,13 @@ import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 public class Translator {
 
   static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model) {
-    return CreateGlobalClusterRequest.builder()
-            .engine(model.getEngine())
-            .engineVersion(model.getEngineVersion())
-            .storageEncrypted(model.getStorageEncrypted())
-            .deletionProtection(model.getDeletionProtection())
-            .globalClusterIdentifier(model.getGlobalClusterIdentifier())
-            .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
-            .storageEncrypted(model.getStorageEncrypted())
-            .build();
+    return createGlobalClusterRequest(model, null);
   }
 
   static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model, String dbClusterArn) {
     return CreateGlobalClusterRequest.builder()
             .engine(model.getEngine())
             .engineVersion(model.getEngineVersion())
-            .storageEncrypted(model.getStorageEncrypted())
             .deletionProtection(model.getDeletionProtection())
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
             .sourceDBClusterIdentifier(dbClusterArn)

@@ -24,8 +24,8 @@ public class DeleteHandler extends BaseHandlerStd {
                         .makeServiceCall((deleteGlobalClusterRequest, proxyInvocation)
                                 -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGlobalClusterRequest, proxyInvocation.client()::deleteGlobalCluster))
                         // wait until deleted
-                        .stabilize(((deleteGlobalClusterRequest, deleteGlobalClusterResponse, stabilizeProxy, stabilizeModel, context)
-                                -> isDeleted(stabilizeModel, stabilizeProxy)))
+                        .stabilize((deleteGlobalClusterRequest, deleteGlobalClusterResponse, stabilizeProxy, stabilizeModel, context)
+                                -> isDeleted(stabilizeModel, stabilizeProxy))
                         .success());
 
         result.setResourceModel(null);
