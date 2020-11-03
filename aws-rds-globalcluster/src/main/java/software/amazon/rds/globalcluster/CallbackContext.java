@@ -9,4 +9,5 @@ import software.amazon.cloudformation.proxy.StdCallbackContext;
 public class CallbackContext extends StdCallbackContext {
     private boolean globalClusterCreated;
     private boolean removed;
+    private boolean isDeleting;
 }

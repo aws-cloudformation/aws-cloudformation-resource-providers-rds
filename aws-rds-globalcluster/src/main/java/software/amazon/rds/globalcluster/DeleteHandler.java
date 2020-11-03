@@ -1,5 +1,7 @@
 package software.amazon.rds.globalcluster;
 
+import java.util.function.Function;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -15,20 +17,36 @@ public class DeleteHandler extends BaseHandlerStd {
                                                                           final Logger logger) {
         ResourceModel model = request.getDesiredResourceState();
 
-        ProgressEvent<ResourceModel, CallbackContext> result = ProgressEvent.progress(model, callbackContext)
-                .then(progress -> removeFromGlobalCluster(proxy, proxyClient, progress))
-                .then(progress -> waitForDBClusterAvailableStatus(proxy, proxyClient, progress))
-                .then(progress -> proxy.initiate("rds::delete-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
-                        .translateToServiceRequest(Translator::deleteGlobalClusterRequest)
-                        .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((deleteGlobalClusterRequest, proxyInvocation)
-                                -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGlobalClusterRequest, proxyInvocation.client()::deleteGlobalCluster))
-                        // wait until deleted
-                        .stabilize((deleteGlobalClusterRequest, deleteGlobalClusterResponse, stabilizeProxy, stabilizeModel, context)
-                                -> isDeleted(stabilizeModel, stabilizeProxy))
-                        .success());
+        ProgressEvent<ResourceModel, CallbackContext> result;
 
-        result.setResourceModel(null);
+        if (callbackContext.isDeleting()) {
+            result = ProgressEvent.progress(model, callbackContext)
+                    .then(progress -> proxy.initiate("rds::stabilize-dbcluster" + getClass().getSimpleName(), proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                            .translateToServiceRequest(Function.identity())
+                            .makeServiceCall(EMPTY_CALL)
+                            .stabilize((deleteGlobalClusterRequest, deleteGlobalClusterResponse, stabilizeProxy, stabilizeModel, context)
+                                    -> isDeleted(stabilizeModel, stabilizeProxy))
+                            .success());
+        } else {
+            result = ProgressEvent.progress(model, callbackContext)
+                    .then(progress -> removeFromGlobalCluster(proxy, proxyClient, progress))
+                    .then(progress -> waitForDBClusterAvailableStatus(proxy, proxyClient, progress))
+                    .then(progress -> proxy.initiate("rds::delete-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
+                            .translateToServiceRequest(Translator::deleteGlobalClusterRequest)
+                            .backoffDelay(BACKOFF_STRATEGY)
+                            .makeServiceCall((deleteGlobalClusterRequest, proxyInvocation)
+                                    -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGlobalClusterRequest, proxyInvocation.client()::deleteGlobalCluster))
+                            // wait until deleted
+                            .stabilize((deleteGlobalClusterRequest, deleteGlobalClusterResponse, stabilizeProxy, stabilizeModel, context)
+                                    -> isDeleted(stabilizeModel, stabilizeProxy))
+                            .success());
+
+            callbackContext.setDeleting(true);
+        }
+
+        if (result.isSuccess()) {
+            result.setResourceModel(null);
+        }
 
         return result;
     }
