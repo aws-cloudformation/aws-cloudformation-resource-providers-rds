@@ -122,7 +122,7 @@ public class DeleteHandlerWithProgressTest extends AbstractTestBase {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(proxyRdsClient.client(), times(1)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
 
         verify(rds).serviceName();
         verifyNoMoreInteractions(rds);
