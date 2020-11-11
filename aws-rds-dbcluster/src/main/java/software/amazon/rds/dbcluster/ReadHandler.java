@@ -39,6 +39,7 @@ public class ReadHandler extends BaseHandlerStd {
                                     .port(targetDBCluster.port().toString()).build())
                             .readEndpoint(ReadEndpoint.builder()
                                     .address(targetDBCluster.readerEndpoint()).build())
+                            .dBClusterResourceId(targetDBCluster.dbClusterResourceId())
 
                             .associatedRoles(targetDBCluster.associatedRoles().stream().map(roleTransform).collect(Collectors.toList()))
                             .availabilityZones(targetDBCluster.availabilityZones())
