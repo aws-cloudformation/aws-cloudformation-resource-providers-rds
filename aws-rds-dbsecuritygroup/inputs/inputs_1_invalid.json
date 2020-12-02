@@ -1,0 +1,15 @@
+{
+  "GroupName": "123test-security-group-name",
+  "GroupDescription": "Test security group created and updated with a CloudFormation template.",
+  "DBSecurityGroupIngress": [],
+  "Tags": [
+    {
+      "Key": "CreatedWith",
+      "Value": "CloudFormation"
+    },
+    {
+      "Key": "UpdatedWith",
+      "Value": "CloudFormation"
+    }
+  ]
+}
