@@ -1,0 +1,8 @@
+{
+  "DBParameterGroupName": "new",
+  "Description": "cloudFormation",
+  "Family": "mysql8.0",
+  "Parameters": {
+    "back_log": "30"
+  }
+}
