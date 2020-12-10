@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DeleteDBParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -59,7 +59,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final DeleteDBParameterGroupResponse deleteDBParameterGroupResponse = DeleteDBParameterGroupResponse.builder().build();
+        final DeleteDbParameterGroupResponse deleteDBParameterGroupResponse = DeleteDbParameterGroupResponse.builder().build();
         when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class))).thenReturn(deleteDBParameterGroupResponse);
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL).build();
@@ -78,7 +78,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessNotFound() {
-        final DeleteDBParameterGroupResponse deleteDBParameterGroupResponse = DeleteDBParameterGroupResponse.builder().build();
+        final DeleteDbParameterGroupResponse deleteDBParameterGroupResponse = DeleteDbParameterGroupResponse.builder().build();
         when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class)))
                 .thenThrow(DbParameterGroupNotFoundException.class);
 
@@ -102,7 +102,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleInvalid() {
-        final DeleteDBParameterGroupResponse deleteDBParameterGroupResponse = DeleteDBParameterGroupResponse.builder().build();
+        final DeleteDbParameterGroupResponse deleteDBParameterGroupResponse = DeleteDbParameterGroupResponse.builder().build();
         when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class)))
                 .thenThrow(InvalidParameterException.class);
 

@@ -12,7 +12,6 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "AWS::RDS::DBParameterGroup",
     "Properties" : {
-        "<a href="#dbparametergroupname" title="DBParameterGroupName">DBParameterGroupName</a>" : <i>String</i>,
         "<a href="#description" title="Description">Description</a>" : <i>String</i>,
         "<a href="#family" title="Family">Family</a>" : <i>String</i>,
         "<a href="#parameters" title="Parameters">Parameters</a>" : <i>Map</i>,
@@ -26,7 +25,6 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::RDS::DBParameterGroup
 Properties:
-    <a href="#dbparametergroupname" title="DBParameterGroupName">DBParameterGroupName</a>: <i>String</i>
     <a href="#description" title="Description">Description</a>: <i>String</i>
     <a href="#family" title="Family">Family</a>: <i>String</i>
     <a href="#parameters" title="Parameters">Parameters</a>: <i>Map</i>
@@ -36,18 +34,6 @@ Properties:
 
 ## Properties
 
-#### DBParameterGroupName
-
-Specifies the name of the DB parameter group
-
-_Required_: No
-
-_Type_: String
-
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$</code>
-
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
-
 #### Description
 
 Provides the customer-specified description for this DB parameter group.
@@ -56,7 +42,7 @@ _Required_: Yes
 
 _Type_: String
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### Family
 
@@ -66,7 +52,7 @@ _Required_: Yes
 
 _Type_: String
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### Parameters
 
@@ -93,3 +79,13 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 ### Ref
 
 When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the DBParameterGroupName.
+
+### Fn::GetAtt
+
+The `Fn::GetAtt` intrinsic function returns a value for a specified attribute of this type. The following are the available attributes and sample return values.
+
+For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::GetAtt](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html).
+
+#### DBParameterGroupName
+
+Specifies the name of the DB parameter group

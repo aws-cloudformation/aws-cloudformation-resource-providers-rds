@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
@@ -53,8 +54,7 @@ public class Translator {
                 .build();
     }
 
-    static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(final ResourceModel model,
-                                                                       final Collection<Parameter> parameters) {
+    static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(final ResourceModel model, final Collection<Parameter> parameters) {
         return ModifyDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .parameters(parameters)
@@ -74,7 +74,7 @@ public class Translator {
                 .build();
     }
 
-    static Set<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
+    static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptySet())
                 .stream()
                 .map(tag -> {
@@ -83,7 +83,7 @@ public class Translator {
                             .value(tag.value())
                             .build();
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     protected static Set<Parameter> getParametersToModify(final ResourceModel model,
@@ -115,7 +115,6 @@ public class Translator {
 
 
     static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Map<String, String> tags) {
-        System.out.println(tags);
         return Optional.ofNullable(tags.entrySet()).orElse(Collections.emptySet())
                 .stream()
                 .map(tag -> {
@@ -134,7 +133,7 @@ public class Translator {
                 .collect(Collectors.toSet());
     }
 
-    static Set<Tag> translateTagsToModelResource(final Map<String, String> tags) {
+    static List<Tag> translateTagsToModelResource(final Map<String, String> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptyMap())
                 .entrySet()
                 .stream()
@@ -144,7 +143,7 @@ public class Translator {
                             .value(entry.getValue())
                             .build();
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     static AddTagsToResourceRequest addTagsToResourceRequest(final String arn, final Set<Tag> tags) {
@@ -164,6 +163,14 @@ public class Translator {
     static ListTagsForResourceRequest listTagsForResourceRequest(final String arn) {
         return ListTagsForResourceRequest.builder()
                 .resourceName(arn)
+                .build();
+    }
+
+    static ResourceModel translateFromDBParameterGroup(DBParameterGroup dbParameterGroup){
+        return ResourceModel.builder()
+                .dBParameterGroupName(dbParameterGroup.dbParameterGroupName())
+                .description(dbParameterGroup.description())
+                .family(dbParameterGroup.dbParameterGroupFamily())
                 .build();
     }
 

@@ -21,9 +21,13 @@ public class ListHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
 
-        final DescribeDbParameterGroupsResponse describeDBParameterGroupsResponse =
-                proxy.injectCredentialsAndInvokeV2(Translator.describeDbParameterGroupsRequest(request.getNextToken()),
-                        proxyClient.client()::describeDBParameterGroups);
+        DescribeDbParameterGroupsResponse describeDBParameterGroupsResponse = null;
+        try {
+            describeDBParameterGroupsResponse = proxy.injectCredentialsAndInvokeV2(Translator.describeDbParameterGroupsRequest(request.getNextToken()),
+                    proxyClient.client()::describeDBParameterGroups);
+        } catch (Exception e) {
+            handleException(e);
+        }
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                 .resourceModels(

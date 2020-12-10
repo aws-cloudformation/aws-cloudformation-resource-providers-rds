@@ -23,14 +23,14 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "rds:AddTagsToResource"
-                  - "rds:CreateDBParameterGroup"
-                  - "rds:DeleteDBParameterGroup"
-                  - "rds:DescribeDBParameterGroups"
-                  - "rds:ListTagsForResource"
-                  - "rds:ModifyDBParameterGroup"
-                  - "rds:RemoveTagsFromResource"
-                  - "rds:ResetDBParameterGroup"
+                - "rds:AddTagsToResource"
+                - "rds:CreateDBParameterGroup"
+                - "rds:DeleteDBParameterGroup"
+                - "rds:DescribeDBParameterGroups"
+                - "rds:ListTagsForResource"
+                - "rds:ModifyDBParameterGroup"
+                - "rds:RemoveTagsFromResource"
+                - "rds:ResetDBParameterGroup"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

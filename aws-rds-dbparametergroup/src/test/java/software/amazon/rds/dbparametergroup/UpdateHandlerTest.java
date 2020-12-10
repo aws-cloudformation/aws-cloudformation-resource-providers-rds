@@ -124,7 +124,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).resetDBParameterGroup(any(ResetDbParameterGroupRequest.class));
         verify(proxyRdsClient.client(), times(2)).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
-        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
@@ -157,7 +157,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client(), times(2)).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
-        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }

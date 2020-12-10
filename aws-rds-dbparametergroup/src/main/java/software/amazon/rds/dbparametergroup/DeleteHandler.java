@@ -21,11 +21,7 @@ public class DeleteHandler extends BaseHandlerStd {
         return proxy.initiate("rds::delete-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbParameterGroupRequest)
                 .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBParameterGroup))
-                .handleError((deleteGroupRequest, exception, client, resourceModel, cxt) -> {
-                    if (exception instanceof DbParameterGroupNotFoundException)
-                        return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
-                    throw exception;
-                })
+                .handleError((deleteGroupRequest, exception, client, resourceModel, cxt) -> handleException(exception))
                 .done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
 }

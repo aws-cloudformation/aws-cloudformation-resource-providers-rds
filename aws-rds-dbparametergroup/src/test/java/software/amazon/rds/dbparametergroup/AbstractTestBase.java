@@ -1,5 +1,6 @@
 package software.amazon.rds.dbparametergroup;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +48,7 @@ public class AbstractTestBase {
                 .dBParameterGroupName("testDBParameterGroup")
                 .description("test DB Parameter group description")
                 .family("testFamily")
-                .tags(Sets.newSet())
+                .tags(Collections.emptyList())
                 .parameters(PARAMS)
                 .build();
 

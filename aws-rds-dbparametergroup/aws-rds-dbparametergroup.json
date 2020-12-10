@@ -48,8 +48,6 @@
     "Tags": {
       "description": "An array of key-value pairs to apply to this resource.",
       "type": "array",
-      "uniqueItems": true,
-      "insertionOrder": false,
       "items": {
         "$ref": "#/definitions/Tag"
       }
@@ -59,13 +57,11 @@
     "Family",
     "Description"
   ],
-  "primaryIdentifier": [
+  "readOnlyProperties": [
     "/properties/DBParameterGroupName"
   ],
-  "createOnlyProperties": [
-    "/properties/DBParameterGroupName",
-    "/properties/Description",
-    "/properties/Family"
+  "primaryIdentifier": [
+    "/properties/DBParameterGroupName"
   ],
   "writeOnlyProperties": [
     "/properties/Parameters"
