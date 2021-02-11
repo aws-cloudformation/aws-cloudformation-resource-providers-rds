@@ -5,6 +5,7 @@ phases:
         java: openjdk8
         python: 3.7
     commands:
+      -  pip install --upgrade 'six~=1.15'
       -  pip install pre-commit cloudformation-cli-java-plugin
   build:
     commands:
