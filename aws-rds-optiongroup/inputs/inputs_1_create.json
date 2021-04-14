@@ -1,0 +1,79 @@
+{
+  "OptionGroupDescription": "A test option group",
+  "EngineName": "mysql",
+  "MajorEngineVersion": "5.6",
+  "OptionConfigurations": [
+    {
+      "OptionName": "MEMCACHED",
+      "Port": 1234,
+      "OptionSettings": [
+        {
+          "Name": "BACKLOG_QUEUE_LIMIT",
+          "Value": "1024"
+        },
+        {
+          "Name": "BINDING_PROTOCOL",
+          "Value": "ascii"
+        },
+        {
+          "Name": "CAS_DISABLED",
+          "Value": "0"
+        },
+        {
+          "Name": "CHUNK_SIZE",
+          "Value": "32"
+        },
+        {
+          "Name": "CHUNK_SIZE_GROWTH_FACTOR",
+          "Value": "1.25"
+        },
+        {
+          "Name": "DAEMON_MEMCACHED_R_BATCH_SIZE",
+          "Value": "1"
+        },
+        {
+          "Name": "DAEMON_MEMCACHED_W_BATCH_SIZE",
+          "Value": "1"
+        },
+        {
+          "Name": "ERROR_ON_MEMORY_EXHAUSTED",
+          "Value": "0"
+        },
+        {
+          "Name": "INNODB_API_BK_COMMIT_INTERVAL",
+          "Value": "5"
+        },
+        {
+          "Name": "INNODB_API_DISABLE_ROWLOCK",
+          "Value": "0"
+        },
+        {
+          "Name": "INNODB_API_ENABLE_MDL",
+          "Value": "0"
+        },
+        {
+          "Name": "INNODB_API_TRX_LEVEL",
+          "Value": "0"
+        },
+        {
+          "Name": "MAX_SIMULTANEOUS_CONNECTIONS",
+          "Value": "1024"
+        },
+        {
+          "Name": "VERBOSITY",
+          "Value": "v"
+        }
+      ],
+      "DBSecurityGroupMemberships": [
+        "default"
+      ],
+      "VpcSecurityGroupMemberships": []
+    }
+  ],
+  "Tags": [
+    {
+      "Key": "tag-key-1-1",
+      "Value": "tag-value-1-1"
+    }
+  ]
+}
