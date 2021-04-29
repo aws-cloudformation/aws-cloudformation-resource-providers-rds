@@ -61,6 +61,7 @@ public class Translator {
     static RestoreDbClusterToPointInTimeRequest restoreDbClusterToPointInTimeRequest(final ResourceModel model) {
         return RestoreDbClusterToPointInTimeRequest.builder()
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .restoreType(model.getRestoreType())
