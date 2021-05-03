@@ -1,0 +1,64 @@
+name: Maven verify pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 8
+      uses: actions/setup-java@v2
+      with:
+        java-version: '8'
+        distribution: 'adopt'
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: 3.7
+    - name: Install Python packages
+      run: pip install pre-commit cloudformation-cli cloudformation-cli-java-plugin
+    - name: Run pre-commit
+      run: pre-commit run --all-files
+    - name: Verify AWS::RDS::DBCluster
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbcluster"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
+    - name: Verify AWS::RDS::DBClusterParameterGroup
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbclusterparametergroup"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
+        # TODO: uncomment this resource once the code coverage is fixed.
+        #- name: Verify AWS::RDS::DBParameterGroup
+        #  run: |
+        #    cd "${GITHUB_WORKSPACE}/aws-rds-dbparametergroup"
+        #    mvn clean verify --no-transfer-progress
+        #    cat rpdk.log
+    - name: Verify AWS::RDS::DBSubnetGroup
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbsubnetgroup"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
+    - name: Verify AWS::RDS::EventSubscription
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-eventsubscription"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
+    - name: Verify AWS::RDS::GlobalCluster
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-globalcluster"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
+    - name: Verify AWS::RDS::OptionGroup
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-optiongroup"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
