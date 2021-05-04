@@ -38,7 +38,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> proxy.initiate("rds::create-option-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(model -> Translator.createOptionGroupRequest(
                                 model,
-                                request.getDesiredResourceTags()
+                                mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())
                         ))
                         .backoffDelay(BACKOFF_DELAY)
                         .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(

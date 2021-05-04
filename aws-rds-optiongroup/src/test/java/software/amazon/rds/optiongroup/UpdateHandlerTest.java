@@ -115,7 +115,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
@@ -168,7 +168,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         // no modifyOptionGroup invocation is expected here
         verify(proxyClient.client(), times(0)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
@@ -235,7 +235,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
@@ -299,7 +299,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
@@ -365,7 +365,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         // in this case we expect no ModifyOptionGroup call at all
         verify(proxyClient.client(), times(0)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
