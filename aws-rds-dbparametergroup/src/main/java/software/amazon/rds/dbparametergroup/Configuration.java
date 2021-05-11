@@ -1,12 +1,12 @@
 package software.amazon.rds.dbparametergroup;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
-
-import com.amazonaws.util.CollectionUtils;
 
 class Configuration extends BaseConfiguration {
 
@@ -20,12 +20,9 @@ class Configuration extends BaseConfiguration {
     }
 
     public Map<String, String> resourceDefinedTags(final ResourceModel model) {
-        if (CollectionUtils.isNullOrEmpty(model.getTags())) {
-            return null;
-        }
-
-        return model.getTags()
+        return Optional.ofNullable(model.getTags())
+                .orElse(Collections.emptyList())
                 .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (value1, value2) -> value2));
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
     }
 }

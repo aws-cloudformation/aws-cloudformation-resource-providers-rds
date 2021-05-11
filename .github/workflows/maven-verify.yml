@@ -36,12 +36,11 @@ jobs:
         cd "${GITHUB_WORKSPACE}/aws-rds-dbclusterparametergroup"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
-        # TODO: uncomment this resource once the code coverage is fixed.
-        #- name: Verify AWS::RDS::DBParameterGroup
-        #  run: |
-        #    cd "${GITHUB_WORKSPACE}/aws-rds-dbparametergroup"
-        #    mvn clean verify --no-transfer-progress
-        #    cat rpdk.log
+    - name: Verify AWS::RDS::DBParameterGroup
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbparametergroup"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
     - name: Verify AWS::RDS::DBSubnetGroup
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-dbsubnetgroup"

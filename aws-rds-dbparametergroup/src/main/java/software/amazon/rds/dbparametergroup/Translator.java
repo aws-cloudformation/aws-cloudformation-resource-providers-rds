@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
@@ -174,9 +173,4 @@ public class Translator {
                 .build();
     }
 
-    private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
-        return Optional.ofNullable(collection)
-                .map(Collection::stream)
-                .orElseGet(Stream::empty);
-    }
 }
