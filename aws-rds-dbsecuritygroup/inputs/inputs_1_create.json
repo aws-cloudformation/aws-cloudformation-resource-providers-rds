@@ -1,0 +1,11 @@
+{
+  "GroupName": "test-security-group-name",
+  "GroupDescription": "Test security group created with a CloudFormation template.",
+  "DBSecurityGroupIngress": [],
+  "Tags": [
+    {
+      "Key": "CreatedWith",
+      "Value": "CloudFormation"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+    "artifact_type": "RESOURCE",
+    "typeName": "AWS::RDS::DBSecurityGroup",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbsecuritygroup.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbsecuritygroup.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "version": false,
+        "subparser_name": null,
+        "verbose": 0,
+        "force": false,
+        "type_name": null,
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbsecuritygroup"
+        ],
+        "codegen_template_path": "guided_aws",
+        "protocolVersion": "2.0.0"
+    },
+    "executableEntrypoint": "software.amazon.rds.dbsecuritygroup.HandlerWrapperExecutable"
+}
