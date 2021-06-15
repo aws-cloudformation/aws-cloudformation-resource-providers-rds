@@ -9,6 +9,10 @@
     "ReadEndpoint": {
       "$ref": "#/definitions/ReadEndpoint"
     },
+    "DBClusterResourceId": {
+      "description": "The AWS Region-unique, immutable identifier for the DB cluster.",
+      "type": "string"
+    },
     "AssociatedRoles": {
       "description": "Provides a list of the AWS Identity and Access Management (IAM) roles that are associated with the DB cluster. IAM roles that are associated with a DB cluster grant permission for the DB cluster to access other AWS services on your behalf.",
       "type": "array",
@@ -333,7 +337,8 @@
   "additionalProperties": false,
   "readOnlyProperties": [
     "/properties/Endpoint",
-    "/properties/ReadEndpoint"
+    "/properties/ReadEndpoint",
+    "/properties/DBClusterResourceId"
   ],
   "createOnlyProperties": [
     "/properties/AvailabilityZones",
