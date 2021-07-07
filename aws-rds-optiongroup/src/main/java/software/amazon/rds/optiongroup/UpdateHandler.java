@@ -3,6 +3,7 @@ package software.amazon.rds.optiongroup;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -26,18 +27,21 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
 
-        final ResourceModel previous = request.getPreviousResourceState();
-        final ResourceModel desired = request.getDesiredResourceState();
+        final ResourceModel previousModel = request.getPreviousResourceState();
+        final ResourceModel desiredModel = request.getDesiredResourceState();
 
         final Collection<OptionConfiguration> previousOptions = Optional
-                .ofNullable(previous.getOptionConfigurations())
+                .ofNullable(previousModel.getOptionConfigurations())
                 .orElse(Collections.emptyList());
         final Collection<OptionConfiguration> desiredOptions = Optional
-                .ofNullable(desired.getOptionConfigurations())
+                .ofNullable(desiredModel.getOptionConfigurations())
                 .orElse(Collections.emptyList());
 
         final Collection<OptionConfiguration> optionsToInclude = getOptionsToInclude(previousOptions, desiredOptions);
         final Collection<OptionConfiguration> optionsToRemove = getOptionsToRemove(previousOptions, desiredOptions);
+
+        final Map<String, String> previousTags = mergeMaps(request.getPreviousSystemTags(), request.getPreviousResourceTags());
+        final Map<String, String> desiredTags = mergeMaps(request.getSystemTags(), request.getDesiredResourceTags());
 
         // Here we explicitly use some immutability properties of an OptionGroup resource.
         // In fact, ModifyOptionGroupRequest only passes optionConfigurations, the rest is immutable.
@@ -63,7 +67,7 @@ public class UpdateHandler extends BaseHandlerStd {
                             ))
                             .progress();
                 })
-                .then(progress -> tagResourceSoftFailOnAccessDenied(proxy, proxyClient, progress, request.getDesiredResourceTags()))
+                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 

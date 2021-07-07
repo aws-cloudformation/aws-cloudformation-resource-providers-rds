@@ -1,8 +1,7 @@
 package software.amazon.rds.optiongroup;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,7 +12,6 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.OptionGroupQuotaExceededException;
-import software.amazon.cloudformation.exceptions.CfnAccessDeniedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -67,27 +65,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .progress();
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, String> tags
+            final Map<String, String> previousTags,
+            final Map<String, String> desiredTags
     ) {
         return proxy.initiate("rds::tag-option-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeOptionGroupsRequest)
-                .makeServiceCall(((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         proxyInvocation.client()::describeOptionGroups
-                )))
-                .handleError((describeRequest, exception, client, resourceModel, ctx) -> {
-                    throw exception;
-                })
-                .done((request, response, invocation, model, context) -> {
-                    final String arn = response.optionGroupsList().stream().findFirst().get().optionGroupArn();
-                    final Set<Tag> currentTags = new HashSet<>(Translator.translateTagsToModelResource(tags));
-                    final Set<Tag> existingTags = new HashSet<>(listTags(proxyClient, arn));
-                    final Set<Tag> tagsToRemove = Sets.difference(existingTags, currentTags);
-                    final Set<Tag> tagsToAdd = Sets.difference(currentTags, existingTags);
+                )).handleError((describeRequest, exception, client, resourceModel, ctx) -> handleException(
+                        ProgressEvent.progress(resourceModel, ctx),
+                        exception
+                ))
+                .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
+                    final String arn = describeResponse.optionGroupsList().stream().findFirst().get().optionGroupArn();
+
+                    final Set<Tag> previousTagSet = Translator.translateTagsToModelResource(previousTags);
+                    final Set<Tag> desiredTagSet = Translator.translateTagsToModelResource(desiredTags);
+                    final Set<Tag> tagsToRemove = Sets.difference(previousTagSet, desiredTagSet);
+                    final Set<Tag> tagsToAdd = Sets.difference(desiredTagSet, previousTagSet);
 
                     proxyClient.injectCredentialsAndInvokeV2(
                             Translator.removeTagsFromResourceRequest(arn, tagsToRemove),
@@ -97,21 +97,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             Translator.addTagsToResourceRequest(arn, tagsToAdd),
                             proxyClient.client()::addTagsToResource
                     );
-                    return ProgressEvent.progress(model, context);
+                    return ProgressEvent.progress(resourceModel, ctx);
                 });
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> tagResourceSoftFailOnAccessDenied(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, String> tags
-    ) {
-        try {
-            return tagResource(proxy, proxyClient, progress, tags);
-        } catch (CfnAccessDeniedException e) {
-            return ProgressEvent.defaultSuccessHandler(progress.getResourceModel());
-        }
     }
 
     protected List<Tag> listTags(final ProxyClient<RdsClient> proxyClient, final String arn) {
@@ -120,14 +107,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxyClient.client()::listTagsForResource
         );
         return Translator.translateTagsFromSdk(listTagsForResourceResponse.tagList());
-    }
-
-    protected List<Tag> listTagsSoftFailOnAccessDenied(final ProxyClient<RdsClient> proxyClient, final String arn) {
-        try {
-            return listTags(proxyClient, arn);
-        } catch (CfnAccessDeniedException e) {
-            return Collections.emptyList();
-        }
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleException(
@@ -142,5 +121,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceLimitExceeded);
         }
         return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
+    }
+
+    protected <K, V> Map<K, V> mergeMaps(Map<K,V> m1, Map<K,V> m2) {
+        final Map<K, V> result = new HashMap<>();
+        if (m1 != null) {
+            result.putAll(m1);
+        }
+        if (m2 != null) {
+            result.putAll(m2);
+        }
+        return result;
     }
 }

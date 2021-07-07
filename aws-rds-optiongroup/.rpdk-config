@@ -1,5 +1,4 @@
 {
-    "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::OptionGroup",
     "language": "java",
     "runtime": "java8",
@@ -14,6 +13,5 @@
         ],
         "codegen_template_path": "guided_aws",
         "protocolVersion": "2.0.0"
-    },
-    "executableEntrypoint": "software.amazon.rds.optiongroup.HandlerWrapperExecutable"
+    }
 }
