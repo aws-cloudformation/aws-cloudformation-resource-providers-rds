@@ -5,7 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import software.amazon.awssdk.services.rds.RdsClient;
 
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DeleteDBSubnetGroupResponse;
+import software.amazon.awssdk.services.rds.model.DeleteDbSubnetGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -61,7 +61,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleSuccess() {
 
-        final DeleteDBSubnetGroupResponse deleteDBSubnetGroupResponse = DeleteDBSubnetGroupResponse.builder().build();
+        final DeleteDbSubnetGroupResponse deleteDBSubnetGroupResponse = DeleteDbSubnetGroupResponse.builder().build();
         when(proxyRdsClient.client().deleteDBSubnetGroup(any(DeleteDbSubnetGroupRequest.class))).thenReturn(deleteDBSubnetGroupResponse);
         when(proxyRdsClient.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class))).thenThrow(DbSubnetGroupNotFoundException.class);
 

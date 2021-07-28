@@ -26,6 +26,6 @@ public class DeleteHandler extends BaseHandlerStd {
                     return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
                 throw exception;
             })
-            .done((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, client, model, cxt) -> ProgressEvent.defaultSuccessHandler(model));
+            .done((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, client, model, cxt) -> ProgressEvent.defaultSuccessHandler(null));
     }
 }

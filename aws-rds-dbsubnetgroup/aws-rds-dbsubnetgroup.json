@@ -64,6 +64,9 @@
   "primaryIdentifier": [
     "/properties/DBSubnetGroupName"
   ],
+  "writeOnlyProperties": [
+    "/properties/SubnetIds"
+  ],
   "handlers": {
     "create": {
       "permissions": [
