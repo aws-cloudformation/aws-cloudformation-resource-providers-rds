@@ -3,8 +3,6 @@ package software.amazon.rds.optiongroup;
 import java.util.List;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroup;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -34,7 +32,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final OptionGroup optionGroup = describeResponse.optionGroupsList().stream().findFirst().get();
                     final List<OptionConfiguration> optionConfigurations = Translator.translateOptionConfigurationsFromSdk(optionGroup.options());
-                    final List<Tag> tags = listTagsSoftFailOnAccessDenied(proxyInvocation, optionGroup.optionGroupArn());
+                    final List<Tag> tags = listTags(proxyInvocation, optionGroup.optionGroupArn());
                     return ProgressEvent.success(
                             ResourceModel.builder()
                                     .optionGroupName(optionGroup.optionGroupName())
