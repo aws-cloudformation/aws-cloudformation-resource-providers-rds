@@ -27,8 +27,8 @@ public class CreateHandler extends BaseHandlerStd {
                     final ResourceModel model = request.getDesiredResourceState();
                     if (StringUtils.isNullOrEmpty(model.getOptionGroupName())) {
                         model.setOptionGroupName(IdentifierUtils.generateResourceIdentifier(
-                                request.getStackId(),
-                                Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse("optiongroup"),
+                                Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
+                                Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
                                 request.getClientRequestToken(),
                                 MAX_LENGTH_OPTION_GROUP
                         ).toLowerCase());

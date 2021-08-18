@@ -21,6 +21,10 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
+
+    protected static final String STACK_NAME = "rds";
+    protected static final String RESOURCE_IDENTIFIER = "optiongroup";
+
     protected static final Constant BACKOFF_DELAY = Constant.of()
             .timeout(Duration.ofSeconds(150L))
             .delay(Duration.ofSeconds(5L))

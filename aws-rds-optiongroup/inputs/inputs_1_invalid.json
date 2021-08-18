@@ -1,19 +1,10 @@
 {
-  "EngineName": "mysql",
+  "OptionGroupName": "test-option-group",
   "OptionGroupDescription": "A test option group",
+  "EngineName": "mysql",
   "OptionConfigurations": [
     {
       "Port": 1234,
-      "OptionSettings": [
-        {
-          "Name": "CHUNK_SIZE",
-          "Value": "32"
-        },
-        {
-          "Name": "BINDING_PROTOCOL",
-          "Value": "ascii"
-        }
-      ],
       "DBSecurityGroupMemberships": [
         "default"
       ],

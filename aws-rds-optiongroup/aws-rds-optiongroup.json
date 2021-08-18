@@ -22,7 +22,6 @@
         "OptionSettings": {
           "description": "The option settings to include in an option group.",
           "type": "array",
-          "uniqueItems": true,
           "items": {
             "$ref": "#/definitions/OptionSetting"
           }
@@ -124,7 +123,6 @@
     "OptionConfigurations": {
       "description": "Indicates what options are available in the option group.",
       "type": "array",
-      "uniqueItems": true,
       "items": {
         "$ref": "#/definitions/OptionConfiguration"
       }
