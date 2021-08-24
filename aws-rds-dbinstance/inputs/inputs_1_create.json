@@ -1,0 +1,20 @@
+{
+  "AllocatedStorage": "5",
+  "AutoMinorVersionUpgrade": false,
+  "AvailabilityZone": "us-east-1b",
+  "DBInstanceIdentifier": "test-db-instance",
+  "DBInstanceClass": "db.t3.micro",
+  "DBName": "testdbname",
+  "Engine": "postgres",
+  "MasterUserPassword": "testuserpassword",
+  "MasterUsername": "testusername",
+  "Port": 5432,
+  "PreferredBackupWindow": "03:10-03:40",
+  "PreferredMaintenanceWindow": "mon:04:41-mon:05:11",
+  "Tags": [
+    {
+      "Key": "created-with",
+      "Value": "CloudFormation"
+    }
+  ]
+}
