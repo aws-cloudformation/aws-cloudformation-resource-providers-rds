@@ -30,46 +30,46 @@ public class UpdateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
         final boolean parametersUpdated = !model.getParameters().equals(request.getPreviousResourceState().getParameters());
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> {
-                    if (!parametersUpdated) return progress; // if same params then skip update
-                    return proxy.initiate("rds::update-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                            .translateToServiceRequest(Translator::resetDbClusterParameterGroupRequest)
-                            .backoffDelay(BACKOFF_STRATEGY)
-                            .makeServiceCall((resetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(resetGroupRequest, proxyInvocation.client()::resetDBClusterParameterGroup))
-                            .done((resetGroupRequest, resetGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context));
-                })
-                .then(progress -> {
-                    if (!parametersUpdated) return progress; // if same params then skip stabilization
-                    final ResourceModel resourceModel = progress.getResourceModel();
-                    final CallbackContext cxt = progress.getCallbackContext();
-                    try {
-                        if (!cxt.isClusterStabilized()) { // if not stabilized then we keep describing clusters and memoizing into the set
+            .then(progress -> {
+                if (!parametersUpdated) return progress; // if same params then skip update
+                return proxy.initiate("rds::update-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                    .translateToServiceRequest(Translator::resetDbClusterParameterGroupRequest)
+                    .backoffDelay(BACKOFF_STRATEGY)
+                    .makeServiceCall((resetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(resetGroupRequest, proxyInvocation.client()::resetDBClusterParameterGroup))
+                    .done((resetGroupRequest, resetGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context));
+            })
+            .then(progress -> {
+                if (!parametersUpdated) return progress; // if same params then skip stabilization
+                final ResourceModel resourceModel = progress.getResourceModel();
+                final CallbackContext cxt = progress.getCallbackContext();
+                try {
+                    if (!cxt.isClusterStabilized()) { // if not stabilized then we keep describing clusters and memoizing into the set
 
-                            final DescribeDbClustersResponse describeDbClustersResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(cxt.getMarker()), proxyClient.client()::describeDBClusters);
+                                final DescribeDbClustersResponse describeDbClustersResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(cxt.getMarker()), proxyClient.client()::describeDBClusters);
 
-                            if (describeDbClustersResponse.dbClusters().stream()
-                                    .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equals(resourceModel.getDBClusterParameterGroupName())) // all db clusters that use param group
-                                    .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE))) { // if all stabilized then move to the next page
+                                if (describeDbClustersResponse.dbClusters().stream()
+                                        .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equals(resourceModel.getDBClusterParameterGroupName())) // all db clusters that use param group
+                                        .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE))) { // if all stabilized then move to the next page
 
-                                if (describeDbClustersResponse.marker() != null) { // more pages left
-                                    cxt.setMarker(describeDbClustersResponse.marker());
-                                    progress.setCallbackDelaySeconds(30); // if there are more to describe
-                                } else { // nothing left to stabilized
-                                    cxt.setClusterStabilized(true);
+                                    if (describeDbClustersResponse.marker() != null) { // more pages left
+                                        cxt.setMarker(describeDbClustersResponse.marker());
+                                        progress.setCallbackDelaySeconds(30); // if there are more to describe
+                                    } else { // nothing left to stabilized
+                                        cxt.setClusterStabilized(true);
+                                    }
+                                } else {
+                                    progress.setCallbackDelaySeconds(30); // if some still in transition status need some delay to describe
                                 }
+                            }
+                        } catch (RdsException exception) {
+                            if (exception.awsErrorDetails() != null && StringUtils.equals(ACCESS_DENIED_ERROR_CODE, exception.awsErrorDetails().errorCode())) {
+                                logger.log(STABILIZATION_PERMISSION_MESSAGE);
                             } else {
-                                progress.setCallbackDelaySeconds(30); // if some still in transition status need some delay to describe
+                                logger.log(String.format("Failed to stabilize %s,  \n request failed with error %s",
+                                        model.getPrimaryIdentifier(), Arrays.toString(exception.getStackTrace())));
+                                throw new CfnGeneralServiceException(exception);
                             }
                         }
-                    } catch (RdsException exception) {
-                        if (exception.awsErrorDetails() != null && StringUtils.equals(ACCESS_DENIED_ERROR_CODE, exception.awsErrorDetails().errorCode())) {
-                            logger.log(STABILIZATION_PERMISSION_MESSAGE);
-                        } else {
-                            logger.log(String.format("Failed to stabilize %s,  \n request failed with error %s",
-                                    model.getPrimaryIdentifier(), Arrays.toString(exception.getStackTrace())));
-                            throw new CfnGeneralServiceException(exception);
-                        }
-                    }
                     progress.setCallbackContext(cxt);
                     return progress;
                 })
