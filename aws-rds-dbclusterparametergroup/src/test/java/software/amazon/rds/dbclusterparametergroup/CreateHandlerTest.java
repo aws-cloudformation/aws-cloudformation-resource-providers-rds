@@ -9,7 +9,6 @@ import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.DeleteDBClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
@@ -65,6 +64,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     private ResourceModel RESOURCE_MODEL;
 
     private Map<String, Object> PARAMS;
+    private final String  StackId = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83";
 
     @AfterEach
     public void post_execute() {
@@ -103,14 +103,14 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
 
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
-            .dbClusterParameterGroups(DBClusterParameterGroup.builder()
-                .dbClusterParameterGroupArn("arn")
-                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
-                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
-                .description(RESOURCE_MODEL.getDescription()).build()).build();
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn")
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                        .description(RESOURCE_MODEL.getDescription()).build()).build();
         when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
-            .tagList(Tag.builder().key("key").value("value").build()).build();
+                .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
         CallbackContext callbackContext = new CallbackContext();
@@ -120,6 +120,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .desiredResourceState(RESOURCE_MODEL)
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
 
@@ -143,10 +144,10 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         final DescribeDbClusterParametersResponse describeDbClusterParametersResponse = DescribeDbClusterParametersResponse.builder().marker(null)
                 .parameters(Parameter.builder()
-                        .parameterName("param")
-                        .parameterValue("system_value")
-                        .isModifiable(true)
-                        .applyType("static")
+                                .parameterName("param")
+                                .parameterValue("system_value")
+                                .isModifiable(true)
+                                .applyType("static")
                                 .build(),
                         Parameter.builder()
                                 .parameterName("param2")
@@ -163,6 +164,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
@@ -206,6 +208,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
@@ -229,16 +232,17 @@ public class CreateHandlerTest extends AbstractTestBase {
         final DescribeDbClusterParametersResponse describeDbClusterParametersResponse = DescribeDbClusterParametersResponse.builder()
                 .marker(null)
                 .parameters(Parameter.builder()
-                                .parameterName("param")
-                                .parameterValue("system_value")
-                                .isModifiable(false)
-                                .applyType("static")
-                                .build()).build();
+                        .parameterName("param")
+                        .parameterValue("system_value")
+                        .isModifiable(false)
+                        .applyType("static")
+                        .build()).build();
         when(rds.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class))).thenReturn(describeDbClusterParametersResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
+                .stackId(StackId)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier("logicalId").build();
         try {
@@ -264,6 +268,9 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
+                .awsAccountId("123456789")
+                .region("us-east-1")
                 .logicalResourceIdentifier("logicalId").build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
