@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.amazonaws.SdkClientException;
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -21,6 +22,11 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
+
+    protected static final String STACK_NAME = "rds";
+    protected static final String RESOURCE_IDENTIFIER = "optiongroup";
+    protected static final int RESOURCE_ID_MAX_LENGTH = 255;
+
     protected static final Constant BACKOFF_DELAY = Constant.of()
             .timeout(Duration.ofSeconds(150L))
             .delay(Duration.ofSeconds(5L))
@@ -119,6 +125,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
         } else if (e instanceof OptionGroupQuotaExceededException) {
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceLimitExceeded);
+        } else if (e instanceof SdkClientException || e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceInternalError);
         }
         return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
     }

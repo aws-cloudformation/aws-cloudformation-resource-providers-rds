@@ -1,4 +1,5 @@
 {
+  "OptionGroupName": "test-option-group",
   "EngineName": "mysql",
   "OptionGroupDescription": "A test option group",
   "OptionConfigurations": [
