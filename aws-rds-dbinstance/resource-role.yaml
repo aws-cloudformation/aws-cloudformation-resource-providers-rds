@@ -24,7 +24,6 @@ Resources:
               - Effect: Allow
                 Action:
                 - "ec2:DescribeSecurityGroups"
-                - "rds::RebootDBInstance"
                 - "rds:AddRoleToDBInstance"
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBInstance"
@@ -32,6 +31,7 @@ Resources:
                 - "rds:DescribeDBInstances"
                 - "rds:ListTagsForResource"
                 - "rds:ModifyDBInstance"
+                - "rds:RebootDBInstance"
                 - "rds:RemoveRoleFromDBInstance"
                 - "rds:RemoveTagsFromResource"
                 Resource: "*"

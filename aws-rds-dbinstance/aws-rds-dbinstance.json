@@ -430,8 +430,8 @@
     "/properties/StorageType"
   ],
   "deprecatedProperties": [
-    "TdeCredentialArn",
-    "TdeCredentialPassword"
+    "/properties/TdeCredentialArn",
+    "/properties/TdeCredentialPassword"
   ],
   "writeOnlyProperties": [
     "/properties/MasterUserPassword",
@@ -455,7 +455,7 @@
         "rds:CreateDBInstance",
         "rds:DescribeDBInstances",
         "rds:ModifyDBInstance",
-        "rds::RebootDBInstance"
+        "rds:RebootDBInstance"
       ]
     },
     "read": {
