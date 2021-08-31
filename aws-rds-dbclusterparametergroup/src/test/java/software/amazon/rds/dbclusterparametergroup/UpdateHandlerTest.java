@@ -105,17 +105,17 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .build();
 
         requestSameParams = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken("token")
-                .desiredResourceState(RESOURCE_MODEL)
-                .previousResourceState(RESOURCE_MODEL)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
-                .logicalResourceIdentifier("logicalId").build();
+            .clientRequestToken("token")
+            .desiredResourceState(RESOURCE_MODEL)
+            .previousResourceState(RESOURCE_MODEL)
+            .desiredResourceTags(translateTagsToMap(TAG_SET))
+            .logicalResourceIdentifier("logicalId").build();
         requestUpdParams = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken("token")
-                .desiredResourceState(RESOURCE_MODEL)
-                .previousResourceState(RESOURCE_MODEL_PREV)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
-                .logicalResourceIdentifier("logicalId").build();
+            .clientRequestToken("token")
+            .desiredResourceState(RESOURCE_MODEL)
+            .previousResourceState(RESOURCE_MODEL_PREV)
+            .desiredResourceTags(translateTagsToMap(TAG_SET))
+            .logicalResourceIdentifier("logicalId").build();
     }
 
     @Test
@@ -129,7 +129,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
                 .dbClusterParameterGroups(DBClusterParameterGroup.builder()
-                        .dbClusterParameterGroupArn("arn").build()).build();
+                .dbClusterParameterGroupArn("arn").build()).build();
         when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
 
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
@@ -164,15 +164,15 @@ public class UpdateHandlerTest extends AbstractTestBase {
         callbackContext.setClusterStabilized(false);
 
         final DBCluster dbCluster = DBCluster.builder()
-                .dbClusterParameterGroup("SampleName")
-                .status("available").build();
+            .dbClusterParameterGroup("SampleName")
+            .status("available").build();
 
         final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
         when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
         final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder()
-                .dbClusters(Lists.newArrayList(dbCluster))
-                .marker("token")
-                .build();
+            .dbClusters(Lists.newArrayList(dbCluster))
+            .marker("token")
+            .build();
         when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);
@@ -285,24 +285,24 @@ public class UpdateHandlerTest extends AbstractTestBase {
         callbackContext.setClusterStabilized(false);
 
         final DBCluster dbCluster = DBCluster.builder()
-                .dbClusterParameterGroup("SampleName")
-                .status("available").build();
+            .dbClusterParameterGroup("SampleName")
+            .status("available").build();
 
         final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
         when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
         final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder()
-                .dbClusters(Lists.newArrayList(dbCluster))
-                .build();
+            .dbClusters(Lists.newArrayList(dbCluster))
+            .build();
         when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
-                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
-                        .dbClusterParameterGroupArn("arn")
-                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
-                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
-                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+            .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn("arn")
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build()).build();
         when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
-                .tagList(Tag.builder().key("key").value("value").build()).build();
+            .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
         final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
         when(rds.removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
@@ -336,14 +336,14 @@ public class UpdateHandlerTest extends AbstractTestBase {
         callbackContext.setClusterStabilized(false);
 
         final DBCluster dbCluster = DBCluster.builder()
-                .dbClusterParameterGroup("SampleName")
-                .status("modifying").build();
+            .dbClusterParameterGroup("SampleName")
+            .status("modifying").build();
 
         final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
         when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
         final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder()
-                .dbClusters(Lists.newArrayList(dbCluster))
-                .build();
+            .dbClusters(Lists.newArrayList(dbCluster))
+            .build();
         when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);

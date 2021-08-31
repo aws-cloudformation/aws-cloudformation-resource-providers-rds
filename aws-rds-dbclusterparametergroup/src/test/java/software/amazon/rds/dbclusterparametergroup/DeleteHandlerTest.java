@@ -101,12 +101,12 @@ public class DeleteHandlerTest extends AbstractTestBase {
     public void handleRequest_SimpleSuccessNotFound() {
         final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
-                .thenThrow(DbParameterGroupNotFoundException.class);
+            .thenThrow(DbParameterGroupNotFoundException.class);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .desiredResourceState(ResourceModel.builder()
-                        .build())
-                .build();
+            .desiredResourceState(ResourceModel.builder()
+                .build())
+            .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
@@ -125,12 +125,12 @@ public class DeleteHandlerTest extends AbstractTestBase {
     public void handleRequest_SimpleInvalid() {
         final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
-                .thenThrow(InvalidParameterException.class);
+            .thenThrow(InvalidParameterException.class);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .desiredResourceState(ResourceModel.builder()
-                        .build())
-                .build();
+            .desiredResourceState(ResourceModel.builder()
+                .build())
+            .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 

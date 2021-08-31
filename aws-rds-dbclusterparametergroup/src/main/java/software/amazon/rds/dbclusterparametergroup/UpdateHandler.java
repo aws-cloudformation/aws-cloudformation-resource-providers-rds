@@ -2,7 +2,6 @@ package software.amazon.rds.dbclusterparametergroup;
 
 import java.time.Duration;
 import java.util.Arrays;
-
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
@@ -45,37 +44,37 @@ public class UpdateHandler extends BaseHandlerStd {
                 try {
                     if (!cxt.isClusterStabilized()) { // if not stabilized then we keep describing clusters and memoizing into the set
 
-                                final DescribeDbClustersResponse describeDbClustersResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(cxt.getMarker()), proxyClient.client()::describeDBClusters);
+                        final DescribeDbClustersResponse describeDbClustersResponse = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersRequest(cxt.getMarker()), proxyClient.client()::describeDBClusters);
 
-                                if (describeDbClustersResponse.dbClusters().stream()
-                                        .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equals(resourceModel.getDBClusterParameterGroupName())) // all db clusters that use param group
-                                        .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE))) { // if all stabilized then move to the next page
+                        if(describeDbClustersResponse.dbClusters().stream()
+                            .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equals(resourceModel.getDBClusterParameterGroupName())) // all db clusters that use param group
+                            .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE))) { // if all stabilized then move to the next page
 
-                                    if (describeDbClustersResponse.marker() != null) { // more pages left
-                                        cxt.setMarker(describeDbClustersResponse.marker());
-                                        progress.setCallbackDelaySeconds(30); // if there are more to describe
-                                    } else { // nothing left to stabilized
-                                        cxt.setClusterStabilized(true);
-                                    }
-                                } else {
-                                    progress.setCallbackDelaySeconds(30); // if some still in transition status need some delay to describe
-                                }
+                            if (describeDbClustersResponse.marker() != null) { // more pages left
+                                cxt.setMarker(describeDbClustersResponse.marker());
+                                progress.setCallbackDelaySeconds(30); // if there are more to describe
+                            } else { // nothing left to stabilized
+                                cxt.setClusterStabilized(true);
                             }
-                        } catch (RdsException exception) {
-                            if (exception.awsErrorDetails() != null && StringUtils.equals(ACCESS_DENIED_ERROR_CODE, exception.awsErrorDetails().errorCode())) {
-                                logger.log(STABILIZATION_PERMISSION_MESSAGE);
-                            } else {
-                                logger.log(String.format("Failed to stabilize %s,  \n request failed with error %s",
-                                        model.getPrimaryIdentifier(), Arrays.toString(exception.getStackTrace())));
-                                throw new CfnGeneralServiceException(exception);
-                            }
+                        } else {
+                            progress.setCallbackDelaySeconds(30); // if some still in transition status need some delay to describe
                         }
-                    progress.setCallbackContext(cxt);
-                    return progress;
-                })
-                .then(progress ->
-                        describeDbClusterParameterGroup(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                                .done((paramGroupRequest, paramGroupResponse, rdsProxyClient, resourceModel, cxt) -> tagResource(paramGroupResponse, proxyClient, resourceModel, cxt, request.getDesiredResourceTags())))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                    }
+                } catch (RdsException exception) {
+                    if (exception.awsErrorDetails() != null && StringUtils.equals(ACCESS_DENIED_ERROR_CODE, exception.awsErrorDetails().errorCode())) {
+                        logger.log(STABILIZATION_PERMISSION_MESSAGE);
+                    } else {
+                        logger.log(String.format("Failed to stabilize %s,  \n request failed with error %s",
+                                model.getPrimaryIdentifier(), Arrays.toString(exception.getStackTrace())));
+                        throw new CfnGeneralServiceException(exception);
+                    }
+                }
+                progress.setCallbackContext(cxt);
+                return progress;
+            })
+            .then(progress ->
+                describeDbClusterParameterGroup(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                    .done((paramGroupRequest, paramGroupResponse, rdsProxyClient, resourceModel, cxt) -> tagResource(paramGroupResponse, proxyClient, resourceModel, cxt, request.getDesiredResourceTags())))
+            .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

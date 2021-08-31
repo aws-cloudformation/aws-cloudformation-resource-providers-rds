@@ -103,14 +103,14 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
 
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
-                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
-                        .dbClusterParameterGroupArn("arn")
-                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
-                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
-                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+            .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn("arn")
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build()).build();
         when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
-                .tagList(Tag.builder().key("key").value("value").build()).build();
+            .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
         CallbackContext callbackContext = new CallbackContext();
@@ -144,10 +144,10 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         final DescribeDbClusterParametersResponse describeDbClusterParametersResponse = DescribeDbClusterParametersResponse.builder().marker(null)
                 .parameters(Parameter.builder()
-                                .parameterName("param")
-                                .parameterValue("system_value")
-                                .isModifiable(true)
-                                .applyType("static")
+                        .parameterName("param")
+                        .parameterValue("system_value")
+                        .isModifiable(true)
+                        .applyType("static")
                                 .build(),
                         Parameter.builder()
                                 .parameterName("param2")
@@ -232,11 +232,11 @@ public class CreateHandlerTest extends AbstractTestBase {
         final DescribeDbClusterParametersResponse describeDbClusterParametersResponse = DescribeDbClusterParametersResponse.builder()
                 .marker(null)
                 .parameters(Parameter.builder()
-                        .parameterName("param")
-                        .parameterValue("system_value")
-                        .isModifiable(false)
-                        .applyType("static")
-                        .build()).build();
+                                .parameterName("param")
+                                .parameterValue("system_value")
+                                .isModifiable(false)
+                                .applyType("static")
+                                .build()).build();
         when(rds.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class))).thenReturn(describeDbClusterParametersResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
@@ -269,8 +269,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .stackId(StackId)
-                .awsAccountId("123456789")
-                .region("us-east-1")
                 .logicalResourceIdentifier("logicalId").build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
