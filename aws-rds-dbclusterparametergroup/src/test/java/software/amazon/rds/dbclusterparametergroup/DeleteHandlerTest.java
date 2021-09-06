@@ -4,7 +4,7 @@ import java.security.InvalidParameterException;
 import org.junit.jupiter.api.AfterEach;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DeleteDBClusterParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -80,7 +80,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final DeleteDBClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDBClusterParameterGroupResponse.builder().build();
+        final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class))).thenReturn(deleteDBClusterParameterGroupResponse);
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL).build();
@@ -99,7 +99,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessNotFound() {
-        final DeleteDBClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDBClusterParameterGroupResponse.builder().build();
+        final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
             .thenThrow(DbParameterGroupNotFoundException.class);
 
@@ -123,7 +123,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleInvalid() {
-        final DeleteDBClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDBClusterParameterGroupResponse.builder().build();
+        final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
             .thenThrow(InvalidParameterException.class);
 
