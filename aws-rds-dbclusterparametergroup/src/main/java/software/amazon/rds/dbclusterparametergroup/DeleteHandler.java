@@ -24,7 +24,6 @@ public class DeleteHandler extends BaseHandlerStd {
               if (exception instanceof DbParameterGroupNotFoundException)
                 return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
               throw exception;
-            })
-            .done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(resourceModel));
+            }).done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
 }

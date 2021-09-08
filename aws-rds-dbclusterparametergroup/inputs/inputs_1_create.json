@@ -1,0 +1,19 @@
+{
+  "DBClusterParameterGroupName": "dbclusterparametergrouptest",
+  "Parameters": {
+    "character_set_database": "utf32",
+    "binlog_checksum": "CRC32"
+  },
+  "Family": "aurora5.6",
+  "Description": "This is a DB parameter group created from CF",
+  "Tags": [
+    {
+      "Key": "TagKey1",
+      "Value": "TagValue1"
+    },
+    {
+      "Key": "TagKey2",
+      "Value": "TagValue2"
+    }
+  ]
+}

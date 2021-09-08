@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -38,6 +39,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -67,6 +69,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     private ResourceHandlerRequest<ResourceModel> requestSameParams;
     private ResourceHandlerRequest<ResourceModel> requestUpdParams;
+    private static final String ACCESS_DENIED_ERROR_CODE = "AccessDenied";
+    private static final String NOT_ACCESS_DENIED_ERROR_CODE = "DBClusterNotFoundFault";
 
     @AfterEach
     public void post_execute() {
@@ -184,6 +188,93 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_Stabilization_ThrowsException(){
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(false);
+
+        final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
+        when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
+        when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenThrow(RdsException.builder()
+                .statusCode(404)
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode(NOT_ACCESS_DENIED_ERROR_CODE)
+                        .errorMessage("DBClusterIdentifier doesn't refer to an existing DB cluster")
+                        .serviceName("RDS")
+                        .build())
+                .build());
+        assertThatThrownBy(() -> handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger))
+                .hasMessage("DBClusterIdentifier doesn't refer to an existing DB cluster (Service: RDS, Status Code: 404, Request ID: null, Extended Request ID: null)")
+                .isExactlyInstanceOf(CfnGeneralServiceException.class);
+    }
+
+    @Test
+    public void handleRequest_Stabilization_ThrowsException_withoutAWSErrorDetails(){
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(false);
+
+        final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
+        when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
+        when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenThrow(RdsException.builder()
+                .message("DBClusterIdentifier doesn't refer to an existing DB cluster")
+                .statusCode(404)
+                .build());
+        assertThatThrownBy(() -> handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger))
+                .hasMessage("DBClusterIdentifier doesn't refer to an existing DB cluster")
+                .isExactlyInstanceOf(CfnGeneralServiceException.class);
+    }
+
+    @Test
+    public void handleRequest_StabilizationSoftFail_success(){
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.setClusterStabilized(false);
+
+        final ResetDbClusterParameterGroupResponse resetDbClusterParameterGroupResponse = ResetDbClusterParameterGroupResponse.builder().build();
+        when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class))).thenReturn(resetDbClusterParameterGroupResponse);
+        when(rds.describeDBClusters(any(DescribeDbClustersRequest.class))).thenThrow(RdsException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder().errorCode(ACCESS_DENIED_ERROR_CODE).build())
+                .build()
+        );
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn")
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+                .tagList(Tag.builder().key("key").value("value").build()).build();
+        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
+        when(rds.removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getNextToken()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
+        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test

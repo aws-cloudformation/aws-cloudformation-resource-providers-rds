@@ -26,7 +26,7 @@ public class CreateHandler extends BaseHandlerStd {
             .then(progress -> {
                 final ResourceModel model = progress.getResourceModel();
                 if (StringUtils.isNullOrEmpty(model.getDBClusterParameterGroupName()))
-                    model.setDBClusterParameterGroupName(IdentifierUtils.generateResourceIdentifier(request.getLogicalResourceIdentifier(), request.getClientRequestToken(), MAX_LENGTH_GROUP_NAME).toLowerCase());
+                    model.setDBClusterParameterGroupName(IdentifierUtils.generateResourceIdentifier(request.getStackId(),request.getLogicalResourceIdentifier(), request.getClientRequestToken(), MAX_LENGTH_GROUP_NAME).toLowerCase());
                 return ProgressEvent.progress(model, progress.getCallbackContext());
             })
             .then(progress -> proxy.initiate("rds::create-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
