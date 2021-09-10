@@ -20,7 +20,8 @@ public class DeleteHandler extends BaseHandlerStd {
             .makeServiceCall((deleteEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteEventSubscriptionRequest, proxyInvocation.client()::deleteEventSubscription))
             .stabilize((deleteEventSubscriptionRequest, deleteEventSubscriptionResponse, proxyInvocation, model, context) ->
                 isDeleted(model, proxyInvocation))
-            .success();
+            .handleError((deleteRequest, exception, client, resourceModel, ctx) -> handleException(ProgressEvent.progress(resourceModel, ctx), exception))
+            .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
     protected boolean isDeleted(final ResourceModel model,
         final ProxyClient<RdsClient> proxyClient) {

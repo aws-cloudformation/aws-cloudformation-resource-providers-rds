@@ -1,5 +1,8 @@
 package software.amazon.rds.eventsubscription;
 
+import java.util.Optional;
+
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -9,22 +12,32 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
 
 public class CreateHandler extends BaseHandlerStd {
+
+  private static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceModel> request,
         final CallbackContext callbackContext,
         final ProxyClient<RdsClient> proxyClient,
         final Logger logger) {
-        ResourceModel model = request.getDesiredResourceState();
 
-        model.setSubscriptionName(IdentifierUtils
-            .generateResourceIdentifier(request.getLogicalResourceIdentifier(), request.getClientRequestToken(), 255).toLowerCase());
+    final ResourceModel model = request.getDesiredResourceState();
+    if (StringUtils.isNullOrEmpty(model.getSubscriptionName())) {
+      model.setSubscriptionName(IdentifierUtils.generateResourceIdentifier(
+          Optional.ofNullable(request.getStackId()).orElse("rds"),
+          Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse("eventsubscription"),
+          request.getClientRequestToken(),
+          MAX_LENGTH_EVENT_SUBSCRIPTION
+      ).toLowerCase());
+    }
 
         return proxy.initiate("rds::create-event-subscription", proxyClient, model, callbackContext)
-            .translateToServiceRequest((resourceModel) -> Translator.createEventSubscriptionRequest(model, request.getDesiredResourceTags()))
+            .translateToServiceRequest((resourceModel) -> Translator.createEventSubscriptionRequest(model, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
             .makeServiceCall((createEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createEventSubscriptionRequest, proxyInvocation.client()::createEventSubscription))
             .stabilize((createEventSubscriptionRequest, createEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
                 isStabilized(resourceModel, proxyInvocation))
+            .handleError((deleteRequest, exception, client, resourceModel, ctx) -> handleException(ProgressEvent.progress(resourceModel, ctx), exception))
             .progress()
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }

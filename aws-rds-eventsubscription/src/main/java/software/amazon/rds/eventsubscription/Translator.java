@@ -115,16 +115,16 @@ public class Translator {
 
   // Translate tags
   static Set<Tag> translateTagsToSdk(final Map<String, String> tags) {
-    if (tags == null) return Collections.emptySet();
-    return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
+    return Optional.ofNullable(tags).orElse(Collections.emptyMap())
+        .entrySet()
         .stream()
         .map(tag -> Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
         .collect(Collectors.toSet());
   }
 
   static Set<software.amazon.rds.eventsubscription.Tag> mapToTags(final Map<String, String> tags) {
-    if (tags == null) return Collections.emptySet();
-    return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
+    return Optional.ofNullable(tags).orElse(Collections.emptyMap())
+        .entrySet()
         .stream()
         .map(entry -> software.amazon.rds.eventsubscription.Tag.builder().key(entry.getKey()).value(entry.getValue()).build())
         .collect(Collectors.toSet());

@@ -1,0 +1,4 @@
+{
+  "SourceType": "db-instance",
+  "SnsTopicArn": "{{SnsTopicArn2}}"
+}
