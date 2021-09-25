@@ -1,9 +1,7 @@
 package software.amazon.rds.dbsubnetgroup;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -23,11 +21,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .backoffDelay(CONSTANT)
                 .makeServiceCall((modifyDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyDbSubnetGroupRequest, proxyInvocation.client()::modifyDBSubnetGroup))
                 .stabilize((modifyDbSubnetGroupRequest, modifyDbSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isStabilized(resourceModel, proxyInvocation))
-                .handleError((modifyDbSubnetGroupRequest, exception, client, resourceModel, cxt) -> {
-                  if (exception instanceof DbSubnetGroupNotFoundException)
-                    return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.NotFound);
-                  throw exception;
-                })
+                .handleError((awsRequest, exception, client, resourceModel, context) -> handleException(exception))
                 .progress()
             )
             .then(progress -> tagResource(proxy, proxyClient, progress, request.getDesiredResourceTags()))

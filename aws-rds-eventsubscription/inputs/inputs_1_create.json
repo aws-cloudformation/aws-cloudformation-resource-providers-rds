@@ -1,0 +1,7 @@
+{
+  "SourceType": "db-parameter-group",
+  "SnsTopicArn": "{{SnsTopicArn1}}",
+  "EventCategories": [
+    "configuration change"
+  ]
+}

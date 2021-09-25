@@ -1,9 +1,10 @@
 package software.amazon.rds.eventsubscription;
 
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+
+import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -26,6 +27,7 @@ public class UpdateHandler extends BaseHandlerStd {
       return proxy.initiate("rds::update-event-subscription", proxyClient, model, callbackContext)
           .translateToServiceRequest(Translator::modifyEventSubscriptionRequest)
           .makeServiceCall((modifyEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyEventSubscriptionRequest, proxyInvocation.client()::modifyEventSubscription))
+          .handleError((deleteRequest, exception, client, resourceModel, ctx) -> handleException(ProgressEvent.progress(resourceModel, ctx), exception))
           .progress()
           .then(progress -> {
             Sets.difference(currentSourceIds, previousSourceIds).forEach(
@@ -44,7 +46,7 @@ public class UpdateHandler extends BaseHandlerStd {
             return progress;
           })
           .then(progress -> waitForEventSubscription(proxy, proxyClient, progress))
-          .then(progress -> tagResource(proxy, proxyClient, progress, request.getDesiredResourceTags()))
+          .then(progress -> tagResource(proxy, proxyClient, progress, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
           .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

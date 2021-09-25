@@ -1,0 +1,8 @@
+{
+  "DBSubnetGroupDescription": "test",
+  "DBSubnetGroupName": "testdbsubnetgroup",
+  "SubnetIds": [
+    "{{SubnetID3}}",
+    "{{SubnetID4}}"
+  ]
+}

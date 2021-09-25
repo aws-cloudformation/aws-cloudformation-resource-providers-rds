@@ -1,0 +1,15 @@
+{
+  "AllocatedStorage": "5",
+  "AutoMinorVersionUpgrade": false,
+  "DBInstanceIdentifier": "test-db-instance",
+  "DBInstanceClass": "db.t3.micro",
+  "DBName": "invalid-name",
+  "Engine": "postgres",
+  "Port": 5432,
+  "Tags": [
+    {
+      "Key": "created-with",
+      "Value": "CloudFormation"
+    }
+  ]
+}

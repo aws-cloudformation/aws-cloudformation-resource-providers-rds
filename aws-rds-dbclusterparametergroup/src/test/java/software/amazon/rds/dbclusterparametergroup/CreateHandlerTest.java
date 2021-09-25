@@ -9,7 +9,6 @@ import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.DeleteDBClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
@@ -65,6 +64,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     private ResourceModel RESOURCE_MODEL;
 
     private Map<String, Object> PARAMS;
+    private final String  StackId = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83";
 
     @AfterEach
     public void post_execute() {
@@ -120,6 +120,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .desiredResourceState(RESOURCE_MODEL)
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
 
@@ -163,6 +164,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
@@ -206,6 +208,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
@@ -239,6 +242,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
+                .stackId(StackId)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier("logicalId").build();
         try {
@@ -264,6 +268,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);

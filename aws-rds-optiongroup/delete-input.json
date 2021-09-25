@@ -1,0 +1,42 @@
+{
+  "desiredResourceState": {
+    "EngineName": "mysql",
+    "MajorEngineVersion": "5.6",
+    "OptionGroupName": "myOptionGroup",
+    "OptionGroupDescription": "A test option group",
+    "OptionConfigurations": [
+      {
+        "OptionName": "MEMCACHED",
+        "VpcSecurityGroupMemberships": [
+          "sg-09f507ac490f7ab3d"
+        ],
+        "Port": 1234,
+        "OptionSettings": [
+          {
+            "Name": "CHUNK_SIZE",
+            "Value": "32"
+          },
+          {
+            "Name": "BINDING_PROTOCOL",
+            "Value": "ascii"
+          }
+        ]
+      }
+    ],
+    "Tags": [
+      {
+        "Key": "foo",
+        "Value": "bar"
+      }
+    ]
+  },
+  "previousResourceState": {},
+  "desiredResourceTags": [
+    {
+      "Key": "foo",
+      "Value": "bar"
+    }
+  ],
+  "previousResourceTags": [],
+  "logicalResourceIdentifier": "MyOptionGroup"
+}
