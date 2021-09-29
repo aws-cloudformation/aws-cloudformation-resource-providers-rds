@@ -70,7 +70,8 @@ public class DeleteHandler extends BaseHandlerStd {
                 .stabilize((deleteRequest, deleteResponse, proxyInvocation, model, context) -> isDbInstanceDeleted(proxyInvocation, model))
                 .handleError((deleteRequest, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        DELETE_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
