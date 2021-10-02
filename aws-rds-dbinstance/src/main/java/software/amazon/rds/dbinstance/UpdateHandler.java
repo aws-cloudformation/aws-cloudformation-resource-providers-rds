@@ -140,7 +140,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 ))
                 .handleError((modifyRequest, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
     }
