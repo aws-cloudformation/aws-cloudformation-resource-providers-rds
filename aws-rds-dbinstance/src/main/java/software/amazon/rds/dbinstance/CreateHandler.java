@@ -102,7 +102,8 @@ public class CreateHandler extends BaseHandlerStd {
                         isDbInstanceStabilized(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        CREATE_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
     }
@@ -127,7 +128,8 @@ public class CreateHandler extends BaseHandlerStd {
                         isDbInstanceStabilized(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
     }
@@ -152,7 +154,8 @@ public class CreateHandler extends BaseHandlerStd {
                         isDbInstanceStabilized(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET
                 ))
                 .progress();
     }
@@ -178,7 +181,8 @@ public class CreateHandler extends BaseHandlerStd {
                 ))
                 .handleError((request, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
     }

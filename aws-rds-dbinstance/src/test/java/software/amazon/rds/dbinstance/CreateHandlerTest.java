@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import lombok.Getter;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
@@ -34,6 +35,7 @@ import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsExceptio
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
@@ -42,6 +44,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.dbinstance.error.ErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractHandlerTest {
@@ -146,6 +149,50 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 null,
                 () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
                 expectFailed(HandlerErrorCode.InternalFailure)
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_InvalidDBSnapshotState() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.InvalidDBSnapshotState.toString())
+                                        .build()
+                                ).build());
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_InvalidRestoreFault() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.InvalidRestoreFault.toString())
+                                        .build()
+                                ).build());
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
+                expectFailed(HandlerErrorCode.InvalidRequest)
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
@@ -306,6 +353,72 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 null,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 expectFailed(HandlerErrorCode.InternalFailure)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateNewInstance_InvalidParameterCombinationException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.InvalidParameterCombination.toString())
+                                        .build()
+                                ).build());
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateNewInstance_ThrottlingException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.ThrottlingException.toString())
+                                        .build()
+                                ).build());
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.Throttling)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateNewInstance_AccessDeniedException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build());
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.AccessDenied)
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
