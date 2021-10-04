@@ -1,8 +1,12 @@
 package software.amazon.rds.dbparametergroup;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -123,6 +127,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext());
+    }
+
+
+    protected <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
+        final Map<K, V> result = new HashMap<>();
+        result.putAll(Optional.ofNullable(m1).orElse(Collections.emptyMap()));
+        result.putAll(Optional.ofNullable(m2).orElse(Collections.emptyMap()));
+        return result;
     }
 
     private Set<Parameter> getTargetDefaultParameters(final ProxyClient<RdsClient> proxyClient, final ResourceModel model) {

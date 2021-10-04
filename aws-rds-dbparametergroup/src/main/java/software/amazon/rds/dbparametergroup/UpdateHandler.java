@@ -1,5 +1,9 @@
 package software.amazon.rds.dbparametergroup;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -13,12 +17,12 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
-            final ResourceHandlerRequest<ResourceModel> request,
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final ResourceModel model,
-            final CallbackContext callbackContext) {
+            final CallbackContext callbackContext,
+            final Map<String, String> tags) {
         return softFailAccessDenied(
                 () -> proxy.initiate("rds::tag-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
@@ -26,8 +30,8 @@ public class UpdateHandler extends BaseHandlerStd {
                                 proxyInvocation.injectCredentialsAndInvokeV2(describeDbGroupsRequest, proxyInvocation.client()::describeDBParameterGroups)))
                         .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, invocation, resourceModel, context) -> {
                             final String arn = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get().dbParameterGroupArn();
-                            final Set<Tag> currentTags = Sets.newHashSet(Translator.translateTagsToModelResource(request.getDesiredResourceTags()));
-                            final Set<Tag> existingTags = Sets.newHashSet(Translator.translateTagsToModelResource(request.getPreviousResourceTags()));
+                            final Set<Tag> currentTags = Sets.newHashSet(Translator.translateTagsToModelResource(tags));
+                            final Set<Tag> existingTags = Sets.newHashSet(Translator.translateTagsFromSdk(proxyClient.injectCredentialsAndInvokeV2(Translator.listTagsForResourceRequest(arn), proxyClient.client()::listTagsForResource).tagList()));
                             final Set<Tag> tagsToRemove = Sets.difference(existingTags, currentTags);
                             final Set<Tag> tagsToAdd = Sets.difference(currentTags, existingTags);
                             invocation.injectCredentialsAndInvokeV2(
@@ -63,7 +67,7 @@ public class UpdateHandler extends BaseHandlerStd {
                             .done((resetGroupRequest, resetGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.progress(resourceModel, context))
                             .then(p -> applyParameters(proxy, proxyClient, p.getResourceModel(), p.getCallbackContext()));
                 })
-                .then(progress -> tagResource(request, proxy, proxyClient, progress, model, callbackContext))
+                .then(progress -> tagResource(proxy, proxyClient, progress, model, callbackContext, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }
