@@ -96,6 +96,38 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    public void handleRequest_SkipUpdateOnEmptyOptionConfigurations() {
+        final CreateOptionGroupResponse createOptionGroupResponse = CreateOptionGroupResponse.builder().build();
+        when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class))).thenReturn(createOptionGroupResponse);
+
+        final DescribeOptionGroupsResponse describeOptionGroupResponse = DescribeOptionGroupsResponse.builder().optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeOptionGroupResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(RESOURCE_MODEL_NO_OPTION_CONFIGURATIONS)
+                .logicalResourceIdentifier("option-group")
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .clientRequestToken("3b8cacab-1328-456f-a11f-64efb80ab51a")
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyClient.client()).createOptionGroup(any(CreateOptionGroupRequest.class));
+        verify(proxyClient.client()).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
     public void handleRequest_SimpleSuccessAlreadyExists() {
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class))).thenThrow(
                 OptionGroupAlreadyExistsException.class
