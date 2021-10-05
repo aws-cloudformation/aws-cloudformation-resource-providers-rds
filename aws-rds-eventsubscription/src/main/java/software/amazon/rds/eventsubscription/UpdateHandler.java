@@ -27,6 +27,8 @@ public class UpdateHandler extends BaseHandlerStd {
       return proxy.initiate("rds::update-event-subscription", proxyClient, model, callbackContext)
           .translateToServiceRequest(Translator::modifyEventSubscriptionRequest)
           .makeServiceCall((modifyEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyEventSubscriptionRequest, proxyInvocation.client()::modifyEventSubscription))
+          .stabilize((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
+              isStabilized(resourceModel, proxyInvocation))
           .handleError((deleteRequest, exception, client, resourceModel, ctx) -> handleException(ProgressEvent.progress(resourceModel, ctx), exception))
           .progress()
           .then(progress -> {

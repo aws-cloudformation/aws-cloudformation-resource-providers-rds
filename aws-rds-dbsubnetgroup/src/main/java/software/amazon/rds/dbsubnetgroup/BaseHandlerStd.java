@@ -6,7 +6,10 @@ import static software.amazon.rds.dbsubnetgroup.Translator.mapToTags;
 import static software.amazon.rds.dbsubnetgroup.Translator.removeTagsFromResourceRequest;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -108,5 +111,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     proxyInvocation.injectCredentialsAndInvokeV2(addTagsToResourceRequest(arn, tagsToAdd), proxyInvocation.client()::addTagsToResource);
                     return ProgressEvent.progress(resourceModel, context);
                 });
+    }
+
+    protected <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
+        final Map<K, V> result = new HashMap<>();
+        result.putAll(Optional.ofNullable(m1).orElse(Collections.emptyMap()));
+        result.putAll(Optional.ofNullable(m2).orElse(Collections.emptyMap()));
+        return result;
     }
 }

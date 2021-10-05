@@ -34,7 +34,7 @@ public class CreateHandler extends BaseHandlerStd {
                     return ProgressEvent.progress(model, progress.getCallbackContext());
                 })
                 .then(progress -> proxy.initiate("rds::create-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                        .translateToServiceRequest(resourceModel -> Translator.createDbParameterGroupRequest(resourceModel, request.getDesiredResourceTags()))
+                        .translateToServiceRequest(resourceModel -> Translator.createDbParameterGroupRequest(resourceModel, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
                         .backoffDelay(CONSTANT)
                         .makeServiceCall((createDBParameterGroupRequest, proxyInvocation) ->
                                 proxyInvocation.injectCredentialsAndInvokeV2(createDBParameterGroupRequest, proxyInvocation.client()::createDBParameterGroup))
