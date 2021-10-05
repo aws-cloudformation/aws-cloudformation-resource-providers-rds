@@ -40,8 +40,14 @@ public class UpdateHandler extends BaseHandlerStd {
         final Collection<OptionConfiguration> optionsToInclude = getOptionsToInclude(previousOptions, desiredOptions);
         final Collection<OptionConfiguration> optionsToRemove = getOptionsToRemove(previousOptions, desiredOptions);
 
-        final Map<String, String> previousTags = mergeMaps(request.getPreviousSystemTags(), request.getPreviousResourceTags());
-        final Map<String, String> desiredTags = mergeMaps(request.getSystemTags(), request.getDesiredResourceTags());
+        final Map<String, String> previousTags = mergeMaps(
+                request.getPreviousSystemTags(),
+                request.getPreviousResourceTags()
+        );
+        final Map<String, String> desiredTags = mergeMaps(
+                request.getSystemTags(),
+                request.getDesiredResourceTags()
+        );
 
         // Here we explicitly use some immutability properties of an OptionGroup resource.
         // In fact, ModifyOptionGroupRequest only passes optionConfigurations, the rest is immutable.
