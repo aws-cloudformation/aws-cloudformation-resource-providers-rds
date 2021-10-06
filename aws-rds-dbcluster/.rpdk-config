@@ -1,4 +1,5 @@
 {
+    "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::DBCluster",
     "language": "java",
     "runtime": "java8",
@@ -12,5 +13,6 @@
             "dbcluster"
         ],
         "protocolVersion": "2.0.0"
-    }
+    },
+    "executableEntrypoint": "software.amazon.rds.dbcluster.HandlerWrapperExecutable"
 }

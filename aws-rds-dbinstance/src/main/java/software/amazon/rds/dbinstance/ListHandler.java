@@ -10,11 +10,12 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ListHandler extends BaseHandlerStd {
 
     public ListHandler() {
-        this(new HandlerConfig());
+        this(HandlerConfig.builder().build());
     }
 
     public ListHandler(final HandlerConfig config) {

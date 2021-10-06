@@ -26,6 +26,14 @@ jobs:
       run: pip install pre-commit cloudformation-cli cloudformation-cli-java-plugin
     - name: Run pre-commit
       run: pre-commit run --all-files
+    - name: Verify AWS::RDS::Common
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-cfn-common"
+        mvn clean verify --no-transfer-progress
+    - name: Install AWS::RDS::Common
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-cfn-common"
+        mvn clean install --no-transfer-progress
     - name: Verify AWS::RDS::DBCluster
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-dbcluster"

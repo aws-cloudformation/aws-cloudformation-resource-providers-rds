@@ -1,4 +1,4 @@
-package software.amazon.rds.dbinstance.error;
+package software.amazon.rds.common.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,7 +55,7 @@ class ErrorRuleSetTest {
         final ErrorRuleSet errorRuleSet2 = ErrorRuleSet.builder()
                 .withErrorCodes(Collections.singletonList(errorCode), ErrorStatus.ignore())
                 .build();
-        final ErrorRuleSet errorRuleSetOr = ErrorRuleSet.or(errorRuleSet1, errorRuleSet2);
+        final ErrorRuleSet errorRuleSetOr = errorRuleSet1.orElse(errorRuleSet2);
 
         final RuntimeException exception1 = new RuntimeException();
         final AwsServiceException exception2 = AwsServiceException.builder()
@@ -81,8 +81,8 @@ class ErrorRuleSetTest {
 
         final RuntimeException exception = new RuntimeException();
 
-        final ErrorRuleSet errorRuleSetOrDirect = ErrorRuleSet.or(errorRuleSet1, errorRuleSet2);
-        final ErrorRuleSet errorRuleSetOrReverse = ErrorRuleSet.or(errorRuleSet2, errorRuleSet1);
+        final ErrorRuleSet errorRuleSetOrDirect = errorRuleSet1.orElse(errorRuleSet2);
+        final ErrorRuleSet errorRuleSetOrReverse = errorRuleSet2.orElse(errorRuleSet1);
 
         assertThat(errorRuleSetOrDirect.handle(exception)).isInstanceOf(IgnoreErrorStatus.class);
         assertThat(errorRuleSetOrReverse.handle(exception)).isInstanceOf(HandlerErrorStatus.class);
@@ -97,8 +97,8 @@ class ErrorRuleSetTest {
         final ErrorRuleSet errorRuleSet2 = ErrorRuleSet.builder()
                 .withErrorCodes(Collections.singletonList(errorCode), ErrorStatus.failWith(HandlerErrorCode.AccessDenied))
                 .build();
-        final ErrorRuleSet errorRuleSetOrDirect = ErrorRuleSet.or(errorRuleSet1, errorRuleSet2);
-        final ErrorRuleSet errorRuleSetOrReverse = ErrorRuleSet.or(errorRuleSet2, errorRuleSet1);
+        final ErrorRuleSet errorRuleSetOrDirect = errorRuleSet1.orElse(errorRuleSet2);
+        final ErrorRuleSet errorRuleSetOrReverse = errorRuleSet2.orElse(errorRuleSet1);
 
         final AwsServiceException exception = AwsServiceException.builder()
                 .awsErrorDetails(AwsErrorDetails.builder()
