@@ -27,6 +27,7 @@ Resources:
                 - "rds:CreateDBParameterGroup"
                 - "rds:DeleteDBParameterGroup"
                 - "rds:DescribeDBParameterGroups"
+                - "rds:DescribeDBParameters"
                 - "rds:ListTagsForResource"
                 - "rds:ModifyDBParameterGroup"
                 - "rds:RemoveTagsFromResource"
