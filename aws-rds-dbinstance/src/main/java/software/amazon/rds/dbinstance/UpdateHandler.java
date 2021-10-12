@@ -26,13 +26,14 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class UpdateHandler extends BaseHandlerStd {
 
     public static final String PENDING_REBOOT_STATUS = "pending-reboot";
 
     public UpdateHandler() {
-        this(new HandlerConfig());
+        this(HandlerConfig.builder().probingEnabled(true).build());
     }
 
     public UpdateHandler(final HandlerConfig config) {

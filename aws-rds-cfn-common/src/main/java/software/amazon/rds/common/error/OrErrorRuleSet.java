@@ -1,4 +1,4 @@
-package software.amazon.rds.dbinstance.error;
+package software.amazon.rds.common.error;
 
 import java.util.ArrayList;
 import java.util.Collection;
