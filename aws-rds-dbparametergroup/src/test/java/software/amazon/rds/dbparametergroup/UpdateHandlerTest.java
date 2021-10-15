@@ -97,9 +97,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
-        final ResetDbParameterGroupResponse resetDbParameterGroupResponse = ResetDbParameterGroupResponse.builder().build();
-        when(rdsClient.resetDBParameterGroup(any(ResetDbParameterGroupRequest.class))).thenReturn(resetDbParameterGroupResponse);
-
         final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
                 .dbParameterGroups(simpleDbParameterGroup).build();
         when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
@@ -122,7 +119,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(proxyRdsClient.client()).resetDBParameterGroup(any(ResetDbParameterGroupRequest.class));
         verify(proxyRdsClient.client(), times(2)).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
