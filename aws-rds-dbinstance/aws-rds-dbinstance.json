@@ -382,7 +382,7 @@
     }
   },
   "additionalProperties": false,
-  "oneOf": [
+  "anyOf": [
     {
       "required": [
         "DBInstanceClass",

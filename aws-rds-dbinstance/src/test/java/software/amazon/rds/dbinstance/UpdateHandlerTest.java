@@ -58,7 +58,8 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
-import software.amazon.rds.dbinstance.error.ErrorCode;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractHandlerTest {

@@ -1,4 +1,4 @@
-package software.amazon.rds.dbinstance.error;
+package software.amazon.rds.common.error;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -6,7 +6,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public interface ErrorRuleSet {
-    ErrorStatus handle(final Exception exception);
+    ErrorStatus handle(Exception exception);
+
+    default ErrorRuleSet orElse(ErrorRuleSet another) {
+        return new OrErrorRuleSet(Arrays.asList(this, another));
+    }
 
     class Builder {
         final Map<Class<?>, ErrorStatus> errorClassMap;
@@ -38,9 +42,5 @@ public interface ErrorRuleSet {
 
     static Builder builder() {
         return new Builder();
-    }
-
-    static ErrorRuleSet or(ErrorRuleSet... ruleSets) {
-        return new OrErrorRuleSet(Arrays.asList(ruleSets));
     }
 }

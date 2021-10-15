@@ -1,0 +1,40 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>software.amazon.rds</groupId>
+    <artifactId>aws-rds-handlers</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0</version>
+    <name>The CloudFormation Resource Provider Package For Amazon Relational Database Service</name>
+
+    <modules>
+        <module>aws-rds-cfn-common</module>
+        <module>aws-rds-dbcluster</module>
+        <module>aws-rds-dbclusterparametergroup</module>
+        <module>aws-rds-dbinstance</module>
+        <module>aws-rds-dbparametergroup</module>
+        <module>aws-rds-dbsubnetgroup</module>
+        <module>aws-rds-eventsubscription</module>
+        <module>aws-rds-globalcluster</module>
+        <module>aws-rds-optiongroup</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>1.5</source>
+                        <target>1.5</target>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>

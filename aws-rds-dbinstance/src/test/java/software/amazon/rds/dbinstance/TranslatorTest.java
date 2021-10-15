@@ -4,9 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.ProxyClient;
 
-class TranslatorTest extends AbstractTestBase {
+class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_modifyDbInstanceRequest_IncreaseAllocatedStorage() {
@@ -111,4 +115,6 @@ class TranslatorTest extends AbstractTestBase {
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
     }
+
+
 }

@@ -16,11 +16,12 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class CreateHandler extends BaseHandlerStd {
 
     public CreateHandler() {
-        this(new HandlerConfig());
+        this(HandlerConfig.builder().probingEnabled(true).build());
     }
 
     public CreateHandler(final HandlerConfig config) {
