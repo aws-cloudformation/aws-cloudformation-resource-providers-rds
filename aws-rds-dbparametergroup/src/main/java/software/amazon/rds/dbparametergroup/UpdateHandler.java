@@ -50,19 +50,8 @@ public class UpdateHandler extends BaseHandlerStd {
             final Logger logger) {
 
         final ResourceModel model = request.getDesiredResourceState();
-        //Parameters are the same. No need to make reset and modify parameter requests. We need only to update tags
-        final boolean skipUpdatingParameters = model.getParameters().equals(request.getPreviousResourceState().getParameters());
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> {
-                    if (skipUpdatingParameters) return progress;
-                    return proxy.initiate("rds::update-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                            .translateToServiceRequest(Translator::resetDbParameterGroupRequest)
-                            .backoffDelay(CONSTANT)
-                            .makeServiceCall((resetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(resetGroupRequest, proxyInvocation.client()::resetDBParameterGroup))
-                            .handleError((awsRequest, exception, client, resourceModel, context) -> handleException(exception))
-                            .done((resetGroupRequest, resetGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.progress(resourceModel, context))
-                            .then(p -> applyParameters(proxy, proxyClient, p.getResourceModel(), p.getCallbackContext()));
-                })
+                .then(progress -> updateParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
                 .then(progress -> tagResource(request, proxy, proxyClient, progress, model, callbackContext))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }

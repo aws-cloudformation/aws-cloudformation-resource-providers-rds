@@ -90,10 +90,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         throw new CfnGeneralServiceException(e);
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
-                                                                            final ProxyClient<RdsClient> proxyClient,
-                                                                            final ResourceModel model,
-                                                                            final CallbackContext callbackContext) {
+    protected ProgressEvent<ResourceModel, CallbackContext> updateParameters(final AmazonWebServicesClientProxy proxy,
+                                                                             final ProxyClient<RdsClient> proxyClient,
+                                                                             final ResourceModel model,
+                                                                             final CallbackContext callbackContext) {
         //isParametersApplied flag for unit testing
         if (callbackContext.isParametersApplied())
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
