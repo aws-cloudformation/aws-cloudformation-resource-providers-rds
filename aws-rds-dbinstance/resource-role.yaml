@@ -27,13 +27,16 @@ Resources:
                 - "rds:AddRoleToDBInstance"
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBInstance"
+                - "rds:CreateDbInstanceReadReplica"
                 - "rds:DeleteDBInstance"
                 - "rds:DescribeDBInstances"
-                - "rds:ListTagsForResource"
+                - "rds:DescribeDbEngineVersions"
+                - "rds:DescribeDbParameterGroups"
                 - "rds:ModifyDBInstance"
                 - "rds:RebootDBInstance"
                 - "rds:RemoveRoleFromDBInstance"
                 - "rds:RemoveTagsFromResource"
+                - "rds:RestoreDbInstanceFromDbSnapshot"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

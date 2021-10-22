@@ -22,7 +22,7 @@
         "OptionSettings": {
           "description": "The option settings to include in an option group.",
           "type": "array",
-          "uniqueItems": true,
+          "insertionOrder": false,
           "items": {
             "$ref": "#/definitions/OptionSetting"
           }
@@ -124,14 +124,13 @@
     "OptionConfigurations": {
       "description": "Indicates what options are available in the option group.",
       "type": "array",
-      "uniqueItems": true,
+      "insertionOrder": false,
       "items": {
         "$ref": "#/definitions/OptionConfiguration"
       }
     },
     "Tags": {
       "type": "array",
-      "uniqueItems": true,
       "description": "An array of key-value pairs to apply to this resource.",
       "items": {
         "$ref": "#/definitions/Tag"

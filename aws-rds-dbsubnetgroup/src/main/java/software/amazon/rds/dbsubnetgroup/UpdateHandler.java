@@ -24,7 +24,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((awsRequest, exception, client, resourceModel, context) -> handleException(exception))
                 .progress()
             )
-            .then(progress -> tagResource(proxy, proxyClient, progress, request.getDesiredResourceTags()))
+            .then(progress -> tagResource(proxy, proxyClient, progress, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

@@ -15,12 +15,12 @@ import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 
 public class Translator {
 
@@ -45,12 +45,16 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbParametersRequest describeDbParameterGroupsRequest(final ResourceModel model, final String nextToken, int recordsPerPage) {
+    static DescribeDbParametersRequest describeDbParametersRequest(final ResourceModel model) {
         return DescribeDbParametersRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
-                .marker(nextToken)
-                .maxRecords(recordsPerPage)
                 .build();
+    }
+
+    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(ResourceModel model) {
+        return DescribeEngineDefaultParametersRequest.builder()
+            .dbParameterGroupFamily(model.getFamily())
+            .build();
     }
 
     static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(final ResourceModel model, final Collection<Parameter> parameters) {
@@ -60,16 +64,16 @@ public class Translator {
                 .build();
     }
 
+    static ResetDbParameterGroupRequest resetDbParametersRequest(final ResourceModel model, final Collection<Parameter> parameters) {
+        return ResetDbParameterGroupRequest.builder()
+            .dbParameterGroupName(model.getDBParameterGroupName())
+            .parameters(parameters)
+            .build();
+    }
+
     static DeleteDbParameterGroupRequest deleteDbParameterGroupRequest(final ResourceModel model) {
         return DeleteDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
-                .build();
-    }
-
-    static ResetDbParameterGroupRequest resetDbParameterGroupRequest(final ResourceModel model) {
-        return ResetDbParameterGroupRequest.builder()
-                .dbParameterGroupName(model.getDBParameterGroupName())
-                .resetAllParameters(true)
                 .build();
     }
 
@@ -85,24 +89,10 @@ public class Translator {
                 .collect(Collectors.toList());
     }
 
-    protected static Set<Parameter> getParametersToModify(final ResourceModel model,
-                                                          final List<Parameter> parameters) {
-        return parameters.stream()
-                .filter(parameter -> model.getParameters().containsKey(parameter.parameterName()))
-                .map(parameter -> modifyParameter(model.getParameters(), parameter))
-                .collect(Collectors.toSet());
-    }
-
-    private static Parameter modifyParameter(final Map<String, Object> parameters,
-                                             final Parameter parameter) {
-        if (!parameter.isModifiable())
-            throw new CfnInvalidRequestException("Unmodifiable DB Parameter: " + parameter.parameterName());
-
-        final Parameter.Builder param = Parameter.builder()
-                .parameterName(parameter.parameterName())
-                .parameterValue(String.valueOf(parameters.get(parameter.parameterName())))
-                .applyType(parameter.applyType())
-                .isModifiable(parameter.isModifiable());
+    static Parameter buildParameterWithNewValue(final String newValue,
+                                                final Parameter parameter) {
+        final Parameter.Builder param = parameter.toBuilder()
+                .parameterValue(newValue);
 
         if (parameter.applyType().equalsIgnoreCase(ParameterType.Static.toString()))  // If the parameter is STATIC, flag for pending reboot
             param.applyMethod(ApplyMethod.PENDING_REBOOT);

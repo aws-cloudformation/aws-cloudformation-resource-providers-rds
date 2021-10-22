@@ -2,6 +2,7 @@ package software.amazon.rds.optiongroup;
 
 import java.util.Optional;
 
+import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -12,8 +13,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
 
 public class CreateHandler extends BaseHandlerStd {
-
-    public static final int MAX_LENGTH_OPTION_GROUP = 255;
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -27,10 +26,10 @@ public class CreateHandler extends BaseHandlerStd {
                     final ResourceModel model = request.getDesiredResourceState();
                     if (StringUtils.isNullOrEmpty(model.getOptionGroupName())) {
                         model.setOptionGroupName(IdentifierUtils.generateResourceIdentifier(
-                                request.getStackId(),
-                                Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse("optiongroup"),
+                                Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
+                                Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
                                 request.getClientRequestToken(),
-                                MAX_LENGTH_OPTION_GROUP
+                                RESOURCE_ID_MAX_LENGTH
                         ).toLowerCase());
                     }
                     return ProgressEvent.progress(model, progress.getCallbackContext());
@@ -38,7 +37,10 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> proxy.initiate("rds::create-option-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(model -> Translator.createOptionGroupRequest(
                                 model,
-                                mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())
+                                mergeMaps(
+                                        request.getSystemTags(),
+                                        request.getDesiredResourceTags()
+                                )
                         ))
                         .backoffDelay(BACKOFF_DELAY)
                         .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
@@ -50,7 +52,12 @@ public class CreateHandler extends BaseHandlerStd {
                                 exception
                         ))
                         .progress())
-                .then(progress -> updateOptionGroup(proxy, proxyClient, progress))
+                .then(progress -> {
+                    if (CollectionUtils.isNullOrEmpty(progress.getResourceModel().getOptionConfigurations())) {
+                        return progress;
+                    }
+                    return updateOptionGroup(proxy, proxyClient, progress);
+                })
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

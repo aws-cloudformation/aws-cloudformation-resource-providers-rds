@@ -1,12 +1,16 @@
 package software.amazon.rds.dbinstance;
 
-import junit.framework.Assert;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.ProxyClient;
 
-class TranslatorTest extends AbstractTestBase {
+class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_modifyDbInstanceRequest_IncreaseAllocatedStorage() {
@@ -18,7 +22,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.allocatedStorage(), ALLOCATED_STORAGE_INCR);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
     }
 
     @Test
@@ -31,7 +35,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.allocatedStorage(), ALLOCATED_STORAGE_DECR);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_DECR);
     }
 
     @Test
@@ -44,7 +48,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.allocatedStorage(), ALLOCATED_STORAGE_INCR);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
     }
 
     @Test
@@ -57,7 +61,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.allocatedStorage(), ALLOCATED_STORAGE); // should stay unchanged
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE); // should stay unchanged
     }
 
     @Test
@@ -70,7 +74,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.iops(), IOPS_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_INCR);
     }
 
     @Test
@@ -83,7 +87,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.iops(), IOPS_DECR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
     }
 
     @Test
@@ -96,7 +100,7 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.iops(), IOPS_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_INCR);
     }
 
     @Test
@@ -109,6 +113,8 @@ class TranslatorTest extends AbstractTestBase {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        Assert.assertEquals(request.iops(), IOPS_DEFAULT);
+        assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
     }
+
+
 }

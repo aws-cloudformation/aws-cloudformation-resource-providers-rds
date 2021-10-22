@@ -127,7 +127,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().listTagsForResource(any(
             ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
-        final ResourceModel model = ResourceModel.builder()
+        final ResourceModel model = ResourceModel.builder().subscriptionName("subscriptionName")
             .build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

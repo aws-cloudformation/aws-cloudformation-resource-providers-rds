@@ -5,16 +5,25 @@ import static software.amazon.rds.eventsubscription.Translator.listTagsForResour
 import static software.amazon.rds.eventsubscription.Translator.mapToTags;
 import static software.amazon.rds.eventsubscription.Translator.removeTagsFromResourceRequest;
 
+import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import software.amazon.awssdk.core.exception.RetryableException;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.EventSubscriptionQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.InvalidEventSubscriptionStateException;
+import software.amazon.awssdk.services.rds.model.SubscriptionAlreadyExistException;
+import software.amazon.awssdk.services.rds.model.SubscriptionNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -91,5 +100,34 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
           proxyInvocation.injectCredentialsAndInvokeV2(addTagsToResourceRequest(arn, tagsToAdd), proxyInvocation.client()::addTagsToResource);
           return ProgressEvent.progress(resourceModel, context);
         });
+  }
+
+  protected ProgressEvent<ResourceModel, CallbackContext> handleException(
+      final ProgressEvent<ResourceModel, CallbackContext> progress,
+      final Exception e
+  ) {
+    if (e instanceof SubscriptionAlreadyExistException) {
+      return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
+    } else if (e instanceof SubscriptionNotFoundException) {
+      return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+    } else if (e instanceof EventSubscriptionQuotaExceededException) {
+      return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceLimitExceeded);
+    } else if (e instanceof InvalidEventSubscriptionStateException) {
+      throw RetryableException.builder().cause(e).build();
+    } else if (!StringUtils.isNullOrEmpty(e.getMessage()) && e.getMessage().equals("Rate exceeded")) {
+      return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.Throttling); //Request throttled from rds service
+    }
+    return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
+  }
+
+  protected <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
+    final Map<K, V> result = new HashMap<>();
+    if (m1 != null) {
+      result.putAll(m1);
+    }
+    if (m2 != null) {
+      result.putAll(m2);
+    }
+    return result;
   }
 }

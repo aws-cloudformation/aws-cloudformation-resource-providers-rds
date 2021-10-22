@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Getter;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -45,6 +46,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsReques
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
@@ -56,6 +58,8 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractHandlerTest {
@@ -128,6 +132,81 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_InitiatesModifyRequest_InvalidDBInstanceState() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenThrow(RdsException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.InvalidDBInstanceState.toString())
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_ALTER,
+                expectFailed(HandlerErrorCode.ResourceConflict)
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_InitiatesModifyRequest_InvalidParameterCombination() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenThrow(RdsException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.InvalidParameterCombination.toString())
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_ALTER,
+                expectFailed(HandlerErrorCode.ResourceConflict)
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_InitiatesModifyRequest_InvalidDBSecurityGroupState() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenThrow(RdsException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.InvalidDBSecurityGroupState.toString())
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_ALTER,
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
     }
 
     @Test

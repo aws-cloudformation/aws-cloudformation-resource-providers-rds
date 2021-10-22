@@ -9,11 +9,12 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ReadHandler extends BaseHandlerStd {
 
     public ReadHandler() {
-        this(new HandlerConfig());
+        this(HandlerConfig.builder().probingEnabled(true).build());
     }
 
     public ReadHandler(final HandlerConfig config) {

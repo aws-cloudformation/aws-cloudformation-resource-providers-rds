@@ -2,7 +2,7 @@
   "DBSubnetGroupDescription": "test",
   "DBSubnetGroupName": "testdbsubnetgroup",
   "SubnetIds": [
-    "subnet-18af0a60",
-    "subnet-1269ae58"
+    "{{SubnetID1}}",
+    "{{SubnetID2}}"
   ]
 }

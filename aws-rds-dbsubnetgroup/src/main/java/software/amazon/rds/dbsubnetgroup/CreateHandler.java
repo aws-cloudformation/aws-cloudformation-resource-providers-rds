@@ -25,7 +25,7 @@ public class CreateHandler extends BaseHandlerStd {
           return ProgressEvent.progress(model, progress.getCallbackContext());
         })
         .then(progress -> proxy.initiate("rds::create-dbsubnet-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-            .translateToServiceRequest((resourceModel) -> Translator.createDbSubnetGroupRequest(resourceModel, request.getDesiredResourceTags()))
+            .translateToServiceRequest((resourceModel) -> Translator.createDbSubnetGroupRequest(resourceModel, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
             .backoffDelay(CONSTANT)
             .makeServiceCall((createDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createDbSubnetGroupRequest, proxyInvocation.client()::createDBSubnetGroup))
             .stabilize(((createDbSubnetGroupRequest, createDbSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isStabilized(resourceModel, proxyInvocation)))

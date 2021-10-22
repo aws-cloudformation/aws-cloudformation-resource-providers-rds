@@ -3,6 +3,7 @@ package software.amazon.rds.eventsubscription;
 import static software.amazon.rds.eventsubscription.Translator.translateTagsFromSdk;
 
 import java.util.HashSet;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.EventSubscription;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -22,6 +23,7 @@ public class ReadHandler extends BaseHandlerStd {
         return proxy.initiate("rds::read-event-subscription", proxyClient, request.getDesiredResourceState(), callbackContext)
             .translateToServiceRequest(Translator::describeEventSubscriptionsRequest)
             .makeServiceCall((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
+            .handleError((deleteRequest, exception, client, resourceModel, ctx) -> handleException(ProgressEvent.progress(resourceModel, ctx), exception))
             .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, model, context) -> {
                 final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
                 final ListTagsForResourceResponse listTagsForResourceResponse = proxyInvocation.injectCredentialsAndInvokeV2(Translator.listTagsForResourceRequest(eventSubscription.eventSubscriptionArn()), proxyInvocation.client()::listTagsForResource);

@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,7 +14,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import com.amazonaws.util.CollectionUtils;
-import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -27,6 +27,7 @@ import software.amazon.awssdk.services.rds.model.DbInstanceRoleNotFoundException
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSecurityGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
@@ -35,6 +36,10 @@ import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityE
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSecurityGroupStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException;
+import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
+import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
+import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
@@ -47,6 +52,13 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.error.ErrorRuleSet;
+import software.amazon.rds.common.error.ErrorStatus;
+import software.amazon.rds.common.error.HandlerErrorStatus;
+import software.amazon.rds.common.error.IgnoreErrorStatus;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.dbinstance.util.ProgressEventLambda;
 import software.amazon.rds.dbinstance.util.VoidBiFunction;
 
@@ -61,6 +73,168 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String DB_INSTANCE_ROLE_FAILED_TO_STABILIZE = "DBInstance %s role failed to stabilize.";
 
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
+
+    protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Arrays.asList(
+                    ErrorCode.InstanceQuotaExceeded,
+                    ErrorCode.InsufficientDBInstanceCapacity,
+                    ErrorCode.SnapshotQuotaExceeded,
+                    ErrorCode.StorageQuotaExceeded
+            ), ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded))
+            .withErrorCodes(Arrays.asList(
+                    ErrorCode.InvalidParameterCombination,
+                    ErrorCode.InvalidParameterValue,
+                    ErrorCode.InvalidVPCNetworkStateFault,
+                    ErrorCode.KMSKeyNotAccessibleFault,
+                    ErrorCode.MissingParameter,
+                    ErrorCode.ProvisionedIopsNotAvailableInAZFault
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .withErrorCodes(Arrays.asList(
+                    ErrorCode.DBParameterGroupNotFound,
+                    ErrorCode.DBSecurityGroupNotFound,
+                    ErrorCode.DBSnapshotNotFound,
+                    ErrorCode.DBSubnetGroupNotFoundFault
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorClasses(Arrays.asList(
+                    DbInstanceNotFoundException.class,
+                    DbParameterGroupNotFoundException.class,
+                    DbSecurityGroupNotFoundException.class,
+                    DbSnapshotNotFoundException.class,
+                    DbSubnetGroupNotFoundException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorClasses(Arrays.asList(
+                    DbInstanceAutomatedBackupQuotaExceededException.class,
+                    InsufficientDbInstanceCapacityException.class,
+                    InstanceQuotaExceededException.class,
+                    SnapshotQuotaExceededException.class,
+                    StorageQuotaExceededException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded))
+            .withErrorClasses(Arrays.asList(
+                    InvalidDbInstanceStateException.class,
+                    InvalidDbClusterStateException.class,
+                    DbUpgradeDependencyFailureException.class,
+                    InvalidDbSecurityGroupStateException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .withErrorClasses(Arrays.asList(
+                    InvalidVpcNetworkStateException.class,
+                    KmsKeyNotAccessibleException.class,
+                    ProvisionedIopsNotAvailableInAzException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceAlreadyExistsException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .build()
+            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet CREATE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBInstanceAlreadyExists
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceAlreadyExistsException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBInstanceAlreadyExists
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .withErrorCodes(Arrays.asList(
+                    ErrorCode.InvalidDBSnapshotState,
+                    ErrorCode.InvalidRestoreFault
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceAlreadyExistsException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .withErrorClasses(Arrays.asList(
+                    InvalidDbSnapshotStateException.class,
+                    InvalidRestoreException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBInstanceAlreadyExists
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceAlreadyExistsException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.AlreadyExists))
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet REBOOT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBInstanceNotFound
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.InvalidDBInstanceState
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceNotFoundException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorClasses(Collections.singletonList(
+                    InvalidDbInstanceStateException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Arrays.asList(
+                    ErrorCode.InvalidDBInstanceState,
+                    ErrorCode.InvalidParameterCombination
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBInstanceNotFound
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.InvalidDBSecurityGroupState
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .withErrorClasses(Collections.singletonList(
+                    InvalidDbInstanceStateException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceNotFoundException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorClasses(Collections.singletonList(
+                    InvalidDbSecurityGroupStateException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorClasses(Arrays.asList(
+                    DbInstanceRoleAlreadyExistsException.class,
+                    DbInstanceRoleNotFoundException.class
+            ), ErrorStatus.ignore())
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet DELETE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.InvalidParameterValue
+            ), ErrorStatus.ignore())
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBInstanceNotFound
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.InvalidDBInstanceState
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .withErrorCodes(Collections.singletonList(
+                    ErrorCode.DBSnapshotAlreadyExists
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .withErrorClasses(Collections.singletonList(
+                    DbInstanceNotFoundException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.NotFound))
+            .withErrorClasses(Collections.singletonList(
+                    InvalidDbInstanceStateException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.ResourceConflict))
+            .withErrorClasses(Collections.singletonList(
+                    DbSnapshotAlreadyExistsException.class
+            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
+            .build()
+            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
     protected HandlerConfig config;
 
@@ -300,7 +474,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ))
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> handleException(
                             ProgressEvent.progress(resourceModel, context),
-                            exception
+                            exception,
+                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -330,7 +505,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ))
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> handleException(
                             ProgressEvent.progress(resourceModel, context),
-                            exception
+                            exception,
+                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -358,7 +534,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 ))
                 .handleError((request, exception, client, model, context) -> handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        REBOOT_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
     }
@@ -393,40 +570,24 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Exception exception
     ) {
+        return handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleException(
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Exception exception,
+            final ErrorRuleSet errorRuleSet
+    ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext context = progress.getCallbackContext();
-        if (exception instanceof DbInstanceNotFoundException ||
-                exception instanceof DbParameterGroupNotFoundException ||
-                exception instanceof DbSecurityGroupNotFoundException ||
-                exception instanceof DbSubnetGroupNotFoundException
-        ) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound, exception.getMessage());
-        } else if (exception instanceof DbInstanceAutomatedBackupQuotaExceededException ||
-                exception instanceof InsufficientDbInstanceCapacityException ||
-                exception instanceof InstanceQuotaExceededException ||
-                exception instanceof SnapshotQuotaExceededException ||
-                exception instanceof StorageQuotaExceededException
-        ) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.ServiceLimitExceeded, exception.getMessage());
-        } else if (exception instanceof InvalidDbInstanceStateException ||
-                exception instanceof InvalidDbClusterStateException ||
-                exception instanceof DbSnapshotAlreadyExistsException ||
-                exception instanceof DbUpgradeDependencyFailureException ||
-                exception instanceof InvalidDbSecurityGroupStateException
-        ) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.ResourceConflict, exception.getMessage());
-        } else if (exception instanceof ProvisionedIopsNotAvailableInAzException) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest, exception.getMessage());
-        } else if (exception instanceof DbInstanceAlreadyExistsException) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.AlreadyExists, exception.getMessage());
-        } else if (exception instanceof DbInstanceRoleAlreadyExistsException ||
-                exception instanceof DbInstanceRoleNotFoundException
-        ) {
+
+        final ErrorStatus errorStatus = errorRuleSet.handle(exception);
+
+        if (errorStatus instanceof IgnoreErrorStatus) {
             return ProgressEvent.progress(model, context);
-        } else if (exception instanceof SdkClientException ||
-                exception instanceof com.amazonaws.SdkClientException
-        ) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.ServiceInternalError, exception.getMessage());
+        } else if (errorStatus instanceof HandlerErrorStatus) {
+            final HandlerErrorStatus handlerErrorStatus = (HandlerErrorStatus) errorStatus;
+            return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
         }
 
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());

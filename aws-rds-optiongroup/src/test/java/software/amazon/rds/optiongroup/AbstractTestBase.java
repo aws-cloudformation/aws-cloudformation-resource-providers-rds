@@ -26,6 +26,7 @@ public class AbstractTestBase {
     protected static final LoggerProxy logger;
 
     protected static final ResourceModel RESOURCE_MODEL;
+    protected static final ResourceModel RESOURCE_MODEL_NO_OPTION_CONFIGURATIONS;
     protected static final OptionGroup OPTION_GROUP_ACTIVE;
     protected static final Set<Tag> TAG_SET;
 
@@ -44,6 +45,13 @@ public class AbstractTestBase {
                                 .optionVersion("1.2.3")
                                 .build()
                 ))
+                .build();
+
+        RESOURCE_MODEL_NO_OPTION_CONFIGURATIONS = ResourceModel.builder()
+                .optionGroupName("testOptionGroup")
+                .optionGroupDescription("test option group description")
+                .engineName("testEngineVersion")
+                .majorEngineVersion("testMajorVersionName")
                 .build();
 
         OPTION_GROUP_ACTIVE = OptionGroup.builder()

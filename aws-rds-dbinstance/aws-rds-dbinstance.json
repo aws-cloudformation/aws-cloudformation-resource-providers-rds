@@ -382,7 +382,7 @@
     }
   },
   "additionalProperties": false,
-  "oneOf": [
+  "anyOf": [
     {
       "required": [
         "DBInstanceClass",
@@ -453,22 +453,25 @@
       "permissions": [
         "rds:AddRoleToDBInstance",
         "rds:CreateDBInstance",
+        "rds:CreateDbInstanceReadReplica",
         "rds:DescribeDBInstances",
         "rds:ModifyDBInstance",
-        "rds:RebootDBInstance"
+        "rds:RebootDBInstance",
+        "rds:RestoreDbInstanceFromDbSnapshot"
       ]
     },
     "read": {
       "permissions": [
-        "rds:DescribeDBInstances",
-        "rds:ListTagsForResource"
+        "rds:DescribeDBInstances"
       ]
     },
     "update": {
       "permissions": [
         "rds:AddRoleToDBInstance",
         "rds:AddTagsToResource",
+        "rds:DescribeDbEngineVersions",
         "rds:DescribeDBInstances",
+        "rds:DescribeDbParameterGroups",
         "rds:ModifyDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource",
