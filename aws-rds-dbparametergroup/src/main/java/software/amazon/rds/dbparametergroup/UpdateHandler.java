@@ -55,5 +55,6 @@ public class UpdateHandler extends BaseHandlerStd {
             .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
             .then(progress -> tagResource(proxy, proxyClient, progress, model, callbackContext, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+
     }
 }
