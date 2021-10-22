@@ -239,7 +239,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -261,7 +261,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -273,7 +273,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[_a-zA-Z][a-zA-Z0-9]{0,63}$</code>
+_Pattern_: <code>^$|^[_a-zA-Z][a-zA-Z0-9]{0,63}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -285,7 +285,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9\.]){0,254}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9\.]){0,254}$</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -307,7 +307,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -319,7 +319,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -408,8 +408,6 @@ The name of the database engine that you want to use for this DB instance.
 _Required_: No
 
 _Type_: String
-
-_Allowed Values_: <code>aurora</code> | <code>aurora-mysql</code> | <code>aurora-postgresql</code> | <code>mariadb</code> | <code>mysql</code> | <code>oracle-ee</code> | <code>oracle-se2</code> | <code>oracle-se1</code> | <code>oracle-se</code> | <code>postgres</code> | <code>postgresql-license</code> | <code>sqlserver-ee</code> | <code>sqlserver-se</code> | <code>sqlserver-ex</code> | <code>sqlserver-web</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
