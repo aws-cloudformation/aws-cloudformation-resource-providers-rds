@@ -72,6 +72,7 @@
         "rds:CreateDBParameterGroup",
         "rds:DescribeDBParameterGroups",
         "rds:DescribeDBParameters",
+        "rds:DescribeEngineDefaultParameters",
         "rds:ModifyDBParameterGroup",
         "rds:ListTagsForResource"
       ]
@@ -87,6 +88,7 @@
         "rds:AddTagsToResource",
         "rds:DescribeDBParameterGroups",
         "rds:DescribeDBParameters",
+        "rds:DescribeEngineDefaultParameters",
         "rds:ListTagsForResource",
         "rds:ModifyDBParameterGroup",
         "rds:ResetDBParameterGroup",
