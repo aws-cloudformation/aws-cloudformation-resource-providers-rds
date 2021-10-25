@@ -2,8 +2,6 @@ package software.amazon.rds.common.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collections;
-
 import org.junit.jupiter.api.Test;
 
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -15,7 +13,7 @@ class ErrorRuleSetTest {
     @Test
     void builder_withErrorClasses() {
         final ErrorRuleSet ruleSet = ErrorRuleSet.builder()
-                .withErrorClasses(Collections.singletonList(RuntimeException.class), ErrorStatus.ignore())
+                .withErrorClasses(ErrorStatus.ignore(), RuntimeException.class)
                 .build();
         assertThat(ruleSet.handle(new RuntimeException())).isInstanceOf(IgnoreErrorStatus.class);
     }
@@ -24,7 +22,7 @@ class ErrorRuleSetTest {
     void builder_withErrorCodes() {
         final ErrorCode errorCode = ErrorCode.AccessDeniedException;
         final ErrorRuleSet ruleSet = ErrorRuleSet.builder()
-                .withErrorCodes(Collections.singletonList(errorCode), ErrorStatus.ignore())
+                .withErrorCodes(ErrorStatus.ignore(), errorCode)
                 .build();
         final AwsServiceException exception = AwsServiceException.builder()
                 .awsErrorDetails(AwsErrorDetails.builder()
@@ -50,10 +48,10 @@ class ErrorRuleSetTest {
     void or_nonOverlappingRules() {
         final ErrorCode errorCode = ErrorCode.AccessDeniedException;
         final ErrorRuleSet errorRuleSet1 = ErrorRuleSet.builder()
-                .withErrorClasses(Collections.singletonList(RuntimeException.class), ErrorStatus.ignore())
+                .withErrorClasses(ErrorStatus.ignore(), RuntimeException.class)
                 .build();
         final ErrorRuleSet errorRuleSet2 = ErrorRuleSet.builder()
-                .withErrorCodes(Collections.singletonList(errorCode), ErrorStatus.ignore())
+                .withErrorCodes(ErrorStatus.ignore(), errorCode)
                 .build();
         final ErrorRuleSet errorRuleSetOr = errorRuleSet1.orElse(errorRuleSet2);
 
@@ -73,10 +71,10 @@ class ErrorRuleSetTest {
     @Test
     void or_overlappingRules_Classes() {
         final ErrorRuleSet errorRuleSet1 = ErrorRuleSet.builder()
-                .withErrorClasses(Collections.singletonList(RuntimeException.class), ErrorStatus.ignore())
+                .withErrorClasses(ErrorStatus.ignore(), RuntimeException.class)
                 .build();
         final ErrorRuleSet errorRuleSet2 = ErrorRuleSet.builder()
-                .withErrorClasses(Collections.singletonList(RuntimeException.class), ErrorStatus.failWith(HandlerErrorCode.AccessDenied))
+                .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AccessDenied), RuntimeException.class)
                 .build();
 
         final RuntimeException exception = new RuntimeException();
@@ -92,10 +90,10 @@ class ErrorRuleSetTest {
     void or_overlappingRules_Codes() {
         final ErrorCode errorCode = ErrorCode.AccessDeniedException;
         final ErrorRuleSet errorRuleSet1 = ErrorRuleSet.builder()
-                .withErrorCodes(Collections.singletonList(errorCode), ErrorStatus.ignore())
+                .withErrorCodes(ErrorStatus.ignore(), errorCode)
                 .build();
         final ErrorRuleSet errorRuleSet2 = ErrorRuleSet.builder()
-                .withErrorCodes(Collections.singletonList(errorCode), ErrorStatus.failWith(HandlerErrorCode.AccessDenied))
+                .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied), errorCode)
                 .build();
         final ErrorRuleSet errorRuleSetOrDirect = errorRuleSet1.orElse(errorRuleSet2);
         final ErrorRuleSet errorRuleSetOrReverse = errorRuleSet2.orElse(errorRuleSet1);

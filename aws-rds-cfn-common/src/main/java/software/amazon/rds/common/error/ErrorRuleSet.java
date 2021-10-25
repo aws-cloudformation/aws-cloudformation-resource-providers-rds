@@ -1,7 +1,6 @@
 package software.amazon.rds.common.error;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,14 +20,14 @@ public interface ErrorRuleSet {
             this.errorCodeMap = new LinkedHashMap<>();
         }
 
-        public Builder withErrorClasses(final Collection<Class<?>> errorClasses, final ErrorStatus errorStatus) {
+        public Builder withErrorClasses(final ErrorStatus errorStatus, final Class<?>... errorClasses) {
             for (final Class<?> errorClass : errorClasses) {
                 errorClassMap.put(errorClass, errorStatus);
             }
             return this;
         }
 
-        public Builder withErrorCodes(final Collection<ErrorCode> errorCodes, final ErrorStatus errorStatus) {
+        public Builder withErrorCodes(final ErrorStatus errorStatus, final ErrorCode... errorCodes) {
             for (final ErrorCode errorCode : errorCodes) {
                 errorCodeMap.put(errorCode, errorStatus);
             }

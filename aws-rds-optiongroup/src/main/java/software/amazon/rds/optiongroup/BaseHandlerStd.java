@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazonaws.SdkClientException;
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -20,6 +19,11 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.error.ErrorRuleSet;
+import software.amazon.rds.common.error.ErrorStatus;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -31,6 +35,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .timeout(Duration.ofSeconds(150L))
             .delay(Duration.ofSeconds(5L))
             .build();
+
+    protected HandlerConfig config;
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
+
+    protected static final ErrorRuleSet DEFAULT_OPTION_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    ErrorCode.InvalidOptionGroupStateFault)
+            .withErrorClasses(ErrorStatus.ignore(),
+                    OptionGroupAlreadyExistsException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    OptionGroupNotFoundException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
+                    OptionGroupQuotaExceededException.class)
+            .build()
+            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -64,9 +87,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyOptionGroup
                 ))
-                .handleError((describeRequest, exception, client, resourceModel, ctx) -> handleException(
+                .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
-                        exception
+                        exception,
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
                 ))
                 .progress();
     }
@@ -83,9 +107,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         proxyInvocation.client()::describeOptionGroups
-                )).handleError((describeRequest, exception, client, resourceModel, ctx) -> handleException(
+                )).handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
-                        exception
+                        exception,
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
                     final String arn = describeResponse.optionGroupsList().stream().findFirst().get().optionGroupArn();
@@ -115,23 +140,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return Translator.translateTagsFromSdk(listTagsForResourceResponse.tagList());
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> handleException(
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Exception e
-    ) {
-        if (e instanceof OptionGroupAlreadyExistsException) {
-            return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext());
-        } else if (e instanceof OptionGroupNotFoundException) {
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
-        } else if (e instanceof OptionGroupQuotaExceededException) {
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceLimitExceeded);
-        } else if (e instanceof SdkClientException || e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceInternalError);
-        }
-        return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
-    }
-
-    protected <K, V> Map<K, V> mergeMaps(Map<K,V> m1, Map<K,V> m2) {
+    protected <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
         final Map<K, V> result = new HashMap<>();
         if (m1 != null) {
             result.putAll(m1);

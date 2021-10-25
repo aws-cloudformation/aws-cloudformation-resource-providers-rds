@@ -8,7 +8,9 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.HandlerErrorStatus;
 
@@ -70,11 +72,46 @@ public class CommonsTest {
         assertThat(((HandlerErrorStatus) status).getHandlerErrorCode()).isEqualTo(HandlerErrorCode.ServiceInternalError);
     }
 
+    @Test
+    public void handleException_Ignore() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+        final Exception exception = new RuntimeException("test exception");
+        final ErrorRuleSet ruleSet = ErrorRuleSet.builder()
+                .withErrorClasses(ErrorStatus.ignore(), RuntimeException.class)
+                .build();
+        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isInProgress()).isTrue();
+    }
+
+    @Test
+    public void handleException_HandlerError() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+        final Exception exception = new RuntimeException("test exception");
+        final ErrorRuleSet ruleSet = ErrorRuleSet.builder()
+                .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest), RuntimeException.class)
+                .build();
+        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isTrue();
+        assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InvalidRequest);
+    }
+
+    @Test
+    public void handleException_UnknownError() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+        final Exception exception = new RuntimeException("test exception");
+        final ErrorRuleSet ruleSet = ErrorRuleSet.builder().build();
+        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isTrue();
+        assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
+    }
+
     private AwsServiceException newAwsServiceException(final ErrorCode errorCode) {
         return AwsServiceException.builder()
                 .awsErrorDetails(AwsErrorDetails.builder()
                         .errorCode(errorCode.toString())
                         .build()).build();
     }
-
 }

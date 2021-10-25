@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsResponse;
@@ -24,31 +25,37 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractTestBase {
 
     @Mock
+    @Getter
     private AmazonWebServicesClientProxy proxy;
 
     @Mock
-    private ProxyClient<RdsClient> proxyRdsClient;
+    @Getter
+    private ProxyClient<RdsClient> proxyClient;
 
     @Mock
-    private RdsClient rds;
+    private RdsClient rdsClient;
 
+    @Getter
     private ListHandler handler;
 
     @BeforeEach
     public void setup() {
-        handler = new ListHandler();
-        rds = mock(RdsClient.class);
+        handler = new ListHandler(HandlerConfig.builder()
+                .backoff(TEST_BACKOFF_DELAY)
+                .build());
+        rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = MOCK_PROXY(proxy, rds);
+        proxyClient = MOCK_PROXY(proxy, rdsClient);
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_ListSuccess() {
 
         final String testOptionGroupName = "testOptionGroupName";
         final String testMarker = "testMarker";
@@ -61,7 +68,7 @@ public class ListHandlerTest extends AbstractTestBase {
                 .marker(testMarker)
                 .build();
 
-        when(proxyRdsClient.client()
+        when(proxyClient.client()
                 .describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
                 .thenReturn(describeOptionGroupsResponse);
 
@@ -74,7 +81,7 @@ public class ListHandlerTest extends AbstractTestBase {
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+                handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -86,6 +93,6 @@ public class ListHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
         assertThat(response.getNextToken()).isEqualTo(testMarker);
 
-        verify(proxyRdsClient.client()).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client()).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
     }
 }

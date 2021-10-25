@@ -43,7 +43,6 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
@@ -76,10 +75,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         handler = new CreateHandler(
                 HandlerConfig.builder()
                         .probingEnabled(false)
-                        .backoff(Constant.of()
-                                .delay(Duration.ofSeconds(1))
-                                .timeout(Duration.ofSeconds(120))
-                                .build())
+                        .backoff(TEST_BACKOFF_DELAY)
                         .build()
         );
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());

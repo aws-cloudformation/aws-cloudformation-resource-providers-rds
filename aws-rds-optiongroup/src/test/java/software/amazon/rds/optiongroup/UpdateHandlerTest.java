@@ -1,6 +1,5 @@
 package software.amazon.rds.optiongroup;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -9,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.security.InvalidParameterException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
@@ -20,13 +19,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyOptionGroupRequest;
@@ -36,34 +34,35 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.OperationStatus;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
 
-    protected static final String RESOURCE_IDENTIFIER = "option-group";
-    protected static final String CLIENT_REQUEST_TOKEN = "3b8cacab-1328-456f-a11f-64efb80ab51a";
-
     @Mock
+    @Getter
     private AmazonWebServicesClientProxy proxy;
 
     @Mock
+    @Getter
     private ProxyClient<RdsClient> proxyClient;
 
     @Mock
     RdsClient rdsClient;
 
+    @Getter
     private UpdateHandler handler;
 
     @BeforeEach
     public void setup() {
+        handler = new UpdateHandler(HandlerConfig.builder()
+                .backoff(TEST_BACKOFF_DELAY)
+                .build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         proxyClient = MOCK_PROXY(proxy, rdsClient);
-        handler = new UpdateHandler();
     }
 
     @AfterEach
@@ -73,352 +72,200 @@ public class UpdateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_Success_CoreUpdateOnly() {
-        // We don't care about the values of the previous model,
-        // we only ensure it's different from the desired one so
-        // the core resource update triggers.
-        final ResourceModel previousModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_MODEL.getOptionGroupName())
-                .build();
-        final ResourceModel desiredModel = RESOURCE_MODEL;
+    public void handleRequest_CoreUpdate_Success() {
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenReturn(ModifyOptionGroupResponse.builder().build());
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .logicalResourceIdentifier(RESOURCE_IDENTIFIER)
-                .clientRequestToken(CLIENT_REQUEST_TOKEN)
-                .build();
-
-        final ModifyOptionGroupResponse modifyOptionGroupResponse = ModifyOptionGroupResponse.builder().build();
-        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class))).thenReturn(modifyOptionGroupResponse);
-
-        final DescribeOptionGroupsResponse describeOptionGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeOptionGroupsResponse);
-
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-
-        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
-
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_Success_TagUpdateOnly() {
-        // In this case we initiate a no-core resource change request
-        // and expect no modifyOptionGroup invocation at all.
-        // The only change that should happen is delete-and-add tags.
-        final ResourceModel previousModel = RESOURCE_MODEL;
-        final ResourceModel desiredModel = RESOURCE_MODEL;
-
-        final Map<String, String> previousTags = ImmutableMap.of(
-                "foo", "bar",
-                "boo", "baz"
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> OPTION_GROUP_ACTIVE,
+                () -> ResourceModel.builder().optionGroupName(RESOURCE_MODEL.getOptionGroupName()).build(),
+                () -> RESOURCE_MODEL,
+                expectSuccess()
         );
 
-        final Map<String, String> desiredTags = ImmutableMap.of(
-                "boo", "moo"
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_TagUpdate_Success() {
+        final Map<String, String> previousTags = ImmutableMap.of("foo", "bar", "boo", "baz");
+        final Map<String, String> desiredTags = ImmutableMap.of("boo", "moo");
+
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(previousTags)
+                        .desiredResourceTags(desiredTags),
+                () -> OPTION_GROUP_ACTIVE,
+                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
         );
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .previousResourceTags(previousTags)
-                .desiredResourceTags(desiredTags)
-                .logicalResourceIdentifier(RESOURCE_IDENTIFIER)
-                .clientRequestToken(CLIENT_REQUEST_TOKEN)
-                .build();
-
-        final DescribeOptionGroupsResponse describeOptionGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeOptionGroupsResponse);
-
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-
-        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
-
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        // no modifyOptionGroup invocation is expected here
-        verify(proxyClient.client(), times(0)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
-        verify(proxyClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(proxyClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_Success_OptionGroupVersionDowngrade_NoApex() {
-        final ResourceModel previousModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_IDENTIFIER)
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("test-option-name")
-                                .optionVersion("1.2.3.4")
-                                .build()
+    public void handleRequest_VersionDowngrade_Success() {
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+                .optionConfigurations(Collections.singletonList(
+                        OptionConfiguration.builder().optionName("test-option-name").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-
-        final ResourceModel desiredModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_IDENTIFIER)
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("test-option-name")
-                                .optionVersion("1.2.2.0")
-                                .build()
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+                .optionConfigurations(Collections.singletonList(
+                        OptionConfiguration.builder().optionName("test-option-name").optionVersion("1.2.2.0").build()
                 ))
                 .build();
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .logicalResourceIdentifier(RESOURCE_IDENTIFIER)
-                .clientRequestToken(CLIENT_REQUEST_TOKEN)
-                .build();
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenReturn(ModifyOptionGroupResponse.builder().build());
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
-        final ModifyOptionGroupResponse modifyOptionGroupResponse = ModifyOptionGroupResponse.builder().build();
-        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class))).thenReturn(modifyOptionGroupResponse);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> OPTION_GROUP_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
 
-        final DescribeOptionGroupsResponse describeOptionGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeOptionGroupsResponse);
-
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-
-        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
-
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_Success_OptionGroupVersionUpgrade_Apex() {
-        final ResourceModel previousModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_IDENTIFIER)
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("APEX")
-                                .optionVersion("1.2.3.4")
-                                .build()
+    public void handleRequest_VersionUpgrade_APEX_Success() {
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+                .optionConfigurations(Collections.singletonList(
+                        OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-        final ResourceModel desiredModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_IDENTIFIER)
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("APEX")
-                                .optionVersion("2.3.4")
-                                .build()
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+                .optionConfigurations(Collections.singletonList(
+                        OptionConfiguration.builder().optionName("APEX").optionVersion("2.3.4").build()
                 ))
                 .build();
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .logicalResourceIdentifier(RESOURCE_IDENTIFIER)
-                .clientRequestToken(CLIENT_REQUEST_TOKEN)
-                .build();
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenReturn(ModifyOptionGroupResponse.builder().build());
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
-        final ModifyOptionGroupResponse modifyOptionGroupResponse = ModifyOptionGroupResponse.builder().build();
-        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class))).thenReturn(modifyOptionGroupResponse);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> OPTION_GROUP_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
 
-        final DescribeOptionGroupsResponse describeOptionGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeOptionGroupsResponse);
-
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-
-        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
-
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_Success_OptionGroupVersionDowngrade_Apex() {
-        final ResourceModel previousModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_IDENTIFIER)
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("APEX")
-                                .optionVersion("1.2.3.4")
-                                .build()
+    public void handleRequest_VersionDowngrade_APEX_Success() {
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+                .optionConfigurations(Collections.singletonList(
+                        OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-        // We emulate a downgrade behavior for an APEX option configuration.
+        // Here we emulate a downgrade for an APEX option configuration.
         // UpdateHandler should detect the downgrade and restore the previous
         // version. Effectively this resolves in no change at all, therefore
         // we expect to UpdateOptionGroup call at all.
-        final ResourceModel desiredModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_IDENTIFIER)
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("APEX")
-                                .optionVersion("1.2.2.0")
-                                .build()
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+                .optionConfigurations(Collections.singletonList(
+                        OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.2.0").build()
                 ))
                 .build();
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .logicalResourceIdentifier(RESOURCE_IDENTIFIER)
-                .clientRequestToken(CLIENT_REQUEST_TOKEN)
-                .build();
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
-        final DescribeOptionGroupsResponse describeOptionGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeOptionGroupsResponse);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> OPTION_GROUP_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-
-        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
-
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        // in this case we expect no ModifyOptionGroup call at all
         verify(proxyClient.client(), times(0)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_SimpleNotFound() {
-        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class))).thenThrow(
-                OptionGroupNotFoundException.class
+    public void handleRequest_NotFound() {
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenThrow(OptionGroupNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .optionConfigurations(Collections.emptyList())
+                        .build(),
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.NotFound)
         );
 
-        final ResourceModel previousModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_MODEL.getOptionGroupName())
-                .build();
-        final ResourceModel desiredModel = RESOURCE_MODEL;
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
-
-        verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
     }
 
     @Test
-    public void handleRequest_SimpleException() {
-        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class))).thenThrow(
-                InvalidParameterException.class
+    public void handleRequest_RuntimeException() {
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenThrow(new RuntimeException("test exception"));
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .optionConfigurations(Collections.emptyList())
+                        .build(),
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.InternalFailure)
         );
 
-        final ResourceModel previousModel = ResourceModel.builder()
-                .optionGroupName(RESOURCE_MODEL.getOptionGroupName())
-                .build();
-        final ResourceModel desiredModel = RESOURCE_MODEL;
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .previousResourceState(previousModel)
-                .desiredResourceState(desiredModel)
-                .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
-
-        verify(proxyClient.client()).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
     }
 }

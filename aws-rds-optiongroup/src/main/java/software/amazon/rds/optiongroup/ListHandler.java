@@ -10,8 +10,20 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ListHandler extends BaseHandlerStd {
+
+    public ListHandler() {
+        this(HandlerConfig.builder()
+                .backoff(BACKOFF_DELAY)
+                .build());
+    }
+
+    public ListHandler(final HandlerConfig config) {
+        super(config);
+    }
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -27,7 +39,11 @@ public class ListHandler extends BaseHandlerStd {
                     Translator.describeOptionGroupsRequest(request.getNextToken()),
                     proxyClient.client()::describeOptionGroups);
         } catch (Exception e) {
-            return handleException(ProgressEvent.progress(request.getPreviousResourceState(), callbackContext), e);
+            return Commons.handleException(
+                    ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
+                    e,
+                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+            );
         }
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()

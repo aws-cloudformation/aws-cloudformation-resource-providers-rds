@@ -1,13 +1,13 @@
 package software.amazon.rds.common.handler;
 
-import java.util.Arrays;
-import java.util.Collections;
-
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
+import software.amazon.rds.common.error.HandlerErrorStatus;
+import software.amazon.rds.common.error.IgnoreErrorStatus;
 
 public final class Commons {
 
@@ -15,23 +15,38 @@ public final class Commons {
     }
 
     public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.builder()
-            .withErrorCodes(Collections.singletonList(
-                    ErrorCode.ClientUnavailable
-            ), ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError))
-            .withErrorCodes(Arrays.asList(
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
+                    ErrorCode.ClientUnavailable)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     ErrorCode.AccessDeniedException,
-                    ErrorCode.NotAuthorized
-            ), ErrorStatus.failWith(HandlerErrorCode.AccessDenied))
-            .withErrorCodes(Collections.singletonList(
-                    ErrorCode.ThrottlingException
-            ), ErrorStatus.failWith(HandlerErrorCode.Throttling))
-            .withErrorCodes(Arrays.asList(
+                    ErrorCode.NotAuthorized)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.Throttling),
+                    ErrorCode.ThrottlingException)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.InvalidParameterCombination,
                     ErrorCode.InvalidParameterValue,
-                    ErrorCode.MissingParameter
-            ), ErrorStatus.failWith(HandlerErrorCode.InvalidRequest))
-            .withErrorClasses(Collections.singletonList(
-                    SdkClientException.class
-            ), ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError))
+                    ErrorCode.MissingParameter)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
+                    SdkClientException.class)
             .build();
+
+    public static <M, C> ProgressEvent<M, C> handleException(
+            final ProgressEvent<M, C> progress,
+            final Exception exception,
+            final ErrorRuleSet errorRuleSet
+    ) {
+        final M model = progress.getResourceModel();
+        final C context = progress.getCallbackContext();
+
+        final ErrorStatus errorStatus = errorRuleSet.handle(exception);
+
+        if (errorStatus instanceof IgnoreErrorStatus) {
+            return ProgressEvent.progress(model, context);
+        } else if (errorStatus instanceof HandlerErrorStatus) {
+            final HandlerErrorStatus handlerErrorStatus = (HandlerErrorStatus) errorStatus;
+            return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
+        }
+
+        return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
+    }
 }

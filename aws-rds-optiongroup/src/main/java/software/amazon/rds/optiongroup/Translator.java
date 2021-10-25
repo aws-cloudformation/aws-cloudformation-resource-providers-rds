@@ -120,22 +120,22 @@ public class Translator {
                 .collect(Collectors.toList());
     }
 
-    static List<String> translateDBSecurityMembershipsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership> dbSecurityGroupMemberships) {
+    static Set<String> translateDBSecurityMembershipsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership> dbSecurityGroupMemberships) {
         return Optional.ofNullable(dbSecurityGroupMemberships).orElse(Collections.emptyList())
                 .stream()
                 .map(DBSecurityGroupMembership::dbSecurityGroupName)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     static List<String> translateDBSecurityMembershipsToSdk(final Collection<String> dbSecurityGroupMemberships) {
         return new ArrayList<>(Optional.ofNullable(dbSecurityGroupMemberships).orElse(Collections.emptyList()));
     }
 
-    static List<String> translateVpcSecurityGroupMembershipsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership> vpcSecurityGroupMemberships) {
+    static Set<String> translateVpcSecurityGroupMembershipsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership> vpcSecurityGroupMemberships) {
         return Optional.ofNullable(vpcSecurityGroupMemberships).orElse(Collections.emptyList())
                 .stream()
                 .map(VpcSecurityGroupMembership::vpcSecurityGroupId)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     static List<String> translateVpcSecurityGroupMembershipsToSdk(final Collection<String> vpcSecurityGroupMemberships) {
