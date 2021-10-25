@@ -39,7 +39,7 @@ public class ReadHandler extends BaseHandlerStd {
                                             return ProgressEvent.progress(progress.getResourceModel(), callbackContext);
                                         }),
                         progress.getResourceModel(), progress.getCallbackContext()))
-                .then(progress -> ProgressEvent.defaultSuccessHandler(progress.getResourceModel()));
+                .then(progress -> ProgressEvent.success(progress.getResourceModel(), progress.getCallbackContext()));
 
     }
 }

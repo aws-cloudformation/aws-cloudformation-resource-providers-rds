@@ -31,8 +31,8 @@ public class AbstractTestBase {
     protected static final DBParameterGroup DB_PARAMETER_GROUP_ACTIVE;
     protected static final Set<Tag> TAG_SET;
     protected static final String LOGICAL_RESOURCE_IDENTIFIER;
+    protected static final Map<String, Object> PARAMS;
 
-    private static final Map<String, Object> PARAMS;
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
