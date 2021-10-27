@@ -9,6 +9,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ReadHandler extends BaseHandlerStd {
@@ -35,9 +36,10 @@ public class ReadHandler extends BaseHandlerStd {
                         describeRequest,
                         proxyInvocation.client()::describeDBInstances
                 ))
-                .handleError((describeRequest, exception, client, model, context) -> handleException(
+                .handleError((describeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
-                        exception
+                        exception,
+                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
                     final DBInstance dbInstance = describeResponse.dbInstances().stream().findFirst().get();

@@ -1,10 +1,13 @@
 package software.amazon.rds.optiongroup;
 
-import java.util.Map;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
 import org.mockito.internal.util.collections.Sets;
 
@@ -15,13 +18,23 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroup;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 
-public class AbstractTestBase {
+public abstract class AbstractTestBase extends software.amazon.rds.common.test.AbstractTestBase<OptionGroup, ResourceModel, CallbackContext> {
+
+    protected static final String LOGICAL_RESOURCE_IDENTIFIER = "optiongroup";
+
+    protected static final String MSG_NOT_FOUND_ERR = "OptionGroup not found";
+
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final LoggerProxy logger;
 
@@ -29,6 +42,11 @@ public class AbstractTestBase {
     protected static final ResourceModel RESOURCE_MODEL_NO_OPTION_CONFIGURATIONS;
     protected static final OptionGroup OPTION_GROUP_ACTIVE;
     protected static final Set<Tag> TAG_SET;
+
+    protected static Constant TEST_BACKOFF_DELAY = Constant.of()
+            .delay(Duration.ofSeconds(1L))
+            .timeout(Duration.ofSeconds(10L))
+            .build();
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
@@ -58,12 +76,8 @@ public class AbstractTestBase {
                 .optionGroupArn("arn")
                 .optionGroupName("testOptionGroup")
                 .build();
-        TAG_SET = Sets.newSet(Tag.builder().key("key").value("value").build());
-    }
 
-    static Map<String, String> translateTagsToMap(final Set<Tag> tags) {
-        return tags.stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+        TAG_SET = Sets.newSet(Tag.builder().key("key").value("value").build());
     }
 
     static ProxyClient<RdsClient> MOCK_PROXY(
@@ -107,5 +121,35 @@ public class AbstractTestBase {
                 return rdsClient;
             }
         };
+    }
+
+    protected abstract BaseHandlerStd getHandler();
+
+    protected abstract AmazonWebServicesClientProxy getProxy();
+
+    protected abstract ProxyClient<RdsClient> getProxyClient();
+
+    @Override
+    protected String getLogicalResourceIdentifier() {
+        return LOGICAL_RESOURCE_IDENTIFIER;
+    }
+
+    @Override
+    protected void expectResourceSupply(final Supplier<OptionGroup> supplier) {
+        when(getProxyClient()
+                .client()
+                .describeOptionGroups(any(DescribeOptionGroupsRequest.class))
+        ).then(res -> DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(supplier.get())
+                .build()
+        );
+    }
+
+    @Override
+    protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext context
+    ) {
+        return getHandler().handleRequest(getProxy(), request, context, getProxyClient(), logger);
     }
 }

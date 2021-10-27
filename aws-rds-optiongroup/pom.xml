@@ -66,6 +66,12 @@
             <version>2.26.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.rds.common</groupId>
+            <artifactId>aws-rds-cfn-common</artifactId>
+            <version>1.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -65,7 +65,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_ReadSuccess() {
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DB_INSTANCE_ACTIVE,
