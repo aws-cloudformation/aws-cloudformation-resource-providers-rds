@@ -52,6 +52,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
@@ -616,5 +617,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             });
         }
         return progress;
+    }
+
+    public String generateResourceIdentifier(
+            final String stackId,
+            final String logicalResourceId,
+            final String clientRequestToken,
+            final int maxLength
+    ) {
+        return IdentifierUtils
+                .generateResourceIdentifier(stackId, logicalResourceId, clientRequestToken, maxLength)
+                .replaceAll("-{2,}", "-");
     }
 }
