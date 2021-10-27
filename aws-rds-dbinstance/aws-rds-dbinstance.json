@@ -127,7 +127,7 @@
     "DBClusterIdentifier": {
       "type": "string",
       "description": "The identifier of the DB cluster that the instance will belong to.",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
     },
     "DBInstanceClass": {
       "type": "string",
@@ -135,17 +135,17 @@
     },
     "DBInstanceIdentifier": {
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
       "description": "A name for the DB instance. If you specify a name, AWS CloudFormation converts it to lowercase. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the DB instance."
     },
     "DBName": {
       "type": "string",
-      "pattern": "^[_a-zA-Z][a-zA-Z0-9]{0,63}$",
+      "pattern": "^$|^[_a-zA-Z][a-zA-Z0-9]{0,63}$",
       "description": "The meaning of this parameter differs according to the database engine you use."
     },
     "DBParameterGroupName": {
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9\\.]){0,254}$",
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9\\.]){0,254}$",
       "description": "The name of an existing DB parameter group or a reference to an AWS::RDS::DBParameterGroup resource created in the template."
     },
     "DBSecurityGroups": {
@@ -159,12 +159,12 @@
     "DBSnapshotIdentifier": {
       "type": "string",
       "description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance. If you're restoring from a shared manual DB snapshot, you must specify the ARN of the snapshot.",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$"
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$"
     },
     "DBSubnetGroupName": {
       "type": "string",
       "description": "A DB subnet group to associate with the DB instance. If you update this value, the new subnet group must be a subnet group in a new VPC.",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$"
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$"
     },
     "DeleteAutomatedBackups": {
       "type": "boolean",
@@ -203,23 +203,6 @@
     },
     "Engine": {
       "type": "string",
-      "enum": [
-        "aurora",
-        "aurora-mysql",
-        "aurora-postgresql",
-        "mariadb",
-        "mysql",
-        "oracle-ee",
-        "oracle-se2",
-        "oracle-se1",
-        "oracle-se",
-        "postgres",
-        "postgresql-license",
-        "sqlserver-ee",
-        "sqlserver-se",
-        "sqlserver-ex",
-        "sqlserver-web"
-      ],
       "description": "The name of the database engine that you want to use for this DB instance."
     },
     "EngineVersion": {
@@ -434,8 +417,9 @@
     "/properties/TdeCredentialPassword"
   ],
   "writeOnlyProperties": [
-    "/properties/MasterUserPassword",
     "/properties/DBSnapshotIdentifier",
+    "/properties/MasterUserPassword",
+    "/properties/Port",
     "/properties/SourceDBInstanceIdentifier",
     "/properties/SourceRegion",
     "/properties/TdeCredentialPassword"

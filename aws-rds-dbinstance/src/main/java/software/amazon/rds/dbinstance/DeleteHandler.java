@@ -45,7 +45,7 @@ public class DeleteHandler extends BaseHandlerStd {
         if (BooleanUtils.isNotFalse(request.getSnapshotRequested())) {
             snapshotIdentifier = resourceModel.getDBSnapshotIdentifier();
             if (StringUtils.isNullOrEmpty(snapshotIdentifier)) {
-                snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(
+                snapshotIdentifier = generateResourceIdentifier(
                         Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
                         SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
                         request.getClientRequestToken(),

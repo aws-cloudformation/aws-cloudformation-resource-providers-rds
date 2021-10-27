@@ -41,7 +41,7 @@ public class CreateHandler extends BaseHandlerStd {
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
-            model.setDBInstanceIdentifier(IdentifierUtils.generateResourceIdentifier(
+            model.setDBInstanceIdentifier(generateResourceIdentifier(
                     Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
                     Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
                     request.getClientRequestToken(),

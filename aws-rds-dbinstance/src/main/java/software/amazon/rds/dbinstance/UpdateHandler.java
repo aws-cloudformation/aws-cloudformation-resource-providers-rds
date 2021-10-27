@@ -50,10 +50,16 @@ public class UpdateHandler extends BaseHandlerStd {
             final Logger logger
     ) {
         final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
-                mergeMaps(Arrays.asList(request.getPreviousSystemTags(), request.getPreviousResourceTags()))
+                mergeMaps(Arrays.asList(
+                        request.getPreviousSystemTags(),
+                        request.getPreviousResourceTags()
+                ))
         );
         final Collection<Tag> desiredTags = Translator.translateTagsFromRequest(
-                mergeMaps(Arrays.asList(request.getSystemTags(), request.getDesiredResourceTags()))
+                mergeMaps(Arrays.asList(
+                        request.getSystemTags(),
+                        request.getDesiredResourceTags()
+                ))
         );
 
         final Collection<DBInstanceRole> previousRoles = request.getPreviousResourceState().getAssociatedRoles();
