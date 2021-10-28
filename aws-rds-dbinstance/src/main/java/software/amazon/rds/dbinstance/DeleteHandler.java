@@ -14,6 +14,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 public class DeleteHandler extends BaseHandlerStd {
@@ -44,7 +45,7 @@ public class DeleteHandler extends BaseHandlerStd {
         if (BooleanUtils.isNotFalse(request.getSnapshotRequested())) {
             snapshotIdentifier = resourceModel.getDBSnapshotIdentifier();
             if (StringUtils.isNullOrEmpty(snapshotIdentifier)) {
-                snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(
+                snapshotIdentifier = generateResourceIdentifier(
                         Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
                         SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
                         request.getClientRequestToken(),
@@ -69,7 +70,7 @@ public class DeleteHandler extends BaseHandlerStd {
                     return response;
                 })
                 .stabilize((deleteRequest, deleteResponse, proxyInvocation, model, context) -> isDbInstanceDeleted(proxyInvocation, model))
-                .handleError((deleteRequest, exception, client, model, context) -> handleException(
+                .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         DELETE_DB_INSTANCE_ERROR_RULE_SET

@@ -16,6 +16,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -40,7 +41,7 @@ public class CreateHandler extends BaseHandlerStd {
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
-            model.setDBInstanceIdentifier(IdentifierUtils.generateResourceIdentifier(
+            model.setDBInstanceIdentifier(generateResourceIdentifier(
                     Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
                     Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
                     request.getClientRequestToken(),
@@ -101,7 +102,7 @@ public class CreateHandler extends BaseHandlerStd {
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
                         isDbInstanceStabilized(proxyInvocation, model))
-                .handleError((request, exception, client, model, context) -> handleException(
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         CREATE_DB_INSTANCE_ERROR_RULE_SET
@@ -127,7 +128,7 @@ public class CreateHandler extends BaseHandlerStd {
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
                         isDbInstanceStabilized(proxyInvocation, model))
-                .handleError((request, exception, client, model, context) -> handleException(
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         RESTORE_DB_INSTANCE_ERROR_RULE_SET
@@ -153,7 +154,7 @@ public class CreateHandler extends BaseHandlerStd {
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
                         isDbInstanceStabilized(proxyInvocation, model))
-                .handleError((request, exception, client, model, context) -> handleException(
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET
@@ -180,7 +181,7 @@ public class CreateHandler extends BaseHandlerStd {
                         3,
                         () -> isDbInstanceStabilized(proxyInvocation, model)
                 ))
-                .handleError((request, exception, client, model, context) -> handleException(
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_ERROR_RULE_SET

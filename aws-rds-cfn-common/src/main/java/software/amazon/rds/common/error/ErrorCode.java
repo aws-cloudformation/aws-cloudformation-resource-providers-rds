@@ -17,6 +17,7 @@ public enum ErrorCode {
     InvalidDBInstanceState("InvalidDBInstanceState"),
     InvalidDBSecurityGroupState("InvalidDBSecurityGroupState"),
     InvalidDBSnapshotState("InvalidDBSnapshotState"),
+    InvalidOptionGroupStateFault("InvalidOptionGroupStateFault"),
     InvalidParameterCombination("InvalidParameterCombination"),
     InvalidParameterValue("InvalidParameterValue"),
     InvalidRestoreFault("InvalidRestoreFault"),

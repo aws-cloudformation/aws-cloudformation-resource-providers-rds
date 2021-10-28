@@ -26,6 +26,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -49,10 +50,16 @@ public class UpdateHandler extends BaseHandlerStd {
             final Logger logger
     ) {
         final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
-                mergeMaps(Arrays.asList(request.getPreviousSystemTags(), request.getPreviousResourceTags()))
+                mergeMaps(Arrays.asList(
+                        request.getPreviousSystemTags(),
+                        request.getPreviousResourceTags()
+                ))
         );
         final Collection<Tag> desiredTags = Translator.translateTagsFromRequest(
-                mergeMaps(Arrays.asList(request.getSystemTags(), request.getDesiredResourceTags()))
+                mergeMaps(Arrays.asList(
+                        request.getSystemTags(),
+                        request.getDesiredResourceTags()
+                ))
         );
 
         final Collection<DBInstanceRole> previousRoles = request.getPreviousResourceState().getAssociatedRoles();
@@ -139,7 +146,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         3,
                         () -> isDbInstanceStabilized(proxyInvocation, model)
                 ))
-                .handleError((modifyRequest, exception, client, model, context) -> handleException(
+                .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_ERROR_RULE_SET
@@ -203,7 +210,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final String vpcId = dbInstance.dbSubnetGroup().vpcId();
             securityGroup = fetchSecurityGroup(ec2ProxyClient, vpcId, "default");
         } catch (Exception e) {
-            return handleException(progress, e);
+            return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
         }
 
         if (securityGroup != null) {
@@ -240,7 +247,7 @@ public class UpdateHandler extends BaseHandlerStd {
             removeOldTags(rdsProxyClient, arn, tagsToRemove);
             addNewTags(rdsProxyClient, arn, tagsToAdd);
         } catch (Exception e) {
-            return handleException(progress, e);
+            return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
         }
 
         return progress;

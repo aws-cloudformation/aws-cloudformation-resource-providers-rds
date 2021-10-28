@@ -3,6 +3,7 @@ package software.amazon.rds.dbinstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -22,6 +23,7 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.test.AbstractTestBase;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, ResourceModel, CallbackContext> {
@@ -154,6 +156,11 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final DBInstance DB_INSTANCE_DELETING;
     protected static final DBInstance DB_INSTANCE_MODIFYING;
     protected static final DBInstance DB_INSTANCE_EMPTY_PORT;
+
+    protected static Constant TEST_BACKOFF_DELAY = Constant.of()
+            .delay(Duration.ofSeconds(1L))
+            .timeout(Duration.ofSeconds(10L))
+            .build();
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
@@ -418,30 +425,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .build();
     }
 
-    @Override
-    protected String getLogicalResourceIdentifier() {
-        return LOGICAL_RESOURCE_IDENTIFIER;
-    }
-
-    @Override
-    protected void expectResourceSupply(final Supplier<DBInstance> supplier) {
-        when(getRdsProxy()
-                .client()
-                .describeDBInstances(any(DescribeDbInstancesRequest.class))
-        ).then(res -> DescribeDbInstancesResponse.builder()
-                .dbInstances(supplier.get())
-                .build()
-        );
-    }
-
-    @Override
-    protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext context
-    ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), logger);
-    }
-
     static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BAREBONE_BLDR() {
         return ResourceModel.builder()
                 .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY);
@@ -504,6 +487,38 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
         return new BaseProxyClient<>(proxy, client);
     }
 
+    protected abstract BaseHandlerStd getHandler();
+
+    protected abstract AmazonWebServicesClientProxy getProxy();
+
+    protected abstract ProxyClient<RdsClient> getRdsProxy();
+
+    protected abstract ProxyClient<Ec2Client> getEc2Proxy();
+
+    @Override
+    protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext context
+    ) {
+        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), logger);
+    }
+
+    @Override
+    protected String getLogicalResourceIdentifier() {
+        return LOGICAL_RESOURCE_IDENTIFIER;
+    }
+
+    @Override
+    protected void expectResourceSupply(final Supplier<DBInstance> supplier) {
+        when(getRdsProxy()
+                .client()
+                .describeDBInstances(any(DescribeDbInstancesRequest.class))
+        ).then(res -> DescribeDbInstancesResponse.builder()
+                .dbInstances(supplier.get())
+                .build()
+        );
+    }
+
     // This helper method computes DBInstance state transitions upon an assigned roles update.
     // The roles are being removed and added one-by-one, resulting in the transition progression.
     // Assume an instance has 2 roles: [A, B]
@@ -546,21 +561,5 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
         }
 
         return result;
-    }
-
-    protected BaseHandlerStd getHandler() {
-        return null;
-    }
-
-    protected AmazonWebServicesClientProxy getProxy() {
-        return null;
-    }
-
-    protected ProxyClient<RdsClient> getRdsProxy() {
-        return null;
-    }
-
-    protected ProxyClient<Ec2Client> getEc2Proxy() {
-        return null;
     }
 }

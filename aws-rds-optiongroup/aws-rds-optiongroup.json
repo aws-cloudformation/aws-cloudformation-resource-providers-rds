@@ -11,6 +11,7 @@
           "description": "A list of DBSecurityGroupMembership name strings used for this option.",
           "type": "array",
           "uniqueItems": true,
+          "insertionOrder": false,
           "items": {
             "type": "string"
           }
@@ -39,6 +40,7 @@
           "description": "A list of VpcSecurityGroupMembership name strings used for this option.",
           "type": "array",
           "uniqueItems": true,
+          "insertionOrder": false,
           "items": {
             "type": "string"
           }
@@ -132,6 +134,7 @@
     "Tags": {
       "type": "array",
       "description": "An array of key-value pairs to apply to this resource.",
+      "insertionOrder": false,
       "items": {
         "$ref": "#/definitions/Tag"
       }

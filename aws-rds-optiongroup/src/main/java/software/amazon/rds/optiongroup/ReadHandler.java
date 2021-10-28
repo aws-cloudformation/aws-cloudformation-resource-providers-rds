@@ -9,8 +9,21 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ReadHandler extends BaseHandlerStd {
+
+    public ReadHandler() {
+        this(HandlerConfig.builder()
+                .backoff(BACKOFF_DELAY)
+                .build());
+    }
+
+    public ReadHandler(final HandlerConfig config) {
+        super(config);
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -20,14 +33,15 @@ public class ReadHandler extends BaseHandlerStd {
 
         return proxy.initiate("rds::read-option-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeOptionGroupsRequest)
-                .backoffDelay(BACKOFF_DELAY)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         proxyInvocation.client()::describeOptionGroups
                 ))
-                .handleError((describeRequest, exception, client, resourceModel, ctx) -> handleException(
+                .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
-                        exception
+                        exception,
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final OptionGroup optionGroup = describeResponse.optionGroupsList().stream().findFirst().get();

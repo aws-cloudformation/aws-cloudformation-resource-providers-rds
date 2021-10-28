@@ -116,5 +116,25 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
     }
 
+    // Stub methods to satisfy the interface. This is a 1-time thing.
 
+    @Override
+    protected BaseHandlerStd getHandler() {
+        return null;
+    }
+
+    @Override
+    protected AmazonWebServicesClientProxy getProxy() {
+        return null;
+    }
+
+    @Override
+    protected ProxyClient<RdsClient> getRdsProxy() {
+        return null;
+    }
+
+    @Override
+    protected ProxyClient<Ec2Client> getEc2Proxy() {
+        return null;
+    }
 }
