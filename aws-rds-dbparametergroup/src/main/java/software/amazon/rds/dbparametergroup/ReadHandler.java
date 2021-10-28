@@ -23,7 +23,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
                 .backoffDelay(CONSTANT)
                 .makeServiceCall((describeDbParameterGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest, proxyInvocation.client()::describeDBParameterGroups))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) -> handleException(exception))
+                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) -> handleException(logger, describeDbParameterGroupsRequest, exception))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, model, context) -> {
                     final DBParameterGroup dBParameterGroup = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get();
                     callbackContext.setDbParameterGroupArn(dBParameterGroup.dbParameterGroupArn());

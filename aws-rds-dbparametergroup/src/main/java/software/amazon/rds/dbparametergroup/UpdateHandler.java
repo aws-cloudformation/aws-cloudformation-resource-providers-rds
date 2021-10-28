@@ -52,7 +52,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         final ResourceModel model = request.getDesiredResourceState();
         return ProgressEvent.progress(model, callbackContext)
-            .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
+            .then(progress -> applyParameters(logger, proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
             .then(progress -> tagResource(proxy, proxyClient, progress, model, callbackContext, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
 

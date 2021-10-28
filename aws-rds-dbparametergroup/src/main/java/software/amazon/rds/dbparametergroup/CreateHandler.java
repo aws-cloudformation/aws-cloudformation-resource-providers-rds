@@ -38,8 +38,8 @@ public class CreateHandler extends BaseHandlerStd {
                         .backoffDelay(CONSTANT)
                         .makeServiceCall((createDBParameterGroupRequest, proxyInvocation) ->
                                 proxyInvocation.injectCredentialsAndInvokeV2(createDBParameterGroupRequest, proxyInvocation.client()::createDBParameterGroup))
-                        .handleError((createDBParameterGroupRequest, exception, client, resourceModel, ctx) -> handleException(exception))
-                        .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context)))
+                        .handleError((createDBParameterGroupRequest, exception, client, resourceModel, ctx) -> handleException(logger, createDBParameterGroupRequest, exception))
+                        .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(logger, proxy, proxyInvocation, resourceModel, context)))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

@@ -24,7 +24,8 @@ import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
 
 public class Translator {
 
-    static CreateDbParameterGroupRequest createDbParameterGroupRequest(final ResourceModel model, final Map<String, String> tags) {
+    static CreateDbParameterGroupRequest createDbParameterGroupRequest(final ResourceModel model,
+                                                                       final Map<String, String> tags) {
         return CreateDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .description(model.getDescription())
@@ -53,22 +54,24 @@ public class Translator {
 
     public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(ResourceModel model) {
         return DescribeEngineDefaultParametersRequest.builder()
-            .dbParameterGroupFamily(model.getFamily())
-            .build();
+                .dbParameterGroupFamily(model.getFamily())
+                .build();
     }
 
-    static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(final ResourceModel model, final Collection<Parameter> parameters) {
+    static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(final ResourceModel model,
+                                                                       final Collection<Parameter> parameters) {
         return ModifyDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .parameters(parameters)
                 .build();
     }
 
-    static ResetDbParameterGroupRequest resetDbParametersRequest(final ResourceModel model, final Collection<Parameter> parameters) {
+    static ResetDbParameterGroupRequest resetDbParametersRequest(final ResourceModel model,
+                                                                 final Collection<Parameter> parameters) {
         return ResetDbParameterGroupRequest.builder()
-            .dbParameterGroupName(model.getDBParameterGroupName())
-            .parameters(parameters)
-            .build();
+                .dbParameterGroupName(model.getDBParameterGroupName())
+                .parameters(parameters)
+                .build();
     }
 
     static DeleteDbParameterGroupRequest deleteDbParameterGroupRequest(final ResourceModel model) {
@@ -155,7 +158,7 @@ public class Translator {
                 .build();
     }
 
-    static ResourceModel translateFromDBParameterGroup(DBParameterGroup dbParameterGroup){
+    static ResourceModel translateFromDBParameterGroup(DBParameterGroup dbParameterGroup) {
         return ResourceModel.builder()
                 .dBParameterGroupName(dbParameterGroup.dbParameterGroupName())
                 .description(dbParameterGroup.description())

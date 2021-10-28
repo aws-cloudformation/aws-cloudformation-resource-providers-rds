@@ -3,6 +3,7 @@ package software.amazon.rds.dbparametergroup;
 import java.util.stream.Collectors;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -22,11 +23,12 @@ public class ListHandler extends BaseHandlerStd {
             final Logger logger) {
 
         DescribeDbParameterGroupsResponse describeDBParameterGroupsResponse = null;
+        DescribeDbParameterGroupsRequest describeDbParameterGroupsRequest = Translator.describeDbParameterGroupsRequest(request.getNextToken());
         try {
-            describeDBParameterGroupsResponse = proxy.injectCredentialsAndInvokeV2(Translator.describeDbParameterGroupsRequest(request.getNextToken()),
+            describeDBParameterGroupsResponse = proxy.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest,
                     proxyClient.client()::describeDBParameterGroups);
         } catch (Exception e) {
-            handleException(e);
+            handleException(logger, describeDbParameterGroupsRequest, e);
         }
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
