@@ -85,12 +85,12 @@ public class CreateHandlerTest extends AbstractTestBase {
         callbackContext.setParametersApplied(true);
 
         ResourceModel EMPTY_NAME_RESOURCE_MODEL = ResourceModel.builder()
-            .dBParameterGroupName("")
-            .description("test DB Parameter group description")
-            .family("testFamily")
-            .tags(Collections.emptyList())
-            .parameters(PARAMS)
-            .build();
+                .dBParameterGroupName("")
+                .description("test DB Parameter group description")
+                .family("testFamily")
+                .tags(Collections.emptyList())
+                .parameters(PARAMS)
+                .build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER)
@@ -157,10 +157,10 @@ public class CreateHandlerTest extends AbstractTestBase {
         mockDescribeDbParametersResponse("static", "dynamic", false);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .clientRequestToken(getClientRequestToken())
-            .desiredResourceState(RESOURCE_MODEL)
-            .desiredResourceTags(translateTagsToMap(TAG_SET))
-            .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+                .clientRequestToken(getClientRequestToken())
+                .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
         } catch (CfnInvalidRequestException e) {
@@ -252,43 +252,43 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     private void mockDescribeDbParametersResponse(String firstParamApplyType, String secondParamApplyType, boolean isModifiable) {
         Parameter param1 = Parameter.builder()
-            .parameterName("param1")
-            .parameterValue("system_value")
-            .isModifiable(isModifiable)
-            .applyType(firstParamApplyType)
-            .build();
+                .parameterName("param1")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(firstParamApplyType)
+                .build();
         Parameter param2 = Parameter.builder()
-            .parameterName("param2")
-            .parameterValue("system_value")
-            .isModifiable(isModifiable)
-            .applyType(secondParamApplyType)
-            .build();
+                .parameterName("param2")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
 
         DescribeEngineDefaultParametersIterable describeEngineDefaultParametersResponses = mock(DescribeEngineDefaultParametersIterable.class);
         final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
-            .engineDefaults(EngineDefaults.builder()
-                .parameters(param1, param2)
-                .build()
-            ).build();
+                .engineDefaults(EngineDefaults.builder()
+                        .parameters(param1, param2)
+                        .build()
+                ).build();
         when(describeEngineDefaultParametersResponses.stream())
-            .thenReturn(Stream.<DescribeEngineDefaultParametersResponse>builder().
-                add(describeEngineDefaultParametersResponse)
-                .build()
-            );
+                .thenReturn(Stream.<DescribeEngineDefaultParametersResponse>builder().
+                        add(describeEngineDefaultParametersResponse)
+                        .build()
+                );
         when(proxyClient.client().describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponses);
 
-        if(!isModifiable)
+        if (!isModifiable)
             return;
 
         final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
-            .parameters(param1, param2).build();
+                .parameters(param1, param2).build();
 
         final DescribeDBParametersIterable describeDbParametersIterable = mock(DescribeDBParametersIterable.class);
         when(describeDbParametersIterable.stream())
-            .thenReturn(Stream.<DescribeDbParametersResponse>builder()
-                .add(describeDbParametersResponse)
-                .build()
-            );
+                .thenReturn(Stream.<DescribeDbParametersResponse>builder()
+                        .add(describeDbParametersResponse)
+                        .build()
+                );
         when(proxyClient.client().describeDBParametersPaginator(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersIterable);
     }
 }

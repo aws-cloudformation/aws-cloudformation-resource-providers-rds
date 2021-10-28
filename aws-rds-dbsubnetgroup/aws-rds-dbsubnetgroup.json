@@ -20,7 +20,7 @@
     "Tags": {
       "type": "array",
       "maxItems": 50,
-      "uniqueItems": true,
+      "uniqueItems": false,
       "insertionOrder": false,
       "description": "An array of key-value pairs to apply to this resource.",
       "items": {

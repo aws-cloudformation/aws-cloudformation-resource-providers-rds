@@ -3,7 +3,7 @@ package software.amazon.rds.eventsubscription;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import software.amazon.awssdk.utils.CollectionUtils;
+import com.amazonaws.util.CollectionUtils;
 
 class Configuration extends BaseConfiguration {
 
@@ -17,6 +17,6 @@ class Configuration extends BaseConfiguration {
 
         return resourceModel.getTags()
                 .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
     }
 }

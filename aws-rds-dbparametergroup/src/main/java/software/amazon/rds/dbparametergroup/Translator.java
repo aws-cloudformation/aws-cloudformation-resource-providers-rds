@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
@@ -16,15 +16,16 @@ import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
 
 public class Translator {
 
-    static CreateDbParameterGroupRequest createDbParameterGroupRequest(final ResourceModel model, final Map<String, String> tags) {
+    static CreateDbParameterGroupRequest createDbParameterGroupRequest(
+            final ResourceModel model,
+            final Map<String, String> tags
+    ) {
         return CreateDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .description(model.getDescription())
@@ -53,22 +54,28 @@ public class Translator {
 
     public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(ResourceModel model) {
         return DescribeEngineDefaultParametersRequest.builder()
-            .dbParameterGroupFamily(model.getFamily())
-            .build();
+                .dbParameterGroupFamily(model.getFamily())
+                .build();
     }
 
-    static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(final ResourceModel model, final Collection<Parameter> parameters) {
+    static ModifyDbParameterGroupRequest modifyDbParameterGroupRequest(
+            final ResourceModel model,
+            final Collection<Parameter> parameters
+    ) {
         return ModifyDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .parameters(parameters)
                 .build();
     }
 
-    static ResetDbParameterGroupRequest resetDbParametersRequest(final ResourceModel model, final Collection<Parameter> parameters) {
+    static ResetDbParameterGroupRequest resetDbParametersRequest(
+            final ResourceModel model,
+            final Collection<Parameter> parameters
+    ) {
         return ResetDbParameterGroupRequest.builder()
-            .dbParameterGroupName(model.getDBParameterGroupName())
-            .parameters(parameters)
-            .build();
+                .dbParameterGroupName(model.getDBParameterGroupName())
+                .parameters(parameters)
+                .build();
     }
 
     static DeleteDbParameterGroupRequest deleteDbParameterGroupRequest(final ResourceModel model) {
@@ -77,20 +84,10 @@ public class Translator {
                 .build();
     }
 
-    static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> {
-                    return Tag.builder()
-                            .key(tag.key())
-                            .value(tag.value())
-                            .build();
-                })
-                .collect(Collectors.toList());
-    }
-
-    static Parameter buildParameterWithNewValue(final String newValue,
-                                                final Parameter parameter) {
+    static Parameter buildParameterWithNewValue(
+            final String newValue,
+            final Parameter parameter
+    ) {
         final Parameter.Builder param = parameter.toBuilder()
                 .parameterValue(newValue);
 
@@ -115,52 +112,23 @@ public class Translator {
                 .collect(Collectors.toSet());
     }
 
-    static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<software.amazon.rds.dbparametergroup.Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
-                .collect(Collectors.toSet());
-    }
-
-    static List<Tag> translateTagsToModelResource(final Map<String, String> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptyMap())
-                .entrySet()
-                .stream()
-                .map(entry -> {
-                    return Tag.builder()
-                            .key(entry.getKey())
-                            .value(entry.getValue())
-                            .build();
-                })
+    static ResourceModel translateFromDBParameterGroup(
+            final DBParameterGroup dbParameterGroup,
+            final Set<software.amazon.awssdk.services.rds.model.Tag> rdsTags
+    ) {
+        List<Tag> tags = CollectionUtils.isNullOrEmpty(rdsTags) ? null
+                : rdsTags.stream()
+                .map(tag -> Tag.builder()
+                        .key(tag.key())
+                        .value(tag.value())
+                        .build())
                 .collect(Collectors.toList());
-    }
 
-    static AddTagsToResourceRequest addTagsToResourceRequest(final String arn, final Set<Tag> tags) {
-        return AddTagsToResourceRequest.builder()
-                .resourceName(arn)
-                .tags(translateTagsToSdk(tags))
-                .build();
-    }
-
-    static RemoveTagsFromResourceRequest removeTagsFromResourceRequest(final String arn, final Set<Tag> tags) {
-        return RemoveTagsFromResourceRequest.builder()
-                .resourceName(arn)
-                .tagKeys(tags.stream().map(Tag::getKey).collect(Collectors.toSet()))
-                .build();
-    }
-
-    static ListTagsForResourceRequest listTagsForResourceRequest(final String arn) {
-        return ListTagsForResourceRequest.builder()
-                .resourceName(arn)
-                .build();
-    }
-
-    static ResourceModel translateFromDBParameterGroup(DBParameterGroup dbParameterGroup){
         return ResourceModel.builder()
                 .dBParameterGroupName(dbParameterGroup.dbParameterGroupName())
                 .description(dbParameterGroup.description())
                 .family(dbParameterGroup.dbParameterGroupFamily())
+                .tags(tags)
                 .build();
     }
-
 }

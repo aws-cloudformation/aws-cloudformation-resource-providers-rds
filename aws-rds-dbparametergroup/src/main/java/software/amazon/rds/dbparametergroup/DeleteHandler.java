@@ -6,6 +6,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 
 public class DeleteHandler extends BaseHandlerStd {
 
@@ -15,11 +16,15 @@ public class DeleteHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
-
+        setLogger(logger);
         return proxy.initiate("rds::delete-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbParameterGroupRequest)
                 .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBParameterGroup))
-                .handleError((deleteGroupRequest, exception, client, resourceModel, cxt) -> handleException(exception))
+                .handleError((deleteGroupRequest, exception, client, resourceModel, ctx) ->
+                        Commons.handleException(
+                                ProgressEvent.progress(resourceModel, ctx),
+                                exception,
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
                 .done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
 }

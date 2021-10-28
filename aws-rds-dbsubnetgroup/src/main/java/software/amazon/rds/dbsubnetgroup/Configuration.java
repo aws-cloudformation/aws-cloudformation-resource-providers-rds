@@ -18,6 +18,6 @@ class Configuration extends BaseConfiguration {
 
         return resourceModel.getTags()
                 .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
     }
 }
