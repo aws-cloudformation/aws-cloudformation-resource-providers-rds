@@ -7,24 +7,29 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 
 public class DeleteHandler extends BaseHandlerStd {
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-      final AmazonWebServicesClientProxy proxy,
-      final ResourceHandlerRequest<ResourceModel> request,
-      final CallbackContext callbackContext,
-      final ProxyClient<RdsClient> proxyClient,
-      final Logger logger) {
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final Logger logger) {
         return proxy.initiate("rds::delete-event-subscription", proxyClient, request.getDesiredResourceState(), callbackContext)
-            .translateToServiceRequest(Translator::deleteEventSubscriptionRequest)
-            .makeServiceCall((deleteEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteEventSubscriptionRequest, proxyInvocation.client()::deleteEventSubscription))
-            .stabilize((deleteEventSubscriptionRequest, deleteEventSubscriptionResponse, proxyInvocation, model, context) ->
-                isDeleted(model, proxyInvocation))
-            .handleError((deleteRequest, exception, client, resourceModel, ctx) -> handleException(ProgressEvent.progress(resourceModel, ctx), exception))
-            .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
+                .translateToServiceRequest(Translator::deleteEventSubscriptionRequest)
+                .makeServiceCall((deleteEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteEventSubscriptionRequest, proxyInvocation.client()::deleteEventSubscription))
+                .stabilize((deleteEventSubscriptionRequest, deleteEventSubscriptionResponse, proxyInvocation, model, context) ->
+                        isDeleted(model, proxyInvocation))
+                .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, ctx),
+                        exception,
+                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
+
     protected boolean isDeleted(final ResourceModel model,
-        final ProxyClient<RdsClient> proxyClient) {
+                                final ProxyClient<RdsClient> proxyClient) {
         try {
             proxyClient.injectCredentialsAndInvokeV2(Translator.describeEventSubscriptionsRequest(model), proxyClient.client()::describeEventSubscriptions);
             return false;

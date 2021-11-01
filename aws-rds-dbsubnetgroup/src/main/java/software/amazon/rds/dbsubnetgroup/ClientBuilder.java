@@ -6,7 +6,7 @@ import software.amazon.cloudformation.LambdaWrapper;
 public class ClientBuilder {
     public static RdsClient getClient() {
         return RdsClient.builder()
-            .httpClient(LambdaWrapper.HTTP_CLIENT)
-            .build();
+                .httpClient(LambdaWrapper.HTTP_CLIENT)
+                .build();
     }
 }
