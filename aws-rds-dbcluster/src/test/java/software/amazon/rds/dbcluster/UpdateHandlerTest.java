@@ -6,11 +6,11 @@ import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.AddRoleToDBClusterResponse;
+import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.RemoveRoleFromDBClusterResponse;
+import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
@@ -98,7 +98,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
             DbClusterRoleNotFoundException.class);
         final DescribeDbClustersResponse describeDbClustersResponseWithNoRole = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE_NO_ROLE).build();
 
-        final AddRoleToDBClusterResponse addRoleToDBClusterResponse = AddRoleToDBClusterResponse.builder().build();
+        final AddRoleToDbClusterResponse addRoleToDBClusterResponse = AddRoleToDbClusterResponse.builder().build();
         when(proxyRdsClient.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class))).thenReturn(addRoleToDBClusterResponse);
 
         when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeActiveDbClustersResponse);
@@ -136,11 +136,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final DescribeDbClustersResponse describeInProgressDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_INPROGRESS).build();
         final DescribeDbClustersResponse describeActiveDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
-        final RemoveRoleFromDBClusterResponse removeRoleFromDBClusterResponse = RemoveRoleFromDBClusterResponse.builder().build();
+        final RemoveRoleFromDbClusterResponse removeRoleFromDBClusterResponse = RemoveRoleFromDbClusterResponse.builder().build();
         when(proxyRdsClient.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class))).thenReturn(removeRoleFromDBClusterResponse);
         final DescribeDbClustersResponse describeDbClustersResponseWithNoRole = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE_NO_ROLE).build();
 
-        final AddRoleToDBClusterResponse addRoleToDBClusterResponse = AddRoleToDBClusterResponse.builder().build();
+        final AddRoleToDbClusterResponse addRoleToDBClusterResponse = AddRoleToDbClusterResponse.builder().build();
         when(proxyRdsClient.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class))).thenReturn(addRoleToDBClusterResponse);
 
         AtomicInteger attempt = new AtomicInteger(2);

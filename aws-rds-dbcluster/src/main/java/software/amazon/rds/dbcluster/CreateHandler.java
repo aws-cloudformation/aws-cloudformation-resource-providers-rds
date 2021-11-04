@@ -8,7 +8,9 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.resource.IdentifierUtils;
+import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -31,6 +33,12 @@ public class CreateHandler extends BaseHandlerStd {
                         .translateToServiceRequest(Translator::restoreDbClusterToPointInTimeRequest)
                         .backoffDelay(BACKOFF_STRATEGY)
                         .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterToPointInTime))
+                            .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> {
+                                if (exception instanceof DbClusterAlreadyExistsException) {
+                                    return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.AlreadyExists);
+                                }
+                                return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.GeneralServiceException);
+                            })
                         .progress();
                 }
                 return progress;
@@ -43,6 +51,12 @@ public class CreateHandler extends BaseHandlerStd {
                         .translateToServiceRequest(Translator::restoreDbClusterFromSnapshotRequest)
                         .backoffDelay(BACKOFF_STRATEGY)
                         .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterFromSnapshot))
+                            .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> {
+                                if (exception instanceof DbClusterAlreadyExistsException) {
+                                    return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.AlreadyExists);
+                                }
+                                return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.GeneralServiceException);
+                            })
                         .progress();
                 }
                 return progress;
@@ -56,6 +70,12 @@ public class CreateHandler extends BaseHandlerStd {
                         .translateToServiceRequest(Translator::createDbClusterRequest)
                         .backoffDelay(BACKOFF_STRATEGY)
                         .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::createDBCluster))
+                            .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> {
+                                if (exception instanceof DbClusterAlreadyExistsException) {
+                                    return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.AlreadyExists);
+                                }
+                                return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.GeneralServiceException);
+                            })
                         .progress();
                 }
                 return progress;

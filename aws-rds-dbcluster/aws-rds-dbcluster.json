@@ -43,6 +43,11 @@
       "description": "The name of your database. If you don't provide a name, then Amazon RDS won't create a database in this DB cluster. For naming constraints, see Naming Constraints in the Amazon RDS User Guide.",
       "type": "string"
     },
+    "GlobalClusterIdentifier": {
+      "description": "If you are configuring an Aurora global database cluster and want your Aurora DB cluster to be a secondary member in the global database cluster, specify the global cluster ID of the global database cluster. To define the primary database cluster of the global cluster, use the AWS::RDS::GlobalCluster resource.\n\nIf you aren't configuring a global database cluster, don't specify this property.",
+      "type": "string",
+      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+    },
     "DBClusterIdentifier": {
       "description": "The DB cluster identifier. This parameter is stored as a lowercase string.",
       "type": "string",
@@ -185,58 +190,49 @@
   },
   "allOf": [
     {
-      "allOf": [
+      "oneOf": [
         {
-          "oneOf": [
+          "anyOf": [
             {
               "required": [
-                "MasterUsername"
+                "SourceDBClusterIdentifier"
               ]
             },
             {
-              "required": [
-                "SnapshotIdentifier"
+              "allOf": [
+                {
+                  "required": [
+                    "SnapshotIdentifier"
+                  ]
+                },
+                {
+                  "required": [
+                    "Engine"
+                  ]
+                }
               ]
             }
           ]
         },
         {
-          "anyOf": [
-            {
-              "oneOf": [
-                {
-                  "anyOf": [
-                    {
-                      "required": [
-                        "SourceDBClusterIdentifier"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "SnapshotIdentifier"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "required": [
-                    "MasterUserPassword"
-                  ]
-                }
-              ]
-            },
+          "allOf": [
             {
               "required": [
                 "MasterUsername"
               ]
+            },
+            {
+              "required": [
+                "MasterUserPassword"
+              ]
+            },
+            {
+              "required": [
+                "Engine"
+              ]
             }
           ]
         }
-      ]
-    },
-    {
-      "required": [
-        "Engine"
       ]
     }
   ],
@@ -333,7 +329,10 @@
   "additionalProperties": false,
   "readOnlyProperties": [
     "/properties/Endpoint",
-    "/properties/ReadEndpoint"
+    "/properties/Endpoint/Address",
+    "/properties/Endpoint/Port",
+    "/properties/ReadEndpoint/Port",
+    "/properties/ReadEndpoint/Address"
   ],
   "createOnlyProperties": [
     "/properties/AvailabilityZones",
@@ -350,7 +349,9 @@
     "/properties/SourceDBClusterIdentifier",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
-    "/properties/UseLatestRestorableTime"
+    "/properties/UseLatestRestorableTime",
+    "/properties/GlobalClusterIdentifier",
+    "/properties/AssociatedRoles"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterIdentifier"
@@ -372,7 +373,9 @@
         "rds:ModifyDBCluster",
         "rds:DescribeDBClusters",
         "rds:AddRoleToDBCluster",
-        "rds:ListTagsForResource"
+        "rds:ListTagsForResource",
+        "rds:AddTagsToResource",
+        "iam:PassRole"
       ]
     },
     "read": {
@@ -395,7 +398,10 @@
     "delete": {
       "permissions": [
         "rds:DescribeDBClusters",
-        "rds:DeleteDBCluster"
+        "rds:DeleteDBCluster",
+        "rds:DescribeDBClusterSnapshots",
+        "rds:CreateDBClusterSnapshot",
+        "rds:RemoveFromGlobalCluster"
       ]
     },
     "list": {

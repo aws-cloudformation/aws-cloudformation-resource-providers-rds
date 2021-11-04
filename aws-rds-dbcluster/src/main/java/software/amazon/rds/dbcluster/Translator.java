@@ -7,6 +7,9 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRe
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
@@ -55,6 +58,7 @@ public class Translator {
                 .deletionProtection(model.getDeletionProtection())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .sourceRegion(model.getSourceRegion())
+                .globalClusterIdentifier(model.getGlobalClusterIdentifier())
                 .build();
     }
 
@@ -158,6 +162,26 @@ public class Translator {
         return DeleteDbClusterRequest.builder()
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .skipFinalSnapshot(true)
+                .build();
+    }
+
+    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final ResourceModel model) {
+        return RemoveFromGlobalClusterRequest.builder()
+                .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+                .build();
+    }
+
+    static CreateDbClusterSnapshotRequest createDbClusterSnapshotRequest(final ResourceModel model, final String finalDBSnapshotIdentifier) {
+        return CreateDbClusterSnapshotRequest.builder()
+                .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .dbClusterSnapshotIdentifier(finalDBSnapshotIdentifier)
+                .build();
+    }
+
+    static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model, final String finalDBSnapshotIdentifier) {
+        return DescribeDbClusterSnapshotsRequest.builder()
+                .dbClusterSnapshotIdentifier(finalDBSnapshotIdentifier)
                 .build();
     }
 

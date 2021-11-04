@@ -10,6 +10,8 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
@@ -28,6 +30,7 @@ public class AbstractTestBase {
     protected static final Integer BACKUP_RETENTION_PERIOD;
     protected static final Integer BACKTRACK_WINDOW;
     protected static final String DBCLUSTER_IDENTIFIER;
+    protected static final String DBGLOBALCLUSTER_IDENTIFIER;
     protected static final String DBCLUSTER_PARAMETER_GROUP_NAME;
     protected static final String SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
@@ -43,11 +46,17 @@ public class AbstractTestBase {
     protected static final ResourceModel RESOURCE_MODEL;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME;
-
+    protected static final ResourceModel RESOURCE_MODEL_WITH_GLOBAL_CLUSTER;
     protected static final DBCluster DBCLUSTER_ACTIVE;
     protected static final DBCluster DBCLUSTER_ACTIVE_NO_ROLE;
     protected static final DBCluster DBCLUSTER_DELETED;
     protected static final DBCluster DBCLUSTER_INPROGRESS;
+    protected static final DBCluster DBCLUSTER_ACTIVE_DELETION_ENABLED;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_AVAILABLE;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_CREATING;
+    protected static final GlobalCluster GLOBAL_CLUSTER;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_FAILED;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -60,6 +69,7 @@ public class AbstractTestBase {
         BACKUP_RETENTION_PERIOD = 1;
         BACKTRACK_WINDOW = 1;
         DBCLUSTER_IDENTIFIER = "my-sample-dbcluster";
+        DBGLOBALCLUSTER_IDENTIFIER = "my-sample-global-cluster";
         DBCLUSTER_PARAMETER_GROUP_NAME = "default.aurora5.6";
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
@@ -111,6 +121,19 @@ public class AbstractTestBase {
                 .masterUserPassword(USER_PASSWORD)
                 .build();
 
+        RESOURCE_MODEL_WITH_GLOBAL_CLUSTER =   ResourceModel.builder()
+                .associatedRoles(Lists.newArrayList(ROLE))
+                .backtrackWindow(BACKTRACK_WINDOW)
+                .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
+                .engine(ENGINE)
+                .backupRetentionPeriod(BACKUP_RETENTION_PERIOD)
+                .port(PORT)
+                .masterUsername(USER_NAME)
+                .masterUserPassword(USER_PASSWORD)
+                .globalClusterIdentifier(DBGLOBALCLUSTER_IDENTIFIER)
+                .build();
+
         DBCLUSTER_ACTIVE = DBCluster.builder()
                 .dbClusterArn("arn")
                 .associatedRoles(
@@ -130,6 +153,45 @@ public class AbstractTestBase {
                         .build()
                 )
                 .build();
+
+        DBCLUSTER_ACTIVE_DELETION_ENABLED =  DBCluster.builder()
+                .dbClusterArn("arn")
+                .associatedRoles(
+                        software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
+                .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
+                .deletionProtection(true)
+                .engine(RESOURCE_MODEL.getEngine())
+                .port(RESOURCE_MODEL.getPort())
+                .masterUsername(RESOURCE_MODEL.getMasterUsername())
+                .status(DBClusterStatus.Available.toString())
+                .scalingConfigurationInfo(
+                        ScalingConfigurationInfo.builder()
+                                .autoPause(true)
+                                .maxCapacity(10)
+                                .minCapacity(1)
+                                .secondsUntilAutoPause(5)
+                                .build()
+                )
+                .build();
+
+        DBCLUSTER_SNAPSHOT = DBClusterSnapshot.builder()
+                .build();
+
+        DBCLUSTER_SNAPSHOT_AVAILABLE = DBClusterSnapshot.builder()
+                .status("available")
+                .build();
+
+        DBCLUSTER_SNAPSHOT_CREATING = DBClusterSnapshot.builder()
+                .status("creating")
+                .build();
+
+        DBCLUSTER_SNAPSHOT_FAILED = DBClusterSnapshot.builder()
+                .status("failed")
+                .build();
+
+        GLOBAL_CLUSTER = GlobalCluster.builder()
+                .build();
+
 
         DBCLUSTER_ACTIVE_NO_ROLE = DBCluster.builder()
                 .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
@@ -153,6 +215,7 @@ public class AbstractTestBase {
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Creating.toString())
+                .deletionProtection(false)
                 .build();
 
     }
