@@ -1,5 +1,18 @@
 package software.amazon.rds.eventsubscription;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsResponse;
@@ -10,21 +23,9 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.time.Duration;
 
 @ExtendWith(MockitoExtension.class)
-public class ListHandlerTest  extends AbstractTestBase{
+public class ListHandlerTest extends AbstractTestBase {
 
     @Mock
     private AmazonWebServicesClientProxy proxy;
@@ -44,20 +45,20 @@ public class ListHandlerTest  extends AbstractTestBase{
         final ListHandler handler = new ListHandler();
 
         final DescribeEventSubscriptionsResponse describeDbSubnetGroupsResponse =
-            DescribeEventSubscriptionsResponse.builder().eventSubscriptionsList(
-                EventSubscription.builder()
-                    .custSubscriptionId("sampleName").build()
-            ).build();
+                DescribeEventSubscriptionsResponse.builder().eventSubscriptionsList(
+                        EventSubscription.builder()
+                                .custSubscriptionId("sampleName").build()
+                ).build();
         when(proxyRdsClient.client().describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class))).thenReturn(describeDbSubnetGroupsResponse);
 
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(model)
-            .build();
+                .desiredResourceState(model)
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-            handler.handleRequest(proxy, request, null, proxyRdsClient, logger);
+                handler.handleRequest(proxy, request, null, proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -75,20 +76,20 @@ public class ListHandlerTest  extends AbstractTestBase{
         final ListHandler handler = new ListHandler();
 
         final DescribeEventSubscriptionsResponse describeDbSubnetGroupsResponse =
-            DescribeEventSubscriptionsResponse.builder().eventSubscriptionsList(
-                EventSubscription.builder()
-                    .custSubscriptionId("sampleName").build()
-            ).build();
+                DescribeEventSubscriptionsResponse.builder().eventSubscriptionsList(
+                        EventSubscription.builder()
+                                .custSubscriptionId("sampleName").build()
+                ).build();
         when(proxyRdsClient.client().describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class))).thenThrow(SubscriptionNotFoundException.class);
 
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(model)
-            .build();
+                .desiredResourceState(model)
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-            handler.handleRequest(proxy, request, null, proxyRdsClient, logger);
+                handler.handleRequest(proxy, request, null, proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);

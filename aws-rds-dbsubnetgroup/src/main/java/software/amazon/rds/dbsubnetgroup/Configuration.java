@@ -1,9 +1,10 @@
 package software.amazon.rds.dbsubnetgroup;
 
 
-import com.amazonaws.util.CollectionUtils;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.amazonaws.util.CollectionUtils;
 
 class Configuration extends BaseConfiguration {
 
@@ -12,11 +13,11 @@ class Configuration extends BaseConfiguration {
     }
 
     public Map<String, String> resourceDefinedTags(final ResourceModel resourceModel) {
-        if(CollectionUtils.isNullOrEmpty(resourceModel.getTags()))
+        if (CollectionUtils.isNullOrEmpty(resourceModel.getTags()))
             return null;
 
         return resourceModel.getTags()
-            .stream()
-            .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+                .stream()
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
     }
 }

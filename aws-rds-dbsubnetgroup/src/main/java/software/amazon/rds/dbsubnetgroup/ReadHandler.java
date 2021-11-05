@@ -13,29 +13,41 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Tagging;
 
 public class ReadHandler extends BaseHandlerStd {
-  protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-      final AmazonWebServicesClientProxy proxy,
-      final ResourceHandlerRequest<ResourceModel> request,
-      final CallbackContext callbackContext,
-      final ProxyClient<RdsClient> proxyClient,
-      final Logger logger) {
-    return proxy.initiate("rds::read-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
-        .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
-        .backoffDelay(CONSTANT)
-        .makeServiceCall((describeDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupRequest, proxyInvocation.client()::describeDBSubnetGroups))
-        .handleError((awsRequest, exception, client, resourceModel, context) -> handleException(exception))
-        .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, model, context) -> {
-          final DBSubnetGroup dbSubnetGroup = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get();
-          final Set<Tag> tags = translateTagsFromSdk(proxyInvocation.injectCredentialsAndInvokeV2(Translator.listTagsForResourceRequest(dbSubnetGroup.dbSubnetGroupArn()), proxyInvocation.client()::listTagsForResource).tagList());
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final Logger logger) {
+        return proxy.initiate("rds::read-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
+                .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
+                .backoffDelay(CONSTANT)
+                .makeServiceCall((describeDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupRequest, proxyInvocation.client()::describeDBSubnetGroups))
+                .handleError((awsRequest, exception, client, resourceModel, context) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, context),
+                        exception,
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET))
+                .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, model, context) -> {
+                    try {
+                        final DBSubnetGroup dbSubnetGroup = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get();
+                        final Set<Tag> tags = translateTagsFromSdk(Tagging.listTagsForResource(proxyInvocation, dbSubnetGroup.dbSubnetGroupArn()));
 
-          return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
-              .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName())
-              .dBSubnetGroupDescription(dbSubnetGroup.dbSubnetGroupDescription())
-              .subnetIds(dbSubnetGroup.subnets().stream().map(Subnet::subnetIdentifier).collect(Collectors.toList()))
-              .tags(tags)
-              .build());
-        });
+                        return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
+                                .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName())
+                                .dBSubnetGroupDescription(dbSubnetGroup.dbSubnetGroupDescription())
+                                .subnetIds(dbSubnetGroup.subnets().stream().map(Subnet::subnetIdentifier).collect(Collectors.toList()))
+                                .tags(tags)
+                                .build());
+                    } catch (Exception exception) {
+                        return Commons.handleException(
+                                ProgressEvent.progress(model, context),
+                                exception,
+                                DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET);
+                    }
+                });
     }
 }

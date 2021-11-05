@@ -1,13 +1,27 @@
 package software.amazon.rds.dbsubnetgroup;
 
-import java.security.InvalidParameterException;
-import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.services.rds.RdsClient;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
+import java.security.InvalidParameterException;
+import java.time.Duration;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
-import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
-import software.amazon.awssdk.services.rds.model.DbSubnetGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
@@ -19,27 +33,10 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.OperationStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.Duration;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
@@ -78,8 +75,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-        final RemoveTagsFromResourceResponse removeTagsFromResourceResponse = RemoveTagsFromResourceResponse.builder().build();
-        when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(removeTagsFromResourceResponse);
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
@@ -101,8 +96,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class));
         verify(proxyRdsClient.client(), times(3)).describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class));
-        verify(proxyRdsClient.client(), times(2)).listTagsForResource(any(ListTagsForResourceRequest.class));
-        verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
@@ -110,19 +104,19 @@ public class UpdateHandlerTest extends AbstractTestBase {
     public void handleRequest_SimpleSuccessNotFound() {
 
         when(proxyRdsClient.client().modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class))).thenThrow(
-            DbSubnetGroupNotFoundException.class);
+                DbSubnetGroupNotFoundException.class);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(RESOURCE_MODEL_ALTERNATIVE)
-            .logicalResourceIdentifier("dbsubnet")
-            .clientRequestToken("4b90a7e4-b791-4512-a137-0cf12a23451e")
-            .build();
+                .desiredResourceState(RESOURCE_MODEL_ALTERNATIVE)
+                .logicalResourceIdentifier("dbsubnet")
+                .clientRequestToken("4b90a7e4-b791-4512-a137-0cf12a23451e")
+                .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackContext()).isNotNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
@@ -134,12 +128,12 @@ public class UpdateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleException() {
         when(proxyRdsClient.client().modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class))).thenThrow(
-            InvalidParameterException.class
+                InvalidParameterException.class
         );
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(RESOURCE_MODEL)
-            .build();
+                .desiredResourceState(RESOURCE_MODEL)
+                .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
 

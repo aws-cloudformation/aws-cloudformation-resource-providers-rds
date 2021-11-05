@@ -1,4 +1,4 @@
-package software.amazon.rds.eventsubscription;
+package software.amazon.rds.common.handler;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -14,7 +14,7 @@ import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 
-public class AbstractTestBase {
+public class ProxyClientTestBase {
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final LoggerProxy logger;
 
@@ -22,10 +22,9 @@ public class AbstractTestBase {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
         logger = new LoggerProxy();
     }
-
     static ProxyClient<RdsClient> MOCK_PROXY(
-            final AmazonWebServicesClientProxy proxy,
-            final RdsClient rdsClient
+        final AmazonWebServicesClientProxy proxy,
+        final RdsClient rdsClient
     ) {
         return new ProxyClient<RdsClient>() {
             @Override

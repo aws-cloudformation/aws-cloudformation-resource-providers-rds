@@ -1,8 +1,24 @@
 package software.amazon.rds.eventsubscription;
 
-import com.google.common.collect.ImmutableMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import java.time.Duration;
+
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionResponse;
@@ -16,32 +32,16 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
 
     @Mock
+    RdsClient rds;
+    @Mock
     private AmazonWebServicesClientProxy proxy;
-
     @Mock
     private ProxyClient<RdsClient> proxyRdsClient;
-
-    @Mock
-    RdsClient rds;
 
     @BeforeEach
     public void setup() {
@@ -65,29 +65,29 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().createEventSubscription(any(CreateEventSubscriptionRequest.class))).thenReturn(createEventSubscriptionResponse);
 
         final DescribeEventSubscriptionsResponse describeEventSubscriptionsResponse = DescribeEventSubscriptionsResponse.builder()
-            .eventSubscriptionsList(EventSubscription.builder()
-                .enabled(true)
-                .eventCategoriesList("sampleCategory")
-                .snsTopicArn("sampleSnsArn")
-                .sourceType("sampleSourceType")
-                .sourceIdsList("sampleSourceId")
-                .status("active").build())
-            .build();
+                .eventSubscriptionsList(EventSubscription.builder()
+                        .enabled(true)
+                        .eventCategoriesList("sampleCategory")
+                        .snsTopicArn("sampleSnsArn")
+                        .sourceType("sampleSourceType")
+                        .sourceIdsList("sampleSourceId")
+                        .status("active").build())
+                .build();
         when(proxyRdsClient.client().describeEventSubscriptions(any(
-            DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
+                DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
 
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
         when(proxyRdsClient.client().listTagsForResource(any(
-            ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+                ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
         final ResourceModel model = ResourceModel.builder()
-            .build();
+                .build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(model)
-            .clientRequestToken("sampleToken")
-            .logicalResourceIdentifier("sampleResource")
-            .build();
+                .desiredResourceState(model)
+                .clientRequestToken("sampleToken")
+                .logicalResourceIdentifier("sampleResource")
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
@@ -112,30 +112,30 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().createEventSubscription(any(CreateEventSubscriptionRequest.class))).thenReturn(createEventSubscriptionResponse);
 
         final DescribeEventSubscriptionsResponse describeEventSubscriptionsResponse = DescribeEventSubscriptionsResponse.builder()
-            .eventSubscriptionsList(EventSubscription.builder()
-                .enabled(true)
-                .eventCategoriesList("sampleCategory")
-                .snsTopicArn("sampleSnsArn")
-                .sourceType("sampleSourceType")
-                .sourceIdsList("sampleSourceId")
-                .status("active").build())
-            .build();
+                .eventSubscriptionsList(EventSubscription.builder()
+                        .enabled(true)
+                        .eventCategoriesList("sampleCategory")
+                        .snsTopicArn("sampleSnsArn")
+                        .sourceType("sampleSourceType")
+                        .sourceIdsList("sampleSourceId")
+                        .status("active").build())
+                .build();
         when(proxyRdsClient.client().describeEventSubscriptions(any(
-            DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
+                DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
 
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
         when(proxyRdsClient.client().listTagsForResource(any(
-            ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+                ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
         final ResourceModel model = ResourceModel.builder().subscriptionName("subscriptionName")
-            .build();
+                .build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(model)
-            .clientRequestToken("sampleToken")
-            .desiredResourceTags(ImmutableMap.of("sampleNewKey", "sampleNewValue"))
-            .logicalResourceIdentifier("sampleResource")
-            .build();
+                .desiredResourceState(model)
+                .clientRequestToken("sampleToken")
+                .desiredResourceTags(ImmutableMap.of("sampleNewKey", "sampleNewValue"))
+                .logicalResourceIdentifier("sampleResource")
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
