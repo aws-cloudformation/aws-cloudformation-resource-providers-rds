@@ -214,7 +214,6 @@ public class Translator {
                 .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
                 .promotionTier(desiredModel.getPromotionTier())
-                .publiclyAccessible(desiredModel.getPubliclyAccessible())
                 .storageType(desiredModel.getStorageType())
                 .tdeCredentialArn(desiredModel.getTdeCredentialArn())
                 .tdeCredentialPassword(desiredModel.getTdeCredentialPassword())
