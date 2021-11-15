@@ -30,6 +30,7 @@ Resources:
                 - "rds:CreateDbInstanceReadReplica"
                 - "rds:DeleteDBInstance"
                 - "rds:DescribeDBInstances"
+                - "rds:DescribeDBSnapshots"
                 - "rds:DescribeDbEngineVersions"
                 - "rds:DescribeDbParameterGroups"
                 - "rds:ModifyDBInstance"
