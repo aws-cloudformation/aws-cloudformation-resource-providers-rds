@@ -1,9 +1,11 @@
 package software.amazon.rds.dbinstance;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,6 +20,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAutomatedBackupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
@@ -30,6 +33,7 @@ import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
@@ -69,6 +73,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String DB_INSTANCE_FAILED_TO_STABILIZE = "DBInstance %s failed to stabilize.";
     protected static final String DB_INSTANCE_ROLE_FAILED_TO_STABILIZE = "DBInstance %s role failed to stabilize.";
+
+    protected static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
+            "sqlserver-ee",
+            "sqlserver-se"
+    );
 
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
 
@@ -288,6 +297,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 rdsProxyClient.client()::describeDBInstances
         );
         return response.dbInstances().stream().findFirst().get();
+    }
+
+    protected DBSnapshot fetchDBSnapshot(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbSnapshotsRequest(model),
+                rdsProxyClient.client()::describeDBSnapshots
+        );
+        return response.dbSnapshots().stream().findFirst().get();
     }
 
     protected SecurityGroup fetchSecurityGroup(

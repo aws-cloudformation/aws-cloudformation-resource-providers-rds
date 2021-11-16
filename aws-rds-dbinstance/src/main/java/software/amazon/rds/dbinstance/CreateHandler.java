@@ -10,12 +10,12 @@ import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
@@ -115,10 +115,21 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        if (resourceModel.getMultiAZ() == null) {
+            try {
+                final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient, resourceModel);
+                final String engine = snapshot.engine();
+                resourceModel.setMultiAZ(getDefaultMultiAzForEngine(engine));
+            } catch (Exception e) {
+                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+            }
+        }
+
         return proxy.initiate(
                 "rds::restore-db-instance-from-snapshot",
                 rdsProxyClient,
-                progress.getResourceModel(),
+                resourceModel,
                 progress.getCallbackContext()
         ).translateToServiceRequest(Translator::restoreDbInstanceFromSnapshotRequest)
                 .backoffDelay(config.getBackoff())
@@ -212,5 +223,12 @@ public class CreateHandler extends BaseHandlerStd {
 
     private boolean isCertificateAuthorityApplied(final ResourceModel model) {
         return StringUtils.hasValue(model.getCACertificateIdentifier());
+    }
+
+    private Boolean getDefaultMultiAzForEngine(final String engine) {
+        if (SQLSERVER_ENGINES_WITH_MIRRORING.contains(engine)) {
+            return null;
+        }
+        return false;
     }
 }
