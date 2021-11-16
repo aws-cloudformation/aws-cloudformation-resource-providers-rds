@@ -2,6 +2,8 @@ package software.amazon.rds.dbinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -114,6 +116,32 @@ class TranslatorTest extends AbstractHandlerTest {
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_setUseDefaultProcessorFeatures() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .useDefaultProcessorFeatures(false)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .useDefaultProcessorFeatures(true)
+                .build();
+        final Boolean isRollback = false;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.useDefaultProcessorFeatures()).isTrue();
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_setProcessorFeatures() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .processorFeatures(Arrays.asList(PROCESSOR_FEATURE, ProcessorFeature.builder().build()))
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .processorFeatures(Arrays.asList(PROCESSOR_FEATURE))
+                .build();
+        final Boolean isRollback = false;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.processorFeatures()).hasSameElementsAs(Translator.translateProcessorFeaturesToSdk(Arrays.asList(PROCESSOR_FEATURE)));
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -205,13 +206,11 @@ public class Translator {
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
                 .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
-                .processorFeatures(translateProcessorFeaturesToSdk(desiredModel.getProcessorFeatures()))
                 .promotionTier(desiredModel.getPromotionTier())
                 .publiclyAccessible(desiredModel.getPubliclyAccessible())
                 .storageType(desiredModel.getStorageType())
                 .tdeCredentialArn(desiredModel.getTdeCredentialArn())
                 .tdeCredentialPassword(desiredModel.getTdeCredentialPassword())
-                .useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(desiredModel.getVPCSecurityGroups());
 
         // An attempt to "move" an instance to the same db subnet will cause a
@@ -239,6 +238,11 @@ public class Translator {
         } else {
             builder.allocatedStorage(getAllocatedStorage(desiredModel));
             builder.iops(desiredModel.getIops());
+        }
+
+        if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
+            builder.processorFeatures(translateProcessorFeaturesToSdk(desiredModel.getProcessorFeatures()));
+            builder.useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures());
         }
 
         return builder.build();
@@ -583,5 +587,11 @@ public class Translator {
 
     private static boolean canUpdateIops(final Integer fromIops, final Integer toIops) {
         return fromIops == null || toIops == null || toIops >= fromIops;
+    }
+
+    private static boolean shouldSetProcessorFeatures(final ResourceModel previousModel, final ResourceModel desiredModel) {
+        return previousModel != null && desiredModel != null &&
+                (!Objects.deepEquals(previousModel.getProcessorFeatures(), desiredModel.getProcessorFeatures()) ||
+                        !Objects.equals(previousModel.getUseDefaultProcessorFeatures(), desiredModel.getUseDefaultProcessorFeatures()));
     }
 }
