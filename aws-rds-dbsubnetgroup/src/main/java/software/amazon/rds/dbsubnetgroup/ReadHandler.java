@@ -1,13 +1,10 @@
 package software.amazon.rds.dbsubnetgroup;
 
-import static software.amazon.rds.dbsubnetgroup.Translator.translateTagsFromSdk;
-
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
-import software.amazon.awssdk.services.rds.model.Subnet;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -22,7 +19,8 @@ public class ReadHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final Logger logger
+    ) {
         return proxy.initiate("rds::read-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
                 .backoffDelay(CONSTANT)
@@ -34,14 +32,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, model, context) -> {
                     try {
                         final DBSubnetGroup dbSubnetGroup = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get();
-                        final Set<Tag> tags = translateTagsFromSdk(Tagging.listTagsForResource(proxyInvocation, dbSubnetGroup.dbSubnetGroupArn()));
-
-                        return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
-                                .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName())
-                                .dBSubnetGroupDescription(dbSubnetGroup.dbSubnetGroupDescription())
-                                .subnetIds(dbSubnetGroup.subnets().stream().map(Subnet::subnetIdentifier).collect(Collectors.toList()))
-                                .tags(tags)
-                                .build());
+                        Set<Tag> rdsTags = Tagging.listTagsForResource(proxyInvocation, dbSubnetGroup.dbSubnetGroupArn());
+                        return Translator.translateToModel(dbSubnetGroup, rdsTags);
                     } catch (Exception exception) {
                         return Commons.handleException(
                                 ProgressEvent.progress(model, context),
