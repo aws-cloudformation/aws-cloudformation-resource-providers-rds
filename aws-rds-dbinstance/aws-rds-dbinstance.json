@@ -439,6 +439,7 @@
         "rds:CreateDBInstance",
         "rds:CreateDbInstanceReadReplica",
         "rds:DescribeDBInstances",
+        "rds:DescribeDBSnapshots",
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",
         "rds:RestoreDbInstanceFromDbSnapshot"

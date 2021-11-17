@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
@@ -44,6 +45,12 @@ public class Translator {
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final String nextToken) {
         return DescribeDbInstancesRequest.builder()
                 .marker(nextToken)
+                .build();
+    }
+
+    public static DescribeDbSnapshotsRequest describeDbSnapshotsRequest(final ResourceModel model) {
+        return DescribeDbSnapshotsRequest.builder()
+                .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .build();
     }
 
