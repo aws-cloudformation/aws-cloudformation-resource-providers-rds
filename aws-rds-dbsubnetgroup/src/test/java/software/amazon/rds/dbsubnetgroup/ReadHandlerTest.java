@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -64,7 +65,9 @@ public class ReadHandlerTest extends AbstractTestBase {
 
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
         when(proxyRdsClient.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class))).thenReturn(describeActiveDbSubnetGroupsResponse);
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+                .tagList(Tag.builder().key("key").value("value").build())
+                .build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

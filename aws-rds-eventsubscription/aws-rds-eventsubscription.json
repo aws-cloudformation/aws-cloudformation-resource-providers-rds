@@ -28,10 +28,10 @@
   },
   "properties": {
     "Tags": {
-      "description": "The list of tags for the cluster parameter group.",
+      "description": "An array of key-value pairs to apply to this resource.",
       "type": "array",
       "maxItems": 50,
-      "uniqueItems": true,
+      "uniqueItems": false,
       "insertionOrder": false,
       "items": {
         "$ref": "#/definitions/Tag"

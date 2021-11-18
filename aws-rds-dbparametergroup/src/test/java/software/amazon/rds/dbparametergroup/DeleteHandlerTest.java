@@ -20,8 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -78,7 +78,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessNotFound() {
-        final DeleteDbParameterGroupResponse deleteDBParameterGroupResponse = DeleteDbParameterGroupResponse.builder().build();
         when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class)))
                 .thenThrow(DbParameterGroupNotFoundException.class);
 
@@ -91,7 +90,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();

@@ -4,7 +4,7 @@ public enum ParameterType {
     Static("static"),
     Dynamic("dynamic");
 
-    private String value;
+    private final String value;
 
     ParameterType(String value) {
         this.value = value;

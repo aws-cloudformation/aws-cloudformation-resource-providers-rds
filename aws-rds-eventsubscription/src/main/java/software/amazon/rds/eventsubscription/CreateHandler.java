@@ -41,7 +41,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .makeServiceCall((createEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createEventSubscriptionRequest, proxyInvocation.client()::createEventSubscription))
                 .stabilize((createEventSubscriptionRequest, createEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))
-                .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                .handleError((createRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))

@@ -42,7 +42,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .makeServiceCall((modifyEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyEventSubscriptionRequest, proxyInvocation.client()::modifyEventSubscription))
                 .stabilize((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))
-                .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))

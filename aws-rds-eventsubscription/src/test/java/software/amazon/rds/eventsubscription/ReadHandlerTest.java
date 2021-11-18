@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRespo
 import software.amazon.awssdk.services.rds.model.EventSubscription;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -71,7 +72,9 @@ public class ReadHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().describeEventSubscriptions(any(
                 DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+                .tagList(Tag.builder().key("key").value("value").build())
+                .build();
         when(proxyRdsClient.client().listTagsForResource(any(
                 ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
