@@ -48,6 +48,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
@@ -75,6 +76,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     @Getter
     private CreateHandler handler;
 
+    private boolean expectServiceInvocation;
+
     @BeforeEach
     public void setup() {
         handler = new CreateHandler(
@@ -88,11 +91,14 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ec2Client = mock(Ec2Client.class);
         rdsProxy = MOCK_PROXY(proxy, rdsClient);
         ec2Proxy = MOCK_PROXY(proxy, ec2Client);
+        expectServiceInvocation = true;
     }
 
     @AfterEach
     public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+        if (expectServiceInvocation) {
+            verify(rdsClient, atLeastOnce()).serviceName();
+        }
         verifyNoMoreInteractions(rdsClient);
         verifyNoMoreInteractions(ec2Client);
     }
@@ -890,5 +896,20 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateClusterDBInstance_SnapshotRequested() {
+        expectServiceInvocation = false;
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().snapshotRequested(true),
+                null,
+                null,
+                () -> RESOURCE_MODEL_BLDR()
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
     }
 }

@@ -10,6 +10,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
+import software.amazon.rds.common.handler.Commons;
 
 
 public class CreateHandler extends BaseHandlerStd {
@@ -20,7 +21,7 @@ public class CreateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
-
+        setLogger(logger);
         final ResourceModel model = request.getDesiredResourceState();
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
@@ -38,7 +39,11 @@ public class CreateHandler extends BaseHandlerStd {
                         .backoffDelay(CONSTANT)
                         .makeServiceCall((createDBParameterGroupRequest, proxyInvocation) ->
                                 proxyInvocation.injectCredentialsAndInvokeV2(createDBParameterGroupRequest, proxyInvocation.client()::createDBParameterGroup))
-                        .handleError((createDBParameterGroupRequest, exception, client, resourceModel, ctx) -> handleException(exception))
+                        .handleError((createDBParameterGroupRequest, exception, client, resourceModel, ctx) ->
+                                Commons.handleException(
+                                        ProgressEvent.progress(resourceModel, ctx),
+                                        exception,
+                                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
                         .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context)))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
