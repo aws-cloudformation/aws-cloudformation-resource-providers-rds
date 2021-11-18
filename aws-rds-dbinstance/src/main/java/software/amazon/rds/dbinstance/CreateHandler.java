@@ -6,12 +6,15 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.lang3.BooleanUtils;
+
 import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -20,6 +23,8 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 public class CreateHandler extends BaseHandlerStd {
+
+    public static final String ILLEGAL_DELETION_POLICY_ERR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
 
     public CreateHandler() {
         this(HandlerConfig.builder().probingEnabled(true).build());
@@ -39,6 +44,10 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
+
+        if (BooleanUtils.isTrue(request.getSnapshotRequested()) && StringUtils.hasValue(model.getDBClusterIdentifier())) {
+            return ProgressEvent.failed(model, callbackContext, HandlerErrorCode.InvalidRequest, ILLEGAL_DELETION_POLICY_ERR);
+        }
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
             model.setDBInstanceIdentifier(generateResourceIdentifier(
