@@ -22,12 +22,14 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -49,6 +51,15 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
+        if (ImmutabilityHelper.isChangeImmutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+            return ProgressEvent.failed(
+                    request.getDesiredResourceState(),
+                    callbackContext,
+                    HandlerErrorCode.NotUpdatable,
+                    "Resource is immutable"
+            );
+        }
+
         final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
                 mergeMaps(Arrays.asList(
                         request.getPreviousSystemTags(),
