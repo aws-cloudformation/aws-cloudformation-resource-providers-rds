@@ -5,6 +5,7 @@ import software.amazon.awssdk.utils.StringUtils;
 public enum ErrorCode {
     AccessDeniedException("AccessDeniedException"),
     ClientUnavailable("ClientUnavailable"),
+    DBClusterAlreadyExistsFault("DBClusterAlreadyExistsFault"),
     DBInstanceAlreadyExists("DBInstanceAlreadyExists"),
     DBInstanceNotFound("DBInstanceNotFound"),
     DBParameterGroupNotFound("DBParameterGroupNotFound"),

@@ -1,74 +1,180 @@
 package software.amazon.rds.dbcluster;
 
+import java.util.Map;
+import java.util.Optional;
+
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 
 public class CreateHandler extends BaseHandlerStd {
 
-    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
-                                                                          final ResourceHandlerRequest<ResourceModel> request,
-                                                                          final CallbackContext callbackContext,
-                                                                          final ProxyClient<RdsClient> proxyClient,
-                                                                          final Logger logger) {
+    public CreateHandler() {
+        this(HandlerConfig.builder().probingEnabled(true).build());
+    }
+
+    public CreateHandler(final HandlerConfig config) {
+        super(config);
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final Logger logger
+    ) {
         ResourceModel model = request.getDesiredResourceState();
-        // setting up primary id if not there yet
-        if (StringUtils.isNullOrEmpty(model.getDBClusterIdentifier()))
-            model.setDBClusterIdentifier(IdentifierUtils.generateResourceIdentifier(request.getLogicalResourceIdentifier(), request.getClientRequestToken(), DBCLUSTER_ID_MAX_LENGTH).toLowerCase());
+        if (StringUtils.isNullOrEmpty(model.getDBClusterIdentifier())) {
+            model.setDBClusterIdentifier(
+                    IdentifierUtils.generateResourceIdentifier(
+                            Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
+                            Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
+                            request.getClientRequestToken(),
+                            RESOURCE_ID_MAX_LENGTH
+                    ).toLowerCase()
+            );
+        }
+
+        final Map<String, String> tags = Tagging.mergeTags(
+                request.getSystemTags(),
+                request.getDesiredResourceTags()
+        );
+        model.setTags(Translator.translateTagsFromRequest(tags));
 
         return ProgressEvent.progress(model, callbackContext)
-            // Create or Restore DBCluster depends on the set of inputs
-            .then(progress -> {
-                if (!StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBClusterIdentifier())) {
-                    // restore to point in time
-                    return proxy.initiate("rds::restore-dbcluster-in-time", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                        .translateToServiceRequest(Translator::restoreDbClusterToPointInTimeRequest)
-                        .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterToPointInTime))
-                        .progress();
-                }
-                return progress;
-            })
-            .then(progress -> {
-                if (!StringUtils.isNullOrEmpty(progress.getResourceModel().getSnapshotIdentifier()) &&
-                    StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBClusterIdentifier())) {
-                    // restore from snapshot
-                    return proxy.initiate("rds::restore-dbcluster-snapshot", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                        .translateToServiceRequest(Translator::restoreDbClusterFromSnapshotRequest)
-                        .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::restoreDBClusterFromSnapshot))
-                        .progress();
-                }
-                return progress;
-            })
-            .then(progress -> {
-                if(StringUtils.isNullOrEmpty(progress.getResourceModel().getSnapshotIdentifier()) &&
-                    StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBClusterIdentifier())) {
-                    // regular create dbcluster
-                    return proxy
-                        .initiate("rds::create-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                        .translateToServiceRequest(Translator::createDbClusterRequest)
-                        .backoffDelay(BACKOFF_STRATEGY)
-                        .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterRequest, proxyInvocation.client()::createDBCluster))
-                        .progress();
-                }
-                return progress;
-            })
-            .then(progress -> waitForDBClusterAvailableStatus(proxy, proxyClient, progress))
-            .then(progress -> {
-                // check if db cluster was restored and needs post-restore update
-                if (!StringUtils.isNullOrEmpty(progress.getResourceModel().getSnapshotIdentifier()))
-                    return modifyDBCluster(proxy, proxyClient, progress, CloudwatchLogsExportConfiguration.builder().build());
-                return progress;
-            })
-            .then(progress -> waitForDBClusterAvailableStatus(proxy, proxyClient, progress))
-            .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
-            .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> {
+                    if (isRestoreToPointInTime(model)) {
+                        return restoreDbClusterToPointInTime(proxy, proxyClient, progress);
+                    } else if (isRestoreFromSnapshot(model)) {
+                        return restoreDbClusterFromSnapshot(proxy, proxyClient, progress);
+                    }
+                    return createDbCluster(proxy, proxyClient, progress);
+                })
+                .then(progress -> {
+                    if (shouldUpdateAfterCreate(progress.getResourceModel())) {
+                        return Commons.execOnce(
+                                progress,
+                                () -> modifyDBCluster(proxy, proxyClient, progress),
+                                CallbackContext::isModified,
+                                CallbackContext::setModified
+                        );
+                    }
+                    return progress;
+                })
+                .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> createDbCluster(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::create-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::createDbClusterRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        dbClusterRequest,
+                        proxyInvocation.client()::createDBCluster
+                ))
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
+                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                })
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> restoreDbClusterToPointInTime(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::restore-dbcluster-to-point-in-time", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::restoreDbClusterToPointInTimeRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        dbClusterRequest,
+                        proxyInvocation.client()::restoreDBClusterToPointInTime
+                ))
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
+                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                })
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> restoreDbClusterFromSnapshot(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::restore-dbcluster-from-snapshot", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::restoreDbClusterFromSnapshotRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        dbClusterRequest,
+                        proxyInvocation.client()::restoreDBClusterFromSnapshot
+                ))
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
+                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                })
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> modifyDBCluster(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::modifyDbClusterRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        dbClusterModifyRequest,
+                        proxyInvocation.client()::modifyDBCluster
+                ))
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
+                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                })
+                .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, callbackCtxt),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private boolean isRestoreToPointInTime(final ResourceModel model) {
+        return StringUtils.hasValue(model.getSourceDBClusterIdentifier());
+    }
+
+    private boolean isRestoreFromSnapshot(final ResourceModel model) {
+        return StringUtils.hasValue(model.getSnapshotIdentifier());
+    }
+
+    private boolean shouldUpdateAfterCreate(final ResourceModel model) {
+        return isRestoreFromSnapshot(model);
     }
 }

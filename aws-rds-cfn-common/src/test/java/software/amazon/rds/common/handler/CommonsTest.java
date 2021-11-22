@@ -2,6 +2,8 @@ package software.amazon.rds.common.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.Test;
 
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -106,6 +108,45 @@ public class CommonsTest {
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
         assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
+    }
+
+    @Test
+    public void execOnce_invoke() {
+        AtomicReference<Boolean> flag = new AtomicReference<>(false);
+        AtomicReference<Boolean> invokedOnce = new AtomicReference<>(false);
+        ProgressEvent<Void, Void> progress = ProgressEvent.progress(null, null);
+        Commons.execOnce(
+                progress,
+                new ProgressEventLambda<Void, Void>() {
+                    @Override
+                    public ProgressEvent<Void, Void> enact() {
+                        invokedOnce.set(true);
+                        return progress;
+                    }
+                },
+                c -> flag.get(),
+                (c, v) -> flag.set(v));
+        assertThat(flag.get()).isTrue();
+        assertThat(invokedOnce.get()).isTrue();
+    }
+
+    @Test
+    public void execOnce_skip() {
+        AtomicReference<Boolean> invokedOnce = new AtomicReference<>(false);
+        ProgressEvent<Void, Void> progress = ProgressEvent.progress(null, null);
+        Commons.execOnce(
+                progress,
+                new ProgressEventLambda<Void, Void>() {
+                    @Override
+                    public ProgressEvent<Void, Void> enact() {
+                        invokedOnce.set(true);
+                        return progress;
+                    }
+                },
+                c -> true,
+                (c, v) -> {
+                });
+        assertThat(invokedOnce.get()).isFalse();
     }
 
     private AwsServiceException newAwsServiceException(final ErrorCode errorCode) {

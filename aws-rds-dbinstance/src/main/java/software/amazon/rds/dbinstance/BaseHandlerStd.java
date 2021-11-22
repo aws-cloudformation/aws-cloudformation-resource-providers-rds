@@ -59,8 +59,6 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.dbinstance.util.ProgressEventLambda;
-import software.amazon.rds.dbinstance.util.VoidBiFunction;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -547,21 +545,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             }
         }
         return result;
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> execOnce(
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final ProgressEventLambda func,
-            final Function<CallbackContext, Boolean> conditionGetter,
-            final VoidBiFunction<CallbackContext, Boolean> conditionSetter
-    ) {
-        if (!conditionGetter.apply(progress.getCallbackContext())) {
-            return func.enact().then(p -> {
-                conditionSetter.apply(p.getCallbackContext(), true);
-                return p;
-            });
-        }
-        return progress;
     }
 
     public String generateResourceIdentifier(

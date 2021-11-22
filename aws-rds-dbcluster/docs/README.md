@@ -12,11 +12,14 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "AWS::RDS::DBCluster",
     "Properties" : {
+        "<a href="#readendpoint" title="ReadEndpoint">ReadEndpoint</a>" : <i><a href="readendpoint.md">ReadEndpoint</a></i>,
         "<a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>" : <i>[ <a href="dbclusterrole.md">DBClusterRole</a>, ... ]</i>,
         "<a href="#availabilityzones" title="AvailabilityZones">AvailabilityZones</a>" : <i>[ String, ... ]</i>,
         "<a href="#backtrackwindow" title="BacktrackWindow">BacktrackWindow</a>" : <i>Integer</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
+        "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
         "<a href="#databasename" title="DatabaseName">DatabaseName</a>" : <i>String</i>,
+        "<a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>" : <i>String</i>,
         "<a href="#dbsubnetgroupname" title="DBSubnetGroupName">DBSubnetGroupName</a>" : <i>String</i>,
@@ -52,13 +55,16 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::RDS::DBCluster
 Properties:
+    <a href="#readendpoint" title="ReadEndpoint">ReadEndpoint</a>: <i><a href="readendpoint.md">ReadEndpoint</a></i>
     <a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>: <i>
       - <a href="dbclusterrole.md">DBClusterRole</a></i>
     <a href="#availabilityzones" title="AvailabilityZones">AvailabilityZones</a>: <i>
       - String</i>
     <a href="#backtrackwindow" title="BacktrackWindow">BacktrackWindow</a>: <i>Integer</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
+    <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
     <a href="#databasename" title="DatabaseName">DatabaseName</a>: <i>String</i>
+    <a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>: <i>String</i>
     <a href="#dbsubnetgroupname" title="DBSubnetGroupName">DBSubnetGroupName</a>: <i>String</i>
@@ -91,6 +97,14 @@ Properties:
 </pre>
 
 ## Properties
+
+#### ReadEndpoint
+
+_Required_: No
+
+_Type_: <a href="readendpoint.md">ReadEndpoint</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### AssociatedRoles
 
@@ -132,6 +146,16 @@ _Type_: Integer
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### CopyTagsToSnapshot
+
+A value that indicates whether to copy all tags from the DB cluster to snapshots of the DB cluster. The default is not to copy them.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### DatabaseName
 
 The name of your database. If you don't provide a name, then Amazon RDS won't create a database in this DB cluster. For naming constraints, see Naming Constraints in the Amazon RDS User Guide.
@@ -142,6 +166,24 @@ _Type_: String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
+#### GlobalClusterIdentifier
+
+If you are configuring an Aurora global database cluster and want your Aurora DB cluster to be a secondary member in the global database cluster, specify the global cluster ID of the global database cluster. To define the primary database cluster of the global cluster, use the AWS::RDS::GlobalCluster resource.
+
+If you aren't configuring a global database cluster, don't specify this property.
+
+_Required_: No
+
+_Type_: String
+
+_Minimum_: <code>1</code>
+
+_Maximum_: <code>63</code>
+
+_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### DBClusterIdentifier
 
 The DB cluster identifier. This parameter is stored as a lowercase string.
@@ -149,6 +191,10 @@ The DB cluster identifier. This parameter is stored as a lowercase string.
 _Required_: No
 
 _Type_: String
+
+_Minimum_: <code>1</code>
+
+_Maximum_: <code>63</code>
 
 _Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
 
@@ -224,7 +270,7 @@ _Type_: String
 
 _Allowed Values_: <code>aurora</code> | <code>aurora-mysql</code> | <code>aurora-postgres</code>
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### EngineMode
 
@@ -246,7 +292,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### KmsKeyId
 
@@ -265,6 +311,10 @@ The name of the master user for the DB cluster. You must specify MasterUsername,
 _Required_: No
 
 _Type_: String
+
+_Minimum_: <code>1</code>
+
+_Maximum_: <code>16</code>
 
 _Pattern_: <code>^[a-zA-Z]{1}[a-zA-Z0-9]{0,15}$</code>
 
@@ -433,6 +483,18 @@ For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::G
 
 Returns the <code>Endpoint</code> value.
 
-#### ReadEndpoint
+#### Address
 
-Returns the <code>ReadEndpoint</code> value.
+Returns the <code>Address</code> value.
+
+#### Port
+
+Returns the <code>Port</code> value.
+
+#### Port
+
+Returns the <code>Port</code> value.
+
+#### Address
+
+Returns the <code>Address</code> value.
