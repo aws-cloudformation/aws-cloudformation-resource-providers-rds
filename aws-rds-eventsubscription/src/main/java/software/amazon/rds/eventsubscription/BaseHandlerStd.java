@@ -101,8 +101,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     final String arn = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get().eventSubscriptionArn();
                     return Tagging.updateTags(
                             proxyInvocation,
-                            arn,
                             ProgressEvent.progress(resourceModel, context),
+                            arn,
                             previousTags,
                             desiredTags,
                             DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
