@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
@@ -13,7 +14,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
@@ -21,6 +21,7 @@ public class DeleteHandler extends BaseHandlerStd {
 
     private static final String SNAPSHOT_PREFIX = "Snapshot-";
     private static final int SNAPSHOT_MAX_LENGTH = 255;
+    private static final String DB_INSTANCE_IS_BEING_DELETED_ERR = "is already being deleted";
 
     public DeleteHandler() {
         this(HandlerConfig.builder().probingEnabled(true).build());
@@ -62,10 +63,17 @@ public class DeleteHandler extends BaseHandlerStd {
                     if (callbackContext.isDeleted()) {
                         return callbackContext.response("rds::delete-db-instance");
                     }
-                    final DeleteDbInstanceResponse response = proxyInvocation.injectCredentialsAndInvokeV2(
-                            deleteRequest,
-                            proxyInvocation.client()::deleteDBInstance
-                    );
+                    DeleteDbInstanceResponse response = null;
+                    try {
+                        response = proxyInvocation.injectCredentialsAndInvokeV2(
+                                deleteRequest,
+                                proxyInvocation.client()::deleteDBInstance
+                        );
+                    } catch (Exception exception) {
+                        if (!isDbInstanceDeletingException(exception)) {
+                            throw exception;
+                        }
+                    }
                     callbackContext.setDeleted(true);
                     return response;
                 })
@@ -76,5 +84,12 @@ public class DeleteHandler extends BaseHandlerStd {
                         DELETE_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
+    }
+
+    private boolean isDbInstanceDeletingException(final Exception exception) {
+        if (exception instanceof AwsServiceException) {
+            return Optional.ofNullable(exception.getMessage()).orElse("").contains(DB_INSTANCE_IS_BEING_DELETED_ERR);
+        }
+        return false;
     }
 }
