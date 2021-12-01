@@ -435,6 +435,7 @@
   "handlers": {
     "create": {
       "permissions": [
+        "iam:PassRole",
         "rds:AddRoleToDBInstance",
         "rds:CreateDBInstance",
         "rds:CreateDbInstanceReadReplica",
@@ -452,6 +453,7 @@
     },
     "update": {
       "permissions": [
+        "iam:PassRole",
         "rds:AddRoleToDBInstance",
         "rds:AddTagsToResource",
         "rds:DescribeDbEngineVersions",
