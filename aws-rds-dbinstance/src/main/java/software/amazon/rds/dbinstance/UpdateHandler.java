@@ -51,7 +51,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
-        if (ImmutabilityHelper.isChangeImmutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
             return ProgressEvent.failed(
                     request.getDesiredResourceState(),
                     callbackContext,

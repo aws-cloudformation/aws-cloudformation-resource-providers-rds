@@ -69,7 +69,7 @@ class ImmutabilityHelperTest {
     }
 
     @Test
-    public void test_isAZMutable() {
+    public void test_isPerformanceInsightsKMSKeyIdMutable() {
         final List<ResourceModelTestCase> tests = Arrays.asList(
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().build())
@@ -77,86 +77,52 @@ class ImmutabilityHelperTest {
                         .expect(true)
                         .build(),
                 ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().availabilityZone("multi-az").build())
-                        .desired(ResourceModel.builder().availabilityZone("multi-az").build())
-                        .expect(true)
-                        .build(),
-                ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().availabilityZone("foo").build())
-                        .desired(ResourceModel.builder().multiAZ(true).build())
-                        .expect(true)
-                        .build(),
-                ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().availabilityZone("foo").build())
-                        .desired(ResourceModel.builder().multiAZ(false).build())
+                        .previous(ResourceModel.builder().performanceInsightsKMSKeyId("key-1").build())
+                        .desired(ResourceModel.builder().build())
                         .expect(false)
                         .build(),
                 ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().build())
-                        .desired(ResourceModel.builder().multiAZ(true).availabilityZone("multi-az").build())
+                        .previous(ResourceModel.builder().performanceInsightsKMSKeyId("key-1").build())
+                        .desired(ResourceModel.builder().performanceInsightsKMSKeyId("key-2").build())
                         .expect(false)
-                        .build()
-        );
-        for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isAZMutable(test.previous, test.desired)).isEqualTo(test.expect);
-        }
-    }
-
-    @Test
-    public void test_isPerformanceInsightsMutable() {
-        final List<ResourceModelTestCase> tests = Arrays.asList(
-                ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().build())
-                        .desired(ResourceModel.builder().build())
-                        .expect(true)
                         .build(),
                 ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().enablePerformanceInsights(false).build())
-                        .desired(ResourceModel.builder().build())
-                        .expect(true)
-                        .build(),
-                ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().enablePerformanceInsights(true).build())
-                        .desired(ResourceModel.builder().enablePerformanceInsights(false).build())
-                        .expect(true)
-                        .build(),
-                ResourceModelTestCase.builder()
-                        .previous(ResourceModel.builder().enablePerformanceInsights(true).build())
-                        .desired(ResourceModel.builder().enablePerformanceInsights(true).build())
+                        .previous(ResourceModel.builder().performanceInsightsKMSKeyId("key-1").build())
+                        .desired(ResourceModel.builder().performanceInsightsKMSKeyId("key-1").build())
                         .expect(true)
                         .build()
         );
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isPerformanceInsightsMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isPerformanceInsightsKMSKeyIdMutable(test.previous, test.desired)).isEqualTo(test.expect);
         }
     }
 
     @Test
-    public void test_isChangeImmutable() {
+    public void test_isEngineMutable() {
         final List<ResourceModelTestCase> tests = Arrays.asList(
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().engine("mysql").build())
                         .desired(ResourceModel.builder().engine("mysql").build())
-                        .expect(false)
+                        .expect(true)
                         .build(),
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().engine("aurora").build())
                         .desired(ResourceModel.builder().engine("aurora-mysql").build())
-                        .expect(false)
+                        .expect(true)
                         .build(),
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().engine("aurora").build())
                         .desired(ResourceModel.builder().engine("aurora-postgres").build())
-                        .expect(true)
+                        .expect(false)
                         .build(),
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().engine("oracle-se").build())
                         .desired(ResourceModel.builder().engine("oracle-se2").build())
-                        .expect(false)
+                        .expect(true)
                         .build()
         );
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeImmutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
         }
     }
 }
