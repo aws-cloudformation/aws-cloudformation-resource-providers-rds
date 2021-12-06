@@ -3,8 +3,6 @@ package software.amazon.rds.dbinstance.util;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-
 import com.google.common.base.Objects;
 import software.amazon.rds.dbinstance.ResourceModel;
 
@@ -35,31 +33,18 @@ public final class ImmutabilityHelper {
                 desired.getEngine().equals(AURORA_MYSQL);
     }
 
-    static boolean isAZMutable(final ResourceModel previous, final ResourceModel desired) {
-        return Objects.equal(desired.getAvailabilityZone(), previous.getAvailabilityZone()) ||
-                desired.getAvailabilityZone() == null &&
-                        Boolean.TRUE.equals(desired.getMultiAZ());
-    }
-
-    static boolean isPerformanceInsightsMutable(final ResourceModel previous, final ResourceModel desired) {
-        return previous.getEnablePerformanceInsights() == null ||
-                !previous.getEnablePerformanceInsights() ||
-                !desired.getEnablePerformanceInsights() ||
-                Objects.equal(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId());
-    }
-
-    public static boolean isChangeImmutable(
-            final ResourceModel previous,
-            final ResourceModel desired
-    ) {
-        final boolean isEngineMutable = Objects.equal(previous.getEngine(), desired.getEngine()) ||
+    static boolean isEngineMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getEngine(), desired.getEngine()) ||
                 isUpgradeToAuroraMySQL(previous, desired) ||
                 isUpgradeToOracleSE2(previous, desired);
-        final boolean isPerformanceInsightsKMSKeyIdMutable = isPerformanceInsightsMutable(previous, desired);
-        final boolean isAZMutable = isAZMutable(previous, desired);
+    }
 
-        final boolean isMutable = isAZMutable && isEngineMutable && isPerformanceInsightsKMSKeyIdMutable;
+    static boolean isPerformanceInsightsKMSKeyIdMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId());
+    }
 
-        return !isMutable;
+    public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
+        return isEngineMutable(previous, desired) &&
+                isPerformanceInsightsKMSKeyIdMutable(previous, desired);
     }
 }
