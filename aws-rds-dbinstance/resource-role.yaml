@@ -24,6 +24,7 @@ Resources:
               - Effect: Allow
                 Action:
                 - "ec2:DescribeSecurityGroups"
+                - "iam:PassRole"
                 - "rds:AddRoleToDBInstance"
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBInstance"
