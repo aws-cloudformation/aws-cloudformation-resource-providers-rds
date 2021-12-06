@@ -136,6 +136,7 @@ public class Translator {
                 .availabilityZone(model.getAvailabilityZone())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .characterSetName(model.getCharacterSetName())
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
