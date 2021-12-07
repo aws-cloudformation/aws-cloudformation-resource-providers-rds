@@ -110,7 +110,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String LICENSE_MODEL_GENERAL_PUBLIC_LICENSE = "general-public-license";
     protected static final String MASTER_USERNAME = "master-username";
     protected static final String MASTER_USER_PASSWORD = "xxx";
-    protected static final Integer MAX_ALLOCATED_STORAGE_DEFAULT = 42;
+    protected static final Integer MAX_ALLOCATED_STORAGE_DEFAULT = 1000;
     protected static final Integer MONITORING_INTERVAL_DEFAULT = 0;
     protected static final String MONITORING_ROLE_ARN = "monitoring-role-arn";
     protected static final Boolean MULTI_AZ_YES = true;
