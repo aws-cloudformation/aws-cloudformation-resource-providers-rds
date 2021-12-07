@@ -89,6 +89,12 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
+                .then(progress -> {
+                    if (shouldUnsetMaxAllocatedStorage(request)) {
+                        return unsetMaxAllocatedStorage(rdsProxyClient, request, progress);
+                    }
+                    return progress;
+                })
                 .then(progress -> ensureEngineSet(rdsProxyClient, progress))
                 .then(progress -> execOnce(progress, () ->
                                 updateDbInstance(proxy, request, rdsProxyClient, progress),
@@ -165,6 +171,23 @@ public class UpdateHandler extends BaseHandlerStd {
                 .progress();
     }
 
+    private ProgressEvent<ResourceModel, CallbackContext> unsetMaxAllocatedStorage(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
+            ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        // In order to disable an instance autoscaling, `MaxAllocatedStorage` property has to be unset.
+        // The only way to unset `MaxAllocatedStorage` is to set it to `AllocatedStorage` value upon an update.
+        // https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling
+        try {
+            final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
+            request.getDesiredResourceState().setMaxAllocatedStorage(dbInstance.allocatedStorage());
+        } catch (Exception exception) {
+            return Commons.handleException(progress, exception, MODIFY_DB_INSTANCE_ERROR_RULE_SET);
+        }
+        return progress;
+    }
+
     private ProgressEvent<ResourceModel, CallbackContext> setParameterGroupName(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
@@ -206,6 +229,12 @@ public class UpdateHandler extends BaseHandlerStd {
 
     private boolean shouldSetDefaultVpcId(final ResourceHandlerRequest<ResourceModel> request) {
         return CollectionUtils.isNullOrEmpty(request.getDesiredResourceState().getVPCSecurityGroups());
+    }
+
+    private boolean shouldUnsetMaxAllocatedStorage(final ResourceHandlerRequest<ResourceModel> request) {
+        return request.getPreviousResourceState() != null &&
+                request.getPreviousResourceState().getMaxAllocatedStorage() != null &&
+                request.getDesiredResourceState().getMaxAllocatedStorage() == null;
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcId(

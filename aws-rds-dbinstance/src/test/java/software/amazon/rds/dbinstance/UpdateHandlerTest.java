@@ -13,10 +13,12 @@ import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -53,6 +55,7 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -111,7 +114,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_InitiatesModifyRequest_InProgress() {
+    public void handleRequest_InitiatesModifyRequest_Success() {
         final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder()
                 .dbInstance(DB_INSTANCE_ACTIVE)
                 .build();
@@ -132,6 +135,39 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_UnsetMaxAllocatedStorage() {
+        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder()
+                .dbInstance(DB_INSTANCE_ACTIVE)
+                .build();
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .maxAllocatedStorage(MAX_ALLOCATED_STORAGE_DEFAULT)
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .maxAllocatedStorage(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbInstanceRequest> argument = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(argument.capture());
+        Assertions.assertThat(argument.getValue().maxAllocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
