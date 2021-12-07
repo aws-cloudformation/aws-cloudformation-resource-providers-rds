@@ -16,7 +16,8 @@ public final class Commons {
 
     public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
-                    ErrorCode.ClientUnavailable)
+                    ErrorCode.ClientUnavailable,
+                    ErrorCode.InternalFailure)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     ErrorCode.AccessDeniedException,
                     ErrorCode.NotAuthorized)

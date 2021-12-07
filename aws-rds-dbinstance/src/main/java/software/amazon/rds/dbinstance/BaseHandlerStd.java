@@ -47,8 +47,6 @@ import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAz
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.utils.StringUtils;
-import software.amazon.cloudformation.exceptions.CfnNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -70,9 +68,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String STACK_NAME = "rds";
 
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
-
-    protected static final String DB_INSTANCE_FAILED_TO_STABILIZE = "DBInstance %s failed to stabilize.";
-    protected static final String DB_INSTANCE_ROLE_FAILED_TO_STABILIZE = "DBInstance %s role failed to stabilize.";
 
     protected static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
             "sqlserver-ee",
@@ -255,6 +250,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> isDbInstanceStabilized(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, context),
+                        exception,
+                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
+                ))
                 .progress();
     }
 
@@ -343,14 +343,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        try {
-            final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-            return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
-        } catch (DbInstanceNotFoundException e) {
-            throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
-        } catch (Exception e) {
-            throw new CfnNotStabilizedException(DB_INSTANCE_FAILED_TO_STABILIZE, model.getDBInstanceIdentifier(), e);
-        }
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+        return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
     }
 
     protected boolean isDbInstanceRoleStabilized(
@@ -358,16 +352,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model,
             final Function<Stream<software.amazon.awssdk.services.rds.model.DBInstanceRole>, Boolean> predicate
     ) {
-        try {
-            final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-            return predicate.apply(Optional.ofNullable(
-                    dbInstance.associatedRoles()
-            ).orElse(Collections.emptyList()).stream());
-        } catch (DbInstanceNotFoundException e) {
-            throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
-        } catch (Exception e) {
-            throw new CfnNotStabilizedException(DB_INSTANCE_ROLE_FAILED_TO_STABILIZE, model.getDBInstanceIdentifier(), e);
-        }
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+        return predicate.apply(Optional.ofNullable(
+                dbInstance.associatedRoles()
+        ).orElse(Collections.emptyList()).stream());
     }
 
     protected boolean isDbInstanceRoleAdditionStabilized(
