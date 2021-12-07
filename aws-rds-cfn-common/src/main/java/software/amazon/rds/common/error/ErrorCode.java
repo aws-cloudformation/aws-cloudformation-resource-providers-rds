@@ -14,6 +14,7 @@ public enum ErrorCode {
     DBSubnetGroupNotFoundFault("DBSubnetGroupNotFoundFault"),
     InstanceQuotaExceeded("InstanceQuotaExceeded"),
     InsufficientDBInstanceCapacity("InsufficientDBInstanceCapacity"),
+    InternalFailure("InternalFailure"),
     InvalidDBInstanceState("InvalidDBInstanceState"),
     InvalidDBSecurityGroupState("InvalidDBSecurityGroupState"),
     InvalidDBSnapshotState("InvalidDBSnapshotState"),
