@@ -1,5 +1,7 @@
 package software.amazon.rds.common.handler;
 
+import java.util.function.Function;
+
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -49,5 +51,20 @@ public final class Commons {
         }
 
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
+    }
+
+    public static <M, C> ProgressEvent<M, C> execOnce(
+            final ProgressEvent<M, C> progress,
+            final ProgressEventLambda<M, C> func,
+            final Function<C, Boolean> conditionGetter,
+            final VoidBiFunction<C, Boolean> conditionSetter
+    ) {
+        if (!conditionGetter.apply(progress.getCallbackContext())) {
+            return func.enact().then(p -> {
+                conditionSetter.apply(p.getCallbackContext(), true);
+                return p;
+            });
+        }
+        return progress;
     }
 }

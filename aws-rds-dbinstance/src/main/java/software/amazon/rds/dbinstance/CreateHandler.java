@@ -64,7 +64,7 @@ public class CreateHandler extends BaseHandlerStd {
         model.setTags(Translator.translateTagsFromRequest(tags));
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> execOnce(progress, () -> {
+                .then(progress -> Commons.execOnce(progress, () -> {
                     if (isReadReplica(progress.getResourceModel())) {
                         return createDbInstanceReadReplica(proxy, rdsProxyClient, progress);
                     } else if (isRestoreFromSnapshot(progress.getResourceModel())) {
@@ -75,10 +75,10 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> ensureEngineSet(rdsProxyClient, progress))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
-                        return execOnce(progress, () ->
+                        return Commons.execOnce(progress, () ->
                                         updateDbInstanceAfterCreate(proxy, rdsProxyClient, progress, request.getDesiredResourceState()),
                                 CallbackContext::isUpdated, CallbackContext::setUpdated)
-                                .then(p -> execOnce(p, () -> {
+                                .then(p -> Commons.execOnce(p, () -> {
                                     if (shouldReboot(p.getResourceModel())) {
                                         return rebootAwait(proxy, rdsProxyClient, p);
                                     }
@@ -87,7 +87,7 @@ public class CreateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> execOnce(progress, () ->
+                .then(progress -> Commons.execOnce(progress, () ->
                                 updateAssociatedRoles(proxy, rdsProxyClient, progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));

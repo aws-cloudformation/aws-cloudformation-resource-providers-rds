@@ -1,59 +1,96 @@
 package software.amazon.rds.dbcluster;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.Logger;
-
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 import static software.amazon.rds.dbcluster.Translator.cloudwatchLogsExportConfiguration;
-import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
+
+import java.util.Collection;
+
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
 
-    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-        final AmazonWebServicesClientProxy proxy,
-        final ResourceHandlerRequest<ResourceModel> request,
-        final CallbackContext callbackContext,
-        final ProxyClient<RdsClient> proxyClient,
-        final Logger logger) {
-
-      return ProgressEvent.progress(setDefaults(request.getDesiredResourceState()), callbackContext)
-          .then(progress -> modifyDBCluster(proxy, proxyClient, progress, cloudwatchLogsExportConfiguration(request)))
-          .then(progress -> waitForDBClusterAvailableStatus(proxy, proxyClient, progress))
-          .then(progress -> removeAssociatedRoles(proxy, proxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
-          .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
-          .then(progress -> tagResource(proxy, proxyClient, progress))
-          .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    public UpdateHandler() {
+        this(HandlerConfig.builder().build());
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> removeAssociatedRoles(
-        final AmazonWebServicesClientProxy proxy,
-        final ProxyClient<RdsClient> proxyClient,
-        final ProgressEvent<ResourceModel, CallbackContext> progress,
-        final List<DBClusterRole> roles) {
-      final ResourceModel model = progress.getResourceModel();
-      final CallbackContext callbackContext = progress.getCallbackContext();
-      for(final DBClusterRole dbClusterRole: Optional.ofNullable(roles).orElse(Collections.emptyList())) {
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent =  proxy.initiate("rds::remove-roles-to-dbcluster", proxyClient, model, callbackContext)
-            .translateToServiceRequest(modelRequest -> removeRoleFromDbClusterRequest(modelRequest.getDBClusterIdentifier(), dbClusterRole.getRoleArn(), dbClusterRole.getFeatureName()))
-            .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modelRequest, proxyInvocation.client()::removeRoleFromDBCluster))
-            .stabilize((removeRoleFromDbClusterRequest, removeRoleFromDBClusterResponse, proxyInvocation, modelRequest, callbackContext1) ->
-                isRoleStabilized(proxyInvocation, modelRequest, dbClusterRole, false))
-            .handleError((removeRoleFromDbClusterRequest, exception, proxyInvocation, resourceModel, context) -> {
-              if (exception instanceof DbClusterRoleNotFoundException)
-                return ProgressEvent.success(resourceModel, context);
-              throw exception;
-            })
-            .success();
-        if (!progressEvent.isSuccess()) return progressEvent;
-      }
-      return ProgressEvent.progress(model, callbackContext);
+    public UpdateHandler(final HandlerConfig config) {
+        super(config);
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final Logger logger
+    ) {
+        final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
+                Tagging.mergeTags(
+                        request.getPreviousSystemTags(),
+                        request.getPreviousResourceTags()
+                )
+        );
+        final Collection<Tag> desiredTags = Translator.translateTagsFromRequest(
+                Tagging.mergeTags(
+                        request.getSystemTags(),
+                        request.getDesiredResourceTags()
+                )
+        );
+
+        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+            return ProgressEvent.failed(
+                    request.getDesiredResourceState(),
+                    callbackContext,
+                    HandlerErrorCode.NotUpdatable,
+                    "Resource is immutable"
+            );
+        }
+
+        return ProgressEvent.progress(setDefaults(request.getDesiredResourceState()), callbackContext)
+                .then(progress -> Commons.execOnce(
+                        progress,
+                        () -> modifyDBCluster(proxy, proxyClient, progress, cloudwatchLogsExportConfiguration(request)),
+                        CallbackContext::isModified,
+                        CallbackContext::setModified)
+                )
+                .then(progress -> removeAssociatedRoles(proxy, proxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
+                .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
+                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> modifyDBCluster(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration
+    ) {
+        return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(model -> Translator.modifyDbClusterRequest(model, cloudwatchLogsExportConfiguration))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        dbClusterModifyRequest,
+                        proxyInvocation.client()::modifyDBCluster
+                ))
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
+                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                })
+                .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, callbackCtxt),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .progress();
     }
 }

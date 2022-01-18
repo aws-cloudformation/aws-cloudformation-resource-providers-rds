@@ -3,8 +3,7 @@ package software.amazon.rds.dbcluster;
 public enum DBClusterStatus {
     Available("available"),
     Creating("creating"),
-    Deleted("deleted"),
-    Failed("failed");
+    Deleted("deleted");
 
     private String value;
 

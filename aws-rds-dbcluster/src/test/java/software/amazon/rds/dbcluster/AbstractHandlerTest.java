@@ -1,8 +1,17 @@
 package software.amazon.rds.dbcluster;
 
-import com.google.common.collect.Lists;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
+
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -10,15 +19,22 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
-
-import org.slf4j.LoggerFactory;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.test.AbstractTestBase;
 
-public class AbstractTestBase {
+public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
+
+    protected static final String LOGICAL_RESOURCE_IDENTIFIER = "dbcluster";
 
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final org.slf4j.Logger delegate;
@@ -28,6 +44,7 @@ public class AbstractTestBase {
     protected static final Integer BACKUP_RETENTION_PERIOD;
     protected static final Integer BACKTRACK_WINDOW;
     protected static final String DBCLUSTER_IDENTIFIER;
+    protected static final String DBGLOBALCLUSTER_IDENTIFIER;
     protected static final String DBCLUSTER_PARAMETER_GROUP_NAME;
     protected static final String SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
@@ -43,11 +60,21 @@ public class AbstractTestBase {
     protected static final ResourceModel RESOURCE_MODEL;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME;
-
+    protected static final ResourceModel RESOURCE_MODEL_WITH_GLOBAL_CLUSTER;
     protected static final DBCluster DBCLUSTER_ACTIVE;
     protected static final DBCluster DBCLUSTER_ACTIVE_NO_ROLE;
     protected static final DBCluster DBCLUSTER_DELETED;
     protected static final DBCluster DBCLUSTER_INPROGRESS;
+    protected static final DBCluster DBCLUSTER_ACTIVE_DELETION_ENABLED;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_AVAILABLE;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_CREATING;
+    protected static final GlobalCluster GLOBAL_CLUSTER;
+    protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_FAILED;
+
+    protected static final Set<Tag> TAG_LIST;
+    protected static final Set<Tag> TAG_LIST_EMPTY;
+    protected static final Set<Tag> TAG_LIST_ALTER;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -60,6 +87,7 @@ public class AbstractTestBase {
         BACKUP_RETENTION_PERIOD = 1;
         BACKTRACK_WINDOW = 1;
         DBCLUSTER_IDENTIFIER = "my-sample-dbcluster";
+        DBGLOBALCLUSTER_IDENTIFIER = "my-sample-global-cluster";
         DBCLUSTER_PARAMETER_GROUP_NAME = "default.aurora5.6";
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
@@ -93,12 +121,12 @@ public class AbstractTestBase {
                 .masterUsername(USER_NAME)
                 .masterUserPassword(USER_PASSWORD)
                 .scalingConfiguration(
-                    ScalingConfiguration.builder()
-                        .autoPause(true)
-                        .minCapacity(1)
-                        .maxCapacity(10)
-                        .secondsUntilAutoPause(5)
-                    .build()
+                        ScalingConfiguration.builder()
+                                .autoPause(true)
+                                .minCapacity(1)
+                                .maxCapacity(10)
+                                .secondsUntilAutoPause(5)
+                                .build()
                 )
                 .build();
 
@@ -111,10 +139,23 @@ public class AbstractTestBase {
                 .masterUserPassword(USER_PASSWORD)
                 .build();
 
+        RESOURCE_MODEL_WITH_GLOBAL_CLUSTER = ResourceModel.builder()
+                .associatedRoles(Lists.newArrayList(ROLE))
+                .backtrackWindow(BACKTRACK_WINDOW)
+                .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
+                .engine(ENGINE)
+                .backupRetentionPeriod(BACKUP_RETENTION_PERIOD)
+                .port(PORT)
+                .masterUsername(USER_NAME)
+                .masterUserPassword(USER_PASSWORD)
+                .globalClusterIdentifier(DBGLOBALCLUSTER_IDENTIFIER)
+                .build();
+
         DBCLUSTER_ACTIVE = DBCluster.builder()
                 .dbClusterArn("arn")
                 .associatedRoles(
-                    software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
+                        software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
                 .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
                 .deletionProtection(false)
                 .engine(RESOURCE_MODEL.getEngine())
@@ -122,14 +163,53 @@ public class AbstractTestBase {
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Available.toString())
                 .scalingConfigurationInfo(
-                    ScalingConfigurationInfo.builder()
-                        .autoPause(true)
-                        .maxCapacity(10)
-                        .minCapacity(1)
-                        .secondsUntilAutoPause(5)
-                        .build()
+                        ScalingConfigurationInfo.builder()
+                                .autoPause(true)
+                                .maxCapacity(10)
+                                .minCapacity(1)
+                                .secondsUntilAutoPause(5)
+                                .build()
                 )
                 .build();
+
+        DBCLUSTER_ACTIVE_DELETION_ENABLED = DBCluster.builder()
+                .dbClusterArn("arn")
+                .associatedRoles(
+                        software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
+                .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
+                .deletionProtection(true)
+                .engine(RESOURCE_MODEL.getEngine())
+                .port(RESOURCE_MODEL.getPort())
+                .masterUsername(RESOURCE_MODEL.getMasterUsername())
+                .status(DBClusterStatus.Available.toString())
+                .scalingConfigurationInfo(
+                        ScalingConfigurationInfo.builder()
+                                .autoPause(true)
+                                .maxCapacity(10)
+                                .minCapacity(1)
+                                .secondsUntilAutoPause(5)
+                                .build()
+                )
+                .build();
+
+        DBCLUSTER_SNAPSHOT = DBClusterSnapshot.builder()
+                .build();
+
+        DBCLUSTER_SNAPSHOT_AVAILABLE = DBClusterSnapshot.builder()
+                .status("available")
+                .build();
+
+        DBCLUSTER_SNAPSHOT_CREATING = DBClusterSnapshot.builder()
+                .status("creating")
+                .build();
+
+        DBCLUSTER_SNAPSHOT_FAILED = DBClusterSnapshot.builder()
+                .status("failed")
+                .build();
+
+        GLOBAL_CLUSTER = GlobalCluster.builder()
+                .build();
+
 
         DBCLUSTER_ACTIVE_NO_ROLE = DBCluster.builder()
                 .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
@@ -153,13 +233,30 @@ public class AbstractTestBase {
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Creating.toString())
+                .deletionProtection(false)
                 .build();
 
+        TAG_LIST_EMPTY = ImmutableSet.of();
+
+        TAG_LIST = ImmutableSet.of(
+                Tag.builder().key("foo").value("bar").build()
+        );
+
+        TAG_LIST_ALTER = ImmutableSet.of(
+                Tag.builder().key("bar").value("baz").build(),
+                Tag.builder().key("fizz").value("buzz").build()
+        );
     }
 
+    protected abstract BaseHandlerStd getHandler();
+
+    protected abstract AmazonWebServicesClientProxy getProxy();
+
+    protected abstract ProxyClient<RdsClient> getRdsProxy();
+
     static ProxyClient<RdsClient> MOCK_PROXY(
-        final AmazonWebServicesClientProxy proxy,
-        final RdsClient rdsClient
+            final AmazonWebServicesClientProxy proxy,
+            final RdsClient rdsClient
     ) {
         return new ProxyClient<RdsClient>() {
             @Override
@@ -173,7 +270,7 @@ public class AbstractTestBase {
             public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
             CompletableFuture<ResponseT>
             injectCredentialsAndInvokeV2Async(RequestT request,
-                Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+                                              Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
                 throw new UnsupportedOperationException();
             }
 
@@ -201,5 +298,29 @@ public class AbstractTestBase {
                 return rdsClient;
             }
         };
+    }
+
+    @Override
+    protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext context
+    ) {
+        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), logger);
+    }
+
+    @Override
+    protected String getLogicalResourceIdentifier() {
+        return LOGICAL_RESOURCE_IDENTIFIER;
+    }
+
+    @Override
+    protected void expectResourceSupply(final Supplier<DBCluster> supplier) {
+        when(getRdsProxy()
+                .client()
+                .describeDBClusters(any(DescribeDbClustersRequest.class))
+        ).then(res -> DescribeDbClustersResponse.builder()
+                .dbClusters(supplier.get())
+                .build()
+        );
     }
 }

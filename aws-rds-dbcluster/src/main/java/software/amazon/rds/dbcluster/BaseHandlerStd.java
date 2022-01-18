@@ -1,163 +1,345 @@
 package software.amazon.rds.dbcluster;
 
-import com.amazonaws.util.StringUtils;
-import com.google.common.collect.Sets;
-import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
-import software.amazon.awssdk.services.rds.model.DBCluster;
-import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
-import software.amazon.cloudformation.exceptions.TerminalException;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.Logger;
-import software.amazon.cloudformation.proxy.delay.Constant;
+import static software.amazon.rds.dbcluster.Translator.addRoleToDbClusterRequest;
+import static software.amazon.rds.dbcluster.Translator.addTagsToResourceRequest;
+import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
+import static software.amazon.rds.dbcluster.Translator.removeTagsFromResourceRequest;
 
-import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
-import static software.amazon.rds.dbcluster.Translator.*;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.DbClusterRoleAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
+import software.amazon.awssdk.services.rds.model.InvalidGlobalClusterStateException;
+import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
+import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
+import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.error.ErrorRuleSet;
+import software.amazon.rds.common.error.ErrorStatus;
+import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
-    private static final String MESSAGE_FORMAT_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
-    protected static final int DBCLUSTER_ID_MAX_LENGTH = 63;
-    protected static final int PAUSE_TIME_SECONDS = 60;
-    protected static final Constant BACKOFF_STRATEGY = Constant.of().timeout(Duration.ofMinutes(120L)).delay(Duration.ofSeconds(30L)).build();
-    protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
+    public static final String RESOURCE_IDENTIFIER = "dbcluster";
+    public static final String STACK_NAME = "rds";
 
-    @Override
-    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
-                                                                             final ResourceHandlerRequest<ResourceModel> request,
-                                                                             final CallbackContext callbackContext,
-                                                                             final Logger logger) {
+    private static final String DB_CLUSTER_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
 
-        return handleRequest(proxy, request, callbackContext != null ? callbackContext : new CallbackContext(), proxy.newProxy(ClientBuilder::getClient), logger);
+    protected static final int RESOURCE_ID_MAX_LENGTH = 63;
+
+    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
+                    ErrorCode.DBClusterAlreadyExistsFault)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
+                    DbClusterAlreadyExistsException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    DbClusterNotFoundException.class,
+                    DbClusterSnapshotNotFoundException.class,
+                    DbClusterParameterGroupNotFoundException.class,
+                    DbInstanceNotFoundException.class,
+                    DbSubnetGroupNotFoundException.class,
+                    DomainNotFoundException.class,
+                    GlobalClusterNotFoundException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
+                    DbClusterQuotaExceededException.class,
+                    InsufficientStorageClusterCapacityException.class,
+                    StorageQuotaExceededException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    InvalidDbClusterStateException.class,
+                    InvalidDbInstanceStateException.class,
+                    InvalidDbSubnetGroupStateException.class,
+                    InvalidGlobalClusterStateException.class,
+                    InvalidSubnetException.class,
+                    InvalidVpcNetworkStateException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    DbSubnetGroupDoesNotCoverEnoughAZsException.class,
+                    KmsKeyNotAccessibleException.class)
+            .build()
+            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorClasses(ErrorStatus.ignore(),
+                    DbClusterRoleAlreadyExistsException.class)
+            .build()
+            .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+
+    protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorClasses(ErrorStatus.ignore(),
+                    DbClusterRoleNotFoundException.class)
+            .build()
+            .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+
+    protected HandlerConfig config;
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
     }
 
-    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(AmazonWebServicesClientProxy proxy,
-                                                                                   ResourceHandlerRequest<ResourceModel> request,
-                                                                                   CallbackContext callbackContext,
-                                                                                   ProxyClient<RdsClient> proxyClient,
-                                                                                   Logger logger);
+    @Override
+    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final Logger logger
+    ) {
+        return handleRequest(
+                proxy,
+                request,
+                callbackContext != null ? callbackContext : new CallbackContext(),
+                proxy.newProxy(ClientBuilder::getClient),
+                logger
+        );
+    }
 
-    // DBCluster Stabilization
-    protected boolean isDBClusterStabilized(final ProxyClient<RdsClient> proxyClient,
-                                            final ResourceModel model,
-                                            final DBClusterStatus expectedStatus) {
-        // describe status of a resource to make sure it's ready
-        // describe db cluster
-        try {
-            final Optional<DBCluster> dbCluster =
-            proxyClient.injectCredentialsAndInvokeV2(
+    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final Logger logger
+    );
+
+    protected DBCluster fetchDBCluster(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersRequest(model),
-                proxyClient.client()::describeDBClusters).dbClusters().stream().findFirst();
+                proxyClient.client()::describeDBClusters
+        );
+        return response.dbClusters().stream().findFirst().get();
+    }
 
-            if (!dbCluster.isPresent())
-                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBClusterIdentifier());
-
-            return expectedStatus.equalsString(dbCluster.get().status());
+    protected boolean isDBClusterStabilized(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model,
+            final DBClusterStatus expectedStatus
+    ) {
+        try {
+            final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+            return expectedStatus.equalsString(dbCluster.status());
         } catch (DbClusterNotFoundException e) {
             throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
         } catch (Exception e) {
-            throw new CfnNotStabilizedException(MESSAGE_FORMAT_FAILED_TO_STABILIZE, model.getDBClusterIdentifier(), e);
+            throw new CfnNotStabilizedException(DB_CLUSTER_FAILED_TO_STABILIZE, model.getDBClusterIdentifier(), e);
         }
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> waitForDBClusterAvailableStatus(
-        final AmazonWebServicesClientProxy proxy,
-        final ProxyClient<RdsClient> proxyClient,
-        final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        // this is a stabilizer for dbcluster
-        return proxy.initiate("rds::stabilize-dbcluster" + getClass().getSimpleName(), proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-            // only stabilization is necessary so this is a dummy call
-            // Function.identity() takes ResourceModel as an input and returns (the same) ResourceModel
-            // Function.identity() is roughly similar to `model -> model`
-            .translateToServiceRequest(Function.identity())
-            // this skips the call and goes directly to stabilization
-            .makeServiceCall(EMPTY_CALL)
-            .stabilize((resourceModel, response, proxyInvocation, model, callbackContext) ->
-                isDBClusterStabilized(proxyInvocation, resourceModel, DBClusterStatus.Available)).progress();
+    protected boolean isDBClusterDeleted(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model
+    ) {
+        try {
+            fetchDBCluster(proxyClient, model);
+        } catch (DbClusterNotFoundException e) {
+            return true;
+        }
+        return false;
     }
 
-    // Modify or Post Create
-    protected ProgressEvent<ResourceModel, CallbackContext> modifyDBCluster(final AmazonWebServicesClientProxy proxy,
-                                                                            final ProxyClient<RdsClient> proxyClient,
-                                                                            final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                            final CloudwatchLogsExportConfiguration config) {
-        if (progress.getCallbackContext().isModified()) return progress;
-        return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-            .translateToServiceRequest((modelRequest) -> modifyDbClusterRequest(modelRequest, config))
-            .backoffDelay(BACKOFF_STRATEGY)
-            .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(dbClusterModifyRequest, proxyInvocation.client()::modifyDBCluster))
-            .done((modifyDbClusterRequest, modifyDbClusterResponse, proxyInvocation, resourceModel, callbackContext) ->  {
-                callbackContext.setModified(true);
-                return ProgressEvent.defaultInProgressHandler(callbackContext, PAUSE_TIME_SECONDS, resourceModel);
-            });
-    }
-
-    // Add|Remove DBCluster Roles
-    protected ProgressEvent<ResourceModel, CallbackContext> addAssociatedRoles(final AmazonWebServicesClientProxy proxy,
-                                                                               final ProxyClient<RdsClient> proxyClient,
-                                                                               final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                               final List<DBClusterRole> roles) {
+    protected ProgressEvent<ResourceModel, CallbackContext> addAssociatedRoles(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final List<DBClusterRole> roles
+    ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
-        for(final DBClusterRole dbClusterRole: Optional.ofNullable(roles).orElse(Collections.emptyList())) {
+
+        for (final DBClusterRole dbClusterRole : Optional.ofNullable(roles).orElse(Collections.emptyList())) {
             final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::add-roles-to-dbcluster", proxyClient, model, callbackContext)
-                .translateToServiceRequest(modelRequest -> addRoleToDbClusterRequest(modelRequest.getDBClusterIdentifier(), dbClusterRole.getRoleArn(), dbClusterRole.getFeatureName()))
-                .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modelRequest, proxyInvocation.client()::addRoleToDBCluster))
-                .stabilize((addRoleToDbClusterRequest, addRoleToDBClusterResponse, proxyInvocation, modelRequest, context) ->
-                    isRoleStabilized(proxyInvocation, modelRequest, dbClusterRole, true))
-                .success();
-            if (!progressEvent.isSuccess()) return progressEvent;
+                    .translateToServiceRequest(modelRequest -> addRoleToDbClusterRequest(
+                            modelRequest.getDBClusterIdentifier(),
+                            dbClusterRole.getRoleArn(),
+                            dbClusterRole.getFeatureName()
+                    ))
+                    .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                            modelRequest,
+                            proxyInvocation.client()::addRoleToDBCluster
+                    ))
+                    .stabilize((addRoleRequest, addRoleResponse, client, resourceModel, context) ->
+                            isAssociatedRoleAttached(client, resourceModel, dbClusterRole)
+                    )
+                    .handleError((addRoleRequest, exception, client, resourceModel, context) -> Commons.handleException(
+                            ProgressEvent.progress(resourceModel, context),
+                            exception,
+                            ADD_ASSOC_ROLES_ERROR_RULE_SET
+                    ))
+                    .success();
+            if (!progressEvent.isSuccess()) {
+                return progressEvent;
+            }
         }
         return progress;
     }
 
-    protected boolean isRoleStabilized(final ProxyClient<RdsClient> proxyClient,
-                                       final ResourceModel model,
-                                       final software.amazon.rds.dbcluster.DBClusterRole addedRole,
-                                       final boolean attached) { // true is attached / false is detached
-        final Predicate<software.amazon.awssdk.services.rds.model.DBClusterRole> isAttached = dbCluster ->
-                dbCluster.roleArn().equals(addedRole.getRoleArn()) &&
-                (dbCluster.featureName().equals(addedRole.getFeatureName()) || StringUtils.isNullOrEmpty(dbCluster.featureName()));
-        final Predicate<software.amazon.awssdk.services.rds.model.DBClusterRole> isDetached = dbCluster -> !dbCluster.roleArn().equals(addedRole.getRoleArn());
+    protected ProgressEvent<ResourceModel, CallbackContext> removeAssociatedRoles(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final List<DBClusterRole> roles
+    ) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext callbackContext = progress.getCallbackContext();
 
-        final DBCluster dbCluster = proxyClient.injectCredentialsAndInvokeV2(
-            Translator.describeDbClustersRequest(model),
-            proxyClient.client()::describeDBClusters).dbClusters().stream().findFirst().get();
-
-        if (attached) return dbCluster.associatedRoles().stream().anyMatch(isAttached);
-        return dbCluster.associatedRoles().isEmpty() || dbCluster.associatedRoles().stream().anyMatch(isDetached);
+        for (final DBClusterRole dbClusterRole : Optional.ofNullable(roles).orElse(Collections.emptyList())) {
+            final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::remove-roles-to-dbcluster", proxyClient, model, callbackContext)
+                    .translateToServiceRequest(modelRequest -> removeRoleFromDbClusterRequest(
+                            modelRequest.getDBClusterIdentifier(),
+                            dbClusterRole.getRoleArn(),
+                            dbClusterRole.getFeatureName()
+                    ))
+                    .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                            modelRequest,
+                            proxyInvocation.client()::removeRoleFromDBCluster
+                    ))
+                    .stabilize((removeRoleRequest, removeRoleResponse, client, resourceModel, context) ->
+                            isAssociatedRoleDetached(client, resourceModel, dbClusterRole)
+                    )
+                    .handleError((removeRoleRequest, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
+                            ProgressEvent.progress(resourceModel, context),
+                            exception,
+                            REMOVE_ASSOC_ROLES_ERROR_RULE_SET
+                    ))
+                    .success();
+            if (!progressEvent.isSuccess()) return progressEvent;
+        }
+        return ProgressEvent.progress(model, callbackContext);
     }
 
-    // Tag DBCluster
-    protected ProgressEvent<ResourceModel, CallbackContext> tagResource(final AmazonWebServicesClientProxy proxy,
-                                                                        final ProxyClient<RdsClient> proxyClient,
-                                                                        final ProgressEvent<ResourceModel, CallbackContext> progress) {
+    protected boolean isAssociatedRoleAttached(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model,
+            final DBClusterRole role
+    ) {
+        final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+        return Optional.ofNullable(dbCluster.associatedRoles())
+                .orElse(Collections.emptyList())
+                .stream()
+                .anyMatch(sdkRole -> isAssociatedRolesEqual(role, sdkRole));
+    }
+
+    protected boolean isAssociatedRoleDetached(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model,
+            final DBClusterRole role
+    ) {
+        final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+        return Optional.ofNullable(dbCluster.associatedRoles())
+                .orElse(Collections.emptyList())
+                .stream()
+                .noneMatch(sdkRole -> isAssociatedRolesEqual(role, sdkRole));
+    }
+
+    protected boolean isAssociatedRolesEqual(
+            final DBClusterRole role,
+            final software.amazon.awssdk.services.rds.model.DBClusterRole sdkRole
+    ) {
+        if (role == null || sdkRole == null) {
+            return role == null && sdkRole == null;
+        }
+        return Optional.ofNullable(role.getRoleArn()).orElse("").equals(sdkRole.roleArn()) &&
+                Optional.ofNullable(role.getFeatureName()).orElse("").equals(sdkRole.featureName());
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Collection<Tag> previousTags,
+            final Collection<Tag> desiredTags
+    ) {
+        final Set<Tag> tagsToAdd = new HashSet<>(desiredTags);
+        final Set<Tag> tagsToRemove = new HashSet<>(previousTags);
+
+        tagsToAdd.removeAll(previousTags);
+        tagsToRemove.removeAll(desiredTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
+
+        try {
+            final DBCluster dbCluster = fetchDBCluster(proxyClient, progress.getResourceModel());
+            final String arn = dbCluster.dbClusterArn();
+
+            proxyClient.injectCredentialsAndInvokeV2(
+                    removeTagsFromResourceRequest(arn, tagsToRemove),
+                    proxyClient.client()::removeTagsFromResource
+            );
+            proxyClient.injectCredentialsAndInvokeV2(
+                    addTagsToResourceRequest(arn, tagsToAdd),
+                    proxyClient.client()::addTagsToResource
+            );
+        } catch (Exception exception) {
+            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+        }
+
+        return progress;
+
+        /*
         return proxy.initiate("rds::tag-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeDbClustersRequest)
-                .makeServiceCall((describeDbClusterRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(describeDbClusterRequest, rdsClientProxyClient.client()::describeDBClusters))
-                .done((describeDbClusterRequest, describeDbClusterResponse, rdsClientProxyClient, resourceModel, context) -> {
-                    final String arn = describeDbClusterResponse.dbClusters().stream().findFirst().get().dbClusterArn();
+                .makeServiceCall((describeRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(
+                        describeRequest,
+                        rdsClientProxyClient.client()::describeDBClusters
+                ))
+                .handleError((describeRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .done((describeRequest, describeResponse, rdsClientProxyClient, resourceModel, context) -> {
+                    final DBCluster dbCluster = describeResponse.dbClusters().stream().findFirst().get();
+                    final String arn = dbCluster.dbClusterArn();
 
-                    final Set<Tag> currentTags = new HashSet<>(Optional.ofNullable(resourceModel.getTags()).orElse(Collections.emptySet()));
-                    final Set<Tag> existingTags = Translator.translateTagsFromSdk(rdsClientProxyClient.injectCredentialsAndInvokeV2(listTagsForResourceRequest(arn), rdsClientProxyClient.client()::listTagsForResource).tagList());
+                    final Set<Tag> currentTags = Optional.ofNullable(resourceModel.getTags()).orElse(Collections.emptySet());
+                    final Set<Tag> existingTags = Translator.translateTagsFromSdk(dbCluster.tagList());
                     final Set<Tag> tagsToRemove = Sets.difference(existingTags, currentTags);
                     final Set<Tag> tagsToAdd = Sets.difference(currentTags, existingTags);
-                    rdsClientProxyClient.injectCredentialsAndInvokeV2(removeTagsFromResourceRequest(arn, tagsToRemove), rdsClientProxyClient.client()::removeTagsFromResource);
-                    rdsClientProxyClient.injectCredentialsAndInvokeV2(addTagsToResourceRequest(arn, tagsToAdd), rdsClientProxyClient.client()::addTagsToResource);
+
+                    rdsClientProxyClient.injectCredentialsAndInvokeV2(
+                            removeTagsFromResourceRequest(arn, tagsToRemove),
+                            rdsClientProxyClient.client()::removeTagsFromResource
+                    );
+                    rdsClientProxyClient.injectCredentialsAndInvokeV2(
+                            addTagsToResourceRequest(arn, tagsToAdd),
+                            rdsClientProxyClient.client()::addTagsToResource
+                    );
                     return ProgressEvent.progress(resourceModel, context);
                 });
+         */
     }
 }

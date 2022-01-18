@@ -1,0 +1,6 @@
+{
+  "Engine": "aurora",
+  "MasterUsername": "guest",
+  "MasterUserPassword": "guest1234",
+  "DBClusterIdentifier": "testdbclusterdelete8"
+}
