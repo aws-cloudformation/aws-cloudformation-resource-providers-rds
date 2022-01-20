@@ -3,6 +3,7 @@ package software.amazon.rds.common.error;
 import software.amazon.awssdk.utils.StringUtils;
 
 public enum ErrorCode {
+    AccessDenied("AccessDenied"),
     AccessDeniedException("AccessDeniedException"),
     ClientUnavailable("ClientUnavailable"),
     DBInstanceAlreadyExists("DBInstanceAlreadyExists"),
