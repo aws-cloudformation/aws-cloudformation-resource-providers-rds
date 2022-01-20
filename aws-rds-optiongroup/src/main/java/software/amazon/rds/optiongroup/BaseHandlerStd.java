@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -61,6 +64,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
+        logger.log(ReflectionToStringBuilder.toString(request, ToStringStyle.MULTI_LINE_STYLE));
         return handleRequest(
                 proxy,
                 request,
