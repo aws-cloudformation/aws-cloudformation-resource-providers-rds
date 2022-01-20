@@ -6,6 +6,7 @@ public enum ErrorCode {
     AccessDenied("AccessDenied"),
     AccessDeniedException("AccessDeniedException"),
     ClientUnavailable("ClientUnavailable"),
+    DBClusterAlreadyExistsFault("DBClusterAlreadyExistsFault"),
     DBInstanceAlreadyExists("DBInstanceAlreadyExists"),
     DBInstanceNotFound("DBInstanceNotFound"),
     DBParameterGroupNotFound("DBParameterGroupNotFound"),

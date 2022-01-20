@@ -1,223 +1,277 @@
 package software.amazon.rds.dbcluster;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
-import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.AddRoleToDBClusterResponse;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
-import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
-import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotResponse;
-import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
-import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
-import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.OperationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import lombok.Getter;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
-public class CreateHandlerTest extends AbstractTestBase {
+public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Mock
+    @Getter
     private AmazonWebServicesClientProxy proxy;
 
     @Mock
-    private ProxyClient<RdsClient> proxyRdsClient;
+    @Getter
+    private ProxyClient<RdsClient> rdsProxy;
 
     @Mock
-    RdsClient rds;
+    @Getter
+    RdsClient rdsClient;
 
+    @Getter
     private CreateHandler handler;
-
-    @AfterEach
-    public void post_execute() {
-        verify(rds, atLeastOnce()).serviceName();
-        verifyNoMoreInteractions(rds);
-    }
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler();
-        rds = mock(RdsClient.class);
+        handler = new CreateHandler(
+                HandlerConfig.builder()
+                        .backoff(Constant.of()
+                                .delay(Duration.ofSeconds(1))
+                                .timeout(Duration.ofSeconds(120))
+                                .build())
+                        .build()
+        );
+        rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = MOCK_PROXY(proxy, rds);
+        rdsProxy = MOCK_PROXY(proxy, rdsClient);
+    }
+
+    @AfterEach
+    public void tear_down() {
+        verify(rdsClient, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(rdsClient);
     }
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final CreateDbClusterResponse createDbClusterResponse = CreateDbClusterResponse.builder().build();
-        when(proxyRdsClient.client().createDBCluster(any(CreateDbClusterRequest.class))).thenReturn(createDbClusterResponse);
-        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
-        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
-        final AddRoleToDBClusterResponse addRoleToDBClusterResponse = AddRoleToDBClusterResponse.builder().build();
-        when(proxyRdsClient.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class))).thenReturn(addRoleToDBClusterResponse);
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
 
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
-
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(proxyRdsClient.client()).createDBCluster(any(CreateDbClusterRequest.class));
-        verify(proxyRdsClient.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
     @Test
     public void handleRequest_CreateWithStabilizationSuccess() {
-        final CreateDbClusterResponse createDbClusterResponse = CreateDbClusterResponse.builder().build();
-        when(proxyRdsClient.client().createDBCluster(any(CreateDbClusterRequest.class))).thenReturn(createDbClusterResponse);
-        final DescribeDbClustersResponse describeInProgressDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_INPROGRESS).build();
-        final DescribeDbClustersResponse describeActiveDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
 
-        AtomicInteger attempt = new AtomicInteger(2);
-        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).then((m) -> {
-            switch (attempt.getAndDecrement()) {
-                case 2:
-                    return describeInProgressDbClustersResponse;
-                default:
-                    return describeActiveDbClustersResponse;
-            }
-        });
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_INPROGRESS);
 
-        final AddRoleToDBClusterResponse addRoleToDBClusterResponse = AddRoleToDBClusterResponse.builder().build();
-        when(proxyRdsClient.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class))).thenReturn(addRoleToDBClusterResponse);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+    @Test
+    public void handleRequest_Cluster_AlreadyExist() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenThrow(DbClusterAlreadyExistsException.builder().message("already exists").build());
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.AlreadyExists)
+        );
 
-        verify(proxyRdsClient.client()).createDBCluster(any(CreateDbClusterRequest.class));
-        verify(proxyRdsClient.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_Cluster_handleFailure() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenThrow(new RuntimeException("test exception"));
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.InternalFailure)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 
     @Test
     public void handleRequest_ClusterRestoreInProgress() {
-        final RestoreDbClusterFromSnapshotResponse restoreDbClusterFromSnapshotResponse = RestoreDbClusterFromSnapshotResponse.builder().build();
-        when(proxyRdsClient.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class))).thenReturn(restoreDbClusterFromSnapshotResponse);
-        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
-        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
-        final ModifyDbClusterResponse modifyDbClusterResponse = ModifyDbClusterResponse.builder().build();
-        when(proxyRdsClient.client().modifyDBCluster(any(ModifyDbClusterRequest.class))).thenReturn(modifyDbClusterResponse);
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
 
-        CallbackContext callbackContext = new CallbackContext();
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE,
+                expectSuccess()
+        );
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_ON_RESTORE).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
-
-        callbackContext.setModified(true);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
-        assertThat(response.getCallbackContext()).isEqualTo(callbackContext);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(60);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(proxyRdsClient.client()).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
-        verify(proxyRdsClient.client()).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
     @Test
     public void handleRequest_ClusterRestoreSuccess() {
-        final RestoreDbClusterFromSnapshotResponse restoreDbClusterFromSnapshotResponse = RestoreDbClusterFromSnapshotResponse.builder().build();
-        when(proxyRdsClient.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class))).thenReturn(restoreDbClusterFromSnapshotResponse);
-        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
-        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
 
-        CallbackContext callbackContext = new CallbackContext();
-        callbackContext.setModified(true);
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_ON_RESTORE).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE,
+                expectSuccess()
+        );
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
 
-        verify(proxyRdsClient.client()).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+    @Test
+    public void handleRequest_ClusterRestore_AlreadyExists() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenThrow(DbClusterAlreadyExistsException.builder().message("already exists").build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_ON_RESTORE,
+                expectFailed(HandlerErrorCode.AlreadyExists)
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ClusterRestore_handleFailure() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenThrow(new RuntimeException("test exception"));
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_ON_RESTORE,
+                expectFailed(HandlerErrorCode.InternalFailure)
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
     }
 
     @Test
     public void handleRequest_ClusterRestoreInTimeSuccess() {
-        final RestoreDbClusterToPointInTimeResponse restoreDbClusterToPointInTimeResponse = RestoreDbClusterToPointInTimeResponse.builder().build();
-        when(proxyRdsClient.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class))).thenReturn(restoreDbClusterToPointInTimeResponse);
-        final DescribeDbClustersResponse describeDbClustersResponse = DescribeDbClustersResponse.builder().dbClusters(DBCLUSTER_ACTIVE).build();
-        when(proxyRdsClient.client().describeDBClusters(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME,
+                expectSuccess()
+        );
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_ON_RESTORE_IN_TIME).logicalResourceIdentifier("dbcluster").clientRequestToken("request").build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
+    @Test
+    public void handleRequest_ClusterRestoreInTime_AlreadyExist() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenThrow(DbClusterAlreadyExistsException.builder().message("already exists").build());
 
-        verify(proxyRdsClient.client()).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME,
+                expectFailed(HandlerErrorCode.AlreadyExists)
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ClusterRestoreInTime_handlerFailure() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenThrow(new RuntimeException("test exception"));
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME,
+                expectFailed(HandlerErrorCode.InternalFailure)
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
     }
 }

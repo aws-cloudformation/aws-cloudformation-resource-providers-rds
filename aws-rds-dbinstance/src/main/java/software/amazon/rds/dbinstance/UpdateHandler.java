@@ -1,6 +1,5 @@
 package software.amazon.rds.dbinstance;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,6 +28,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -61,16 +61,16 @@ public class UpdateHandler extends BaseHandlerStd {
         }
 
         final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
-                mergeMaps(Arrays.asList(
+                Tagging.mergeTags(
                         request.getPreviousSystemTags(),
                         request.getPreviousResourceTags()
-                ))
+                )
         );
         final Collection<Tag> desiredTags = Translator.translateTagsFromRequest(
-                mergeMaps(Arrays.asList(
+                Tagging.mergeTags(
                         request.getSystemTags(),
                         request.getDesiredResourceTags()
-                ))
+                )
         );
 
         final Collection<DBInstanceRole> previousRoles = request.getPreviousResourceState().getAssociatedRoles();
@@ -96,18 +96,18 @@ public class UpdateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> ensureEngineSet(rdsProxyClient, progress))
-                .then(progress -> execOnce(progress, () ->
+                .then(progress -> Commons.execOnce(progress, () ->
                                 updateDbInstance(proxy, request, rdsProxyClient, progress),
                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                 )
-                .then(progress -> execOnce(progress, () -> {
+                .then(progress -> Commons.execOnce(progress, () -> {
                             if (shouldReboot(rdsProxyClient, progress)) {
                                 return rebootAwait(proxy, rdsProxyClient, progress);
                             }
                             return progress;
                         }, CallbackContext::isRebooted, CallbackContext::setRebooted)
                 )
-                .then(progress -> execOnce(progress, () ->
+                .then(progress -> Commons.execOnce(progress, () ->
                                 updateAssociatedRoles(proxy, rdsProxyClient, progress, previousRoles, desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles)
                 )

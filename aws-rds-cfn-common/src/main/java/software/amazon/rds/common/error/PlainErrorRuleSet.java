@@ -3,6 +3,7 @@ package software.amazon.rds.common.error;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 public class PlainErrorRuleSet implements ErrorRuleSet {
@@ -20,10 +21,13 @@ public class PlainErrorRuleSet implements ErrorRuleSet {
         }
         if (exception instanceof AwsServiceException) {
             final AwsServiceException awsServiceException = (AwsServiceException) exception;
-            final String errorStr = awsServiceException.awsErrorDetails().errorCode();
-            final ErrorCode errorCode = ErrorCode.fromString(errorStr);
-            if (errorCode != null && errorCodeMap.containsKey(errorCode)) {
-                return errorCodeMap.get(errorCode);
+            final AwsErrorDetails errorDetails = awsServiceException.awsErrorDetails();
+            if (errorDetails != null) {
+                final String errorStr = errorDetails.errorCode();
+                final ErrorCode errorCode = ErrorCode.fromString(errorStr);
+                if (errorCode != null && errorCodeMap.containsKey(errorCode)) {
+                    return errorCodeMap.get(errorCode);
+                }
             }
         }
         return new UnexpectedErrorStatus(exception);

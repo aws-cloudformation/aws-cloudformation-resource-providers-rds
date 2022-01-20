@@ -39,14 +39,27 @@
       "minimum": 1,
       "type": "integer"
     },
+    "CopyTagsToSnapshot": {
+      "description": "A value that indicates whether to copy all tags from the DB cluster to snapshots of the DB cluster. The default is not to copy them.",
+      "type": "boolean"
+    },
     "DatabaseName": {
       "description": "The name of your database. If you don't provide a name, then Amazon RDS won't create a database in this DB cluster. For naming constraints, see Naming Constraints in the Amazon RDS User Guide.",
       "type": "string"
     },
+    "GlobalClusterIdentifier": {
+      "description": "If you are configuring an Aurora global database cluster and want your Aurora DB cluster to be a secondary member in the global database cluster, specify the global cluster ID of the global database cluster. To define the primary database cluster of the global cluster, use the AWS::RDS::GlobalCluster resource.\n\nIf you aren't configuring a global database cluster, don't specify this property.",
+      "type": "string",
+      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+      "minLength": 1,
+      "maxLength": 63
+    },
     "DBClusterIdentifier": {
       "description": "The DB cluster identifier. This parameter is stored as a lowercase string.",
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+      "minLength": 1,
+      "maxLength": 63
     },
     "DBClusterParameterGroupName": {
       "description": "The name of the DB cluster parameter group to associate with this DB cluster.",
@@ -108,7 +121,9 @@
     "MasterUsername": {
       "description": "The name of the master user for the DB cluster. You must specify MasterUsername, unless you specify SnapshotIdentifier. In that case, don't specify MasterUsername.",
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}[a-zA-Z0-9]{0,15}$"
+      "pattern": "^[a-zA-Z]{1}[a-zA-Z0-9]{0,15}$",
+      "minLength": 1,
+      "maxLength": 16
     },
     "MasterUserPassword": {
       "description": "The master password for the DB instance.",
@@ -185,58 +200,66 @@
   },
   "allOf": [
     {
-      "allOf": [
+      "required": [
+        "Engine"
+      ]
+    },
+    {
+      "oneOf": [
         {
-          "oneOf": [
-            {
-              "required": [
-                "MasterUsername"
-              ]
-            },
-            {
-              "required": [
-                "SnapshotIdentifier"
-              ]
-            }
+          "required": [
+            "MasterUserPassword",
+            "MasterUsername"
           ]
         },
         {
-          "anyOf": [
-            {
-              "oneOf": [
-                {
-                  "anyOf": [
-                    {
-                      "required": [
-                        "SourceDBClusterIdentifier"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "SnapshotIdentifier"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "required": [
-                    "MasterUserPassword"
-                  ]
-                }
-              ]
-            },
-            {
-              "required": [
-                "MasterUsername"
-              ]
-            }
+          "required": [
+            "SnapshotIdentifier"
+          ]
+        },
+        {
+          "required": [
+            "SourceDBClusterIdentifier"
           ]
         }
       ]
     },
     {
-      "required": [
-        "Engine"
+      "oneOf": [
+        {
+          "required": [
+            "MasterUsername"
+          ]
+        },
+        {
+          "required": [
+            "SnapshotIdentifier"
+          ]
+        },
+        {
+          "required": [
+            "SourceDBClusterIdentifier"
+          ]
+        }
+      ]
+    },
+    {
+      "oneOf": [
+        {
+          "required": [
+            "MasterUserPassword"
+          ]
+        },
+        {
+          "required": [
+            "SnapshotIdentifier"
+          ]
+        },
+        {
+          "required": [
+            "SourceDBClusterIdentifier"
+          ]
+        }
       ]
     }
   ],
@@ -333,16 +356,17 @@
   "additionalProperties": false,
   "readOnlyProperties": [
     "/properties/Endpoint",
-    "/properties/ReadEndpoint"
+    "/properties/Endpoint/Address",
+    "/properties/Endpoint/Port",
+    "/properties/ReadEndpoint/Port",
+    "/properties/ReadEndpoint/Address"
   ],
   "createOnlyProperties": [
     "/properties/AvailabilityZones",
-    "/properties/DatabaseName",
     "/properties/DBClusterIdentifier",
     "/properties/DBSubnetGroupName",
-    "/properties/Engine",
+    "/properties/DatabaseName",
     "/properties/EngineMode",
-    "/properties/EngineVersion",
     "/properties/KmsKeyId",
     "/properties/MasterUsername",
     "/properties/RestoreType",
@@ -351,6 +375,10 @@
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/UseLatestRestorableTime"
+  ],
+  "conditionalCreateOnlyProperties": [
+    "/properties/Engine",
+    "/properties/GlobalClusterIdentifier"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterIdentifier"
@@ -366,28 +394,28 @@
   "handlers": {
     "create": {
       "permissions": [
+        "iam:PassRole",
         "rds:CreateDBCluster",
         "rds:RestoreDBClusterFromSnapshot",
         "rds:RestoreDBClusterToPointInTime",
         "rds:ModifyDBCluster",
         "rds:DescribeDBClusters",
         "rds:AddRoleToDBCluster",
-        "rds:ListTagsForResource"
+        "rds:AddTagsToResource"
       ]
     },
     "read": {
       "permissions": [
-        "rds:DescribeDBClusters",
-        "rds:ListTagsForResource"
+        "rds:DescribeDBClusters"
       ]
     },
     "update": {
       "permissions": [
+        "iam:PassRole",
         "rds:ModifyDBCluster",
         "rds:DescribeDBClusters",
         "rds:AddRoleToDBCluster",
         "rds:RemoveRoleFromDBCluster",
-        "rds:ListTagsForResource",
         "rds:RemoveTagsFromResource",
         "rds:AddTagsFromResource"
       ]
@@ -395,7 +423,8 @@
     "delete": {
       "permissions": [
         "rds:DescribeDBClusters",
-        "rds:DeleteDBCluster"
+        "rds:DeleteDBCluster",
+        "rds:RemoveFromGlobalCluster"
       ]
     },
     "list": {

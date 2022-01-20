@@ -1,4 +1,4 @@
-package software.amazon.rds.dbinstance.util;
+package software.amazon.rds.common.handler;
 
 @FunctionalInterface
 public interface VoidBiFunction<T, U> {
