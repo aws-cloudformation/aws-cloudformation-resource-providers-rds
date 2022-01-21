@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import lombok.Setter;
@@ -62,6 +65,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
+        logger.log(ReflectionToStringBuilder.toString(request, ToStringStyle.MULTI_LINE_STYLE));
         return handleRequest(
                 proxy,
                 request,
@@ -162,20 +166,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private Map<String, Parameter> getModifiableParameters(final ResourceModel model,
                                                            final Map<String, Parameter> currentDBParameters) {
         Map<String, Parameter> parametersToModify = Maps.newHashMap(currentDBParameters);
-        parametersToModify.keySet().retainAll(model.getParameters().keySet());
+        Map<String, Object> modelParameters = Optional.ofNullable(model.getParameters()).orElse(Collections.emptyMap());
+        parametersToModify.keySet().retainAll(modelParameters.keySet());
         return parametersToModify.entrySet()
                 .stream()
                 //filter to parameters want to modify and its value is different from already exist value
                 .filter(entry -> {
                     String parameterName = entry.getKey();
                     String currentParameterValue = entry.getValue().parameterValue();
-                    String newParameterValue = String.valueOf(model.getParameters().get(parameterName));
+                    String newParameterValue = String.valueOf(modelParameters.get(parameterName));
                     return !newParameterValue.equals(currentParameterValue);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> {
                             String parameterName = entry.getKey();
-                            String newValue = String.valueOf(model.getParameters().get(parameterName));
+                            String newValue = String.valueOf(modelParameters.get(parameterName));
                             Parameter defaultParameter = entry.getValue();
                             return Translator.buildParameterWithNewValue(newValue, defaultParameter);
                         })
@@ -184,7 +189,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                   final Map<String, Parameter> defaultEngineParameters) {
-        Set<String> invalidParameters = progress.getResourceModel().getParameters().entrySet().stream()
+        Map<String, Object> modelParameters = Optional.ofNullable(progress.getResourceModel().getParameters()).orElse(Collections.emptyMap());
+        Set<String> invalidParameters = modelParameters.entrySet().stream()
                 .filter(entry -> {
                     String parameterName = entry.getKey();
                     String newParameterValue = String.valueOf(entry.getValue());
@@ -271,13 +277,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     return ProgressEvent.progress(resourceModel, context);
                 });
 
-    }
-
-    protected <K, V> Map<K, V> mergeMaps(final Map<K, V> m1, final Map<K, V> m2) {
-        final Map<K, V> result = new HashMap<>();
-        result.putAll(Optional.ofNullable(m1).orElse(Collections.emptyMap()));
-        result.putAll(Optional.ofNullable(m2).orElse(Collections.emptyMap()));
-        return result;
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
