@@ -21,6 +21,7 @@ public final class Commons {
                     ErrorCode.ClientUnavailable,
                     ErrorCode.InternalFailure)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
+                    ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException,
                     ErrorCode.NotAuthorized)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.Throttling),

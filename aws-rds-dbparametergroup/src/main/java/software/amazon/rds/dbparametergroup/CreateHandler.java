@@ -11,6 +11,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Tagging;
 
 
 public class CreateHandler extends BaseHandlerStd {
@@ -35,7 +36,7 @@ public class CreateHandler extends BaseHandlerStd {
                     return ProgressEvent.progress(model, progress.getCallbackContext());
                 })
                 .then(progress -> proxy.initiate("rds::create-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                        .translateToServiceRequest(resourceModel -> Translator.createDbParameterGroupRequest(resourceModel, mergeMaps(request.getSystemTags(), request.getDesiredResourceTags())))
+                        .translateToServiceRequest(resourceModel -> Translator.createDbParameterGroupRequest(resourceModel, Tagging.mergeTags(request.getSystemTags(), request.getDesiredResourceTags())))
                         .backoffDelay(CONSTANT)
                         .makeServiceCall((createDBParameterGroupRequest, proxyInvocation) ->
                                 proxyInvocation.injectCredentialsAndInvokeV2(createDBParameterGroupRequest, proxyInvocation.client()::createDBParameterGroup))
