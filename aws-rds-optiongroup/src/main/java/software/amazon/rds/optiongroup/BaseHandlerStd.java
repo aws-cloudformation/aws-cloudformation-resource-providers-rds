@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -27,6 +24,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -64,14 +62,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
-        logger.log(ReflectionToStringBuilder.toString(request, ToStringStyle.MULTI_LINE_STYLE));
-        return handleRequest(
-                proxy,
-                request,
-                callbackContext != null ? callbackContext : new CallbackContext(),
-                proxy.newProxy(ClientBuilder::getClient),
-                logger
-        );
+        RequestLogger requestLogger = new RequestLogger(logger, request);
+        requestLogger.log("Input Request: ", request);
+        ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
+        try {
+            progressEvent = handleRequest(
+                    proxy,
+                    request,
+                    callbackContext != null ? callbackContext : new CallbackContext(),
+                    proxy.newProxy(ClientBuilder::getClient),
+                    logger
+            );
+            requestLogger.log("Returned ProgressEvent: ", progressEvent);
+        } catch (Throwable throwable){
+            requestLogger.logAndThrow(throwable);
+        }
+        return progressEvent;
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(

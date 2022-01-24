@@ -2,7 +2,6 @@ package software.amazon.rds.dbparametergroup;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -10,12 +9,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import lombok.Setter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
@@ -34,6 +29,7 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final Constant CONSTANT = Constant.of().timeout(Duration.ofMinutes(120L))
@@ -56,8 +52,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static int MAX_LENGTH_GROUP_NAME = 255;
     protected static int NO_CALLBACK_DELAY = 0;
     protected static int MAX_PARAMETERS_PER_REQUEST = 20;
-    @Setter
-    private Logger logger;
+
+    private RequestLogger requestLogger;
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -65,14 +61,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
-        logger.log(ReflectionToStringBuilder.toString(request, ToStringStyle.MULTI_LINE_STYLE));
-        return handleRequest(
-                proxy,
-                request,
-                callbackContext != null ? callbackContext : new CallbackContext(),
-                proxy.newProxy(ClientBuilder::getClient),
-                logger
-        );
+        requestLogger = new RequestLogger(logger, request);
+        requestLogger.log("Input Request: ", request);
+        ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
+        try {
+            progressEvent = handleRequest(
+                    proxy,
+                    request,
+                    callbackContext != null ? callbackContext : new CallbackContext(),
+                    proxy.newProxy(ClientBuilder::getClient),
+                    logger
+            );
+            requestLogger.log("Returned ProgressEvent: ", progressEvent);
+        } catch (Throwable throwable) {
+            requestLogger.logAndThrow(throwable);
+        }
+        return progressEvent;
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
@@ -130,9 +134,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                            final CallbackContext callbackContext,
                                                                            final List<Parameter> paramsPartition,
                                                                            final ResourceModel model) {
-        logger.log(String.format("Modifying parameters: %s (total: %d)",
-                paramsPartition.stream().map(Parameter::parameterName).collect(Collectors.joining(" , ")),
-                paramsPartition.size()));
+        requestLogger.log("Modifying parameters: ", paramsPartition);
         return proxy.initiate("rds::modify-db-parameter-group", proxyClient, model, callbackContext)
                 .translateToServiceRequest((resourceModel) -> Translator.modifyDbParameterGroupRequest(resourceModel, paramsPartition))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::modifyDBParameterGroup))
@@ -149,9 +151,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                           final CallbackContext callbackContext,
                                                                           final List<Parameter> paramsPartition,
                                                                           final ProxyClient<RdsClient> proxyClient) {
-        logger.log(String.format("Reset parameters: %s (total: %d)",
-                paramsPartition.stream().map(Parameter::parameterName).collect(Collectors.joining(" , ")),
-                paramsPartition.size()));
+        requestLogger.log("Reset parameters: ", paramsPartition);
         return proxy.initiate("rds::reset-db-parameter-group", proxyClient, model, callbackContext)
                 .translateToServiceRequest((resourceModel) -> Translator.resetDbParametersRequest(resourceModel, paramsPartition))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::resetDBParameterGroup))
@@ -203,12 +203,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .collect(Collectors.toSet());
 
         if (!invalidParameters.isEmpty()) {
-            logger.log(String.format(
-                    "Invalid parameters: %s\nDefault engine parameters: %s",
-                    invalidParameters.stream().collect(Collectors.joining(" , ")),
-                    defaultEngineParameters.entrySet().stream()
-                            .map(entry -> String.format("%s -> %s", entry.getKey(), entry.getValue().isModifiable()))
-                            .collect(Collectors.joining(" , "))));
+            requestLogger.log("Invalid parameters: ", invalidParameters);
             return ProgressEvent.defaultFailureHandler(
                     new CfnInvalidRequestException("Invalid / unmodifiable / Unsupported DB Parameter: " + invalidParameters.stream().findFirst().get()),
                     HandlerErrorCode.InvalidRequest
