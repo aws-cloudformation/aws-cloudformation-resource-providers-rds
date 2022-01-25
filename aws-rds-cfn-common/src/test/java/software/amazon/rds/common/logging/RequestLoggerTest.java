@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public class RequestLoggerTest {
 
@@ -17,7 +18,7 @@ public class RequestLoggerTest {
     public static final String SIMPLE_LOG = "simple log ";
 
     @Test
-    void testIfCustomerDataIsAdded() {
+    void test_if_customer_data_is_added() {
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
         request.setAwsAccountId(AWS_ACCOUNT_ID);
         request.setClientRequestToken(TOKEN);
@@ -28,27 +29,26 @@ public class RequestLoggerTest {
                 assertThat(s.contains(AWS_ACCOUNT_ID)).isTrue();
                 assertThat(s.contains(TOKEN)).isTrue();
                 assertThat(s.contains(STACK_ID)).isTrue();
-                assertThat(s.contains(SIMPLE_LOG)).isTrue();
             }
-        }, request, parameterName -> true);
+        }, request, new FilteredJsonPrinter());
         requestLogger.log(SIMPLE_LOG, new Object());
     }
 
     @Test
-    void testFailIfRequestNull() {
+    void test_fail_if_request_null() {
         assertThatThrownBy(() -> new RequestLogger(s -> {
-        }, null, parameterName -> true))
+        }, null, new FilteredJsonPrinter()))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
-    void testPassIfLoggerNull() {
+    void test_pass_if_logger_null() {
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
         request.setAwsAccountId(AWS_ACCOUNT_ID);
         request.setClientRequestToken(TOKEN);
         request.setStackId(STACK_ID);
         try {
-            RequestLogger requestLogger = new RequestLogger(null, request, parameterName -> true);
+            RequestLogger requestLogger = new RequestLogger(null, request, new FilteredJsonPrinter());
             requestLogger.log(SIMPLE_LOG, request);
         } catch (Throwable throwable) {
             fail("Should not throw exception");
@@ -56,15 +56,34 @@ public class RequestLoggerTest {
     }
 
     @Test
-    void testLogAndThrow() {
+    void test_log_and_throw() {
         Throwable throwable = new Throwable("This is Exception");
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
-        RequestLogger requestLogger = new RequestLogger(s -> assertThat(s.contains("Exception")).isTrue(), request, parameterName -> true);
+        RequestLogger requestLogger = new RequestLogger(s -> assertThat(s.contains("Exception")).isTrue(), request, new FilteredJsonPrinter());
         try {
             requestLogger.logAndThrow(throwable);
             fail("Should throw");
         } catch (Throwable throwable1) {
             //Nothing
         }
+    }
+
+    @Test
+    void test_handle_request() {
+        ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
+        request.setAwsAccountId(AWS_ACCOUNT_ID);
+        request.setClientRequestToken(TOKEN);
+        request.setStackId(STACK_ID);
+        Logger logger = new Logger() {
+            @Override
+            public void log(final String s) {
+                assertThat(s.contains(AWS_ACCOUNT_ID)).isTrue();
+                assertThat(s.contains(TOKEN)).isTrue();
+                assertThat(s.contains(STACK_ID)).isTrue();
+
+            }
+        };
+
+        RequestLogger.handleRequest(logger, request, new FilteredJsonPrinter(), requestLogger -> null);
     }
 }

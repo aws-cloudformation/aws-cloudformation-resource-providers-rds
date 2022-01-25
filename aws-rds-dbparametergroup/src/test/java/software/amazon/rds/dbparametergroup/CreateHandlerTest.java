@@ -45,6 +45,8 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -100,7 +102,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -119,21 +121,21 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateHandler handler = new CreateHandler();
 
         final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().build();
-        when(rdsClient.createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
+        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
 
         mockDescribeDbParametersResponse("static", "dynamic", true);
 
         mockDescribeDBParameterGroup();
 
         final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
-        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
@@ -162,7 +164,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
-            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
         } catch (CfnInvalidRequestException e) {
             assertThat(e.getMessage()).isEqualTo("Invalid request provided: Unmodifiable DB Parameter: param1");
         }
@@ -186,7 +188,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
-            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
         } catch (CfnInvalidRequestException e) {
             assertThat(e.getMessage()).isEqualTo("Invalid request provided: Invalid / Unsupported DB Parameter: param1");
         }
@@ -208,7 +210,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken(getClientRequestToken())
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -230,7 +232,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);

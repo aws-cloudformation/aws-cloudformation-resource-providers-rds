@@ -14,10 +14,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.EnumUtils;
-
 import com.amazonaws.util.CollectionUtils;
-import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -63,6 +60,7 @@ import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -208,7 +206,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
     protected HandlerConfig config;
-    
+
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
+
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -228,24 +228,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
             final Logger logger) {
-        RequestLogger requestLogger = new RequestLogger(logger, request,
-                parameterName -> EnumUtils.isValidEnum(LogParameters.class, parameterName));
-        logRequest(requestLogger, request);
-        ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
-        try {
-            progressEvent = handleRequest(
-                    proxy,
-                    request,
-                    context != null ? context : new CallbackContext(),
-                    proxy.newProxy(RdsClientBuilder::getClient),
-                    proxy.newProxy(Ec2ClientBuilder::getClient),
-                    logger
-            );
-            logResponse(requestLogger, progressEvent);
-        } catch (Throwable throwable) {
-            requestLogger.logAndThrow(throwable);
-        }
-        return progressEvent;
+        return RequestLogger.handleRequest(
+                logger,
+                request,
+                PARAMETERS_FILTER,
+                requestLogger -> handleRequest(
+                        proxy,
+                        request,
+                        context != null ? context : new CallbackContext(),
+                        proxy.newProxy(RdsClientBuilder::getClient),
+                        proxy.newProxy(Ec2ClientBuilder::getClient),
+                        logger
+                ));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> waitForDbInstanceAvailableStatus(
@@ -571,17 +565,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return IdentifierUtils
                 .generateResourceIdentifier(stackId, logicalResourceId, clientRequestToken, maxLength)
                 .replaceAll("-{2,}", "-");
-    }
-
-    private void logResponse(final RequestLogger requestLogger,
-                             final ProgressEvent<ResourceModel, CallbackContext> progressEvent) {
-        requestLogger.log("Response ProgressEvent: ", progressEvent, SENSITIVE_PARAMETERS_PARENTS);
-        requestLogger.log("Response ResourceModel: ", progressEvent.getResourceModel(), SENSITIVE_PARAMETERS);
-    }
-
-    private void logRequest(final RequestLogger requestLogger, final ResourceHandlerRequest<ResourceModel> request) {
-        requestLogger.log("Request: ", request, SENSITIVE_PARAMETERS_PARENTS);
-        requestLogger.log("DesiredResourceState: ", request.getDesiredResourceState(), SENSITIVE_PARAMETERS);
-        requestLogger.log("PreviousResourceState: ", request.getPreviousResourceState(), SENSITIVE_PARAMETERS);
     }
 }

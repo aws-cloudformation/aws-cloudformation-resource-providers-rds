@@ -5,13 +5,13 @@ import java.util.Optional;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 
 
 public class CreateHandler extends BaseHandlerStd {
@@ -21,7 +21,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final RequestLogger requestLogger) {
         final ResourceModel model = request.getDesiredResourceState();
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
@@ -43,8 +43,10 @@ public class CreateHandler extends BaseHandlerStd {
                                 Commons.handleException(
                                         ProgressEvent.progress(resourceModel, ctx),
                                         exception,
-                                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
-                        .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context)))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                        requestLogger
+                                ))
+                        .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context, requestLogger)))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 }

@@ -30,6 +30,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final Constant CONSTANT = Constant.of().timeout(Duration.ofMinutes(120L))
@@ -50,39 +51,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .build()
             .orElse(DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
     protected static int MAX_LENGTH_GROUP_NAME = 255;
-    protected static int NO_CALLBACK_DELAY = 0;
-    protected static int MAX_PARAMETERS_PER_REQUEST = 20;
+    protected static final int NO_CALLBACK_DELAY = 0;
+    protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
-    private RequestLogger requestLogger = RequestLogger.NULL_REQUEST_LOGGER;
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
     @Override
-    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-            final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final Logger logger) {
-        requestLogger = new RequestLogger(logger, request, parameterName -> true);
-        ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
-        try {
-            requestLogger.log("Input Request: ", request);
-            progressEvent = handleRequest(
-                    proxy,
-                    request,
-                    callbackContext != null ? callbackContext : new CallbackContext(),
-                    proxy.newProxy(ClientBuilder::getClient),
-                    logger
-            );
-            requestLogger.log("Returned ProgressEvent: ", progressEvent);
-        } catch (Throwable throwable) {
-            requestLogger.logAndThrow(throwable);
-        }
-        return progressEvent;
+    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
+                                                                             final ResourceHandlerRequest<ResourceModel> request,
+                                                                             final CallbackContext callbackContext,
+                                                                             final Logger logger) {
+        return RequestLogger.handleRequest(
+                logger,
+                request,
+                PARAMETERS_FILTER,
+                requestLogger -> handleRequest(proxy,
+                        request,
+                        callbackContext != null ? callbackContext : new CallbackContext(),
+                        proxy.newProxy(ClientBuilder::getClient),
+                        requestLogger));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
                                                                             final ProxyClient<RdsClient> proxyClient,
                                                                             final ResourceModel model,
-                                                                            final CallbackContext callbackContext) {
+                                                                            final CallbackContext callbackContext,
+                                                                            final RequestLogger requestLogger) {
         //isParametersApplied flag for unit testing
         if (callbackContext.isParametersApplied())
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
@@ -92,39 +86,43 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         Map<String, Parameter> currentDBParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progressEvent -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient))
-                .then(progressEvent -> validateModelParameters(progressEvent, defaultEngineParameters))
-                .then(progressEvent -> describeCurrentDBParameters(progressEvent, currentDBParameters, proxy, proxyClient))
-                .then(progressEvent -> resetParameters(progressEvent, defaultEngineParameters, currentDBParameters, proxy, proxyClient))
-                .then(progressEvent -> modifyParameters(progressEvent, currentDBParameters, proxy, proxyClient));
+                .then(progressEvent -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, requestLogger))
+                .then(progressEvent -> validateModelParameters(progressEvent, defaultEngineParameters, requestLogger))
+                .then(progressEvent -> describeCurrentDBParameters(progressEvent, currentDBParameters, proxy, proxyClient, requestLogger))
+                .then(progressEvent -> resetParameters(progressEvent, defaultEngineParameters, currentDBParameters, proxy, proxyClient, requestLogger))
+                .then(progressEvent -> modifyParameters(progressEvent, currentDBParameters, proxy, proxyClient, requestLogger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> resetParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                           final Map<String, Parameter> defaultEngineParameters,
                                                                           final Map<String, Parameter> currentDBParameters,
                                                                           final AmazonWebServicesClientProxy proxy,
-                                                                          final ProxyClient<RdsClient> proxyClient) {
+                                                                          final ProxyClient<RdsClient> proxyClient,
+                                                                          final RequestLogger requestLogger) {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
         Map<String, Parameter> parametersToReset = getParametersToReset(model, defaultEngineParameters, currentDBParameters);
         for (List<Parameter> paramsPartition : Iterables.partition(parametersToReset.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient);
+            ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
+        requestLogger.log("ResetParameters", parametersToReset);
         return ProgressEvent.progress(model, callbackContext);
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> modifyParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                            final Map<String, Parameter> currentDBParameters,
                                                                            final AmazonWebServicesClientProxy proxy,
-                                                                           final ProxyClient<RdsClient> proxyClient) {
+                                                                           final ProxyClient<RdsClient> proxyClient,
+                                                                           final RequestLogger requestLogger) {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
         Map<String, Parameter> parametersToModify = getModifiableParameters(model, currentDBParameters);
         for (List<Parameter> paramsPartition : Iterables.partition(parametersToModify.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model);
+            ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
+        requestLogger.log("ModifiedParameter", parametersToModify);
         return ProgressEvent.progress(model, callbackContext);
 
     }
@@ -133,8 +131,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                            final AmazonWebServicesClientProxy proxy,
                                                                            final CallbackContext callbackContext,
                                                                            final List<Parameter> paramsPartition,
-                                                                           final ResourceModel model) {
-        requestLogger.log("Modifying parameters: ", paramsPartition);
+                                                                           final ResourceModel model,
+                                                                           final RequestLogger requestLogger) {
         return proxy.initiate("rds::modify-db-parameter-group", proxyClient, model, callbackContext)
                 .translateToServiceRequest((resourceModel) -> Translator.modifyDbParameterGroupRequest(resourceModel, paramsPartition))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::modifyDBParameterGroup))
@@ -142,7 +140,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger
+                        ))
                 .progress();
     }
 
@@ -150,8 +150,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                           final ResourceModel model,
                                                                           final CallbackContext callbackContext,
                                                                           final List<Parameter> paramsPartition,
-                                                                          final ProxyClient<RdsClient> proxyClient) {
-        requestLogger.log("Reset parameters: ", paramsPartition);
+                                                                          final ProxyClient<RdsClient> proxyClient,
+                                                                          final RequestLogger requestLogger) {
         return proxy.initiate("rds::reset-db-parameter-group", proxyClient, model, callbackContext)
                 .translateToServiceRequest((resourceModel) -> Translator.resetDbParametersRequest(resourceModel, paramsPartition))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::resetDBParameterGroup))
@@ -159,7 +159,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger
+                        ))
                 .progress();
     }
 
@@ -188,7 +190,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                  final Map<String, Parameter> defaultEngineParameters) {
+                                                                                  final Map<String, Parameter> defaultEngineParameters,
+                                                                                  final RequestLogger requestLogger) {
         Map<String, Object> modelParameters = Optional.ofNullable(progress.getResourceModel().getParameters()).orElse(Collections.emptyMap());
         Set<String> invalidParameters = modelParameters.entrySet().stream()
                 .filter(entry -> {
@@ -203,7 +206,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .collect(Collectors.toSet());
 
         if (!invalidParameters.isEmpty()) {
-            requestLogger.log("Invalid parameters: ", invalidParameters);
+            requestLogger.log("InvalidParameters", invalidParameters);
             return ProgressEvent.defaultFailureHandler(
                     new CfnInvalidRequestException("Invalid / unmodifiable / Unsupported DB Parameter: " + invalidParameters.stream().findFirst().get()),
                     HandlerErrorCode.InvalidRequest
@@ -232,7 +235,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                       final Map<String, Parameter> currentDBParameters,
                                                                                       final AmazonWebServicesClientProxy proxy,
-                                                                                      ProxyClient<RdsClient> proxyClient) {
+                                                                                      final ProxyClient<RdsClient> proxyClient,
+                                                                                      final RequestLogger requestLogger) {
         return proxy.initiate("rds::describe-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.describeDbParametersRequest(resourceModel))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request, proxyInvocation.client()::describeDBParametersPaginator))
@@ -240,7 +244,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger
+                        ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, resourceModel, context) -> {
                     currentDBParameters.putAll(
                             describeDbParameterGroupsResponse.stream()
@@ -254,7 +260,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private ProgressEvent<ResourceModel, CallbackContext> describeDefaultEngineParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                           final Map<String, Parameter> defaultEngineParameters,
                                                                                           final AmazonWebServicesClientProxy proxy,
-                                                                                          final ProxyClient<RdsClient> proxyClient) {
+                                                                                          final ProxyClient<RdsClient> proxyClient,
+                                                                                          final RequestLogger requestLogger) {
         return proxy.initiate("rds::default-engine-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.describeEngineDefaultParametersRequest(resourceModel))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request, proxyInvocation.client()::describeEngineDefaultParametersPaginator))
@@ -262,7 +269,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger
+                        ))
                 .done((describeEngineDefaultParametersRequest, describeEngineDefaultParametersResponse, proxyInvocation, resourceModel, context) -> {
                     defaultEngineParameters.putAll(
                             describeEngineDefaultParametersResponse.stream()
@@ -274,10 +283,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     }
 
-    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-            final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger);
+    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
+                                                                                   final ResourceHandlerRequest<ResourceModel> request,
+                                                                                   final CallbackContext callbackContext,
+                                                                                   final ProxyClient<RdsClient> proxyClient,
+                                                                                   final RequestLogger requestLogger);
 }

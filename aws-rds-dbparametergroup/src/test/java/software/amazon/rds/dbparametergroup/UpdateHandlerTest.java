@@ -102,7 +102,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, updateParamsRequest, callbackContext, proxyRdsClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, updateParamsRequest, callbackContext, proxyRdsClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -132,7 +132,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, sameParamsRequest, callbackContext, proxyRdsClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, sameParamsRequest, callbackContext, proxyRdsClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);

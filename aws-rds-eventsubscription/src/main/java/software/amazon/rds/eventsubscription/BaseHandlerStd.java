@@ -18,8 +18,9 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
@@ -36,28 +37,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
-        RequestLogger requestLogger = new RequestLogger(logger, request, parameterName -> true);
-        requestLogger.log("Input Request: ", request);
-        ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
-        try {
-            progressEvent = handleRequest(
-                    proxy,
-                    request,
-                    callbackContext != null ? callbackContext : new CallbackContext(),
-                    proxy.newProxy(ClientBuilder::getClient),
-                    logger
-            );
-            requestLogger.log("Returned ProgressEvent: ", progressEvent);
-        } catch (Throwable throwable){
-            requestLogger.logAndThrow(throwable);
-        }
-        return progressEvent;
+        return RequestLogger.handleRequest(
+                logger,
+                request,
+                PARAMETERS_FILTER,
+                requestLogger -> handleRequest(
+                        proxy,
+                        request,
+                        callbackContext != null ? callbackContext : new CallbackContext(),
+                        proxy.newProxy(ClientBuilder::getClient),
+                        logger
+                ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -107,7 +105,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             ProgressEvent.progress(resourceModel, context),
                             previousTags,
                             desiredTags,
-                            DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET);
+                            DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
+                    );
                 });
     }
 

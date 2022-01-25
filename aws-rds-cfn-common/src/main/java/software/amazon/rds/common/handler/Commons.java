@@ -10,6 +10,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.error.IgnoreErrorStatus;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public final class Commons {
 
@@ -52,6 +53,16 @@ public final class Commons {
         }
 
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
+    }
+
+    public static <M, C> ProgressEvent<M, C> handleException(
+            final ProgressEvent<M, C> progress,
+            final Exception exception,
+            final ErrorRuleSet errorRuleSet,
+            final RequestLogger requestLogger
+    ) {
+        requestLogger.log(exception);
+        return handleException(progress, exception, errorRuleSet);
     }
 
     public static <M, C> ProgressEvent<M, C> execOnce(

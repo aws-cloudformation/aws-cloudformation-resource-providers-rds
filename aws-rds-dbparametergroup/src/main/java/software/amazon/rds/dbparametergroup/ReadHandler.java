@@ -6,12 +6,12 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -20,7 +20,7 @@ public class ReadHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final RequestLogger requestLogger
     ) {
         return proxy.initiate("rds::read-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
@@ -30,7 +30,9 @@ public class ReadHandler extends BaseHandlerStd {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger
+                        ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, model, context) -> {
                     try {
                         final DBParameterGroup dBParameterGroup = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get();
@@ -40,7 +42,9 @@ public class ReadHandler extends BaseHandlerStd {
                         return Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+                                SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger
+                        );
                     }
                 });
     }

@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -51,6 +50,8 @@ import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.common.printer.JsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
@@ -104,8 +105,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected HandlerConfig config;
 
-    private final Collection<String> SENSITIVE_PARAMETERS_PARENTS = ImmutableSet.of("desiredResourceState", "previousResourceState", "resourceModel");
-    private final Set<String> SENSITIVE_PARAMETERS = ImmutableSet.of("masterUsername", "masterUserPassword");
+    private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -119,22 +119,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final Logger logger
     ) {
-        RequestLogger requestLogger = new RequestLogger(logger, request, parameterName -> true);
-        logRequest(requestLogger, request);
-        ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
-        try {
-            progressEvent = handleRequest(
-                    proxy,
-                    request,
-                    callbackContext != null ? callbackContext : new CallbackContext(),
-                    proxy.newProxy(ClientBuilder::getClient),
-                    logger
-            );
-            logResponse(requestLogger, progressEvent);
-        } catch (Throwable throwable) {
-            requestLogger.logAndThrow(throwable);
-        }
-        return progressEvent;
+        return RequestLogger.handleRequest(
+                logger,
+                request,
+                PARAMETERS_FILTER,
+                requestLogger -> handleRequest(
+                        proxy,
+                        request,
+                        callbackContext != null ? callbackContext : new CallbackContext(),
+                        proxy.newProxy(ClientBuilder::getClient),
+                        logger
+                ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -322,17 +317,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
-    }
-
-    private void logResponse(final RequestLogger requestLogger,
-                             final ProgressEvent<ResourceModel, CallbackContext> progressEvent) {
-        requestLogger.log("Response ProgressEvent: ", progressEvent, SENSITIVE_PARAMETERS_PARENTS);
-        requestLogger.log("Response ResourceModel: ", progressEvent.getResourceModel(), SENSITIVE_PARAMETERS);
-    }
-
-    private void logRequest(final RequestLogger requestLogger, final ResourceHandlerRequest<ResourceModel> request) {
-        requestLogger.log("Request: ", request, SENSITIVE_PARAMETERS_PARENTS);
-        requestLogger.log("DesiredResourceState: ", request.getDesiredResourceState(), SENSITIVE_PARAMETERS);
-        requestLogger.log("PreviousResourceState: ", request.getPreviousResourceState(), SENSITIVE_PARAMETERS);
     }
 }
