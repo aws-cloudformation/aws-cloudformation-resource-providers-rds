@@ -30,14 +30,14 @@ public class RequestLoggerTest {
                 assertThat(s.contains(STACK_ID)).isTrue();
                 assertThat(s.contains(SIMPLE_LOG)).isTrue();
             }
-        }, request);
+        }, request, parameterName -> true);
         requestLogger.log(SIMPLE_LOG, new Object());
     }
 
     @Test
     void testFailIfRequestNull() {
         assertThatThrownBy(() -> new RequestLogger(s -> {
-        }, null))
+        }, null, parameterName -> true))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -48,7 +48,7 @@ public class RequestLoggerTest {
         request.setClientRequestToken(TOKEN);
         request.setStackId(STACK_ID);
         try {
-            RequestLogger requestLogger = new RequestLogger(null, request);
+            RequestLogger requestLogger = new RequestLogger(null, request, parameterName -> true);
             requestLogger.log(SIMPLE_LOG, request);
         } catch (Throwable throwable) {
             fail("Should not throw exception");
@@ -59,7 +59,7 @@ public class RequestLoggerTest {
     void testLogAndThrow() {
         Throwable throwable = new Throwable("This is Exception");
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
-        RequestLogger requestLogger = new RequestLogger(s -> assertThat(s.contains("Exception")).isTrue(), request);
+        RequestLogger requestLogger = new RequestLogger(s -> assertThat(s.contains("Exception")).isTrue(), request, parameterName -> true);
         try {
             requestLogger.logAndThrow(throwable);
             fail("Should throw");

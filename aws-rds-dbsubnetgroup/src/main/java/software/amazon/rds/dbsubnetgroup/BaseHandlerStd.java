@@ -44,7 +44,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                              final ResourceHandlerRequest<ResourceModel> request,
                                                                              final CallbackContext callbackContext,
                                                                              final Logger logger) {
-        RequestLogger requestLogger = new RequestLogger(logger, request);
+        RequestLogger requestLogger = new RequestLogger(logger, request, parameterName -> true);
         requestLogger.log("Input Request: ", request);
         ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
         try {

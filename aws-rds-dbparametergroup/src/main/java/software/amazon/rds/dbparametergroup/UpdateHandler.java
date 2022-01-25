@@ -48,7 +48,6 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger
     ) {
-        setLogger(logger);
         final Map<String, String> previousTags = Tagging.mergeTags(
                 request.getPreviousSystemTags(),
                 request.getPreviousResourceTags()

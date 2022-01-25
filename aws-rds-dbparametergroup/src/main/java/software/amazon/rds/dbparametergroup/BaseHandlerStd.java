@@ -53,7 +53,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static int NO_CALLBACK_DELAY = 0;
     protected static int MAX_PARAMETERS_PER_REQUEST = 20;
 
-    private RequestLogger requestLogger;
+    private RequestLogger requestLogger = RequestLogger.NULL_REQUEST_LOGGER;
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -61,10 +61,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
-        requestLogger = new RequestLogger(logger, request);
-        requestLogger.log("Input Request: ", request);
+        requestLogger = new RequestLogger(logger, request, parameterName -> true);
         ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
         try {
+            requestLogger.log("Input Request: ", request);
             progressEvent = handleRequest(
                     proxy,
                     request,

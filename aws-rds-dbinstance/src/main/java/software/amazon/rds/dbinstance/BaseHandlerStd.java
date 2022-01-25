@@ -14,6 +14,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.EnumUtils;
+
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -206,10 +208,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
     protected HandlerConfig config;
-
-    private final Collection<String> SENSITIVE_PARAMETERS_PARENTS = ImmutableSet.of("desiredResourceState", "previousResourceState", "resourceModel");
-    private final Set<String> SENSITIVE_PARAMETERS = ImmutableSet.of("masterUsername", "masterUserPassword", "tdeCredentialPassword");
-
+    
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -229,7 +228,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
             final Logger logger) {
-        RequestLogger requestLogger = new RequestLogger(logger, request);
+        RequestLogger requestLogger = new RequestLogger(logger, request,
+                parameterName -> EnumUtils.isValidEnum(LogParameters.class, parameterName));
         logRequest(requestLogger, request);
         ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
         try {

@@ -119,7 +119,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final Logger logger
     ) {
-        RequestLogger requestLogger = new RequestLogger(logger, request);
+        RequestLogger requestLogger = new RequestLogger(logger, request, parameterName -> true);
         logRequest(requestLogger, request);
         ProgressEvent<ResourceModel, CallbackContext> progressEvent = null;
         try {

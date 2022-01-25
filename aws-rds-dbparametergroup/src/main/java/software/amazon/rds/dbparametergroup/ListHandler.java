@@ -22,7 +22,6 @@ public class ListHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
-        setLogger(logger);
         DescribeDbParameterGroupsResponse describeDBParameterGroupsResponse = null;
         DescribeDbParameterGroupsRequest describeDbParameterGroupsRequest = Translator.describeDbParameterGroupsRequest(request.getNextToken());
         try {

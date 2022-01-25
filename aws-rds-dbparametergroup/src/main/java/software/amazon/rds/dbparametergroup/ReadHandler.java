@@ -22,7 +22,6 @@ public class ReadHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger
     ) {
-        setLogger(logger);
         return proxy.initiate("rds::read-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
                 .backoffDelay(CONSTANT)

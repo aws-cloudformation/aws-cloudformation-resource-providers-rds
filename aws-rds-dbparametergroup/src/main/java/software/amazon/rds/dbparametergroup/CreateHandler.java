@@ -22,7 +22,6 @@ public class CreateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
-        setLogger(logger);
         final ResourceModel model = request.getDesiredResourceState();
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
