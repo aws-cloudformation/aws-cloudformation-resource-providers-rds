@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
 
-import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -39,20 +38,16 @@ public class DeleteHandler extends BaseHandlerStd {
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
-        final ResourceModel resourceModel = request.getDesiredResourceState();
         String snapshotIdentifier = null;
         // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
         // For AWS::RDS::DBInstance resources that don't specify the DBClusterIdentifier property, the default policy is Snapshot.
         if (BooleanUtils.isNotFalse(request.getSnapshotRequested())) {
-            snapshotIdentifier = resourceModel.getDBSnapshotIdentifier();
-            if (StringUtils.isNullOrEmpty(snapshotIdentifier)) {
-                snapshotIdentifier = generateResourceIdentifier(
-                        Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
-                        SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
-                        request.getClientRequestToken(),
-                        SNAPSHOT_MAX_LENGTH
-                );
-            }
+            snapshotIdentifier = generateResourceIdentifier(
+                    Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
+                    SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
+                    request.getClientRequestToken(),
+                    SNAPSHOT_MAX_LENGTH
+            );
         }
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
