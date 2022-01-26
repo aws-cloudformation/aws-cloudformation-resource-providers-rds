@@ -214,10 +214,8 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 new CallbackContext(),
                 null,
                 () -> RESOURCE_MODEL_BLDR().build(),
-                expectInProgress(0)
+                expectFailed(HandlerErrorCode.InvalidRequest)
         );
-
-        assertThat(response.getMessage()).isNull();
 
         verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
     }
