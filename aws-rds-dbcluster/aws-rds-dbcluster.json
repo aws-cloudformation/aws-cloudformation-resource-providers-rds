@@ -200,8 +200,17 @@
   },
   "allOf": [
     {
-      "required": [
-        "Engine"
+      "oneOf": [
+        {
+          "required": [
+            "Engine"
+          ]
+        },
+        {
+          "required": [
+            "SourceDBClusterIdentifier"
+          ]
+        }
       ]
     },
     {
