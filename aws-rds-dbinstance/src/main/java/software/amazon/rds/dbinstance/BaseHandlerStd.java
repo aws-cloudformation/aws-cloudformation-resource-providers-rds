@@ -449,7 +449,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
                     ))
                     .success();
-            if (!progressEvent.isSuccess()) {
+            if (progressEvent.isFailed()) {
                 return progressEvent;
             }
         }
@@ -480,7 +480,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
                     ))
                     .success();
-            if (!progressEvent.isSuccess()) {
+            if (progressEvent.isFailed()) {
                 return progressEvent;
             }
         }
