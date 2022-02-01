@@ -24,6 +24,7 @@ public enum ErrorCode {
     InvalidParameterCombination("InvalidParameterCombination"),
     InvalidParameterValue("InvalidParameterValue"),
     InvalidRestoreFault("InvalidRestoreFault"),
+    InvalidClientTokenId("InvalidClientTokenId"),
     InvalidVPCNetworkStateFault("InvalidVPCNetworkStateFault"),
     KMSKeyNotAccessibleFault("KMSKeyNotAccessibleFault"),
     MissingParameter("MissingParameter"),

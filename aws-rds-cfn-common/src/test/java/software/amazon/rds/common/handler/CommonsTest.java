@@ -26,6 +26,13 @@ public class CommonsTest {
     }
 
     @Test
+    public void handle_InvalidClientTokenId() {
+        final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(newAwsServiceException(ErrorCode.InvalidClientTokenId));
+        assertThat(status).isInstanceOf(HandlerErrorStatus.class);
+        assertThat(((HandlerErrorStatus) status).getHandlerErrorCode()).isEqualTo(HandlerErrorCode.ServiceInternalError);
+    }
+
+    @Test
     public void handle_AccessDeniedException() {
         final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(newAwsServiceException(ErrorCode.AccessDeniedException));
         assertThat(status).isInstanceOf(HandlerErrorStatus.class);
