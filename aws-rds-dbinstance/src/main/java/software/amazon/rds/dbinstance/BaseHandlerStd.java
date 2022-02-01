@@ -14,7 +14,11 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import com.amazonaws.util.CollectionUtils;
+import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -205,6 +209,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected HandlerConfig config;
 
+    private final Set<String> SENSITIVE_PARAMETERS_PARENT = ImmutableSet.of("desiredResourceState", "previousResourceState");
+    private final Set<String> SENSITIVE_PARAMETERS = ImmutableSet.of("masterUsername", "masterUserPassword", "tdeCredentialPassword");
+
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -224,6 +231,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
             final Logger logger) {
+        logRequest(request, logger);
         return handleRequest(
                 proxy,
                 request,
@@ -545,6 +553,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             }
         }
         return result;
+    }
+
+    private void logRequest(final ResourceHandlerRequest<ResourceModel> request, final Logger logger) {
+        try{
+            ReflectionToStringBuilder.setDefaultStyle(ToStringStyle.MULTI_LINE_STYLE);
+            logger.log(ReflectionToStringBuilder.toStringExclude(request, SENSITIVE_PARAMETERS_PARENT));
+            logger.log("DesiredResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getDesiredResourceState(), SENSITIVE_PARAMETERS));
+            logger.log("PreviousResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getPreviousResourceState(), SENSITIVE_PARAMETERS));
+        } catch (Exception exception){
+            logger.log(exception.getMessage());
+        }
     }
 
     public String generateResourceIdentifier(
