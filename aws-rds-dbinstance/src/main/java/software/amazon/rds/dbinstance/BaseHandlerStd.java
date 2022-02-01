@@ -190,7 +190,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
     protected static final ErrorRuleSet DELETE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
-            .withErrorCodes(ErrorStatus.ignore(),
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.InvalidParameterValue)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DBInstanceNotFound)
@@ -247,11 +247,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                "rds::stabilize-db-instance-" + getClass().getSimpleName(),
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        )
+                        "rds::stabilize-db-instance-" + getClass().getSimpleName(),
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                )
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
@@ -501,11 +501,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                "rds::reboot-db-instance",
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                        "rds::reboot-db-instance",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
