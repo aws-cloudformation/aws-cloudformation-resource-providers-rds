@@ -13,9 +13,11 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,6 +34,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterResponse;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
@@ -199,5 +202,211 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ImmutableUpdate_GlobalCluster() {
+        expectServiceInvocation = false;
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("globalClusterIdentifier_1").build(),
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("globalClusterIdentifier_2").build(),
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_ImmutableUpdate_Engine() {
+        expectServiceInvocation = false;
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL.toBuilder().engine("engine_1").build(),
+                () -> RESOURCE_MODEL.toBuilder().engine("engine_2").build(),
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_NoMasterUserUpdateIfMatch() {
+        final String masterUserPassword = randomString(16, ALPHANUM);
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword).build(),
+                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword).build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        Assertions.assertNull(argument.getValue().masterUserPassword());
+    }
+
+    @Test
+    public void handleRequest_UpdateMasterUserPasswordIfMismatch() {
+        final String masterUserPassword1 = randomString(16, ALPHANUM);
+        final String masterUserPassword2 = randomString(16, ALPHANUM);
+
+        Assertions.assertNotEquals(masterUserPassword1, masterUserPassword2);
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword1).build(),
+                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword2).build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        Assertions.assertEquals(argument.getValue().masterUserPassword(), masterUserPassword2);
+    }
+
+    @Test
+    public void handleRequest_NoEngineVersionUpdateIfMatch() {
+        final String engineVersion = randomString(16, ALPHANUM);
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion).build(),
+                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion).build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        Assertions.assertNull(argument.getValue().engineVersion());
+    }
+
+    @Test
+    public void handleRequest_NoEngineVersionUpdateIfRollback() {
+        final String engineVersion1 = randomString(16, ALPHANUM);
+        final String engineVersion2 = randomString(16, ALPHANUM);
+
+        Assertions.assertNotEquals(engineVersion1, engineVersion2);
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion1).build(),
+                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion2).build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        Assertions.assertNull(argument.getValue().engineVersion());
+    }
+
+    @Test
+    public void handleRequest_EngineVersionUpdateIfMismatch() {
+        final String engineVersion1 = randomString(16, ALPHANUM);
+        final String engineVersion2 = randomString(16, ALPHANUM);
+
+        Assertions.assertNotEquals(engineVersion1, engineVersion2);
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion1).build(),
+                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion2).build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        Assertions.assertEquals(argument.getValue().engineVersion(), engineVersion2);
+        Assertions.assertTrue(argument.getValue().applyImmediately());
+        Assertions.assertTrue(argument.getValue().allowMajorVersionUpgrade());
     }
 }
