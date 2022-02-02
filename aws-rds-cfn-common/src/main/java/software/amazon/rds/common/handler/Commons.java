@@ -4,6 +4,7 @@ import java.util.function.Function;
 
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
@@ -45,7 +46,12 @@ public final class Commons {
         final ErrorStatus errorStatus = errorRuleSet.handle(exception);
 
         if (errorStatus instanceof IgnoreErrorStatus) {
-            return ProgressEvent.progress(model, context);
+            switch (((IgnoreErrorStatus) errorStatus).getStatus()) {
+                case IN_PROGRESS:
+                    return ProgressEvent.progress(model, context);
+                default:
+                    return ProgressEvent.success(model, context);
+            }
         } else if (errorStatus instanceof HandlerErrorStatus) {
             final HandlerErrorStatus handlerErrorStatus = (HandlerErrorStatus) errorStatus;
             return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());

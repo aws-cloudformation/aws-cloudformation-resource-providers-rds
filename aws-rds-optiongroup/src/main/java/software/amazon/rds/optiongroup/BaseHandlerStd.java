@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.rds.model.OptionGroupQuotaExceededExcepti
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -49,7 +50,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final ErrorRuleSet DEFAULT_OPTION_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     ErrorCode.InvalidOptionGroupStateFault)
-            .withErrorClasses(ErrorStatus.ignore(),
+            .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
                     OptionGroupAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     OptionGroupNotFoundException.class)

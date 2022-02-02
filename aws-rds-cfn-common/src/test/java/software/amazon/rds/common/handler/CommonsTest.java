@@ -83,7 +83,7 @@ public class CommonsTest {
                 .build();
         final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
         assertThat(resultEvent).isNotNull();
-        assertThat(resultEvent.isInProgress()).isTrue();
+        assertThat(resultEvent.isSuccess()).isTrue();
     }
 
     @Test
