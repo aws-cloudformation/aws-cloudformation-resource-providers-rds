@@ -316,7 +316,7 @@ _Maximum_: <code>16</code>
 
 _Pattern_: <code>^[a-zA-Z]{1}[a-zA-Z0-9]{0,15}$</code>
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### MasterUserPassword
 

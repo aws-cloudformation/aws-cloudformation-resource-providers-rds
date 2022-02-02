@@ -368,7 +368,6 @@
     "/properties/DatabaseName",
     "/properties/EngineMode",
     "/properties/KmsKeyId",
-    "/properties/MasterUsername",
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",
@@ -378,7 +377,8 @@
   ],
   "conditionalCreateOnlyProperties": [
     "/properties/Engine",
-    "/properties/GlobalClusterIdentifier"
+    "/properties/GlobalClusterIdentifier",
+    "/properties/MasterUsername"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterIdentifier"
