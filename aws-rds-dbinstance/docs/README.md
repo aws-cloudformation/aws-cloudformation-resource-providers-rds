@@ -273,7 +273,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[_a-zA-Z][a-zA-Z0-9]{0,63}$</code>
+_Pattern_: <code>^$|^[_a-zA-Z][a-zA-Z0-9_]{0,63}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -285,7 +285,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9\.]){0,254}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:[:-]?[a-zA-Z0-9\.]){0,254}$</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -307,7 +307,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:[:-]?[a-zA-Z0-9]){0,254}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -319,7 +319,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,254}$</code>
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:[-:]?[a-zA-Z0-9]){0,254}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -461,7 +461,7 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^[a-zA-Z][a-zA-Z0-9]{0,15}$</code>
+_Pattern_: <code>^[a-zA-Z][a-zA-Z0-9_]{0,15}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 

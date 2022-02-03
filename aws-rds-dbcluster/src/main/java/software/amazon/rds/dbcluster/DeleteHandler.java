@@ -116,8 +116,12 @@ public class DeleteHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        return proxy.initiate("rds::remove-from-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::removeFromGlobalClusterRequest)
+        final ResourceModel resourceModel = progress.getResourceModel();
+        return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
+                .translateToServiceRequest(model -> {
+                    final String clusterArn = fetchDBCluster(proxyClient, resourceModel).dbClusterArn();
+                    return Translator.removeFromGlobalClusterRequest(model, clusterArn);
+                })
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((removeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         removeRequest,
