@@ -22,6 +22,8 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public class AbstractTestBase {
     protected static final Credentials MOCK_CREDENTIALS;
@@ -32,12 +34,14 @@ public class AbstractTestBase {
     protected static final Set<Tag> TAG_SET;
     protected static final String LOGICAL_RESOURCE_IDENTIFIER;
     protected static final Map<String, Object> PARAMS;
+    protected static final RequestLogger EMPTY_REQUEST_LOGGER;
+
 
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
         logger = new LoggerProxy();
-
+        EMPTY_REQUEST_LOGGER = new RequestLogger(logger, ResourceHandlerRequest.builder().build(), null);
         LOGICAL_RESOURCE_IDENTIFIER = "db-parameter-group";
 
         PARAMS = new HashMap<>();
