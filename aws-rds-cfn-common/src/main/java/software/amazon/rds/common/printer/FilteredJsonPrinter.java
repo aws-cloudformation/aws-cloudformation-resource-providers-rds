@@ -34,7 +34,8 @@ public class FilteredJsonPrinter implements JsonPrinter {
         this.filterFields = filterFields;
         mapper = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE)
-                .enable(SerializationFeature.INDENT_OUTPUT);
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         mapper.addMixIn(Object.class, PropertyFilterMixIn.class);
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
         mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);

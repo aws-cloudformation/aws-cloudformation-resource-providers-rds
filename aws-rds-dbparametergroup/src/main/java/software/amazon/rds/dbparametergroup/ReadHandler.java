@@ -25,13 +25,12 @@ public class ReadHandler extends BaseHandlerStd {
         return proxy.initiate("rds::read-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
                 .backoffDelay(CONSTANT)
-                .makeServiceCall((describeDbParameterGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest, proxyInvocation.client()::describeDBParameterGroups))
+                .makeServiceCall(requestLogger.log((describeDbParameterGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest, proxyInvocation.client()::describeDBParameterGroups)))
                 .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                requestLogger
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, model, context) -> {
                     try {
@@ -42,8 +41,7 @@ public class ReadHandler extends BaseHandlerStd {
                         return Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                requestLogger
+                                SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         );
                     }
                 });

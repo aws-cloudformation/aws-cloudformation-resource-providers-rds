@@ -5,17 +5,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
+import software.amazon.cloudformation.Response;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public class RequestLoggerTest {
+    @Mock
+    ProxyClient<Object> proxyClient;
 
     public static final String AWS_ACCOUNT_ID = "123456789";
     public static final String TOKEN = "token";
     public static final String STACK_ID = "stackId";
     public static final String SIMPLE_LOG = "simple log ";
+    final Logger logger = m -> {
+        assertThat(m.contains(AWS_ACCOUNT_ID)).isTrue();
+        assertThat(m.contains(TOKEN)).isTrue();
+        assertThat(m.contains(STACK_ID)).isTrue();
+    };
 
     @Test
     void test_if_customer_data_is_added() {
@@ -23,14 +33,7 @@ public class RequestLoggerTest {
         request.setAwsAccountId(AWS_ACCOUNT_ID);
         request.setClientRequestToken(TOKEN);
         request.setStackId(STACK_ID);
-        RequestLogger requestLogger = new RequestLogger(new Logger() {
-            @Override
-            public void log(final String s) {
-                assertThat(s.contains(AWS_ACCOUNT_ID)).isTrue();
-                assertThat(s.contains(TOKEN)).isTrue();
-                assertThat(s.contains(STACK_ID)).isTrue();
-            }
-        }, request, new FilteredJsonPrinter());
+        RequestLogger requestLogger = new RequestLogger(logger, request, new FilteredJsonPrinter());
         requestLogger.log(SIMPLE_LOG, new Object());
     }
 
@@ -74,16 +77,16 @@ public class RequestLoggerTest {
         request.setAwsAccountId(AWS_ACCOUNT_ID);
         request.setClientRequestToken(TOKEN);
         request.setStackId(STACK_ID);
-        Logger logger = new Logger() {
-            @Override
-            public void log(final String s) {
-                assertThat(s.contains(AWS_ACCOUNT_ID)).isTrue();
-                assertThat(s.contains(TOKEN)).isTrue();
-                assertThat(s.contains(STACK_ID)).isTrue();
-
-            }
-        };
-
         RequestLogger.handleRequest(logger, request, new FilteredJsonPrinter(), requestLogger -> null);
+    }
+
+    @Test
+    void test_log_bi_function() {
+        ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
+        request.setAwsAccountId(AWS_ACCOUNT_ID);
+        request.setClientRequestToken(TOKEN);
+        request.setStackId(STACK_ID);
+        RequestLogger requestLogger = new RequestLogger(logger, request, new FilteredJsonPrinter());
+        requestLogger.log((clientRequest, client) -> new Response<>()).apply(new Object(), proxyClient);
     }
 }

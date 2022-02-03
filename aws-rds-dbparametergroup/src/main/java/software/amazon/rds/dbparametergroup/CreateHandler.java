@@ -43,9 +43,7 @@ public class CreateHandler extends BaseHandlerStd {
                                 Commons.handleException(
                                         ProgressEvent.progress(resourceModel, ctx),
                                         exception,
-                                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                        requestLogger
-                                ))
+                                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
                         .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> applyParameters(proxy, proxyInvocation, resourceModel, context, requestLogger)))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }

@@ -22,14 +22,13 @@ public class UpdateHandler extends BaseHandlerStd {
             final RequestLogger requestLogger) {
         return proxy.initiate("rds::tag-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
-                .makeServiceCall(((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                .makeServiceCall(requestLogger.log((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeDbGroupsRequest,
                         proxyInvocation.client()::describeDBParameterGroups)))
                 .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                        requestLogger
+                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                 ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, invocation, resourceModel, context) -> {
                     final String arn = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get().dbParameterGroupArn();

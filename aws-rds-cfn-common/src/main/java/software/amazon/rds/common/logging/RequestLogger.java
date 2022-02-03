@@ -1,5 +1,9 @@
 package software.amazon.rds.common.logging;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.ObjectUtils;
@@ -7,9 +11,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.NonNull;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.printer.JsonPrinter;
 
@@ -54,6 +60,21 @@ public class RequestLogger {
         ExceptionUtils.rethrow(throwable);
     }
 
+    public <RequestT, ResponseT, ClientT> BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> log(
+            final BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> makeServiceCallMethod) {
+        return (request, proxyClient) -> {
+            ResponseT result = null;
+            try {
+                log("RdsRequest", request, ImmutableMap.of("Operation", request.getClass().getSimpleName()));
+                result = makeServiceCallMethod.apply(request, proxyClient);
+                log("RdsResponse", result, ImmutableMap.of("Operation", result.getClass().getSimpleName()));
+            } catch (Exception e) {
+                logAndThrow(e);
+            }
+            return result;
+        };
+    }
+
     public void log(Throwable throwable) {
         try {
             JSONObject jsonObject = new JSONObject(jsonPrinter.print(throwable));
@@ -69,10 +90,16 @@ public class RequestLogger {
     }
 
     public void log(String marker, Object object) {
+        log(marker, object, null);
+    }
+
+    public void log(String marker, Object object, Map<String, String> additionalFields) {
         try {
             String objectAsString = jsonPrinter.print(ObjectUtils.defaultIfNull(object, StringUtils.EMPTY));
-            JSONObject jsonLog = new JSONObject();
+            final JSONObject jsonLog = new JSONObject();
             jsonLog.put(marker, new JSONObject(objectAsString));
+            Optional.ofNullable(additionalFields).orElse(Collections.emptyMap())
+                    .entrySet().stream().forEach(entry -> jsonLog.put(entry.getKey(), entry.getValue()));
             jsonLog.put(REQUEST_DATA_MARKER, requestData);
             logMessage(jsonLog.toString());
         } catch (Throwable throwable) {

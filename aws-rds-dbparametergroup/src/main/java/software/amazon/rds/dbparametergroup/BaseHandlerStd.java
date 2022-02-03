@@ -135,13 +135,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                            final RequestLogger requestLogger) {
         return proxy.initiate("rds::modify-db-parameter-group", proxyClient, model, callbackContext)
                 .translateToServiceRequest((resourceModel) -> Translator.modifyDbParameterGroupRequest(resourceModel, paramsPartition))
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::modifyDBParameterGroup))
+                .makeServiceCall(requestLogger.log((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::modifyDBParameterGroup)))
                 .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                requestLogger
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .progress();
     }
@@ -154,13 +153,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                           final RequestLogger requestLogger) {
         return proxy.initiate("rds::reset-db-parameter-group", proxyClient, model, callbackContext)
                 .translateToServiceRequest((resourceModel) -> Translator.resetDbParametersRequest(resourceModel, paramsPartition))
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::resetDBParameterGroup))
+                .makeServiceCall(requestLogger.log((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::resetDBParameterGroup)))
                 .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                requestLogger
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .progress();
     }
@@ -239,13 +237,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                       final RequestLogger requestLogger) {
         return proxy.initiate("rds::describe-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.describeDbParametersRequest(resourceModel))
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request, proxyInvocation.client()::describeDBParametersPaginator))
+                .makeServiceCall(requestLogger.log((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request, proxyInvocation.client()::describeDBParametersPaginator)))
                 .handleError((describeDBParametersPaginatorRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                requestLogger
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, resourceModel, context) -> {
                     currentDBParameters.putAll(
@@ -264,13 +261,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                           final RequestLogger requestLogger) {
         return proxy.initiate("rds::default-engine-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.describeEngineDefaultParametersRequest(resourceModel))
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request, proxyInvocation.client()::describeEngineDefaultParametersPaginator))
+                .makeServiceCall(requestLogger.log((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request, proxyInvocation.client()::describeEngineDefaultParametersPaginator)))
                 .handleError((describeEngineDefaultParametersPaginatorRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                requestLogger
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .done((describeEngineDefaultParametersRequest, describeEngineDefaultParametersResponse, proxyInvocation, resourceModel, context) -> {
                     defaultEngineParameters.putAll(
