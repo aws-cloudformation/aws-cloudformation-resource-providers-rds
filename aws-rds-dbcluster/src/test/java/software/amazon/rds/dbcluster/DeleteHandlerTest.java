@@ -195,6 +195,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 .thenReturn(DeleteDbClusterResponse.builder().build());
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_INPROGRESS);
         transitions.add(DBCLUSTER_ACTIVE);
 
         test_handleRequest_base(
