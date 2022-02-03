@@ -14,7 +14,11 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import com.amazonaws.util.CollectionUtils;
+import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -186,7 +190,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
     protected static final ErrorRuleSet DELETE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
-            .withErrorCodes(ErrorStatus.ignore(),
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.InvalidParameterValue)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DBInstanceNotFound)
@@ -204,6 +208,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
     protected HandlerConfig config;
+
+    private final Set<String> SENSITIVE_PARAMETERS_PARENT = ImmutableSet.of("desiredResourceState", "previousResourceState");
+    private final Set<String> SENSITIVE_PARAMETERS = ImmutableSet.of("masterUsername", "masterUserPassword", "tdeCredentialPassword");
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -224,6 +231,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
             final Logger logger) {
+        logRequest(request, logger);
         return handleRequest(
                 proxy,
                 request,
@@ -239,11 +247,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                "rds::stabilize-db-instance-" + getClass().getSimpleName(),
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        )
+                        "rds::stabilize-db-instance-" + getClass().getSimpleName(),
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                )
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
@@ -493,11 +501,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                "rds::reboot-db-instance",
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                        "rds::reboot-db-instance",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
@@ -545,6 +553,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             }
         }
         return result;
+    }
+
+    private void logRequest(final ResourceHandlerRequest<ResourceModel> request, final Logger logger) {
+        try{
+            ReflectionToStringBuilder.setDefaultStyle(ToStringStyle.MULTI_LINE_STYLE);
+            logger.log(ReflectionToStringBuilder.toStringExclude(request, SENSITIVE_PARAMETERS_PARENT));
+            logger.log("DesiredResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getDesiredResourceState(), SENSITIVE_PARAMETERS));
+            logger.log("PreviousResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getPreviousResourceState(), SENSITIVE_PARAMETERS));
+        } catch (Exception exception){
+            logger.log(exception.getMessage());
+        }
     }
 
     public String generateResourceIdentifier(

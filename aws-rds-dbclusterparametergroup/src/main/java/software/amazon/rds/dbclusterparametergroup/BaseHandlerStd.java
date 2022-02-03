@@ -26,6 +26,9 @@ import java.util.stream.Collectors;
 
 import static software.amazon.rds.dbclusterparametergroup.Translator.mapToTags;
 
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static int MAX_LENGTH_GROUP_NAME = 255;
@@ -38,6 +41,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                        final ResourceHandlerRequest<ResourceModel> request,
                                                                        final CallbackContext callbackContext,
                                                                        final Logger logger) {
+        logger.log(ReflectionToStringBuilder.toString(request, ToStringStyle.MULTI_LINE_STYLE));
         return handleRequest(proxy, request, callbackContext != null ? callbackContext : new CallbackContext(), proxy.newProxy(ClientBuilder::getClient), logger);
     }
 

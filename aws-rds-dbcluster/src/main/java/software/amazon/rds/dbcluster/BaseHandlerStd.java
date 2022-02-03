@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
+import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -102,6 +106,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected HandlerConfig config;
 
+    private final Set<String> SENSITIVE_PARAMETERS_PARENT = ImmutableSet.of("desiredResourceState", "previousResourceState");
+    private final Set<String> SENSITIVE_PARAMETERS = ImmutableSet.of("masterUsername", "masterUserPassword");
+
+
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -114,6 +122,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final Logger logger
     ) {
+        logRequest(request, logger);
         return handleRequest(
                 proxy,
                 request,
@@ -308,38 +317,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
+    }
 
-        /*
-        return proxy.initiate("rds::tag-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::describeDbClustersRequest)
-                .makeServiceCall((describeRequest, rdsClientProxyClient) -> rdsClientProxyClient.injectCredentialsAndInvokeV2(
-                        describeRequest,
-                        rdsClientProxyClient.client()::describeDBClusters
-                ))
-                .handleError((describeRequest, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
-                ))
-                .done((describeRequest, describeResponse, rdsClientProxyClient, resourceModel, context) -> {
-                    final DBCluster dbCluster = describeResponse.dbClusters().stream().findFirst().get();
-                    final String arn = dbCluster.dbClusterArn();
-
-                    final Set<Tag> currentTags = Optional.ofNullable(resourceModel.getTags()).orElse(Collections.emptySet());
-                    final Set<Tag> existingTags = Translator.translateTagsFromSdk(dbCluster.tagList());
-                    final Set<Tag> tagsToRemove = Sets.difference(existingTags, currentTags);
-                    final Set<Tag> tagsToAdd = Sets.difference(currentTags, existingTags);
-
-                    rdsClientProxyClient.injectCredentialsAndInvokeV2(
-                            removeTagsFromResourceRequest(arn, tagsToRemove),
-                            rdsClientProxyClient.client()::removeTagsFromResource
-                    );
-                    rdsClientProxyClient.injectCredentialsAndInvokeV2(
-                            addTagsToResourceRequest(arn, tagsToAdd),
-                            rdsClientProxyClient.client()::addTagsToResource
-                    );
-                    return ProgressEvent.progress(resourceModel, context);
-                });
-         */
+    private void logRequest(final ResourceHandlerRequest<ResourceModel> request, final Logger logger) {
+        try{
+            ReflectionToStringBuilder.setDefaultStyle(ToStringStyle.MULTI_LINE_STYLE);
+            logger.log(ReflectionToStringBuilder.toStringExclude(request, SENSITIVE_PARAMETERS_PARENT));
+            logger.log("DesiredResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getDesiredResourceState(), SENSITIVE_PARAMETERS));
+            logger.log("PreviousResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getPreviousResourceState(), SENSITIVE_PARAMETERS));
+        } catch (Exception exception){
+            logger.log(exception.getMessage());
+        }
     }
 }
