@@ -4,12 +4,12 @@ import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -18,17 +18,18 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Map<String, String> previousTags,
-            final Map<String, String> desiredTags
-    ) {
+            final Map<String, String> desiredTags,
+            final RequestLogger requestLogger) {
         return proxy.initiate("rds::tag-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
-                .makeServiceCall(((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                .makeServiceCall(requestLogger.log((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeDbGroupsRequest,
                         proxyInvocation.client()::describeDBParameterGroups)))
                 .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                        DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, invocation, resourceModel, context) -> {
                     final String arn = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get().dbParameterGroupArn();
                     return Tagging.updateTags(
@@ -37,7 +38,8 @@ public class UpdateHandler extends BaseHandlerStd {
                             ProgressEvent.progress(resourceModel, context),
                             previousTags,
                             desiredTags,
-                            SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+                            SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                    );
                 });
     }
 
@@ -46,9 +48,8 @@ public class UpdateHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final RequestLogger requestLogger
     ) {
-        setLogger(logger);
         final Map<String, String> previousTags = Tagging.mergeTags(
                 request.getPreviousSystemTags(),
                 request.getPreviousResourceTags()
@@ -60,8 +61,8 @@ public class UpdateHandler extends BaseHandlerStd {
 
         final ResourceModel model = request.getDesiredResourceState();
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
-                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext(), requestLogger))
+                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags, requestLogger))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 }

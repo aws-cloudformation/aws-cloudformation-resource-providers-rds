@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -27,6 +24,8 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -58,20 +57,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
-        logger.log(ReflectionToStringBuilder.toString(request, ToStringStyle.MULTI_LINE_STYLE));
-        return handleRequest(
-                proxy,
+        return RequestLogger.handleRequest(
+                logger,
                 request,
-                callbackContext != null ? callbackContext : new CallbackContext(),
-                proxy.newProxy(ClientBuilder::getClient),
-                logger
-        );
+                PARAMETERS_FILTER,
+                requestLogger -> handleRequest(
+                        proxy,
+                        request,
+                        callbackContext != null ? callbackContext : new CallbackContext(),
+                        proxy.newProxy(ClientBuilder::getClient),
+                        logger
+                ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(

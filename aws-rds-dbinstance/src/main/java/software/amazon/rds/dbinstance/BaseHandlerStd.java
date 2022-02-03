@@ -14,11 +14,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-
 import com.amazonaws.util.CollectionUtils;
-import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -63,6 +59,8 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -209,8 +207,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected HandlerConfig config;
 
-    private final Set<String> SENSITIVE_PARAMETERS_PARENT = ImmutableSet.of("desiredResourceState", "previousResourceState");
-    private final Set<String> SENSITIVE_PARAMETERS = ImmutableSet.of("masterUsername", "masterUserPassword", "tdeCredentialPassword");
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -231,14 +228,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
             final Logger logger) {
-        logRequest(request, logger);
-        return handleRequest(
-                proxy,
+        return RequestLogger.handleRequest(
+                logger,
                 request,
-                context != null ? context : new CallbackContext(),
-                proxy.newProxy(RdsClientBuilder::getClient),
-                proxy.newProxy(Ec2ClientBuilder::getClient),
-                logger);
+                PARAMETERS_FILTER,
+                requestLogger -> handleRequest(
+                        proxy,
+                        request,
+                        context != null ? context : new CallbackContext(),
+                        proxy.newProxy(RdsClientBuilder::getClient),
+                        proxy.newProxy(Ec2ClientBuilder::getClient),
+                        logger
+                ));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> waitForDbInstanceAvailableStatus(
@@ -247,11 +248,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::stabilize-db-instance-" + getClass().getSimpleName(),
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                )
+                "rds::stabilize-db-instance-" + getClass().getSimpleName(),
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+        )
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
@@ -501,11 +502,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::reboot-db-instance",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                "rds::reboot-db-instance",
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+        ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
@@ -553,17 +554,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             }
         }
         return result;
-    }
-
-    private void logRequest(final ResourceHandlerRequest<ResourceModel> request, final Logger logger) {
-        try{
-            ReflectionToStringBuilder.setDefaultStyle(ToStringStyle.MULTI_LINE_STYLE);
-            logger.log(ReflectionToStringBuilder.toStringExclude(request, SENSITIVE_PARAMETERS_PARENT));
-            logger.log("DesiredResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getDesiredResourceState(), SENSITIVE_PARAMETERS));
-            logger.log("PreviousResourceState: " + ReflectionToStringBuilder.toStringExclude(request.getPreviousResourceState(), SENSITIVE_PARAMETERS));
-        } catch (Exception exception){
-            logger.log(exception.getMessage());
-        }
     }
 
     public String generateResourceIdentifier(
