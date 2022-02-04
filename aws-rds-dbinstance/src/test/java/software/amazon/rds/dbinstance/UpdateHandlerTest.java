@@ -360,7 +360,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client()).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
-        verify(rdsProxy.client()).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(2)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
     }
 
     @Test
