@@ -19,7 +19,10 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAutomatedBackupQuotaExceededException;
@@ -32,6 +35,7 @@ import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsExceptio
 import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
@@ -43,6 +47,7 @@ import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException
 import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
@@ -66,6 +71,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     public static final String RESOURCE_IDENTIFIER = "dbinstance";
     public static final String STACK_NAME = "rds";
+
+    public static final String PENDING_REBOOT_STATUS = "pending-reboot";
+    public static final String IN_SYNC_STATUS = "in-sync";
 
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
@@ -242,17 +250,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 ));
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> waitForDbInstanceAvailableStatus(
+    protected ProgressEvent<ResourceModel, CallbackContext> awaitDBInstanceAvailableStatus(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                "rds::stabilize-db-instance-" + getClass().getSimpleName(),
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        )
+                        "rds::stabilize-db-instance-" + getClass().getSimpleName(),
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                )
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
@@ -295,6 +303,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return StringUtils.isNotBlank(model.getDBSnapshotIdentifier());
     }
 
+    protected boolean isDBClusterMember(final ResourceModel model) {
+        return StringUtils.isNotBlank(model.getDBClusterIdentifier());
+    }
+
     protected DBInstance fetchDBInstance(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
@@ -304,6 +316,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 rdsProxyClient.client()::describeDBInstances
         );
         return response.dbInstances().stream().findFirst().get();
+    }
+
+    protected DBCluster fetchDBCluster(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbClustersRequest(model),
+                rdsProxyClient.client()::describeDBClusters
+        );
+        return response.dbClusters().stream().findFirst().get();
     }
 
     protected DBSnapshot fetchDBSnapshot(
@@ -354,7 +377,48 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
     }
 
-    protected boolean isDbInstanceRoleStabilized(
+    protected boolean isOptionGroupStabilized(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+        final List<OptionGroupMembership> optionGroupMemberships = dbInstance.optionGroupMemberships();
+        if (CollectionUtils.isNullOrEmpty(optionGroupMemberships)) {
+            // no option group membership, the best we can do is to return true
+            return true;
+        }
+        return IN_SYNC_STATUS.equals(optionGroupMemberships.get(0).status());
+    }
+
+    protected boolean isDBParameterGroupStabilized(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+        final List<DBParameterGroupStatus> dbParameterGroupStatuses = dbInstance.dbParameterGroups();
+        if (CollectionUtils.isNullOrEmpty(dbParameterGroupStatuses)) {
+            return true;
+        }
+        return IN_SYNC_STATUS.equals(dbParameterGroupStatuses.get(0).parameterApplyStatus());
+    }
+
+    protected boolean isDBClusterParameterGroupStabilized(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DBCluster dbCluster = fetchDBCluster(rdsProxyClient, model);
+        final List<DBClusterMember> dbClusterMembers = dbCluster.dbClusterMembers();
+        if (!CollectionUtils.isNullOrEmpty(dbClusterMembers)) {
+            for (DBClusterMember member : dbClusterMembers) {
+                if (model.getDBInstanceIdentifier().equals(member.dbInstanceIdentifier())) {
+                    return IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus());
+                }
+            }
+        }
+        return false;
+    }
+
+    protected boolean isDBInstanceRoleStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model,
             final Function<Stream<software.amazon.awssdk.services.rds.model.DBInstanceRole>, Boolean> predicate
@@ -365,12 +429,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         ).orElse(Collections.emptyList()).stream());
     }
 
-    protected boolean isDbInstanceRoleAdditionStabilized(
+    protected boolean isDBInstanceRoleAdditionStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model,
             final DBInstanceRole lookupRole
     ) {
-        return isDbInstanceRoleStabilized(
+        return isDBInstanceRoleStabilized(
                 rdsProxyClient,
                 model,
                 (roles) -> roles.anyMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()) &&
@@ -378,12 +442,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         );
     }
 
-    protected boolean isDbInstanceRoleRemovalStabilized(
+    protected boolean isDBInstanceRoleRemovalStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model,
             final DBInstanceRole lookupRole
     ) {
-        return isDbInstanceRoleStabilized(
+        return isDBInstanceRoleStabilized(
                 rdsProxyClient,
                 model,
                 (roles) -> roles.noneMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()))
@@ -449,7 +513,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .makeServiceCall((request, proxyInvocation) -> {
                         return proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::addRoleToDBInstance);
                     })
-                    .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDbInstanceRoleAdditionStabilized(
+                    .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDBInstanceRoleAdditionStabilized(
                             proxyInvocation, modelRequest, role
                     ))
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
@@ -480,7 +544,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                             request, proxyInvocation.client()::removeRoleFromDBInstance
                     ))
-                    .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDbInstanceRoleRemovalStabilized(
+                    .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDBInstanceRoleRemovalStabilized(
                             proxyInvocation, modelRequest, role
                     ))
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
@@ -502,11 +566,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                "rds::reboot-db-instance",
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                        "rds::reboot-db-instance",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
@@ -525,7 +589,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        return reboot(proxy, rdsProxyClient, progress).then(p -> waitForDbInstanceAvailableStatus(proxy, rdsProxyClient, p));
+        return reboot(proxy, rdsProxyClient, progress).then(p -> awaitDBInstanceAvailableStatus(proxy, rdsProxyClient, p));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> ensureEngineSet(

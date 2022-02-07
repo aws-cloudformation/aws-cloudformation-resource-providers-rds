@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
@@ -40,6 +41,12 @@ public class Translator {
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .build();
+    }
+
+    public static DescribeDbClustersRequest describeDbClustersRequest(final ResourceModel model) {
+        return DescribeDbClustersRequest.builder()
+                .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .build();
     }
 
