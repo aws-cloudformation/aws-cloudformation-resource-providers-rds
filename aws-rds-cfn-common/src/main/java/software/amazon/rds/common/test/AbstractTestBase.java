@@ -1,6 +1,5 @@
 package software.amazon.rds.common.test;
 
-import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -14,10 +13,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
 
-    final private static SecureRandom random = new SecureRandom();
-    final public static String ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    final public static String ALPHANUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
     protected abstract String getLogicalResourceIdentifier();
 
     protected abstract void expectResourceSupply(final Supplier<ResourceT> supplier);
@@ -30,14 +25,6 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
 
     protected String newStackId() {
         return UUID.randomUUID().toString();
-    }
-
-    protected String randomString(final int length, final String alphabet) {
-        StringBuilder builder = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            builder.append(alphabet.charAt(random.nextInt(alphabet.length())));
-        }
-        return builder.toString();
     }
 
     protected Consumer<ProgressEvent<ModelT, CallbackT>> expectInProgress(int pause) {

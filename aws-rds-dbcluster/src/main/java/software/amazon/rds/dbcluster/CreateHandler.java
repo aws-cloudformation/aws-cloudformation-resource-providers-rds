@@ -32,7 +32,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger
     ) {
-        ResourceModel model = request.getDesiredResourceState();
+        ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
         if (StringUtils.isNullOrEmpty(model.getDBClusterIdentifier())) {
             model.setDBClusterIdentifier(
                     IdentifierUtils.generateResourceIdentifier(

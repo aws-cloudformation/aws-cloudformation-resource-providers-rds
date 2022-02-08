@@ -331,9 +331,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final String globalClusterIdentifier
     ) {
         final ResourceModel resourceModel = progress.getResourceModel();
+        DBCluster cluster;
+        try{
+            cluster = fetchDBCluster(proxyClient, resourceModel);
+        } catch (Exception exception){
+            return Commons.handleException(
+                    ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
+                    exception,
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+        }
+        final String clusterArn = cluster.dbClusterArn();
         return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
                 .translateToServiceRequest(model -> {
-                    final String clusterArn = fetchDBCluster(proxyClient, resourceModel).dbClusterArn();
                     return Translator.removeFromGlobalClusterRequest(globalClusterIdentifier, clusterArn);
                 })
                 .backoffDelay(config.getBackoff())

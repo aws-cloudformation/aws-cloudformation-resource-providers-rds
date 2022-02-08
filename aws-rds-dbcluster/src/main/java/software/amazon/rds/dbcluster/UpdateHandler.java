@@ -1,13 +1,13 @@
 package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
+import static software.amazon.rds.dbcluster.Translator.cloudwatchLogsExportConfiguration;
 
 import java.util.Collection;
 
-import org.apache.commons.lang3.BooleanUtils;
-
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -57,24 +57,17 @@ public class UpdateHandler extends BaseHandlerStd {
                         request.getDesiredResourceTags()
                 )
         );
-        
-        final ResourceModel previousResourceState = request.getPreviousResourceState();
-        final ResourceModel desiredResourceState = setDefaults(request.getDesiredResourceState());
-        final boolean isRollback = BooleanUtils.isTrue(request.getRollback());
 
-        if (!ImmutabilityHelper.isChangeMutable(previousResourceState, desiredResourceState)) {
-            return ProgressEvent.failed(
-                    desiredResourceState,
-                    callbackContext,
-                    HandlerErrorCode.NotUpdatable,
-                    "Resource is immutable"
-            );
-        }
-
-        return ProgressEvent.progress(desiredResourceState, callbackContext)
+        return ProgressEvent.progress(setDefaults(request.getDesiredResourceState()), callbackContext)
+                .then(progress -> {
+                    if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                        return removeFromGlobalCluster(proxy, proxyClient, progress, request.getPreviousResourceState().getGlobalClusterIdentifier());
+                    }
+                    return progress;
+                })
                 .then(progress -> Commons.execOnce(
                         progress,
-                        () -> modifyDBCluster(proxy, proxyClient, progress, previousResourceState, desiredResourceState, isRollback),
+                        () -> modifyDBCluster(proxy, proxyClient, progress, cloudwatchLogsExportConfiguration(request)),
                         CallbackContext::isModified,
                         CallbackContext::setModified)
                 )
@@ -88,12 +81,10 @@ public class UpdateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final ResourceModel previousResourceState,
-            final ResourceModel desiredResourceState,
-            final boolean isRollback
+            final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration
     ) {
         return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(model -> Translator.modifyDbClusterRequest(previousResourceState, model, isRollback))
+                .translateToServiceRequest(model -> Translator.modifyDbClusterRequest(model, cloudwatchLogsExportConfiguration))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterModifyRequest,
@@ -102,8 +93,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
                     return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
                 })
-                .handleError((createRequest, exception, client, resourceModel, callbackCtx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, callbackCtx),
+                .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, callbackCtxt),
                         exception,
                         DEFAULT_DB_CLUSTER_ERROR_RULE_SET
                 ))

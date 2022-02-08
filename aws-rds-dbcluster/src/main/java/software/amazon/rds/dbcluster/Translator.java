@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,6 +26,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class Translator {
     static CreateDbClusterRequest createDbClusterRequest(final ResourceModel model) {
@@ -129,58 +129,41 @@ public class Translator {
     }
 
     static ModifyDbClusterRequest modifyDbClusterRequest(final ResourceModel model) {
-        return modifyDbClusterRequest(null, model, false);
+        return modifyDbClusterRequest(model, CloudwatchLogsExportConfiguration.builder().build());
     }
 
     static ModifyDbClusterRequest modifyDbClusterRequest(
-            final ResourceModel previousResourceState,
-            final ResourceModel desiredResourceState,
-            final boolean isRollback
+            final ResourceModel model,
+            final CloudwatchLogsExportConfiguration config
     ) {
-
-        final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(
-                previousResourceState,
-                desiredResourceState
-        );
-
-        ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
-                .backtrackWindow(castToLong(desiredResourceState.getBacktrackWindow()))
-                .backupRetentionPeriod(desiredResourceState.getBackupRetentionPeriod())
+        return ModifyDbClusterRequest.builder()
+                .backtrackWindow(castToLong(model.getBacktrackWindow()))
+                .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .cloudwatchLogsExportConfiguration(config)
-                .copyTagsToSnapshot(desiredResourceState.getCopyTagsToSnapshot())
-                .dbClusterIdentifier(desiredResourceState.getDBClusterIdentifier())
-                .dbClusterParameterGroupName(desiredResourceState.getDBClusterParameterGroupName())
-                .deletionProtection(desiredResourceState.getDeletionProtection())
-                .enableHttpEndpoint(desiredResourceState.getEnableHttpEndpoint())
-                .enableIAMDatabaseAuthentication(desiredResourceState.getEnableIAMDatabaseAuthentication())
-                .port(desiredResourceState.getPort())
-                .preferredBackupWindow(desiredResourceState.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(desiredResourceState.getPreferredMaintenanceWindow())
-                .scalingConfiguration(translateScalingConfigurationToSdk(desiredResourceState.getScalingConfiguration()))
-                .vpcSecurityGroupIds(desiredResourceState.getVpcSecurityGroupIds());
-
-        if (previousResourceState != null) {
-            if (!Objects.equals(previousResourceState.getMasterUserPassword(), desiredResourceState.getMasterUserPassword())) {
-                builder.masterUserPassword(desiredResourceState.getMasterUserPassword());
-            }
-            if (!(isRollback || Objects.equals(previousResourceState.getEngineVersion(), desiredResourceState.getEngineVersion()))) {
-                builder.applyImmediately(true);
-                builder.engineVersion(desiredResourceState.getEngineVersion());
-                builder.allowMajorVersionUpgrade(true);
-            }
-        }
-
-        return builder.build();
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
+                .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
+                .deletionProtection(model.getDeletionProtection())
+                .enableHttpEndpoint(model.getEnableHttpEndpoint())
+                .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
+                .engineVersion(model.getEngineVersion())
+                .masterUserPassword(model.getMasterUserPassword())
+                .port(model.getPort())
+                .preferredBackupWindow(model.getPreferredBackupWindow())
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
+                .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
+                .build();
     }
 
     static CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration(
-            final ResourceModel previousResourceState,
-            final ResourceModel desiredResourceState
+            final ResourceHandlerRequest<ResourceModel> request
     ) {
         CloudwatchLogsExportConfiguration.Builder config = CloudwatchLogsExportConfiguration.builder();
 
-        final List<String> currentLogsExports = desiredResourceState.getEnableCloudwatchLogsExports();
-        final List<String> previousLogsExports = previousResourceState == null ? Collections.emptyList() : previousResourceState.getEnableCloudwatchLogsExports();
+        final List<String> currentLogsExports = request.getDesiredResourceState().getEnableCloudwatchLogsExports();
+        final List<String> previousLogsExports = request.getPreviousResourceState().getEnableCloudwatchLogsExports();
+
 
         final Set<String> existingLogs = new HashSet<>(Optional.ofNullable(previousLogsExports).orElse(Collections.emptyList()));
         final Set<String> newLogsExports = new HashSet<>(Optional.ofNullable(currentLogsExports).orElse(Collections.emptyList()));
