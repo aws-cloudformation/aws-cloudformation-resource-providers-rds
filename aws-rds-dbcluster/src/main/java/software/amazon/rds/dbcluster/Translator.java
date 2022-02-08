@@ -189,10 +189,10 @@ public class Translator {
         return builder.build();
     }
 
-    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final ResourceModel model, final String clusterArn) {
+    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final String globalClusterIdentifier, final String clusterArn) {
         return RemoveFromGlobalClusterRequest.builder()
                 .dbClusterIdentifier(clusterArn)
-                .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+                .globalClusterIdentifier(globalClusterIdentifier)
                 .build();
     }
 

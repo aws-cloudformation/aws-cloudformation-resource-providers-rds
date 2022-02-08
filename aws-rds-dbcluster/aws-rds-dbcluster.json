@@ -50,8 +50,8 @@
     "GlobalClusterIdentifier": {
       "description": "If you are configuring an Aurora global database cluster and want your Aurora DB cluster to be a secondary member in the global database cluster, specify the global cluster ID of the global database cluster. To define the primary database cluster of the global cluster, use the AWS::RDS::GlobalCluster resource.\n\nIf you aren't configuring a global database cluster, don't specify this property.",
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
-      "minLength": 1,
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+      "minLength": 0,
       "maxLength": 63
     },
     "DBClusterIdentifier": {
@@ -395,13 +395,13 @@
     "create": {
       "permissions": [
         "iam:PassRole",
-        "rds:CreateDBCluster",
-        "rds:RestoreDBClusterFromSnapshot",
-        "rds:RestoreDBClusterToPointInTime",
-        "rds:ModifyDBCluster",
-        "rds:DescribeDBClusters",
         "rds:AddRoleToDBCluster",
-        "rds:AddTagsToResource"
+        "rds:AddTagsToResource",
+        "rds:CreateDBCluster",
+        "rds:DescribeDBClusters",
+        "rds:ModifyDBCluster",
+        "rds:RestoreDBClusterFromSnapshot",
+        "rds:RestoreDBClusterToPointInTime"
       ]
     },
     "read": {
@@ -412,18 +412,19 @@
     "update": {
       "permissions": [
         "iam:PassRole",
-        "rds:ModifyDBCluster",
-        "rds:DescribeDBClusters",
         "rds:AddRoleToDBCluster",
+        "rds:AddTagsFromResource",
+        "rds:DescribeDBClusters",
+        "rds:ModifyDBCluster",
+        "rds:RemoveFromGlobalCluster",
         "rds:RemoveRoleFromDBCluster",
-        "rds:RemoveTagsFromResource",
-        "rds:AddTagsFromResource"
+        "rds:RemoveTagsFromResource"
       ]
     },
     "delete": {
       "permissions": [
-        "rds:DescribeDBClusters",
         "rds:DeleteDBCluster",
+        "rds:DescribeDBClusters",
         "rds:RemoveFromGlobalCluster"
       ]
     },
