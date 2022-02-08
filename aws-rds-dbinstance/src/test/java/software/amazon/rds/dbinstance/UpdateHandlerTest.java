@@ -34,6 +34,8 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
@@ -41,6 +43,8 @@ import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbInstanceRoleAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbInstanceRoleNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
@@ -48,6 +52,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsReques
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
@@ -55,7 +60,6 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
-import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -679,5 +683,217 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(ec2Proxy.client()).describeSecurityGroups(any(DescribeSecurityGroupsRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ResourceDrift() {
+        final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("applying")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("foo")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .optionGroupMemberships(OptionGroupMembership.builder()
+                        .optionGroupName("test-option-group")
+                        .status("applying")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .optionGroupMemberships(OptionGroupMembership.builder()
+                        .optionGroupName("test-option-group")
+                        .status("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("pending-reboot")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbInstanceStatus("available")
+                .build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().driftable(true),
+                transitions::remove,
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier(null).build(),
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier(null).build(),
+                expectSuccess()
+        );
+
+
+        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ResourceDriftClusterInstance() {
+        final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("applying")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("foo")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .optionGroupMemberships(OptionGroupMembership.builder()
+                        .optionGroupName("test-option-group")
+                        .status("applying")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .optionGroupMemberships(OptionGroupMembership.builder()
+                        .optionGroupName("test-option-group")
+                        .status("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("pending-reboot")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbInstanceStatus("available")
+                .build());
+
+        when(rdsProxy.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder()
+                                .dbClusterMembers(DBClusterMember.builder()
+                                        .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
+                                        .dbClusterParameterGroupStatus("applying")
+                                        .build())
+                                .build())
+                        .build())
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder()
+                                .dbClusterMembers(DBClusterMember.builder()
+                                        .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
+                                        .dbClusterParameterGroupStatus("in-sync")
+                                        .build())
+                                .build())
+                        .build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().driftable(true),
+                transitions::remove,
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier("db-cluster-identifier").build(),
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier("db-cluster-identifier").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ResourceDriftClusterInstanceShouldRestartCluster() {
+        final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("applying")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("foo")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .optionGroupMemberships(OptionGroupMembership.builder()
+                        .optionGroupName("test-option-group")
+                        .status("applying")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .optionGroupMemberships(OptionGroupMembership.builder()
+                        .optionGroupName("test-option-group")
+                        .status("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbInstanceStatus("available")
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbInstanceStatus("available")
+                .build());
+
+        when(rdsProxy.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder()
+                                .dbClusterMembers(DBClusterMember.builder()
+                                        .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
+                                        .dbClusterParameterGroupStatus("in-sync")
+                                        .build())
+                                .build())
+                        .build())
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder()
+                                .dbClusterMembers(DBClusterMember.builder()
+                                        .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
+                                        .dbClusterParameterGroupStatus("pending-reboot")
+                                        .build())
+                                .build())
+                        .build())
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder()
+                                .dbClusterMembers(DBClusterMember.builder()
+                                        .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
+                                        .dbClusterParameterGroupStatus("in-sync")
+                                        .build())
+                                .build())
+                        .build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().driftable(true),
+                transitions::remove,
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier("db-cluster-identifier").build(),
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier("db-cluster-identifier").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
     }
 }

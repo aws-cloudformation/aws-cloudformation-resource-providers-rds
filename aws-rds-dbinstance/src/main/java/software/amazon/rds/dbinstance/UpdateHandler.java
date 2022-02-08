@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -14,6 +15,8 @@ import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
@@ -32,8 +35,6 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
-
-    public static final String PENDING_REBOOT_STATUS = "pending-reboot";
 
     public UpdateHandler() {
         this(HandlerConfig.builder().probingEnabled(true).build());
@@ -58,6 +59,10 @@ public class UpdateHandler extends BaseHandlerStd {
                     HandlerErrorCode.NotUpdatable,
                     "Resource is immutable"
             );
+        }
+
+        if (BooleanUtils.isTrue(request.getDriftable())) {
+            return handleResourceDrift(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger);
         }
 
         final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
@@ -115,6 +120,33 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
+    private ProgressEvent<ResourceModel, CallbackContext> handleResourceDrift(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger
+    ) {
+        return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
+                .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient, progress))
+                .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient, progress))
+                .then(progress -> {
+                    if (isDBClusterMember(progress.getResourceModel())) {
+                        return awaitDBClusterParameterGroup(proxy, rdsProxyClient, progress);
+                    }
+                    return progress;
+                })
+                .then(progress -> {
+                    if (shouldReboot(rdsProxyClient, progress) ||
+                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient, progress))) {
+                        return rebootAwait(proxy, rdsProxyClient, progress);
+                    }
+                    return progress;
+                })
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+    }
+
     private boolean shouldReboot(
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
@@ -127,6 +159,23 @@ public class UpdateHandler extends BaseHandlerStd {
             }
         } catch (DbInstanceNotFoundException e) {
             return false;
+        }
+        return false;
+    }
+
+    private boolean shouldRebootCluster(
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final String dbInstanceIdentifier = progress.getResourceModel().getDBInstanceIdentifier();
+        final DBCluster dbCluster = fetchDBCluster(proxyClient, progress.getResourceModel());
+        Optional<DBClusterMember> maybeDbClusterMember = Optional.ofNullable(dbCluster.dbClusterMembers())
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(member -> dbInstanceIdentifier.equals(member.dbInstanceIdentifier()))
+                .findFirst();
+        if (maybeDbClusterMember.isPresent()) {
+            return PENDING_REBOOT_STATUS.equals(maybeDbClusterMember.get().dbClusterParameterGroupStatus());
         }
         return false;
     }
@@ -291,5 +340,59 @@ public class UpdateHandler extends BaseHandlerStd {
         }
 
         return progress;
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> awaitDBParameterGroupInSyncStatus(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::stabilize-db-parameter-group-drift", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Function.identity())
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall(NOOP_CALL)
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBParameterGroupStabilized(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> awaitOptionGroupInSyncStatus(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::stabilize-option-group-drift", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Function.identity())
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall(NOOP_CALL)
+                .stabilize((request, response, proxyInvocation, model, context) -> isOptionGroupStabilized(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> awaitDBClusterParameterGroup(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::stabilize-db-cluster-parameter-group-drift", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Function.identity())
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall(NOOP_CALL)
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBClusterParameterGroupStabilized(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
     }
 }
