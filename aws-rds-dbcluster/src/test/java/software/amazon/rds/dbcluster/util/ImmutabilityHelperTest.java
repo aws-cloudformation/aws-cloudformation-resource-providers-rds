@@ -36,7 +36,7 @@ class ImmutabilityHelperTest {
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().globalClusterIdentifier("global-cluster-identifier").build())
                         .desired(ResourceModel.builder().globalClusterIdentifier(null).build())
-                        .expect(false)
+                        .expect(true)
                         .build(),
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().globalClusterIdentifier("global-cluster-identifier").build())

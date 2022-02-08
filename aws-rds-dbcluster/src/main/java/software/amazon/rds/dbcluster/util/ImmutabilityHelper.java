@@ -14,7 +14,7 @@ public final class ImmutabilityHelper {
 
     static boolean isGlobalClusterMutable(final ResourceModel previous, final ResourceModel desired) {
         if (StringUtils.isNullOrEmpty(desired.getGlobalClusterIdentifier())) {
-            return Objects.equal(previous.getGlobalClusterIdentifier(), desired.getGlobalClusterIdentifier());
+            return true;
         }
         return desired.getGlobalClusterIdentifier().equals(previous.getGlobalClusterIdentifier());
     }
