@@ -19,6 +19,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.ProxyClientLogger;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
@@ -55,7 +56,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         callbackContext != null ? callbackContext : new CallbackContext(),
-                        proxy.newProxy(ClientBuilder::getClient),
+                        ProxyClientLogger.newProxy(requestLogger, proxy.newProxy(ClientBuilder::getClient)),
                         logger
                 ));
     }

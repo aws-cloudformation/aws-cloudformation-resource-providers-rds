@@ -1,23 +1,21 @@
 package software.amazon.rds.common.logging;
 
-import org.json.JSONObject;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 @Data
 @AllArgsConstructor
 class RequestData {
-    private String stackId;
-    private String awsAccountId;
-    private String clientRequestToken;
+    private final Map<String, String> requestDataMap = Maps.newHashMap();
 
-    public JSONObject toJson() {
-        JSONObject requestDataJsonObject = new JSONObject();
-        requestDataJsonObject.put("StackId", stackId);
-        requestDataJsonObject.put("AwsAccountId", awsAccountId);
-        requestDataJsonObject.put("ClientRequestToken", clientRequestToken);
-        return requestDataJsonObject;
+    public <T> RequestData(final ResourceHandlerRequest<T> request) {
+        requestDataMap.put("StackId", request.getStackId());
+        requestDataMap.put("AwsAccountId", request.getAwsAccountId());
+        requestDataMap.put("ClientRequestToken", request.getClientRequestToken());
     }
 
 }

@@ -64,6 +64,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.ProxyClientLogger;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
@@ -244,8 +245,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         context != null ? context : new CallbackContext(),
-                        proxy.newProxy(RdsClientBuilder::getClient),
-                        proxy.newProxy(Ec2ClientBuilder::getClient),
+                        ProxyClientLogger.newProxy(requestLogger, proxy.newProxy(RdsClientBuilder::getClient)),
+                        ProxyClientLogger.newProxy(requestLogger, proxy.newProxy(Ec2ClientBuilder::getClient)),
                         logger
                 ));
     }
@@ -256,11 +257,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::stabilize-db-instance-" + getClass().getSimpleName(),
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                )
+                "rds::stabilize-db-instance-" + getClass().getSimpleName(),
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+        )
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
@@ -566,11 +567,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::reboot-db-instance",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                "rds::reboot-db-instance",
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+        ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,

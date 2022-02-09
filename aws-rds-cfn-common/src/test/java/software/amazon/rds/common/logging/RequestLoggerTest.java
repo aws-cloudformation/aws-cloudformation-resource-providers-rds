@@ -7,15 +7,12 @@ import static org.assertj.core.api.Assertions.fail;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
-import software.amazon.cloudformation.Response;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public class RequestLoggerTest {
-    @Mock
-    ProxyClient<Object> proxyClient;
 
     public static final String AWS_ACCOUNT_ID = "123456789";
     public static final String TOKEN = "token";
@@ -78,15 +75,5 @@ public class RequestLoggerTest {
         request.setClientRequestToken(TOKEN);
         request.setStackId(STACK_ID);
         RequestLogger.handleRequest(logger, request, new FilteredJsonPrinter(), requestLogger -> null);
-    }
-
-    @Test
-    void test_log_bi_function() {
-        ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
-        request.setAwsAccountId(AWS_ACCOUNT_ID);
-        request.setClientRequestToken(TOKEN);
-        request.setStackId(STACK_ID);
-        RequestLogger requestLogger = new RequestLogger(logger, request, new FilteredJsonPrinter());
-        requestLogger.log((clientRequest, client) -> new Response<>()).apply(new Object(), proxyClient);
     }
 }
