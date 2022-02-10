@@ -18,7 +18,8 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Map<String, String> previousTags,
-            final Map<String, String> desiredTags) {
+            final Map<String, String> desiredTags,
+            final RequestLogger requestLogger) {
         return proxy.initiate("rds::tag-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
                 .makeServiceCall(((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
@@ -61,7 +62,7 @@ public class UpdateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext(), requestLogger))
-                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
+                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 }
