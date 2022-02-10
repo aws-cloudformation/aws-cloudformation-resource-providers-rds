@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -65,18 +64,17 @@ public class UpdateHandler extends BaseHandlerStd {
             return handleResourceDrift(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger);
         }
 
-        final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
-                Tagging.mergeTags(
-                        request.getPreviousSystemTags(),
-                        request.getPreviousResourceTags()
-                )
-        );
-        final Collection<Tag> desiredTags = Translator.translateTagsFromRequest(
-                Tagging.mergeTags(
-                        request.getSystemTags(),
-                        request.getDesiredResourceTags()
-                )
-        );
+        final Tagging.TagSet previousTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags())))
+                .build();
+
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .build();
 
         final Collection<DBInstanceRole> previousRoles = request.getPreviousResourceState().getAssociatedRoles();
         final Collection<DBInstanceRole> desiredRoles = request.getDesiredResourceState().getAssociatedRoles();
@@ -307,36 +305,6 @@ public class UpdateHandler extends BaseHandlerStd {
             if (StringUtils.hasValue(groupId)) {
                 progress.getResourceModel().setDBSecurityGroups(Collections.singletonList(groupId));
             }
-        }
-
-        return progress;
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> updateTags(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<Tag> previousTags,
-            final Collection<Tag> desiredTags
-    ) {
-        final Set<Tag> tagsToAdd = new HashSet<>(desiredTags);
-        final Set<Tag> tagsToRemove = new HashSet<>(previousTags);
-
-        tagsToAdd.removeAll(previousTags);
-        tagsToRemove.removeAll(desiredTags);
-
-        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
-            return progress;
-        }
-
-        try {
-            final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
-            final String arn = dbInstance.dbInstanceArn();
-
-            removeOldTags(rdsProxyClient, arn, tagsToRemove);
-            addNewTags(rdsProxyClient, arn, tagsToAdd);
-        } catch (Exception e) {
-            return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
         }
 
         return progress;
