@@ -450,12 +450,12 @@
         "kms:DescribeKey",
         "rds:AddRoleToDBInstance",
         "rds:CreateDBInstance",
-        "rds:CreateDbInstanceReadReplica",
+        "rds:CreateDBInstanceReadReplica",
         "rds:DescribeDBInstances",
         "rds:DescribeDBSnapshots",
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",
-        "rds:RestoreDbInstanceFromDbSnapshot"
+        "rds:RestoreDBInstanceFromDbSnapshot"
       ]
     },
     "read": {
@@ -488,8 +488,8 @@
         "rds:AddRoleToDBInstance",
         "rds:AddTagsToResource",
         "rds:DescribeDBInstances",
-        "rds:DescribeDbEngineVersions",
-        "rds:DescribeDbParameterGroups",
+        "rds:DescribeDBEngineVersions",
+        "rds:DescribeDBParameterGroups",
         "rds:ModifyDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource"
