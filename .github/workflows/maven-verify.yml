@@ -34,11 +34,6 @@ jobs:
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-cfn-common"
         mvn clean install --no-transfer-progress
-    - name: Verify AWS::RDS::DBCluster
-      run: |
-        cd "${GITHUB_WORKSPACE}/aws-rds-dbcluster"
-        mvn clean verify --no-transfer-progress
-        cat rpdk.log
     - name: Verify AWS::RDS::DBClusterParameterGroup
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-dbclusterparametergroup"
@@ -72,5 +67,10 @@ jobs:
     - name: Verify AWS::RDS::OptionGroup
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-optiongroup"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
+    - name: Verify AWS::RDS::DBCluster
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbcluster"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
