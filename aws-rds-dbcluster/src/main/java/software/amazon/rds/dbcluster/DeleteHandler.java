@@ -64,7 +64,7 @@ public class DeleteHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (isGlobalClusterMember(model)) {
-                        return removeFromGlobalCluster(proxy, proxyClient, progress);
+                        return removeFromGlobalCluster(proxy, proxyClient, progress, model.getGlobalClusterIdentifier());
                     }
                     return progress;
                 })
@@ -111,44 +111,11 @@ public class DeleteHandler extends BaseHandlerStd {
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> removeFromGlobalCluster(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
-    ) {
-        final ResourceModel resourceModel = progress.getResourceModel();
-        return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
-                .translateToServiceRequest(model -> {
-                    final String clusterArn = fetchDBCluster(proxyClient, resourceModel).dbClusterArn();
-                    return Translator.removeFromGlobalClusterRequest(model, clusterArn);
-                })
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((removeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        removeRequest,
-                        proxyInvocation.client()::removeFromGlobalCluster
-                ))
-                .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) -> isDBClusterStabilized(
-                        proxyInvocation,
-                        model,
-                        DBClusterStatus.Available
-                ))
-                .handleError((removeRequest, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
-                ))
-                .progress();
-    }
-
     protected boolean isDeletionProtectionEnabled(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
         return dbCluster.deletionProtection();
-    }
-
-    private boolean isGlobalClusterMember(final ResourceModel model) {
-        return StringUtils.hasValue(model.getGlobalClusterIdentifier());
     }
 }

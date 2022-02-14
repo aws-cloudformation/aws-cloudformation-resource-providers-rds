@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -149,6 +150,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxyClient.client()::describeDBClusters
         );
         return response.dbClusters().stream().findFirst().get();
+    }
+
+    protected boolean isGlobalClusterMember(final ResourceModel model) {
+        return StringUtils.hasValue(model.getGlobalClusterIdentifier());
     }
 
     protected boolean isDBClusterStabilized(
@@ -317,5 +322,35 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> removeFromGlobalCluster(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final String globalClusterIdentifier
+    ) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
+                .translateToServiceRequest(model -> {
+                    final String clusterArn = fetchDBCluster(proxyClient, resourceModel).dbClusterArn();
+                    return Translator.removeFromGlobalClusterRequest(globalClusterIdentifier, clusterArn);
+                })
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((removeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        removeRequest,
+                        proxyInvocation.client()::removeFromGlobalCluster
+                ))
+                .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) -> isDBClusterStabilized(
+                        proxyInvocation,
+                        model,
+                        DBClusterStatus.Available
+                ))
+                .handleError((removeRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                ))
+                .progress();
     }
 }

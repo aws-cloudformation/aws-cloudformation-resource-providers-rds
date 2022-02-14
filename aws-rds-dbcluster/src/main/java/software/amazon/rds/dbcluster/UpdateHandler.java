@@ -5,6 +5,7 @@ import static software.amazon.rds.dbcluster.Translator.cloudwatchLogsExportConfi
 
 import java.util.Collection;
 
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -35,6 +36,15 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger
     ) {
+        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+            return ProgressEvent.failed(
+                    request.getDesiredResourceState(),
+                    callbackContext,
+                    HandlerErrorCode.NotUpdatable,
+                    "Resource is immutable"
+            );
+        }
+
         final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
                 Tagging.mergeTags(
                         request.getPreviousSystemTags(),
@@ -48,16 +58,13 @@ public class UpdateHandler extends BaseHandlerStd {
                 )
         );
 
-        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
-            return ProgressEvent.failed(
-                    request.getDesiredResourceState(),
-                    callbackContext,
-                    HandlerErrorCode.NotUpdatable,
-                    "Resource is immutable"
-            );
-        }
-
         return ProgressEvent.progress(setDefaults(request.getDesiredResourceState()), callbackContext)
+                .then(progress -> {
+                    if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                        return removeFromGlobalCluster(proxy, proxyClient, progress, request.getPreviousResourceState().getGlobalClusterIdentifier());
+                    }
+                    return progress;
+                })
                 .then(progress -> Commons.execOnce(
                         progress,
                         () -> modifyDBCluster(proxy, proxyClient, progress, cloudwatchLogsExportConfiguration(request)),
@@ -92,5 +99,13 @@ public class UpdateHandler extends BaseHandlerStd {
                         DEFAULT_DB_CLUSTER_ERROR_RULE_SET
                 ))
                 .progress();
+    }
+
+    private boolean shouldRemoveFromGlobalCluster(
+            final ResourceModel previousResourceState,
+            final ResourceModel desiredResourceState
+    ) {
+        return StringUtils.hasValue(previousResourceState.getGlobalClusterIdentifier()) &&
+                StringUtils.isNullOrEmpty(desiredResourceState.getGlobalClusterIdentifier());
     }
 }

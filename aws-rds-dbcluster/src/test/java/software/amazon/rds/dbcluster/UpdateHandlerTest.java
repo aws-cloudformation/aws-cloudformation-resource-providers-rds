@@ -30,6 +30,8 @@ import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
+import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
@@ -58,6 +60,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Getter
     private UpdateHandler handler;
 
+    private boolean expectServiceInvocation;
+
     @BeforeEach
     public void setup() {
         handler = new UpdateHandler(
@@ -72,11 +76,14 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsProxy = MOCK_PROXY(proxy, rdsClient);
+        expectServiceInvocation = true;
     }
 
     @AfterEach
     public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+        if (expectServiceInvocation) {
+            verify(rdsClient, atLeastOnce()).serviceName();
+        }
         verifyNoMoreInteractions(rdsClient);
     }
 
@@ -99,6 +106,42 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RemoveFromGlobalCluster() {
+        when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
+                .thenReturn(RemoveFromGlobalClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenThrow(DbClusterRoleNotFoundException.builder().message("not found").build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("global-cluster-identifier").build(),
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_AddToGlobalClusterIsImmutable() {
+        expectServiceInvocation = false;
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("").build(),
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("global-cluster-identifier").build(),
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
     }
 
     @Test

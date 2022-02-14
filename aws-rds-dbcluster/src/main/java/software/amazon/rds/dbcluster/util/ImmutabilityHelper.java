@@ -13,10 +13,12 @@ public final class ImmutabilityHelper {
     }
 
     static boolean isGlobalClusterMutable(final ResourceModel previous, final ResourceModel desired) {
-        if (StringUtils.isNullOrEmpty(desired.getGlobalClusterIdentifier())) {
-            return Objects.equal(previous.getGlobalClusterIdentifier(), desired.getGlobalClusterIdentifier());
+        if (StringUtils.hasValue(previous.getGlobalClusterIdentifier()) &&
+            StringUtils.isNullOrEmpty(desired.getGlobalClusterIdentifier())) {
+            // This would be handled by calling remove-from-global-cluster explicitly
+            return true;
         }
-        return desired.getGlobalClusterIdentifier().equals(previous.getGlobalClusterIdentifier());
+        return Objects.equal(previous.getGlobalClusterIdentifier(), desired.getGlobalClusterIdentifier());
     }
 
     static boolean isEngineMutable(final ResourceModel previous, final ResourceModel desired) {
