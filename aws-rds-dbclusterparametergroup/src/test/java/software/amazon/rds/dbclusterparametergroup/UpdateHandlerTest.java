@@ -208,7 +208,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
                         .build())
                 .build());
         assertThatThrownBy(() -> handler.handleRequest(proxy, requestUpdParams, callbackContext, proxyRdsClient, logger))
-                .hasMessage("DBClusterIdentifier doesn't refer to an existing DB cluster (Service: RDS, Status Code: 404, Request ID: null, Extended Request ID: null)")
                 .isExactlyInstanceOf(CfnGeneralServiceException.class);
     }
 
