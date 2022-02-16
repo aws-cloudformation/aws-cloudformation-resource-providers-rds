@@ -22,7 +22,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final RequestLogger requestLogger) {
         return proxy.initiate("rds::tag-db-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
-                .makeServiceCall(requestLogger.log((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                .makeServiceCall(((describeDbGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeDbGroupsRequest,
                         proxyInvocation.client()::describeDBParameterGroups)))
                 .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
