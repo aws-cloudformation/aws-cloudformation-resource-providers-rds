@@ -18,7 +18,7 @@ public class DeleteHandler extends BaseHandlerStd {
             final RequestLogger requestLogger) {
         return proxy.initiate("rds::delete-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbParameterGroupRequest)
-                .makeServiceCall(requestLogger.log((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBParameterGroup)))
+                .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBParameterGroup))
                 .handleError((deleteGroupRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
