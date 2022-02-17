@@ -227,15 +227,6 @@ public class Translator {
                 .tdeCredentialPassword(desiredModel.getTdeCredentialPassword())
                 .vpcSecurityGroupIds(desiredModel.getVPCSecurityGroups());
 
-        // An attempt to "move" an instance to the same db subnet will cause a
-        // 400: "The specified DB instance is already in the target DB subnet group."
-        if (!StringUtils.equals(
-                Optional.ofNullable(previousModel).map(ResourceModel::getDBSubnetGroupName).orElse(""),
-                desiredModel.getDBSubnetGroupName())
-        ) {
-            builder.dbSubnetGroupName(desiredModel.getDBSubnetGroupName());
-        }
-
         final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
                 Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),
                 desiredModel.getEnableCloudwatchLogsExports()
