@@ -451,6 +451,7 @@
         "kms:CreateGrant",
         "kms:DescribeKey",
         "rds:AddRoleToDBInstance",
+        "rds:AddTagsToResource",
         "rds:CreateDBInstance",
         "rds:CreateDBInstanceReadReplica",
         "rds:DescribeDBInstances",

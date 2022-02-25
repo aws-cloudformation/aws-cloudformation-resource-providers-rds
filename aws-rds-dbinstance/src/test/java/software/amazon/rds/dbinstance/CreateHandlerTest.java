@@ -28,6 +28,8 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
@@ -108,6 +110,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(restoreResponse);
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -123,7 +127,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
@@ -133,10 +138,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .build();
         when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
                 .thenReturn(describeDbSnapshotsResponse);
-
-        final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
-                .thenReturn(restoreResponse);
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -152,7 +157,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -166,10 +172,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .build();
         when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
                 .thenReturn(describeDbSnapshotsResponse);
-
-        final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
-                .thenReturn(restoreResponse);
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -185,7 +191,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -273,9 +280,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateReadReplica_Create_InProgress() {
-        final CreateDbInstanceReadReplicaResponse createResponse = CreateDbInstanceReadReplicaResponse.builder().build();
-        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class))).thenReturn(createResponse);
+    public void handleRequest_CreateReadReplica_Create_Success() {
+        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
+                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -291,13 +300,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_CreateReadReplica_Update_InProgress() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+    public void handleRequest_CreateReadReplica_Update_Success() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -313,13 +325,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
     public void handleRequest_CreateReadReplica_Reboot_Success() {
-        final RebootDbInstanceResponse rebootDbInstanceResponse = RebootDbInstanceResponse.builder().build();
-        when(rdsProxy.client().rebootDBInstance(any(RebootDbInstanceRequest.class))).thenReturn(rebootDbInstanceResponse);
+        when(rdsProxy.client().rebootDBInstance(any(RebootDbInstanceRequest.class)))
+                .thenReturn(RebootDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -335,13 +350,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
     public void handleRequest_CreateReadReplica_Success() {
-        final CreateDbInstanceReadReplicaResponse createDbInstanceReadReplicaResponse = CreateDbInstanceReadReplicaResponse.builder().build();
-        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class))).thenReturn(createDbInstanceReadReplicaResponse);
+        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
+                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -357,7 +375,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
@@ -500,6 +519,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateNewInstance_Success() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
         context.setUpdated(true);
@@ -513,13 +535,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
     public void handleRequest_CreateNewInstance_UpdateRoles_Success() {
-        final AddRoleToDbInstanceResponse addRoleToDbInstanceResponse = AddRoleToDbInstanceResponse.builder().build();
-        when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class))).thenReturn(addRoleToDbInstanceResponse);
+        when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class)))
+                .thenReturn(AddRoleToDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>(
                 computeAssociatedRoleTransitions(DB_INSTANCE_ACTIVE, Collections.emptyList(), ASSOCIATED_ROLES)
@@ -543,12 +568,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_CreateNewInstance_NoIdentifier_InProgress() {
-        final CreateDbInstanceResponse createResponse = CreateDbInstanceResponse.builder().build();
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class))).thenReturn(createResponse);
+    public void handleRequest_CreateNewInstance_NoIdentifier_Success() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenReturn(CreateDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -589,6 +615,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateNewInstance_ShouldNotReboot_Success() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
         context.setUpdated(true);
@@ -602,11 +631,14 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
     public void handleRequest_CreateNewInstance_ShouldNotUpdate_Success() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
         context.setUpdated(false);
@@ -620,13 +652,14 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
     public void handleRequest_CreateReadReplica_DbSecurityGroups_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -650,8 +683,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_AllocatedStorage_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -675,8 +708,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_CACertificateIdentifier_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -700,8 +733,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_DBParameterGroup_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -725,8 +758,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_EngineVersion_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -750,8 +783,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_MasterUserPassword_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -775,8 +808,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_PreferredBackupWindow_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -800,8 +833,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_PreferredMaintenanceWindow_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -825,8 +858,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_BackupRetentionPeriod_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -850,8 +883,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_Iops_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -875,8 +908,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_MaxAllocatedStorage_ShouldUpdate_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);

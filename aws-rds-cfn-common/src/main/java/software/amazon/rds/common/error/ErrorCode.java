@@ -1,5 +1,7 @@
 package software.amazon.rds.common.error;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.utils.StringUtils;
 
 public enum ErrorCode {
@@ -46,6 +48,14 @@ public enum ErrorCode {
                     return errorCode;
                 }
             }
+        }
+        return null;
+    }
+
+    public static ErrorCode fromException(final AwsServiceException exception) {
+        final AwsErrorDetails errorDetails = exception.awsErrorDetails();
+        if (errorDetails != null) {
+            return ErrorCode.fromString(errorDetails.errorCode());
         }
         return null;
     }
