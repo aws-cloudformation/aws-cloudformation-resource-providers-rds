@@ -2,5 +2,5 @@
   "Engine": "aurora",
   "MasterUsername": "guest",
   "MasterUserPassword": "guest123",
-  "DBClusterIdentifier": "testdbclusterdelete8"
+  "DBClusterIdentifier": "dbcluster-contract-test"
 }
