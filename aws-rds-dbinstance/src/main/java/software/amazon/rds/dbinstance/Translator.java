@@ -17,7 +17,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
@@ -32,9 +31,9 @@ import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
 
@@ -62,7 +61,10 @@ public class Translator {
                 .build();
     }
 
-    public static CreateDbInstanceReadReplicaRequest createDbInstanceReadReplicaRequest(final ResourceModel model) {
+    public static CreateDbInstanceReadReplicaRequest createDbInstanceReadReplicaRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
         return CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
@@ -90,13 +92,16 @@ public class Translator {
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceRegion(model.getSourceRegion())
                 .storageType(model.getStorageType())
-                .tags(translateTagsToSdk(model.getTags()))
+                .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(model.getVPCSecurityGroups())
                 .build();
     }
 
-    public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequest(final ResourceModel model) {
+    public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
         return RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
@@ -120,7 +125,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .storageType(model.getStorageType())
-                .tags(translateTagsToSdk(model.getTags()))
+                .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
@@ -136,7 +141,10 @@ public class Translator {
         return allocatedStorage;
     }
 
-    public static CreateDbInstanceRequest createDbInstanceRequest(final ResourceModel model) {
+    public static CreateDbInstanceRequest createDbInstanceRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
         return CreateDbInstanceRequest.builder()
                 .allocatedStorage(getAllocatedStorage(model))
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -179,7 +187,7 @@ public class Translator {
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .storageEncrypted(model.getStorageEncrypted())
                 .storageType(model.getStorageType())
-                .tags(translateTagsToSdk(model.getTags()))
+                .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .timezone(model.getTimezone())
@@ -272,26 +280,6 @@ public class Translator {
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .roleArn(role.getRoleArn())
                 .featureName(role.getFeatureName())
-                .build();
-    }
-
-    public static AddTagsToResourceRequest addTagsToResourceRequest(
-            final String arn,
-            final Collection<Tag> tags
-    ) {
-        return AddTagsToResourceRequest.builder()
-                .resourceName(arn)
-                .tags(translateTagsToSdk(tags))
-                .build();
-    }
-
-    public static RemoveTagsFromResourceRequest removeTagsFromResourceRequest(
-            final String arn,
-            final Collection<Tag> tags
-    ) {
-        return RemoveTagsFromResourceRequest.builder()
-                .resourceName(arn)
-                .tagKeys(tags.stream().map(Tag::getKey).collect(Collectors.toSet()))
                 .build();
     }
 
@@ -480,17 +468,6 @@ public class Translator {
                         .value(tag.value())
                         .build()
                 )
-                .collect(Collectors.toList());
-    }
-
-    public static List<Tag> translateTagsFromRequest(final Map<String, String> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptyMap())
-                .entrySet()
-                .stream()
-                .map(entry -> Tag.builder()
-                        .key(entry.getKey())
-                        .value(entry.getValue())
-                        .build())
                 .collect(Collectors.toList());
     }
 
