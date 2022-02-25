@@ -1,9 +1,8 @@
 package software.amazon.rds.dbinstance;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -21,6 +20,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -57,27 +57,42 @@ public class CreateHandler extends BaseHandlerStd {
                     RESOURCE_ID_MAX_LENGTH
             ).toLowerCase());
         }
-        final Map<String, String> tags = mergeMaps(Arrays.asList(
-                request.getSystemTags(),
-                request.getDesiredResourceTags()
-        ));
-        model.setTags(Translator.translateTagsFromRequest(tags));
+
+        // The reason we split the tags in 2 sets is an attempt to soft-fail a potential AccessDenied response from
+        // the server.
+        // RDS API accepts system tags even with no explicit rds:AddTagsToResource permission, in case a request
+        // is recognized as an internal one.
+        // The extra tags consist of stack and resource tags. We gather them in a single set. The logic is the
+        // following:
+        //   1. Attempt to invoke AddTagsToResource
+        //   2. If an exception is thrown:
+        //     2.1. If the tag set only consists of stack tags, soft fail and move on.
+        //     2.2. Otherwise, resource tags were provided: hard fail and ask the customer to add the missing permission.
+        final Tagging.TagSet systemTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .build();
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .build();
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (isReadReplica(progress.getResourceModel())) {
-                        return createDbInstanceReadReplica(proxy, rdsProxyClient, progress);
+                        return createDbInstanceReadReplica(proxy, rdsProxyClient, progress, systemTags);
                     } else if (isRestoreFromSnapshot(progress.getResourceModel())) {
-                        return restoreDbInstanceFromSnapshot(proxy, rdsProxyClient, progress);
+                        return restoreDbInstanceFromSnapshot(proxy, rdsProxyClient, progress, systemTags);
                     }
-                    return createDbInstance(proxy, rdsProxyClient, progress);
+                    return createDbInstance(proxy, rdsProxyClient, progress, systemTags);
                 }, CallbackContext::isCreated, CallbackContext::setCreated))
+                .then(progress -> updateTags(proxy, rdsProxyClient, progress, Tagging.TagSet.emptySet(), extraTags))
                 .then(progress -> ensureEngineSet(rdsProxyClient, progress))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(progress, () ->
-                                        updateDbInstanceAfterCreate(proxy, rdsProxyClient, progress, request.getDesiredResourceState()),
-                                CallbackContext::isUpdated, CallbackContext::setUpdated)
+                                                updateDbInstanceAfterCreate(proxy, rdsProxyClient, progress, request.getDesiredResourceState()),
+                                        CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {
                                     if (shouldReboot(p.getResourceModel())) {
                                         return rebootAwait(proxy, rdsProxyClient, p);
@@ -96,14 +111,15 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstance(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
     ) {
         return proxy.initiate(
-                "rds::create-db-instance",
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        ).translateToServiceRequest(Translator::createDbInstanceRequest)
+                        "rds::create-db-instance",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(model -> Translator.createDbInstanceRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         createRequest,
@@ -122,7 +138,8 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceFromSnapshot(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
     ) {
         final ResourceModel resourceModel = progress.getResourceModel();
         if (resourceModel.getMultiAZ() == null) {
@@ -136,11 +153,11 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         return proxy.initiate(
-                "rds::restore-db-instance-from-snapshot",
-                rdsProxyClient,
-                resourceModel,
-                progress.getCallbackContext()
-        ).translateToServiceRequest(Translator::restoreDbInstanceFromSnapshotRequest)
+                        "rds::restore-db-instance-from-snapshot",
+                        rdsProxyClient,
+                        resourceModel,
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(model -> Translator.restoreDbInstanceFromSnapshotRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         restoreRequest,
@@ -159,14 +176,15 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceReadReplica(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
     ) {
         return proxy.initiate(
-                "rds::create-db-instance-read-replica",
-                rdsProxyClient,
-                progress.getResourceModel(),
-                progress.getCallbackContext()
-        ).translateToServiceRequest(Translator::createDbInstanceReadReplicaRequest)
+                        "rds::create-db-instance-read-replica",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(model -> Translator.createDbInstanceReadReplicaRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         createRequest,
@@ -188,7 +206,12 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final ResourceModel desiredModel
     ) {
-        return proxy.initiate("rds::modify-after-create-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+        return proxy.initiate(
+                        "rds::modify-after-create-db-instance",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                )
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(null, desiredModel, false))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
