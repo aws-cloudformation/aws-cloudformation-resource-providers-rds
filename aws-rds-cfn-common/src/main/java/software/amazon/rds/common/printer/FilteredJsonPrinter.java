@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public class FilteredJsonPrinter implements JsonPrinter {
     final static String PWD = "pwd";
@@ -37,6 +38,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
                 .setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE)
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        mapper.registerModule(new JavaTimeModule());
         mapper.addMixIn(Object.class, PropertyFilterMixIn.class);
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
         mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
