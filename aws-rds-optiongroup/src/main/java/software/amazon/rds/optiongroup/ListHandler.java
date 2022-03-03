@@ -40,7 +40,7 @@ public class ListHandler extends BaseHandlerStd {
                     proxyClient.client()::describeOptionGroups);
         } catch (Exception e) {
             return Commons.handleException(
-                    ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
+                    ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     e,
                     DEFAULT_OPTION_GROUP_ERROR_RULE_SET
             );

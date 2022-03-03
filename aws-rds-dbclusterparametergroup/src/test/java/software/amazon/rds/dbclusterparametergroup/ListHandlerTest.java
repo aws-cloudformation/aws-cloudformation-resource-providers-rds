@@ -1,8 +1,7 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import org.junit.jupiter.api.AfterEach;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
@@ -14,16 +13,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
