@@ -3,7 +3,7 @@ package software.amazon.rds.dbinstance;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -461,8 +461,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             Collection<DBInstanceRole> previousRoles,
             Collection<DBInstanceRole> desiredRoles
     ) {
-        final Set<DBInstanceRole> rolesToRemove = new HashSet<>(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
-        final Set<DBInstanceRole> rolesToAdd = new HashSet<>(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
+        final Set<DBInstanceRole> rolesToRemove = new LinkedHashSet<>(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
+        final Set<DBInstanceRole> rolesToAdd = new LinkedHashSet<>(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
 
         rolesToAdd.removeAll(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
         rolesToRemove.removeAll(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));

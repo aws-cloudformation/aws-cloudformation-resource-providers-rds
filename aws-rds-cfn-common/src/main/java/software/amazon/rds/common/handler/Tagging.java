@@ -2,8 +2,8 @@ package software.amazon.rds.common.handler;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -46,11 +46,11 @@ public final class Tagging {
     @Data
     public static class TagSet {
         @Builder.Default
-        private Set<Tag> systemTags = new HashSet<>();
+        private Set<Tag> systemTags = new LinkedHashSet<>();
         @Builder.Default
-        private Set<Tag> stackTags = new HashSet<>();
+        private Set<Tag> stackTags = new LinkedHashSet<>();
         @Builder.Default
-        private Set<Tag> resourceTags = new HashSet<>();
+        private Set<Tag> resourceTags = new LinkedHashSet<>();
 
         public boolean isEmpty() {
             return systemTags.isEmpty() &&
@@ -64,13 +64,13 @@ public final class Tagging {
     }
 
     public static TagSet exclude(final TagSet from, final TagSet what) {
-        final Set<Tag> systemTags = new HashSet<>(from.getSystemTags());
+        final Set<Tag> systemTags = new LinkedHashSet<>(from.getSystemTags());
         systemTags.removeAll(what.getSystemTags());
 
-        final Set<Tag> stackTags = new HashSet<>(from.getStackTags());
+        final Set<Tag> stackTags = new LinkedHashSet<>(from.getStackTags());
         stackTags.removeAll(what.getStackTags());
 
-        final Set<Tag> resourceTags = new HashSet<>(from.getResourceTags());
+        final Set<Tag> resourceTags = new LinkedHashSet<>(from.getResourceTags());
         resourceTags.removeAll(what.getResourceTags());
 
         return TagSet.builder()
@@ -81,14 +81,14 @@ public final class Tagging {
     }
 
     public static <K, V> Map<K, V> mergeTags(Map<K, V> tagsMap1, Map<K, V> tagsMap2) {
-        final Map<K, V> result = new HashMap<>();
-        result.putAll(Optional.ofNullable(tagsMap1).orElse(Collections.emptyMap()));
-        result.putAll(Optional.ofNullable(tagsMap2).orElse(Collections.emptyMap()));
+        final Map<K, V> result = new LinkedHashMap<>();
+        result.putAll(Optional.ofNullable(tagsMap1).orElse(Collections.emptySortedMap()));
+        result.putAll(Optional.ofNullable(tagsMap2).orElse(Collections.emptySortedMap()));
         return result;
     }
 
     public static Set<Tag> translateTagsToSdk(final TagSet tagSet) {
-        final Set<Tag> allTags = new HashSet<>();
+        final Set<Tag> allTags = new LinkedHashSet<>();
         allTags.addAll(tagSet.getSystemTags());
         allTags.addAll(tagSet.getStackTags());
         allTags.addAll(tagSet.getResourceTags());
@@ -96,13 +96,13 @@ public final class Tagging {
     }
 
     public static Set<Tag> translateTagsToSdk(final Map<String, String> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptyMap()).entrySet()
+        return Optional.ofNullable(tags).orElse(Collections.emptySortedMap()).entrySet()
                 .stream()
                 .map(entry -> Tag.builder()
                         .key(entry.getKey())
                         .value(entry.getValue())
                         .build())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static Set<Tag> listTagsForResource(
@@ -115,7 +115,7 @@ public final class Tagging {
         );
 
         return listTagsForResourceResponse.hasTagList() ?
-                Sets.newHashSet(listTagsForResourceResponse.tagList()) : Sets.newHashSet();
+                Sets.newLinkedHashSet(listTagsForResourceResponse.tagList()) : Sets.newLinkedHashSet();
     }
 
     public static <M, C> ProgressEvent<M, C> updateTags(
@@ -126,8 +126,8 @@ public final class Tagging {
             final Map<String, String> desiredTags,
             final ErrorRuleSet errorRuleSet
     ) {
-        final Set<Tag> desiredTagSet = new HashSet<>(translateTagsToSdk(desiredTags));
-        final Set<Tag> previousTagSet = new HashSet<>(translateTagsToSdk(previousTags));
+        final Set<Tag> desiredTagSet = new LinkedHashSet<>(translateTagsToSdk(desiredTags));
+        final Set<Tag> previousTagSet = new LinkedHashSet<>(translateTagsToSdk(previousTags));
 
         final Set<Tag> tagsToAdd = Sets.difference(desiredTagSet, previousTagSet);
         final Set<Tag> tagsToRemove = Sets.difference(previousTagSet, desiredTagSet);
@@ -190,7 +190,7 @@ public final class Tagging {
     ) {
         return RemoveTagsFromResourceRequest.builder()
                 .resourceName(arn)
-                .tagKeys(tagsToRemove.stream().map(Tag::key).collect(Collectors.toSet()))
+                .tagKeys(tagsToRemove.stream().map(Tag::key).collect(Collectors.toCollection(LinkedHashSet::new)))
                 .build();
     }
 
