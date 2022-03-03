@@ -1,7 +1,7 @@
 {
   "AllocatedStorage": "5",
   "AutoMinorVersionUpgrade": false,
-  "DBInstanceIdentifier": "test-db-instance",
+  "DBInstanceIdentifier": "dbinstance-contract-test",
   "DBInstanceClass": "db.t3.micro",
   "DBName": "testdbname",
   "Engine": "postgres",

@@ -1,6 +1,6 @@
 {
   "DBSubnetGroupDescription": "test",
-  "DBSubnetGroupName": "testdbsubnetgroup",
+  "DBSubnetGroupName": "dbsubnetgroup-contract-test",
   "SubnetIds": [
     "{{SubnetID1}}",
     "{{SubnetID2}}"
