@@ -142,12 +142,15 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .snapshotRequested(true),
                 () -> {
                     if (transitions.size() > 0) {
                         return transitions.remove();
                     }
                     throw DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build();
                 },
+                () -> RESOURCE_MODEL,
                 () -> RESOURCE_MODEL.toBuilder()
                         .snapshotIdentifier(snapshotIdentifier)
                         .build(),

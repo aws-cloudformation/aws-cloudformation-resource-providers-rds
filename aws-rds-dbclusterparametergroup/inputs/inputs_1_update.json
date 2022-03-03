@@ -1,5 +1,5 @@
 {
-  "DBClusterParameterGroupName": "dbclusterparametergrouptest",
+  "DBClusterParameterGroupName": "dbclusterparametergroup-contract-test",
   "Parameters": {
     "character_set_database": "utf32",
     "binlog_checksum": "NONE"
