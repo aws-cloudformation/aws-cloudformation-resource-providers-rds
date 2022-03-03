@@ -3,7 +3,8 @@ package software.amazon.rds.dbinstance;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -301,8 +302,8 @@ public class Translator {
             final Collection<String> previousLogExports,
             final Collection<String> desiredLogExports
     ) {
-        final Set<String> logTypesToEnable = new HashSet<>(Optional.ofNullable(desiredLogExports).orElse(Collections.emptyList()));
-        final Set<String> logTypesToDisable = new HashSet<>(Optional.ofNullable(previousLogExports).orElse(Collections.emptyList()));
+        final Set<String> logTypesToEnable = new LinkedHashSet<>(Optional.ofNullable(desiredLogExports).orElse(Collections.emptyList()));
+        final Set<String> logTypesToDisable = new LinkedHashSet<>(Optional.ofNullable(previousLogExports).orElse(Collections.emptyList()));
 
         logTypesToEnable.removeAll(Optional.ofNullable(previousLogExports).orElse(Collections.emptyList()));
         logTypesToDisable.removeAll(Optional.ofNullable(desiredLogExports).orElse(Collections.emptyList()));
@@ -473,17 +474,17 @@ public class Translator {
 
     public static Map<String, String> translateTagsToRequest(final Collection<Tag> tags) {
         return streamOfOrEmpty(tags)
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2, LinkedHashMap::new));
     }
 
-    public static List<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
+    public static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
         return streamOfOrEmpty(tags)
                 .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
                         .key(tag.getKey())
                         .value(tag.getValue())
                         .build()
                 )
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static List<ProcessorFeature> translateProcessorFeaturesFromSdk(
@@ -507,7 +508,7 @@ public class Translator {
                         .name(processorFeature.getName())
                         .value(processorFeature.getValue())
                         .build())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static List<String> translateDbSecurityGroupsFromSdk(
