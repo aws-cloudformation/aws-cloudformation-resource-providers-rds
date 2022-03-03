@@ -8,6 +8,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 
 import java.util.stream.Collectors;
 
@@ -21,7 +22,17 @@ public class ListHandler extends BaseHandlerStd {
         final ProxyClient<RdsClient> proxyClient,
         final Logger logger) {
 
-        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = proxy.injectCredentialsAndInvokeV2(Translator.describeDbClusterParameterGroupsRequest(request.getNextToken()), proxyClient.client()::describeDBClusterParameterGroups);
+        DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse;
+        try{
+            describeDbClusterParameterGroupsResponse = proxy
+                    .injectCredentialsAndInvokeV2(Translator.describeDbClusterParameterGroupsRequest(request.getNextToken()),
+                            proxyClient.client()::describeDBClusterParameterGroups);
+        } catch (Exception exception){
+            return Commons.handleException(
+                    ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
+                    exception,
+                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+        }
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                 .resourceModels(describeDbClusterParameterGroupsResponse
