@@ -38,7 +38,7 @@ public class DeleteHandler extends BaseHandlerStd {
         String snapshotIdentifier = null;
         // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
         // For AWS::RDS::DBInstance resources that don't specify the DBClusterIdentifier property, the default policy is Snapshot.
-        if (BooleanUtils.isNotFalse(request.getSnapshotRequested())) {
+        if (BooleanUtils.isTrue(request.getSnapshotRequested())) {
             snapshotIdentifier = generateResourceIdentifier(
                     Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
                     SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),

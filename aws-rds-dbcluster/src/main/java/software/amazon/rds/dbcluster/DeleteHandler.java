@@ -80,7 +80,7 @@ public class DeleteHandler extends BaseHandlerStd {
         final ResourceModel resourceModel = request.getDesiredResourceState();
 
         String snapshotIdentifier = null;
-        if (BooleanUtils.isNotFalse(request.getSnapshotRequested())) {
+        if (BooleanUtils.isTrue(request.getSnapshotRequested())) {
             snapshotIdentifier = resourceModel.getSnapshotIdentifier();
             if (StringUtils.isNullOrEmpty(snapshotIdentifier)) {
                 snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(

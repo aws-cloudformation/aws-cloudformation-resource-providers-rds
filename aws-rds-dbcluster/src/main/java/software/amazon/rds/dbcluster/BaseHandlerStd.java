@@ -1,16 +1,11 @@
 package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.Translator.addRoleToDbClusterRequest;
-import static software.amazon.rds.dbcluster.Translator.addTagsToResourceRequest;
 import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
-import static software.amazon.rds.dbcluster.Translator.removeTagsFromResourceRequest;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -50,6 +45,8 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.common.printer.JsonPrinter;
@@ -128,7 +125,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         callbackContext != null ? callbackContext : new CallbackContext(),
-                        proxy.newProxy(ClientBuilder::getClient),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(ClientBuilder::getClient)),
                         logger
                 ));
     }
@@ -288,37 +285,38 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Optional.ofNullable(role.getFeatureName()).orElse("").equals(sdkRole.featureName());
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
             final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient,
+            final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<Tag> previousTags,
-            final Collection<Tag> desiredTags
+            final Tagging.TagSet previousTags,
+            final Tagging.TagSet desiredTags
     ) {
-        final Set<Tag> tagsToAdd = new HashSet<>(desiredTags);
-        final Set<Tag> tagsToRemove = new HashSet<>(previousTags);
-
-        tagsToAdd.removeAll(previousTags);
-        tagsToRemove.removeAll(desiredTags);
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
 
         if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
             return progress;
         }
 
+        DBCluster dbCluster;
         try {
-            final DBCluster dbCluster = fetchDBCluster(proxyClient, progress.getResourceModel());
-            final String arn = dbCluster.dbClusterArn();
-
-            proxyClient.injectCredentialsAndInvokeV2(
-                    removeTagsFromResourceRequest(arn, tagsToRemove),
-                    proxyClient.client()::removeTagsFromResource
-            );
-            proxyClient.injectCredentialsAndInvokeV2(
-                    addTagsToResourceRequest(arn, tagsToAdd),
-                    proxyClient.client()::addTagsToResource
-            );
+            dbCluster = fetchDBCluster(rdsProxyClient, progress.getResourceModel());
         } catch (Exception exception) {
             return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+        }
+
+        final String arn = dbCluster.dbClusterArn();
+
+        try {
+            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
+            );
         }
 
         return progress;

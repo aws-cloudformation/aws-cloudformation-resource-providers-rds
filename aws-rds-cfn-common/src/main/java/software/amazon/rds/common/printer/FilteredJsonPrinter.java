@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 public class FilteredJsonPrinter implements JsonPrinter {
     final static String PWD = "pwd";
     public static final String STACK_TRACE = "StackTrace";
+    private static final String EMPTY_JSON = "{}";
 
     @JsonFilter(PWD)
     static class PropertyFilterMixIn {
@@ -46,8 +47,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
 
     @Override
     public String print(final Object obj) throws JsonProcessingException {
-        return writer.writeValueAsString(obj);
-
+        return obj != null ? writer.writeValueAsString(obj) : EMPTY_JSON;
     }
 
     @Override

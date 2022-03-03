@@ -123,6 +123,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .dbInstance(DB_INSTANCE_ACTIVE)
                 .build();
         when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(false);
@@ -137,8 +141,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 
     @Test
@@ -317,6 +323,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final AddRoleToDbInstanceResponse addRoleToDBInstanceResponse = AddRoleToDbInstanceResponse.builder().build();
         when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class))).thenReturn(addRoleToDBInstanceResponse);
 
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
         context.setRebooted(true);
@@ -349,8 +360,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         final RemoveRoleFromDbInstanceResponse removeRoleFromDBInstanceResponse = RemoveRoleFromDbInstanceResponse.builder().build();
         when(rdsProxy.client().removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class))).thenReturn(removeRoleFromDBInstanceResponse);
-
-        when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class))).thenThrow(DbInstanceRoleAlreadyExistsException.class);
+        when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class)))
+                .thenThrow(DbInstanceRoleAlreadyExistsException.class);
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);

@@ -3,10 +3,8 @@ package software.amazon.rds.dbinstance;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -64,6 +62,8 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
@@ -244,8 +244,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         context != null ? context : new CallbackContext(),
-                        proxy.newProxy(RdsClientBuilder::getClient),
-                        proxy.newProxy(Ec2ClientBuilder::getClient),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(RdsClientBuilder::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(Ec2ClientBuilder::getClient)),
                         logger
                 ));
     }
@@ -454,34 +454,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         );
     }
 
-    protected void addNewTags(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final String arn,
-            final Collection<Tag> tagsToAdd
-    ) {
-        if (CollectionUtils.isNullOrEmpty(tagsToAdd)) {
-            return;
-        }
-        rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.addTagsToResourceRequest(arn, tagsToAdd),
-                rdsProxyClient.client()::addTagsToResource
-        );
-    }
-
-    protected void removeOldTags(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final String arn,
-            final Collection<Tag> tagsToRemove
-    ) {
-        if (CollectionUtils.isNullOrEmpty(tagsToRemove)) {
-            return;
-        }
-        rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.removeTagsFromResourceRequest(arn, tagsToRemove),
-                rdsProxyClient.client()::removeTagsFromResource
-        );
-    }
-
     protected ProgressEvent<ResourceModel, CallbackContext> updateAssociatedRoles(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
@@ -610,17 +582,44 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return progress;
     }
 
-    protected <K, V> Map<K, V> mergeMaps(Collection<Map<K, V>> maps) {
-        final Map<K, V> result = new HashMap<>();
-        for (Map<K, V> map : maps) {
-            if (map != null) {
-                result.putAll(map);
-            }
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet previousTags,
+            final Tagging.TagSet desiredTags
+    ) {
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
         }
-        return result;
+
+        DBInstance dbInstance;
+        try {
+            dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
+        } catch (Exception exception) {
+            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+        }
+
+        final String arn = dbInstance.dbInstanceArn();
+
+        try {
+            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+            );
+        }
+
+        return progress;
     }
 
-    public String generateResourceIdentifier(
+    protected String generateResourceIdentifier(
             final String stackId,
             final String logicalResourceId,
             final String clientRequestToken,

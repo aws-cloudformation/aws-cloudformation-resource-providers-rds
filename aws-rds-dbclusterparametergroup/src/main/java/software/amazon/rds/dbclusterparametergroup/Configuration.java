@@ -1,11 +1,12 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import com.amazonaws.util.CollectionUtils;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.amazonaws.util.CollectionUtils;
 
 class Configuration extends BaseConfiguration {
 
@@ -17,12 +18,13 @@ class Configuration extends BaseConfiguration {
         return new JSONObject(new JSONTokener(this.getClass().getClassLoader().getResourceAsStream(schemaFilename)));
     }
 
-    public Map<String, String> resourceDefinedTags(final ResourceModel resourceModel) {
-        if(CollectionUtils.isNullOrEmpty(resourceModel.getTags()))
+    public Map<String, String> resourceDefinedTags(final ResourceModel model) {
+        if (CollectionUtils.isNullOrEmpty(model.getTags())) {
             return null;
+        }
 
-        return resourceModel.getTags()
+        return model.getTags()
                 .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
     }
 }

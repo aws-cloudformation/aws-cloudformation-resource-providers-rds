@@ -48,7 +48,6 @@
       "description": "The list of tags for the cluster parameter group.",
       "type": "array",
       "maxItems": 50,
-      "uniqueItems": true,
       "insertionOrder": false,
       "items": {
         "$ref": "#/definitions/Tag"
@@ -79,6 +78,7 @@
       "permissions": [
         "rds:CreateDBClusterParameterGroup",
         "rds:DescribeDbClusterParameters",
+        "rds:DescribeEngineDefaultClusterParameters",
         "rds:ModifyDBClusterParameterGroup"
       ]
     },
@@ -92,6 +92,7 @@
       "permissions": [
         "rds:DescribeDbClusters",
         "rds:DescribeDbClusterParameters",
+        "rds:DescribeEngineDefaultClusterParameters",
         "rds:ListTagsForResource",
         "rds:AddTagsToResource",
         "rds:RemoveTagsFromResource",

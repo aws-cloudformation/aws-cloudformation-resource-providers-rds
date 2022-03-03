@@ -1,6 +1,6 @@
 package software.amazon.rds.dbcluster;
 
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
 
 import com.amazonaws.util.StringUtils;
@@ -44,21 +44,25 @@ public class CreateHandler extends BaseHandlerStd {
             );
         }
 
-        final Map<String, String> tags = Tagging.mergeTags(
-                request.getSystemTags(),
-                request.getDesiredResourceTags()
-        );
-        model.setTags(Translator.translateTagsFromRequest(tags));
+        final Tagging.TagSet systemTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .build();
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .build();
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (isRestoreToPointInTime(model)) {
-                        return restoreDbClusterToPointInTime(proxy, proxyClient, progress);
+                        return restoreDbClusterToPointInTime(proxy, proxyClient, progress, systemTags);
                     } else if (isRestoreFromSnapshot(model)) {
-                        return restoreDbClusterFromSnapshot(proxy, proxyClient, progress);
+                        return restoreDbClusterFromSnapshot(proxy, proxyClient, progress, systemTags);
                     }
-                    return createDbCluster(proxy, proxyClient, progress);
+                    return createDbCluster(proxy, proxyClient, progress, systemTags);
                 })
+                .then(progress -> updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(
@@ -77,10 +81,11 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> createDbCluster(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
     ) {
         return proxy.initiate("rds::create-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::createDbClusterRequest)
+                .translateToServiceRequest(model -> Translator.createDbClusterRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterRequest,
@@ -100,10 +105,11 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> restoreDbClusterToPointInTime(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
     ) {
         return proxy.initiate("rds::restore-dbcluster-to-point-in-time", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::restoreDbClusterToPointInTimeRequest)
+                .translateToServiceRequest(model -> Translator.restoreDbClusterToPointInTimeRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterRequest,
@@ -123,10 +129,11 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> restoreDbClusterFromSnapshot(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
     ) {
         return proxy.initiate("rds::restore-dbcluster-from-snapshot", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::restoreDbClusterFromSnapshotRequest)
+                .translateToServiceRequest(model -> Translator.restoreDbClusterFromSnapshotRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterRequest,
