@@ -120,8 +120,8 @@ public final class Tagging {
 
     public static <M, C> ProgressEvent<M, C> updateTags(
             final ProxyClient<RdsClient> rdsProxyClient,
-            final String resourceArn,
             final ProgressEvent<M, C> progress,
+            final String resourceArn,
             final Map<String, String> previousTags,
             final Map<String, String> desiredTags,
             final ErrorRuleSet errorRuleSet
