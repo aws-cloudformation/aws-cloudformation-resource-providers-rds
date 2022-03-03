@@ -21,8 +21,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
@@ -45,8 +48,6 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.logging.RequestLogger;
-import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -61,6 +62,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     RdsClient rdsClient;
 
     private CreateHandler handler;
+    private CreateDbParameterGroupResponse createDbParameterGroupResponse;
 
     @BeforeEach
     public void setup() {
@@ -78,10 +80,11 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessWithoutApplyParameters() {
-        final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().build();
-        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
-
+        mockCreateCall();
         mockDescribeDBParameterGroup();
+
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
@@ -114,18 +117,17 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+
     }
 
     @Test
     public void handleRequest_SimpleSuccessWithApplyParameters() {
-        final CreateHandler handler = new CreateHandler();
-
-        final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().build();
-        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
-
+        mockCreateCall();
         mockDescribeDbParametersResponse("static", "dynamic", true);
 
         mockDescribeDBParameterGroup();
+
 
         final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
         when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
@@ -133,7 +135,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
 
@@ -151,17 +152,12 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleUnmodifiableParameterFail() {
-        final CreateHandler handler = new CreateHandler();
-
-        final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().build();
-        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
-
+        mockCreateCall();
         mockDescribeDbParametersResponse("static", "dynamic", false);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
@@ -174,18 +170,13 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
-        final CreateHandler handler = new CreateHandler();
-
-        final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().build();
-        when(rdsClient.createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
-
+        mockCreateCall();
         DescribeEngineDefaultParametersIterable describeDbParametersIterable = mock(DescribeEngineDefaultParametersIterable.class);
         when(rdsClient.describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeDbParametersIterable);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
@@ -206,7 +197,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .clientRequestToken(getClientRequestToken())
                 .build();
 
@@ -229,7 +219,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
-                .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
@@ -252,7 +241,9 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
     }
 
-    private void mockDescribeDbParametersResponse(String firstParamApplyType, String secondParamApplyType, boolean isModifiable) {
+    private void mockDescribeDbParametersResponse(String firstParamApplyType,
+                                                  String secondParamApplyType,
+                                                  boolean isModifiable) {
         Parameter param1 = Parameter.builder()
                 .parameterName("param1")
                 .parameterValue("system_value")
@@ -292,5 +283,10 @@ public class CreateHandlerTest extends AbstractTestBase {
                         .build()
                 );
         when(proxyClient.client().describeDBParametersPaginator(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersIterable);
+    }
+
+    private void mockCreateCall() {
+        createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().dbParameterGroup(DBParameterGroup.builder().dbParameterGroupArn("arn").build()).build();
+        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
     }
 }

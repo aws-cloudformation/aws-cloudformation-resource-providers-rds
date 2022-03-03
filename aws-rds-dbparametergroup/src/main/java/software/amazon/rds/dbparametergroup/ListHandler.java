@@ -11,9 +11,18 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.logging.RequestLogger;
 
 public class ListHandler extends BaseHandlerStd {
+
+    public ListHandler() {
+        this(HandlerConfig.builder().build());
+    }
+
+    public ListHandler(final HandlerConfig config) {
+        super(config);
+    }
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(

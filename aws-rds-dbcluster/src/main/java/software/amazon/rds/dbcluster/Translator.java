@@ -27,9 +27,10 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotReq
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
-    static CreateDbClusterRequest createDbClusterRequest(final ResourceModel model) {
+    static CreateDbClusterRequest createDbClusterRequest(final ResourceModel model, final Tagging.TagSet tagSet) {
         return CreateDbClusterRequest.builder()
                 .availabilityZones(model.getAvailabilityZones())
                 .backtrackWindow(castToLong(model.getBacktrackWindow()))
@@ -57,12 +58,15 @@ public class Translator {
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .sourceRegion(model.getSourceRegion())
                 .storageEncrypted(model.getStorageEncrypted())
-                .tags(translateTagsToSdk(model.getTags()))
+                .tags(Tagging.translateTagsToSdk(tagSet))
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
                 .build();
     }
 
-    static RestoreDbClusterToPointInTimeRequest restoreDbClusterToPointInTimeRequest(final ResourceModel model) {
+    static RestoreDbClusterToPointInTimeRequest restoreDbClusterToPointInTimeRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
         return RestoreDbClusterToPointInTimeRequest.builder()
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
@@ -70,10 +74,14 @@ public class Translator {
                 .restoreType(model.getRestoreType())
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
+                .tags(Tagging.translateTagsToSdk(tagSet))
                 .build();
     }
 
-    static RestoreDbClusterFromSnapshotRequest restoreDbClusterFromSnapshotRequest(final ResourceModel model) {
+    static RestoreDbClusterFromSnapshotRequest restoreDbClusterFromSnapshotRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
         return RestoreDbClusterFromSnapshotRequest.builder()
                 .availabilityZones(model.getAvailabilityZones())
                 .backtrackWindow(castToLong(model.getBacktrackWindow()))
@@ -91,7 +99,7 @@ public class Translator {
                 .port(model.getPort())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .snapshotIdentifier(model.getSnapshotIdentifier())
-                .tags(translateTagsToSdk(model.getTags()))
+                .tags(Tagging.translateTagsToSdk(tagSet))
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
                 .build();
     }
@@ -227,29 +235,6 @@ public class Translator {
     ) {
         return DescribeDbClustersRequest.builder()
                 .marker(nextToken)
-                .build();
-    }
-
-    static AddTagsToResourceRequest addTagsToResourceRequest(
-            final String dbClusterParameterGroupArn,
-            final Set<Tag> tags
-    ) {
-        return AddTagsToResourceRequest.builder()
-                .resourceName(dbClusterParameterGroupArn)
-                .tags(translateTagsToSdk(tags))
-                .build();
-    }
-
-    static RemoveTagsFromResourceRequest removeTagsFromResourceRequest(
-            final String dbClusterParameterGroupArn,
-            final Set<Tag> tags
-    ) {
-        return RemoveTagsFromResourceRequest.builder()
-                .resourceName(dbClusterParameterGroupArn)
-                .tagKeys(tags
-                        .stream()
-                        .map(Tag::getKey)
-                        .collect(Collectors.toSet()))
                 .build();
     }
 

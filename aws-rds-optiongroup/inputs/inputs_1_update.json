@@ -1,5 +1,5 @@
 {
-  "OptionGroupName": "test-option-group",
+  "OptionGroupName": "optiongroup-contract-test",
   "EngineName": "mysql",
   "MajorEngineVersion": "5.6",
   "OptionGroupDescription": "A test option group",
