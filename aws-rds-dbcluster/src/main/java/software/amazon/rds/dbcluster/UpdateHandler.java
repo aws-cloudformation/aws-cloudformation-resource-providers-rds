@@ -3,7 +3,7 @@ package software.amazon.rds.dbcluster;
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 import static software.amazon.rds.dbcluster.Translator.cloudwatchLogsExportConfiguration;
 
-import java.util.Collection;
+import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -45,18 +45,17 @@ public class UpdateHandler extends BaseHandlerStd {
             );
         }
 
-        final Collection<Tag> previousTags = Translator.translateTagsFromRequest(
-                Tagging.mergeTags(
-                        request.getPreviousSystemTags(),
-                        request.getPreviousResourceTags()
-                )
-        );
-        final Collection<Tag> desiredTags = Translator.translateTagsFromRequest(
-                Tagging.mergeTags(
-                        request.getSystemTags(),
-                        request.getDesiredResourceTags()
-                )
-        );
+        final Tagging.TagSet previousTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags())))
+                .build();
+
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .build();
 
         return ProgressEvent.progress(setDefaults(request.getDesiredResourceState()), callbackContext)
                 .then(progress -> {
@@ -73,7 +72,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 )
                 .then(progress -> removeAssociatedRoles(proxy, proxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
                 .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
-                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
+                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 

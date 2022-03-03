@@ -1,5 +1,5 @@
 {
-  "DBParameterGroupName": "new",
+  "DBParameterGroupName": "dbparametergroup-contract-test",
   "Description": "cloudFormation",
   "Family": "mysql8.0",
   "Parameters": {}
