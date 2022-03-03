@@ -231,7 +231,9 @@
     "MasterUsername": {
       "type": "string",
       "pattern": "^[a-zA-Z][a-zA-Z0-9_]{0,15}$",
-      "description": "The master user name for the DB instance."
+      "description": "The master user name for the DB instance.",
+      "minLength": 1,
+      "maxLength": 16
     },
     "MasterUserPassword": {
       "type": "string",
