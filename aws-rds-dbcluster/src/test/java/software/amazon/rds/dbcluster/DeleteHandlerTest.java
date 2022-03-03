@@ -131,38 +131,6 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_finalSnapshotIdentifierIsSet() {
-        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
-                .thenReturn(DeleteDbClusterResponse.builder().build());
-
-        final Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
-        transitions.add(DBCLUSTER_ACTIVE);
-
-        final String snapshotIdentifier = "test-snapshot-identifier";
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .snapshotRequested(true),
-                () -> {
-                    if (transitions.size() > 0) {
-                        return transitions.remove();
-                    }
-                    throw DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build();
-                },
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL.toBuilder()
-                        .snapshotIdentifier(snapshotIdentifier)
-                        .build(),
-                expectSuccess()
-        );
-
-        ArgumentCaptor<DeleteDbClusterRequest> argument = ArgumentCaptor.forClass(DeleteDbClusterRequest.class);
-        verify(rdsProxy.client(), times(1)).deleteDBCluster(argument.capture());
-        Assertions.assertEquals(argument.getValue().finalDBSnapshotIdentifier(), snapshotIdentifier);
-    }
-
-    @Test
     public void handleRequest_NoSnapshotRequested() {
         when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
                 .thenReturn(DeleteDbClusterResponse.builder().build());
