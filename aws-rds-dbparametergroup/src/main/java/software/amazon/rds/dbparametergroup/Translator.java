@@ -19,18 +19,19 @@ import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParameters
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
+import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
 
     static CreateDbParameterGroupRequest createDbParameterGroupRequest(
             final ResourceModel model,
-            final Map<String, String> tags
+            final Tagging.TagSet systemTags
     ) {
         return CreateDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .description(model.getDescription())
                 .dbParameterGroupFamily(model.getFamily())
-                .tags(translateTagsToSdk(tags))
+                .tags(Tagging.translateTagsToSdk(systemTags))
                 .build();
     }
 
@@ -100,35 +101,38 @@ public class Translator {
     }
 
 
-    static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Map<String, String> tags) {
-        return Optional.ofNullable(tags.entrySet()).orElse(Collections.emptySet())
+    static Map<String, String> translateTagsFromSdk(Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptyList())
                 .stream()
-                .map(tag -> {
-                    return software.amazon.awssdk.services.rds.model.Tag.builder()
-                            .key(tag.getKey())
-                            .value(tag.getValue())
-                            .build();
-                })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
     }
 
-    static ResourceModel translateFromDBParameterGroup(
-            final DBParameterGroup dbParameterGroup,
-            final Set<software.amazon.awssdk.services.rds.model.Tag> rdsTags
-    ) {
-        List<Tag> tags = CollectionUtils.isNullOrEmpty(rdsTags) ? null
+    public static List<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptyList())
+                .stream()
+                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key(tag.getKey())
+                        .value(tag.getValue())
+                        .build()
+                )
+                .collect(Collectors.toList());
+    }
+
+    static ResourceModel translateFromDBParameterGroup(final DBParameterGroup dbParameterGroup) {
+        return ResourceModel.builder()
+                .dBParameterGroupName(dbParameterGroup.dbParameterGroupName())
+                .description(dbParameterGroup.description())
+                .family(dbParameterGroup.dbParameterGroupFamily())
+                .build();
+    }
+
+    static List<Tag> translateTags(final Collection<software.amazon.awssdk.services.rds.model.Tag> rdsTags) {
+        return CollectionUtils.isNullOrEmpty(rdsTags) ? null
                 : rdsTags.stream()
                 .map(tag -> Tag.builder()
                         .key(tag.key())
                         .value(tag.value())
                         .build())
                 .collect(Collectors.toList());
-
-        return ResourceModel.builder()
-                .dBParameterGroupName(dbParameterGroup.dbParameterGroupName())
-                .description(dbParameterGroup.description())
-                .family(dbParameterGroup.dbParameterGroupFamily())
-                .tags(tags)
-                .build();
     }
 }

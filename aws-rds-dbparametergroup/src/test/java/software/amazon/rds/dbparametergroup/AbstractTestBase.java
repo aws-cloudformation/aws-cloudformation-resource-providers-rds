@@ -18,6 +18,7 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
+import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
@@ -30,6 +31,7 @@ public class AbstractTestBase {
     protected static final LoggerProxy logger;
 
     protected static final ResourceModel RESOURCE_MODEL;
+    protected static final ResourceModel RESOURCE_MODEL_WITH_TAGS;
     protected static final DBParameterGroup DB_PARAMETER_GROUP_ACTIVE;
     protected static final Set<Tag> TAG_SET;
     protected static final String LOGICAL_RESOURCE_IDENTIFIER;
@@ -53,6 +55,14 @@ public class AbstractTestBase {
                 .description("test DB Parameter group description")
                 .family("testFamily")
                 .tags(Collections.emptyList())
+                .parameters(PARAMS)
+                .build();
+
+        RESOURCE_MODEL_WITH_TAGS = ResourceModel.builder()
+                .dBParameterGroupName("testDBParameterGroup2")
+                .description("test DB Parameter group description")
+                .family("testFamily2")
+                .tags(Collections.singletonList(Tag.builder().key("Key").value("Value").build()))
                 .parameters(PARAMS)
                 .build();
 
