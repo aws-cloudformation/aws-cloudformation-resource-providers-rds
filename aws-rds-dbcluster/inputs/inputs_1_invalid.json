@@ -2,5 +2,5 @@
   "Engine": "aurora1",
   "MasterUsername": "guest",
   "MasterUserPassword": "guest123",
-  "DBClusterIdentifier": "testdbclusterinvalid"
+  "DBClusterIdentifier": "dbcluster-contract-test-invalid"
 }
