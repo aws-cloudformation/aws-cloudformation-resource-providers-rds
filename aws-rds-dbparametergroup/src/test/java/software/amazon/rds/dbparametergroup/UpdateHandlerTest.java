@@ -26,8 +26,6 @@ import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsReques
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
