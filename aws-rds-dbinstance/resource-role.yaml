@@ -41,6 +41,7 @@ Resources:
                 - "rds:CreateDBInstance"
                 - "rds:CreateDBInstanceReadReplica"
                 - "rds:DeleteDBInstance"
+                - "rds:DescribeDBClusters"
                 - "rds:DescribeDBEngineVersions"
                 - "rds:DescribeDBInstances"
                 - "rds:DescribeDBParameterGroups"
