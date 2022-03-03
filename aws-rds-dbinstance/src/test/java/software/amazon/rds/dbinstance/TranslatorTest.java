@@ -2,15 +2,16 @@ package software.amazon.rds.dbinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.handler.Tagging;
 
 class TranslatorTest extends AbstractHandlerTest {
 
@@ -134,14 +135,32 @@ class TranslatorTest extends AbstractHandlerTest {
     @Test
     public void test_modifyDbInstanceRequest_setProcessorFeatures() {
         final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
-                .processorFeatures(Arrays.asList(PROCESSOR_FEATURE, ProcessorFeature.builder().build()))
+                .processorFeatures(PROCESSOR_FEATURES)
                 .build();
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
-                .processorFeatures(Arrays.asList(PROCESSOR_FEATURE))
+                .processorFeatures(PROCESSOR_FEATURES_ALTER)
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        assertThat(request.processorFeatures()).hasSameElementsAs(Translator.translateProcessorFeaturesToSdk(Arrays.asList(PROCESSOR_FEATURE)));
+        assertThat(request.processorFeatures()).hasSameElementsAs(Translator.translateProcessorFeaturesToSdk(PROCESSOR_FEATURES_ALTER));
+    }
+
+    @Test
+    public void test_createDBInstanceRequest_stableHashCode() {
+        final Tagging.TagSet tagSet1 = Tagging.TagSet.builder()
+                .systemTags(Translator.translateTagsToSdk(TAG_LIST))
+                .resourceTags(Translator.translateTagsToSdk(TAG_LIST))
+                .stackTags(Translator.translateTagsToSdk(TAG_LIST))
+                .build();
+        final Tagging.TagSet tagSet2 = Tagging.TagSet.builder()
+                .systemTags(Translator.translateTagsToSdk(TAG_LIST))
+                .resourceTags(Translator.translateTagsToSdk(TAG_LIST))
+                .stackTags(Translator.translateTagsToSdk(TAG_LIST))
+                .build();
+        final CreateDbInstanceRequest request1 = Translator.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet1);
+        final CreateDbInstanceRequest request2 = Translator.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet2);
+
+        Assertions.assertEquals(request1.hashCode(), request2.hashCode());
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
