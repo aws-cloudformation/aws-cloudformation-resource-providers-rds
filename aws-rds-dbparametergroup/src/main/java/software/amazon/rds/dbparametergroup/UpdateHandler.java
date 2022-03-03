@@ -34,8 +34,8 @@ public class UpdateHandler extends BaseHandlerStd {
                     final String arn = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get().dbParameterGroupArn();
                     return Tagging.updateTags(
                             invocation,
-                            arn,
                             ProgressEvent.progress(resourceModel, context),
+                            arn,
                             previousTags,
                             desiredTags,
                             SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET
