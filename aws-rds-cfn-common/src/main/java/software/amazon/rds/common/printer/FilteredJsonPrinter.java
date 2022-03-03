@@ -47,7 +47,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
 
     @Override
     public String print(final Object obj) throws JsonProcessingException {
-        return obj != null ? writer.writeValueAsString(obj) : EMPTY_JSON;
+        return obj == null ? EMPTY_JSON : writer.writeValueAsString(obj);
     }
 
     @Override
