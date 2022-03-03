@@ -20,8 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,9 +43,6 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     private ReadHandler handler;
 
-    private ResourceModel RESOURCE_MODEL;
-
-    private Map<String, Object> PARAMS;
 
     @AfterEach
     public void post_execute() {
@@ -61,19 +56,7 @@ public class ReadHandlerTest extends AbstractTestBase {
         handler = new ReadHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = proxyRdsClient = MOCK_PROXY(proxy, rds);
-
-
-        PARAMS = new HashMap<>();
-        PARAMS.put("param", "value");
-        PARAMS.put("param2", "value");
-
-        RESOURCE_MODEL = ResourceModel.builder()
-                .description(DESCRIPTION)
-                .dBClusterParameterGroupName(null)
-                .family(FAMILY)
-                .tags(TAG_SET)
-                .build();
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
 
