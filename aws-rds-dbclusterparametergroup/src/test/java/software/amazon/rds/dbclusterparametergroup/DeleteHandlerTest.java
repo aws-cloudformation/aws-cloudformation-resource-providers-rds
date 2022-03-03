@@ -2,11 +2,12 @@ package software.amazon.rds.dbclusterparametergroup;
 
 import java.security.InvalidParameterException;
 import org.junit.jupiter.api.AfterEach;
+
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
-import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -61,7 +62,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         handler = new DeleteHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = proxyRdsClient = MOCK_PROXY(proxy, rds);
+        proxyRdsClient = MOCK_PROXY(proxy, rds);
 
 
         PARAMS = new HashMap<>();
@@ -99,9 +100,11 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessNotFound() {
-        final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
+        DbParameterGroupNotFoundException dbParameterGroupNotFoundException = DbParameterGroupNotFoundException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder().build()).build();
+
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
-            .thenThrow(DbParameterGroupNotFoundException.class);
+            .thenThrow(dbParameterGroupNotFoundException);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
             .desiredResourceState(ResourceModel.builder()
@@ -112,10 +115,8 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
 
         verify(proxyRdsClient.client()).deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class));
@@ -123,7 +124,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleInvalid() {
-        final DeleteDbClusterParameterGroupResponse deleteDBClusterParameterGroupResponse = DeleteDbClusterParameterGroupResponse.builder().build();
         when(rds.deleteDBClusterParameterGroup(any(DeleteDbClusterParameterGroupRequest.class)))
             .thenThrow(InvalidParameterException.class);
 

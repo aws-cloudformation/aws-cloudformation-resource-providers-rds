@@ -1,35 +1,25 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import software.amazon.awssdk.services.rds.model.ApplyMethod;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
-import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
-import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
-import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.awssdk.services.rds.model.Tag;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
-import software.amazon.cloudformation.exceptions.TerminalException;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
+import software.amazon.awssdk.services.rds.model.ApplyMethod;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
+import software.amazon.rds.common.handler.Tagging;
+
 public class Translator {
-    private static final int MAX_RECORDS_TO_DESCRIBE = 20;
-    private static final String STATIC_TYPE = "static";
-    private static final String DYNAMIC_TYPE = "dynamic";
-    private static final ApplyMethod IMMEDIATE_APPLY_METHOD = ApplyMethod.IMMEDIATE;;
-    private static final ApplyMethod PENDING_REBOOT_APPLY_METHOD = ApplyMethod.PENDING_REBOOT;
 
     static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(final ResourceModel model,
                                                                                      final Map<String, String> tags) {
@@ -37,27 +27,19 @@ public class Translator {
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbParameterGroupFamily(model.getFamily())
                 .description(model.getDescription())
-                .tags(translateTagsToSdk(tags))
+                .tags(Tagging.translateTagsToSdk(tags))
                 .build();
     }
 
-    static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model,
-                                                                                 final String nextToken) {
+    static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model) {
         return DescribeDbClusterParametersRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
-                .marker(nextToken)
-                .maxRecords(MAX_RECORDS_TO_DESCRIBE)
                 .build();
     }
 
-    static DescribeDbClustersRequest describeDbClustersRequest(final String nextToken) {
-        return DescribeDbClustersRequest.builder()
-            .marker(nextToken)
-            .maxRecords(20)
-            .build();
+    static DescribeDbClustersRequest describeDbClustersRequest() {
+        return DescribeDbClustersRequest.builder().build();
     }
-
-
 
     static DeleteDbClusterParameterGroupRequest deleteDbClusterParameterGroupRequest(final ResourceModel model) {
         return DeleteDbClusterParameterGroupRequest.builder()
@@ -78,105 +60,50 @@ public class Translator {
     }
 
     static ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest(final ResourceModel model,
-                                                                                     final Set<Parameter> parameters) {
+                                                                                     final Collection<Parameter> parameters) {
         return ModifyDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .parameters(parameters)
                 .build();
     }
 
-    static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
+    static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model,
+                                                                                   final Collection<Parameter> parameters) {
         return ResetDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
-                .resetAllParameters(true)
+                .parameters(parameters)
                 .build();
     }
 
-    static ListTagsForResourceRequest listTagsForResourceRequest(final String dbClusterParameterGroupArn) {
-        return ListTagsForResourceRequest.builder()
-                .resourceName(dbClusterParameterGroupArn)
-                .build();
-    }
-
-    static AddTagsToResourceRequest addTagsToResourceRequest(final String dbClusterParameterGroupArn,
-                                                             final Set<software.amazon.rds.dbclusterparametergroup.Tag> tags) {
-        return AddTagsToResourceRequest.builder()
-                .resourceName(dbClusterParameterGroupArn)
-                .tags(translateTagsToSdk(tags))
-                .build();
-    }
-
-    static RemoveTagsFromResourceRequest removeTagsFromResourceRequest(final String dbClusterParameterGroupArn,
-                                                                       final Set<software.amazon.rds.dbclusterparametergroup.Tag> tags) {
-        return RemoveTagsFromResourceRequest.builder()
-                .resourceName(dbClusterParameterGroupArn)
-                .tagKeys(tags
-                        .stream()
-                        .map(software.amazon.rds.dbclusterparametergroup.Tag::getKey)
-                        .collect(Collectors.toSet()))
-                .build();
-    }
-
-
-    protected static Set<Parameter> getParametersToModify(final ResourceModel model,
-                                                          final List<Parameter> parameters) {
-        return parameters.stream()
-                .filter(parameter -> model.getParameters().containsKey(parameter.parameterName()))
-                .map(parameter -> modifyParameter(model.getParameters(), parameter))
-                .collect(Collectors.toSet());
-    }
-
-    private static Parameter modifyParameter(final Map<String, Object> parameters,
-                                               final Parameter parameter) {
-        if (!parameter.isModifiable()) throw new CfnInvalidRequestException("Unmodifiable DB Parameter: " + parameter.parameterName());
-
-        final Parameter.Builder param = Parameter.builder()
-                .parameterName(parameter.parameterName()) // char set etc
-                .parameterValue(String.valueOf(parameters.get(parameter.parameterName()))) // utf32
-                .applyType(parameter.applyType()) //
-                .isModifiable(parameter.isModifiable()); //
-
-        // If the parameter is STATIC, flag for pending reboot
-        if (parameter.applyType().equalsIgnoreCase(STATIC_TYPE))
-            return param.applyMethod(PENDING_REBOOT_APPLY_METHOD).build(); // pending reboot
-
-        // If the parameter is DYNAMIC, we can apply now
-        else if (parameter.applyType().equalsIgnoreCase(DYNAMIC_TYPE)) {
-            return param.applyMethod(IMMEDIATE_APPLY_METHOD).build();
-        }
-
-        return param.build();
-    }
-
-    // Translate tags
-    static Set<Tag> translateTagsToSdk(final Collection<software.amazon.rds.dbclusterparametergroup.Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
-                .collect(Collectors.toSet());
-    }
-
-    // Translate tags
-    static Set<Tag> translateTagsToSdk(final Map<String, String> tags) {
-        return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> Tag.builder().key(tag.getKey()).value(tag.getValue()).build())
-                .collect(Collectors.toSet());
-    }
-
-    static Set<software.amazon.rds.dbclusterparametergroup.Tag> mapToTags(final Map<String, String> tags) {
-        return Optional.of(tags.entrySet()).orElse(Collections.emptySet())
-                .stream()
-                .map(entry -> software.amazon.rds.dbclusterparametergroup.Tag.builder().key(entry.getKey()).value(entry.getValue()).build())
-                .collect(Collectors.toSet());
-    }
-
-    static Set<software.amazon.rds.dbclusterparametergroup.Tag> translateTagsFromSdk(final Collection<Tag> tags) {
+    static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptySet())
                 .stream()
                 .map(tag -> software.amazon.rds.dbclusterparametergroup.Tag.builder()
                         .key(tag.key())
                         .value(tag.value()).build())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
+    }
+
+    public static DescribeEngineDefaultClusterParametersRequest describeEngineDefaultClusterParametersRequest(final ResourceModel resourceModel,
+                                                                                                              String marker,
+                                                                                                              int maxRecords) {
+        return DescribeEngineDefaultClusterParametersRequest.builder()
+                .dbParameterGroupFamily(resourceModel.getFamily())
+                .marker(marker)
+                .maxRecords(maxRecords)
+                .build();
+    }
+
+    public static Parameter buildParameterWithNewValue(final String newValue,
+                                                       final Parameter parameter) {
+        final Parameter.Builder param = parameter.toBuilder()
+                .parameterValue(newValue);
+
+        if (parameter.applyType().equalsIgnoreCase(ParameterType.Static.toString()))  // If the parameter is STATIC, flag for pending reboot
+            param.applyMethod(ApplyMethod.PENDING_REBOOT);
+        else if (parameter.applyType().equalsIgnoreCase(ParameterType.Dynamic.toString()))   // If the parameter is DYNAMIC, we can apply now
+            param.applyMethod(ApplyMethod.IMMEDIATE).build();
+
+        return param.build();
     }
 }

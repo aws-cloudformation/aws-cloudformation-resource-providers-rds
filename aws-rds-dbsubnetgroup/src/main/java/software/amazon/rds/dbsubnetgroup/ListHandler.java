@@ -29,7 +29,7 @@ public class ListHandler extends BaseHandlerStd {
                             proxyClient.client()::describeDBSubnetGroups);
         } catch (Exception exception) {
             return Commons.handleException(
-                    ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
+                    ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     exception,
                     DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET);
         }

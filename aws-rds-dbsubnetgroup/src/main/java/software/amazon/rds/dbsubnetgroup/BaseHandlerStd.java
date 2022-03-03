@@ -101,8 +101,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     final String arn = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get().dbSubnetGroupArn();
                     return Tagging.updateTags(
                             proxyInvocation,
-                            arn,
                             ProgressEvent.progress(resourceModel, context),
+                            arn,
                             previousTags,
                             desiredTags,
                             DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET
