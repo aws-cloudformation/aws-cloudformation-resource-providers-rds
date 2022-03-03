@@ -2,7 +2,6 @@ package software.amazon.rds.dbinstance;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -74,7 +73,7 @@ public class CreateHandler extends BaseHandlerStd {
 
         final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
-                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)

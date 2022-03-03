@@ -125,7 +125,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String PREFERRED_MAINTENANCE_WINDOW_EMPTY = null;
     protected static final String PROCESSOR_FEATURE_NAME = "processor-feature-name";
     protected static final String PROCESSOR_FEATURE_VALUE = "processor-feature-value";
-    protected static final ProcessorFeature PROCESSOR_FEATURE;
+    protected static final List<ProcessorFeature> PROCESSOR_FEATURES;
+    protected static final List<ProcessorFeature> PROCESSOR_FEATURES_ALTER;
     protected static final Integer PROMOTION_TIER_DEFAULT = 1;
     protected static final Boolean PUBLICLY_ACCESSIBLE_YES = true;
     protected static final Boolean PUBLICLY_ACCESSIBLE_NO = false;
@@ -169,35 +170,66 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
         TAG_LIST_EMPTY = ImmutableList.of();
         TAG_LIST = ImmutableList.of(
-                Tag.builder().key("foo").value("bar").build()
+                Tag.builder().key("foo-1").value("bar-1").build(),
+                Tag.builder().key("foo-2").value("bar-2").build(),
+                Tag.builder().key("foo-3").value("bar-3").build()
         );
 
         TAG_LIST_ALTER = ImmutableList.of(
-                Tag.builder().key("bar").value("baz").build(),
-                Tag.builder().key("fizz").value("buzz").build()
+                Tag.builder().key("foo-4").value("bar-4").build(),
+                Tag.builder().key("foo-5").value("bar-5").build()
         );
 
         ASSOCIATED_ROLES = ImmutableList.of(
                 DBInstanceRole.builder()
-                        .featureName(ASSOCIATED_ROLE_NAME)
-                        .roleArn(ASSOCIATED_ROLE_ARN)
+                        .featureName(ASSOCIATED_ROLE_NAME + "-1")
+                        .roleArn(ASSOCIATED_ROLE_ARN + "-1")
+                        .build(),
+                DBInstanceRole.builder()
+                        .featureName(ASSOCIATED_ROLE_NAME + "-2")
+                        .roleArn(ASSOCIATED_ROLE_ARN + "-2")
+                        .build(),
+                DBInstanceRole.builder()
+                        .featureName(ASSOCIATED_ROLE_NAME + "-3")
+                        .roleArn(ASSOCIATED_ROLE_ARN + "-3")
                         .build()
         );
         ASSOCIATED_ROLES_ALTER = ImmutableList.of(
                 DBInstanceRole.builder()
-                        .featureName(ASSOCIATED_ROLE_NAME + "-foo")
-                        .roleArn(ASSOCIATED_ROLE_ARN + "-foo")
+                        .featureName(ASSOCIATED_ROLE_NAME + "-4")
+                        .roleArn(ASSOCIATED_ROLE_ARN + "-4")
                         .build(),
                 DBInstanceRole.builder()
-                        .featureName(ASSOCIATED_ROLE_NAME + "-bar")
-                        .roleArn(ASSOCIATED_ROLE_ARN + "-bar")
+                        .featureName(ASSOCIATED_ROLE_NAME + "-5")
+                        .roleArn(ASSOCIATED_ROLE_ARN + "-5")
                         .build()
         );
 
-        PROCESSOR_FEATURE = ProcessorFeature.builder()
-                .name(PROCESSOR_FEATURE_NAME)
-                .value(PROCESSOR_FEATURE_VALUE)
-                .build();
+        PROCESSOR_FEATURES = ImmutableList.of(
+                ProcessorFeature.builder()
+                        .name(PROCESSOR_FEATURE_NAME + "-1")
+                        .value(PROCESSOR_FEATURE_VALUE + "-1")
+                        .build(),
+                ProcessorFeature.builder()
+                        .name(PROCESSOR_FEATURE_NAME + "-2")
+                        .value(PROCESSOR_FEATURE_VALUE + "-2")
+                        .build(),
+                ProcessorFeature.builder()
+                        .name(PROCESSOR_FEATURE_NAME + "-3")
+                        .value(PROCESSOR_FEATURE_VALUE + "-3")
+                        .build()
+        );
+
+        PROCESSOR_FEATURES_ALTER = ImmutableList.of(
+                ProcessorFeature.builder()
+                        .name(PROCESSOR_FEATURE_NAME + "-4")
+                        .value(PROCESSOR_FEATURE_VALUE + "-4")
+                        .build(),
+                ProcessorFeature.builder()
+                        .name(PROCESSOR_FEATURE_NAME + "-5")
+                        .value(PROCESSOR_FEATURE_VALUE + "-5")
+                        .build()
+        );
 
 
         RESOURCE_MODEL_NO_IDENTIFIER = ResourceModel.builder()
@@ -253,7 +285,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .port(PORT_DEFAULT)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
-                .processorFeatures(ImmutableList.of(PROCESSOR_FEATURE))
+                .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
@@ -305,7 +337,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .port(PORT_DEFAULT)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
-                .processorFeatures(ImmutableList.of(PROCESSOR_FEATURE))
+                .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY) // setting this field marks the instance as read replica
@@ -357,7 +389,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .port(PORT_DEFAULT)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
-                .processorFeatures(ImmutableList.of(PROCESSOR_FEATURE))
+                .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
@@ -470,7 +502,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .port(PORT_DEFAULT)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
-                .processorFeatures(ImmutableList.of(PROCESSOR_FEATURE))
+                .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
