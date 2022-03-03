@@ -340,7 +340,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client()).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(3)).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
         verify(rdsProxy.client(), times(2)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
     }
 
@@ -378,7 +378,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client()).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(3)).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
         verify(rdsProxy.client(), times(2)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
     }
 
@@ -403,7 +403,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 
-        verify(rdsProxy.client()).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(3)).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
         verify(rdsProxy.client()).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
     }
 
@@ -458,8 +458,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(2)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(1)).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -502,8 +502,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(2)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
-        verify(rdsProxy.client()).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(6)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(8)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
