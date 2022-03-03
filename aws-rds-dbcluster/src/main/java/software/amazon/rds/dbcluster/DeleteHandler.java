@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
 
-import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -38,31 +37,14 @@ public class DeleteHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger
     ) {
-        final ResourceModel model = request.getDesiredResourceState();
-
-        if (!callbackContext.isDeleting()) {
-            boolean deletionProtectionEnabled;
-            try {
-                deletionProtectionEnabled = isDeletionProtectionEnabled(proxyClient, model);
-            } catch (Exception exception) {
-                return Commons.handleException(
-                        ProgressEvent.progress(model, callbackContext),
-                        exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
-                );
-            }
-            if (deletionProtectionEnabled) {
-                return ProgressEvent.failed(
-                        model,
-                        callbackContext,
-                        HandlerErrorCode.NotUpdatable,
-                        String.format(DELETION_PROTECTION_ENABLED_ERROR, model.getDBClusterIdentifier())
-                );
-            }
-        }
-
-        return ProgressEvent.progress(model, callbackContext)
+        return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
+                .then(progress -> Commons.execOnce(progress, () ->
+                                ensureDeletionProtectionDisabled(proxyClient, progress),
+                        CallbackContext::isDeleting,
+                        CallbackContext::setDeleting)
+                )
                 .then(progress -> {
+                    final ResourceModel model = progress.getResourceModel();
                     if (isGlobalClusterMember(model)) {
                         return removeFromGlobalCluster(proxy, proxyClient, progress, model.getGlobalClusterIdentifier());
                     }
@@ -71,31 +53,42 @@ public class DeleteHandler extends BaseHandlerStd {
                 .then(progress -> deleteDbCluster(proxy, request, proxyClient, progress));
     }
 
+    private ProgressEvent<ResourceModel, CallbackContext> ensureDeletionProtectionDisabled(
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        try {
+            final ResourceModel model = progress.getResourceModel();
+            final CallbackContext context = progress.getCallbackContext();
+            if (isDeletionProtectionEnabled(proxyClient, model)) {
+                final String errorMessage = String.format(DELETION_PROTECTION_ENABLED_ERROR, model.getDBClusterIdentifier());
+                return ProgressEvent.failed(model, context, HandlerErrorCode.NotUpdatable, errorMessage);
+            }
+        } catch (Exception exception) {
+            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+        }
+        return progress;
+    }
+
     private ProgressEvent<ResourceModel, CallbackContext> deleteDbCluster(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        final ResourceModel resourceModel = request.getDesiredResourceState();
-
         String snapshotIdentifier = null;
+
         if (BooleanUtils.isTrue(request.getSnapshotRequested())) {
-            snapshotIdentifier = resourceModel.getSnapshotIdentifier();
-            if (StringUtils.isNullOrEmpty(snapshotIdentifier)) {
-                snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(
-                        Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
-                        SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
-                        request.getClientRequestToken(),
-                        SNAPSHOT_MAX_LENGTH
-                );
-            }
+            snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(
+                    Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
+                    SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
+                    request.getClientRequestToken(),
+                    SNAPSHOT_MAX_LENGTH
+            );
         }
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
-        progress.getCallbackContext().setDeleting(true);
-
-        return proxy.initiate("rds::delete-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+        return proxy.initiate("rds::delete-db-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(model -> Translator.deleteDbClusterRequest(model, finalSnapshotIdentifier))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
@@ -111,11 +104,11 @@ public class DeleteHandler extends BaseHandlerStd {
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
 
-    protected boolean isDeletionProtectionEnabled(
+    private boolean isDeletionProtectionEnabled(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
-        return dbCluster.deletionProtection();
+        return BooleanUtils.isTrue(dbCluster.deletionProtection());
     }
 }
