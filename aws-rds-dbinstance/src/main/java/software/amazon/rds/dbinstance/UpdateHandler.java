@@ -2,7 +2,6 @@ package software.amazon.rds.dbinstance;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -67,13 +66,13 @@ public class UpdateHandler extends BaseHandlerStd {
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
-                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags())))
+                .resourceTags(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags()))
                 .build();
 
         final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
-                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
         final Collection<DBInstanceRole> previousRoles = request.getPreviousResourceState().getAssociatedRoles();

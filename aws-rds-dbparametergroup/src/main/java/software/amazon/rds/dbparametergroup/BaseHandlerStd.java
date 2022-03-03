@@ -1,6 +1,5 @@
 package software.amazon.rds.dbparametergroup;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -17,25 +16,25 @@ import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundExcepti
 import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.cloudformation.exceptions.CfnAccessDeniedException;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
-    protected static final Constant CONSTANT = Constant.of().timeout(Duration.ofMinutes(120L))
-            .delay(Duration.ofSeconds(30L)).build();
     protected static final ErrorRuleSet DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbParameterGroupStateException.class)
@@ -47,15 +46,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbParameterGroupQuotaExceededException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
-    protected static final ErrorRuleSet SOFT_FAIL_TAG_DB_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
-            .withErrorClasses(ErrorStatus.ignore(), CfnAccessDeniedException.class)
+    protected static final ErrorRuleSet SOFT_FAIL_NPROGRESS_TAGGING_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    ErrorCode.AccessDenied,
+                    ErrorCode.AccessDeniedException)
             .build()
             .orElse(DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+
     protected static int MAX_LENGTH_GROUP_NAME = 255;
     protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
+    protected HandlerConfig config;
+
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
@@ -73,11 +82,69 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         requestLogger));
     }
 
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet previousTags,
+            final Tagging.TagSet desiredTags,
+            final RequestLogger requestLogger) {
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
+
+        String arn = progress.getCallbackContext().getDbParameterGroupArn();
+        if (arn == null) {
+            ProgressEvent<ResourceModel, CallbackContext> progressEvent = fetchDBParameterGroupArn(proxy, rdsProxyClient, progress);
+            if (progressEvent.isFailed()) {
+                return progressEvent;
+            }
+            arn = progressEvent.getCallbackContext().getDbParameterGroupArn();
+        }
+
+        try {
+            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    SOFT_FAIL_NPROGRESS_TAGGING_ERROR_RULE_SET
+            );
+        }
+
+        return progress;
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> fetchDBParameterGroupArn(final AmazonWebServicesClientProxy proxy,
+                                                                                     final ProxyClient<RdsClient> proxyClient,
+                                                                                     final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        return proxy.initiate("rds::read-db-parameter-group-arn", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((describeDbParameterGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest, proxyInvocation.client()::describeDBParameterGroups))
+                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
+                        Commons.handleException(
+                                ProgressEvent.progress(resourceModel, ctx),
+                                exception,
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                        ))
+                .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, invocation, resourceModel, context) -> {
+                    final String arn = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get().dbParameterGroupArn();
+                    context.setDbParameterGroupArn(arn);
+                    return ProgressEvent.progress(resourceModel, context);
+                });
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
                                                                             final ProxyClient<RdsClient> proxyClient,
-                                                                            final ResourceModel model,
-                                                                            final CallbackContext callbackContext,
+                                                                            final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                             final RequestLogger requestLogger) {
+        ResourceModel model = progress.getResourceModel();
+        CallbackContext callbackContext = progress.getCallbackContext();
         //isParametersApplied flag for unit testing
         if (callbackContext.isParametersApplied())
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
@@ -125,7 +192,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
         requestLogger.log("ModifiedParameter", parametersToModify);
         return ProgressEvent.progress(model, callbackContext);
-
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> modifyParameters(final ProxyClient<RdsClient> proxyClient,
