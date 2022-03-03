@@ -29,6 +29,7 @@ Resources:
                 - "rds:DescribeDBClusterParameterGroups"
                 - "rds:DescribeDbClusterParameters"
                 - "rds:DescribeDbClusters"
+                - "rds:DescribeEngineDefaultClusterParameters"
                 - "rds:ListTagsForResource"
                 - "rds:ModifyDBClusterParameterGroup"
                 - "rds:RemoveTagsFromResource"

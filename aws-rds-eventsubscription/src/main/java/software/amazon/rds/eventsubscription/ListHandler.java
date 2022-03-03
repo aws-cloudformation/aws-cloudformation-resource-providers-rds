@@ -30,7 +30,7 @@ public class ListHandler extends BaseHandlerStd {
                     proxyClient.client()::describeEventSubscriptions);
         } catch (Exception e) {
             return Commons.handleException(
-                    ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
+                    ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     e,
                     DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
             );

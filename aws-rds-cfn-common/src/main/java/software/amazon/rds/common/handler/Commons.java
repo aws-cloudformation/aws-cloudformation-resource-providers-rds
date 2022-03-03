@@ -3,6 +3,7 @@ package software.amazon.rds.common.handler;
 import java.util.function.Function;
 
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
@@ -30,6 +31,8 @@ public final class Commons {
                     ErrorCode.InvalidParameterCombination,
                     ErrorCode.InvalidParameterValue,
                     ErrorCode.MissingParameter)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
+                    KmsKeyNotAccessibleException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
                     SdkClientException.class)
             .build();
