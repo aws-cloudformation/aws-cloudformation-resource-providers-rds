@@ -280,10 +280,9 @@
       "description": "The amount of time, in days, to retain Performance Insights data. Valid values are 7 or 731 (2 years)."
     },
     "Port": {
-      "type": "integer",
+      "type": "string",
       "description": "The port number on which the database accepts connections.",
-      "minimum": 1150,
-      "maximum": 65535
+      "pattern": "^\\d*$"
     },
     "PreferredBackupWindow": {
       "type": "string",

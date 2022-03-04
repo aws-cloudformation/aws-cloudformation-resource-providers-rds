@@ -118,7 +118,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String OPTION_GROUP_NAME_MYSQL_DEFAULT = "default:mysql-5-6";
     protected static final String PERFORMANCE_INSIGHTS_KMS_ID_EMPTY = null;
     protected static final Integer PERFORMANCE_INSIGHTS_RETENTION_PERIOD_DEFAULT = 7;
-    protected static final Integer PORT_DEFAULT = 3306;
+    protected static final Integer PORT_DEFAULT_INT = 3306;
+    protected static final String PORT_DEFAULT_STR = PORT_DEFAULT_INT.toString();
     protected static final String PREFERRED_BACKUP_WINDOW_EMPTY = null;
     protected static final String PREFERRED_BACKUP_WINDOW_NON_EMPTY = "03:00–11:00";
     protected static final String PREFERRED_MAINTENANCE_WINDOW_NON_EMPTY = "03:00–11:00";
@@ -243,7 +244,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .iops(IOPS_DEFAULT)
                 .masterUsername(MASTER_USERNAME)
                 .masterUserPassword(MASTER_USER_PASSWORD)
-                .port(PORT_DEFAULT)
+                .port(PORT_DEFAULT_STR)
                 .build();
 
         RESOURCE_MODEL_ALTER = ResourceModel.builder()
@@ -282,7 +283,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                 .performanceInsightsKMSKeyId(PERFORMANCE_INSIGHTS_KMS_ID_EMPTY)
                 .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD_DEFAULT)
-                .port(PORT_DEFAULT)
+                .port(PORT_DEFAULT_STR)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
                 .processorFeatures(PROCESSOR_FEATURES)
@@ -334,7 +335,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                 .performanceInsightsKMSKeyId(PERFORMANCE_INSIGHTS_KMS_ID_EMPTY)
                 .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD_DEFAULT)
-                .port(PORT_DEFAULT)
+                .port(PORT_DEFAULT_STR)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
                 .processorFeatures(PROCESSOR_FEATURES)
@@ -386,7 +387,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                 .performanceInsightsKMSKeyId(PERFORMANCE_INSIGHTS_KMS_ID_EMPTY)
                 .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD_DEFAULT)
-                .port(PORT_DEFAULT)
+                .port(PORT_DEFAULT_STR)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
                 .processorFeatures(PROCESSOR_FEATURES)
@@ -407,7 +408,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .dbName(DB_NAME)
                 .dbInstanceArn(DB_INSTANCE_ARN_NON_EMPTY)
                 .engine(ENGINE_MYSQL)
-                .dbInstancePort(PORT_DEFAULT)
+                .dbInstancePort(PORT_DEFAULT_INT)
                 .dbInstanceStatus(DB_INSTANCE_STATUS_AVAILABLE)
                 .build();
 
@@ -422,7 +423,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .dbInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
                 .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER_EMPTY)
                 .dbInstanceArn(DB_INSTANCE_ARN_NON_EMPTY)
-                .dbInstancePort(PORT_DEFAULT)
+                .dbInstancePort(PORT_DEFAULT_INT)
                 .dbName(DB_NAME)
                 .dbInstanceClass(DB_INSTANCE_CLASS_DEFAULT)
                 .dbInstanceStatus(DB_INSTANCE_STATUS_AVAILABLE)
@@ -451,7 +452,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .dbInstancePort(null)
                 .endpoint(
                         Endpoint.builder()
-                                .port(PORT_DEFAULT)
+                                .port(PORT_DEFAULT_INT)
                                 .build()
                 )
                 .build();
@@ -499,7 +500,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                 .performanceInsightsKMSKeyId(PERFORMANCE_INSIGHTS_KMS_ID_EMPTY)
                 .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD_DEFAULT)
-                .port(PORT_DEFAULT)
+                .port(PORT_DEFAULT_STR)
                 .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
                 .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
                 .processorFeatures(PROCESSOR_FEATURES)
