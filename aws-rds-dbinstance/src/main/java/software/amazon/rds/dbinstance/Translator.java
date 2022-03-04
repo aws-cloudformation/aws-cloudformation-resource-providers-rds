@@ -62,6 +62,7 @@ public class Translator {
                 .build();
     }
 
+
     public static CreateDbInstanceReadReplicaRequest createDbInstanceReadReplicaRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
@@ -87,7 +88,7 @@ public class Translator {
                 .optionGroupName(model.getOptionGroupName())
                 .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
-                .port(model.getPort())
+                .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
@@ -122,7 +123,7 @@ public class Translator {
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .optionGroupName(model.getOptionGroupName())
-                .port(model.getPort())
+                .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .storageType(model.getStorageType())
@@ -180,7 +181,7 @@ public class Translator {
                 .optionGroupName(model.getOptionGroupName())
                 .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
-                .port(model.getPort())
+                .port(translatePortToSdk(model.getPort()))
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
                 .promotionTier(model.getPromotionTier())
@@ -211,7 +212,7 @@ public class Translator {
                 .dbInstanceClass(desiredModel.getDBInstanceClass())
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(desiredModel.getDBParameterGroupName())
-                .dbPortNumber(desiredModel.getPort())
+                .dbPortNumber(translatePortToSdk(desiredModel.getPort()))
                 .deletionProtection(desiredModel.getDeletionProtection())
                 .domain(desiredModel.getDomain())
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
@@ -416,7 +417,7 @@ public class Translator {
                 .multiAZ(dbInstance.multiAZ())
                 .performanceInsightsKMSKeyId(dbInstance.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbInstance.performanceInsightsRetentionPeriod())
-                .port(port)
+                .port(port == null ? null : port.toString())
                 .preferredBackupWindow(dbInstance.preferredBackupWindow())
                 .preferredMaintenanceWindow(dbInstance.preferredMaintenanceWindow())
                 .processorFeatures(translateProcessorFeaturesFromSdk(dbInstance.processorFeatures()))
@@ -546,6 +547,21 @@ public class Translator {
                         .roleArn(role.getRoleArn())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    public static Integer translatePortToSdk(final String portStr) {
+        if (StringUtils.isEmpty(portStr)) {
+            return null;
+        }
+        //NumberFormatException
+        return Integer.parseInt(portStr, 10);
+    }
+
+    public static String translatePortFromSdk(final Integer port) {
+        if (port == null) {
+            return null;
+        }
+        return port.toString();
     }
 
     private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {

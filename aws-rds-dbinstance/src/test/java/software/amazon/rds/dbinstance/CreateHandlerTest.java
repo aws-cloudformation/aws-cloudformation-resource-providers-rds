@@ -945,4 +945,26 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.InvalidRequest)
         );
     }
+
+    @Test
+    public void handleRequest_CreateDBInstance_EmptyPortString() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .port("")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbInstanceRequest> argument = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstance(argument.capture());
+        Assertions.assertThat(argument.getValue().port()).isNull();
+    }
 }
