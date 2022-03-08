@@ -28,6 +28,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 request.getDesiredResourceTags()
         );
         return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> resetAllParameters(progress, proxy, proxyClient))
                 .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
                 .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));

@@ -75,6 +75,13 @@ public class Translator {
                 .build();
     }
 
+    static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
+        return ResetDbClusterParameterGroupRequest.builder()
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
+                .resetAllParameters(true)
+                .build();
+    }
+
     static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptySet())
                 .stream()
