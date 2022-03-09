@@ -50,7 +50,7 @@ Resources:
                 - "rds:RebootDBInstance"
                 - "rds:RemoveRoleFromDBInstance"
                 - "rds:RemoveTagsFromResource"
-                - "rds:RestoreDBInstanceFromDbSnapshot"
+                - "rds:RestoreDBInstanceFromDBSnapshot"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:
