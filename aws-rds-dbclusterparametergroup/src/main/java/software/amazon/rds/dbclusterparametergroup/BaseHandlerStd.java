@@ -106,14 +106,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
         callbackContext.setParametersApplied(true);
 
-        Map<String, Parameter> defaultEngineClusterParameters = Maps.newHashMap();
         Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progressEvent -> describeDefaultEngineClusterParameters(progressEvent, defaultEngineClusterParameters, proxyClient))
-                .then(progressEvent -> validateModelParameters(progressEvent, defaultEngineClusterParameters))
                 .then(progressEvent -> describeCurrentDBClusterParameters(progressEvent, currentClusterParameters, proxy, proxyClient))
-                .then(progressEvent -> resetParameters(progressEvent, defaultEngineClusterParameters, currentClusterParameters, proxy, proxyClient))
+                .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient))
                 .then(progressEvent -> waitForDbClustersStabilization(progressEvent, proxy, proxyClient));
     }
@@ -237,44 +234,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 );
     }
 
-    private Map<String, Parameter> getParametersToReset(final Map<String, Object> modelParameters,
-                                                        final Map<String, Parameter> defaultEngineParameters,
-                                                        final Map<String, Parameter> currentParameters) {
-        return currentParameters.entrySet()
-                .stream()
-                .filter(entry -> {
-                    String parameterName = entry.getKey();
-                    String currentParameterValue = entry.getValue().parameterValue();
-                    String defaultParameterValue = defaultEngineParameters.get(parameterName).parameterValue();
-                    return modelParameters != null && currentParameterValue != null
-                            && !currentParameterValue.equals(defaultParameterValue)
-                            && !modelParameters.containsKey(parameterName);
-                })
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> resetParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                          final Map<String, Parameter> defaultEngineParameters,
-                                                                          final Map<String, Parameter> currentDBParameters,
-                                                                          final AmazonWebServicesClientProxy proxy,
-                                                                          final ProxyClient<RdsClient> proxyClient) {
-        ResourceModel model = progress.getResourceModel();
-        CallbackContext callbackContext = progress.getCallbackContext();
-        Map<String, Parameter> parametersToReset = getParametersToReset(model.getParameters(), defaultEngineParameters, currentDBParameters);
-        for (List<Parameter> paramsPartition : Iterables.partition(parametersToReset.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient);
-            if (progressEvent.isFailed()) return progressEvent;
-        }
-        return ProgressEvent.progress(model, callbackContext);
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> resetParameters(final AmazonWebServicesClientProxy proxy,
-                                                                          final ResourceModel model,
-                                                                          final CallbackContext callbackContext,
-                                                                          final List<Parameter> paramsPartition,
-                                                                          final ProxyClient<RdsClient> proxyClient) {
-        return proxy.initiate("rds::reset-db-cluster-parameter-group", proxyClient, model, callbackContext)
-                .translateToServiceRequest((resourceModel) -> Translator.resetDbClusterParameterGroupRequest(resourceModel, paramsPartition))
+    protected ProgressEvent<ResourceModel, CallbackContext> resetAllParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                             final AmazonWebServicesClientProxy proxy,
+                                                                             final ProxyClient<RdsClient> proxyClient) {
+        return proxy.initiate("rds::reset-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::resetDbClusterParameterGroupRequest)
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::resetDBClusterParameterGroup))
                 .handleError((resetDbClusterParameterGroupRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
@@ -295,7 +259,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model);
             if (progressEvent.isFailed()) return progressEvent;
         }
-        return ProgressEvent.defaultInProgressHandler(callbackContext, CALLBACK_DELAY_SECONDS, model);
+        return ProgressEvent.progress(model, callbackContext);
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> modifyParameters(final ProxyClient<RdsClient> proxyClient,
@@ -331,6 +295,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
                                 DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET))
-                .progress(STABILIZATION_CALLBACK_DELAY);
+                .progress();
     }
 }

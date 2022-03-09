@@ -36,6 +36,7 @@ import software.amazon.awssdk.services.rds.model.EngineDefaults;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClusterParametersIterable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -153,8 +154,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
 
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
-
-
+        verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 

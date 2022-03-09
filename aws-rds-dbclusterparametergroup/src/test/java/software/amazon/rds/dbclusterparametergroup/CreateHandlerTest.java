@@ -7,8 +7,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -21,13 +23,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersResponse;
 import software.amazon.awssdk.services.rds.model.EngineDefaults;
@@ -36,8 +42,10 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClusterParametersIterable;
+import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -141,6 +149,23 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         final ModifyDbClusterParameterGroupResponse modifyDbClusterParameterGroupResponse = ModifyDbClusterParameterGroupResponse.builder().build();
         when(rds.modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class))).thenReturn(modifyDbClusterParameterGroupResponse);
+        final DescribeDBClustersIterable describeDbClustersResponse = mock(DescribeDBClustersIterable.class);
+        when(describeDbClustersResponse.stream())
+                .thenReturn(Stream.<DescribeDbClustersResponse>builder()
+                        .add(DescribeDbClustersResponse.builder().dbClusters(DBCluster.builder().dbClusterParameterGroup("group").build()).build())
+                        .build()
+                );
+        when(rds.describeDBClustersPaginator(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn")
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+                .tagList(Tag.builder().key("key").value("value").build()).build();
+        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", true);
 
         RESOURCE_MODEL.setDBClusterParameterGroupName("sampleName");
@@ -153,16 +178,14 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
-        assertThat(response.getCallbackContext()).isNotNull();
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(300);
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class));
-
+        verify(proxyRdsClient.client()).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
     }
 
 
@@ -185,8 +208,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         }
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
-        verify(proxyRdsClient.client()).describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class));
-
+        verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
     }
 
     @Test
@@ -194,8 +216,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateHandler handler = new CreateHandler();
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
-        final DescribeEngineDefaultClusterParametersResponse describeEngineDefaultClusterParametersResponse = DescribeEngineDefaultClusterParametersResponse.builder().build();
-        when(rds.describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class))).thenReturn(describeEngineDefaultClusterParametersResponse);
+        mockDescribeDbClusterParametersResponse("static", "dynamic", true);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
@@ -203,6 +224,8 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .stackId(StackId)
                 .logicalResourceIdentifier("logicalId").build();
+        request.getDesiredResourceState().setParameters(Collections.singletonMap("Wrong Key", "Wrong value"));
+
         try {
             handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
         } catch (CfnInvalidRequestException e) {
@@ -210,7 +233,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         }
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
-        verify(proxyRdsClient.client()).describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
     }
 
     private void mockDescribeDbClusterParametersResponse(String firstParamApplyType,
@@ -228,14 +251,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .isModifiable(isModifiable)
                 .applyType(secondParamApplyType)
                 .build();
-
-        final DescribeEngineDefaultClusterParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultClusterParametersResponse.builder()
-                .engineDefaults(EngineDefaults.builder()
-                        .parameters(param1, param2)
-                        .build()
-                ).build();
-        when(proxyRdsClient.client().describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class)))
-                .thenReturn(describeEngineDefaultParametersResponse);
 
         if (!isModifiable)
             return;
