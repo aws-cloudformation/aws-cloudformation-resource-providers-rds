@@ -77,7 +77,7 @@
     "create": {
       "permissions": [
         "rds:CreateDBClusterParameterGroup",
-        "rds:DescribeDbClusterParameters",
+        "rds:DescribeDBClusterParameters",
         "rds:DescribeEngineDefaultClusterParameters",
         "rds:ModifyDBClusterParameterGroup"
       ]
@@ -90,8 +90,8 @@
     },
     "update": {
       "permissions": [
-        "rds:DescribeDbClusters",
-        "rds:DescribeDbClusterParameters",
+        "rds:DescribeDBClusters",
+        "rds:DescribeDBClusterParameters",
         "rds:DescribeEngineDefaultClusterParameters",
         "rds:ListTagsForResource",
         "rds:AddTagsToResource",
