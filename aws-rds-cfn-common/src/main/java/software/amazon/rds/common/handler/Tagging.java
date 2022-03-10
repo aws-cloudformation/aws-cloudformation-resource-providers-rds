@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.error.ErrorCode;
@@ -28,6 +29,11 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 
 public final class Tagging {
+    public static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    ErrorCode.AccessDenied,
+                    ErrorCode.AccessDeniedException)
+            .build();
 
     public static final ErrorRuleSet SOFT_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.ignore(),
@@ -177,7 +183,8 @@ public final class Tagging {
                 .build();
     }
 
-    private static AddTagsToResourceRequest addTagsToResourceRequest(final String arn, final Collection<Tag> tagsToAdd) {
+    private static AddTagsToResourceRequest addTagsToResourceRequest(final String arn,
+                                                                     final Collection<Tag> tagsToAdd) {
         return AddTagsToResourceRequest.builder()
                 .resourceName(arn)
                 .tags(tagsToAdd)
@@ -198,10 +205,19 @@ public final class Tagging {
             final TagSet tagsToAdd,
             final TagSet tagsToRemove
     ) {
+        return bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, SOFT_FAIL_TAG_ERROR_RULE_SET, HARD_FAIL_TAG_ERROR_RULE_SET);
+    }
+
+    public static ErrorRuleSet bestEffortErrorRuleSet(
+            final TagSet tagsToAdd,
+            final TagSet tagsToRemove,
+            final ErrorRuleSet softFailErrorRuleSet,
+            final ErrorRuleSet hardFailErrorRuleSet
+    ) {
         // Only soft fail if the customer provided no resource-level tags
         if (tagsToAdd.getResourceTags().isEmpty() && tagsToRemove.getResourceTags().isEmpty()) {
-            return SOFT_FAIL_TAG_ERROR_RULE_SET;
+            return softFailErrorRuleSet;
         }
-        return HARD_FAIL_TAG_ERROR_RULE_SET;
+        return hardFailErrorRuleSet;
     }
 }
