@@ -112,7 +112,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    SOFT_FAIL_NPROGRESS_TAGGING_ERROR_RULE_SET
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
+                            .orElse(DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET)
             );
         }
 
