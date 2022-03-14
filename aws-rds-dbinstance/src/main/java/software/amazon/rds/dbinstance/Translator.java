@@ -434,7 +434,7 @@ public class Translator {
     private static Endpoint translateEndpointFromSdk(software.amazon.awssdk.services.rds.model.Endpoint endpoint) {
         return Endpoint.builder()
                 .address(endpoint.address())
-                .port(endpoint.port())
+                .port(endpoint.port() == null ? null : endpoint.port().toString())
                 .hostedZoneId(endpoint.hostedZoneId())
                 .build();
     }

@@ -12,7 +12,7 @@
           "description": "Specifies the DNS address of the DB instance."
         },
         "Port": {
-          "type": "integer",
+          "type": "string",
           "description": "Specifies the port that the database engine is listening on."
         },
         "HostedZoneId": {
