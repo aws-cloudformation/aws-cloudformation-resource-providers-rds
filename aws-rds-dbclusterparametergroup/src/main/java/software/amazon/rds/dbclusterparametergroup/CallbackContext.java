@@ -11,4 +11,5 @@ public class CallbackContext extends StdCallbackContext {
     private boolean parametersApplied;
     private String marker;
     private boolean clusterStabilized;
+    private String dbClusterParameterGroupArn;
 }
