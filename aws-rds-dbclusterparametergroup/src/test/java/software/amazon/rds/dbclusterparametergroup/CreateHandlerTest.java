@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
@@ -117,6 +118,8 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
                 .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
@@ -131,7 +134,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
@@ -166,6 +168,9 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
                 .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
         mockDescribeDbClusterParametersResponse("static", "dynamic", true);
 
         RESOURCE_MODEL.setDBClusterParameterGroupName("sampleName");
@@ -194,7 +199,17 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateHandler handler = new CreateHandler();
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn")
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", false);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
                 .desiredResourceState(RESOURCE_MODEL)
@@ -209,6 +224,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
     }
 
     @Test
@@ -216,6 +232,15 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateHandler handler = new CreateHandler();
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn")
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", true);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

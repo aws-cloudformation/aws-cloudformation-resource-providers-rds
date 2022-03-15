@@ -1,5 +1,6 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.util.HashSet;
 import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -19,18 +20,23 @@ public class UpdateHandler extends BaseHandlerStd {
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
         final ResourceModel model = request.getDesiredResourceState();
-        final Map<String, String> previousTags = Tagging.mergeTags(
-                request.getPreviousSystemTags(),
-                request.getPreviousResourceTags()
-        );
-        final Map<String, String> desiredTags = Tagging.mergeTags(
-                request.getSystemTags(),
-                request.getDesiredResourceTags()
-        );
+
+        final Tagging.TagSet previousTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
+                .resourceTags(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags()))
+                .build();
+
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
+                .build();
+
         return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> resetAllParameters(progress, proxy, proxyClient))
                 .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
-                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 

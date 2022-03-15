@@ -1,11 +1,12 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
@@ -13,7 +14,6 @@ import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRe
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
@@ -22,7 +22,7 @@ import software.amazon.rds.common.handler.Tagging;
 public class Translator {
 
     static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(final ResourceModel model,
-                                                                                     final Map<String, String> tags) {
+                                                                                     final Tagging.TagSet tags) {
         return CreateDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbParameterGroupFamily(model.getFamily())
@@ -67,14 +67,6 @@ public class Translator {
                 .build();
     }
 
-    static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model,
-                                                                                   final Collection<Parameter> parameters) {
-        return ResetDbClusterParameterGroupRequest.builder()
-                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
-                .parameters(parameters)
-                .build();
-    }
-
     static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
         return ResetDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
@@ -83,22 +75,21 @@ public class Translator {
     }
 
     static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptySet())
-                .stream()
+        return streamOfOrEmpty(tags)
                 .map(tag -> software.amazon.rds.dbclusterparametergroup.Tag.builder()
                         .key(tag.key())
                         .value(tag.value()).build())
                 .collect(Collectors.toList());
     }
 
-    public static DescribeEngineDefaultClusterParametersRequest describeEngineDefaultClusterParametersRequest(final ResourceModel resourceModel,
-                                                                                                              String marker,
-                                                                                                              int maxRecords) {
-        return DescribeEngineDefaultClusterParametersRequest.builder()
-                .dbParameterGroupFamily(resourceModel.getFamily())
-                .marker(marker)
-                .maxRecords(maxRecords)
-                .build();
+    public static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
+        return streamOfOrEmpty(tags)
+                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key(tag.getKey())
+                        .value(tag.getValue())
+                        .build()
+                )
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static Parameter buildParameterWithNewValue(final String newValue,
@@ -112,5 +103,11 @@ public class Translator {
             param.applyMethod(ApplyMethod.IMMEDIATE).build();
 
         return param.build();
+    }
+
+    private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
+        return Optional.ofNullable(collection)
+                .map(Collection::stream)
+                .orElseGet(Stream::empty);
     }
 }
