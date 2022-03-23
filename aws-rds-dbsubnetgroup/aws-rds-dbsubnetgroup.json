@@ -8,7 +8,7 @@
     },
     "DBSubnetGroupName": {
       "type": "string",
-      "pattern": "^(?!default$)[a-zA-Z0-9-_\\s]{1,255}$"
+      "pattern": "^(?!default$)[a-zA-Z]{1}[a-zA-Z0-9-_\\.\\s]]{0,255}$"
     },
     "SubnetIds": {
       "type": "array",
