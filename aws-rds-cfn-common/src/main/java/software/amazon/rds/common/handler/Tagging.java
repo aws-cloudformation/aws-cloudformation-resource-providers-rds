@@ -93,12 +93,13 @@ public final class Tagging {
         return result;
     }
 
-    public static Set<Tag> translateTagsToSdk(final TagSet tagSet) {
-        final Set<Tag> allTags = new LinkedHashSet<>();
-        allTags.addAll(tagSet.getSystemTags());
-        allTags.addAll(tagSet.getStackTags());
-        allTags.addAll(tagSet.getResourceTags());
-        return allTags;
+    public static Collection<Tag> translateTagsToSdk(final TagSet tagSet) {
+        //For backward compatibility, We will resolve duplicates tags between stack level tags and resource tags.
+        final Map<String, Tag> allTags = new LinkedHashMap<>();
+        addToMapIfAbsent(allTags, tagSet.getResourceTags());
+        addToMapIfAbsent(allTags, tagSet.getStackTags());
+        addToMapIfAbsent(allTags, tagSet.getSystemTags());
+        return allTags.values();
     }
 
     public static Set<Tag> translateTagsToSdk(final Map<String, String> tags) {
@@ -219,5 +220,11 @@ public final class Tagging {
             return softFailErrorRuleSet;
         }
         return hardFailErrorRuleSet;
+    }
+
+    private static void addToMapIfAbsent(Map<String, Tag> allTags, Collection<Tag> tags){
+        for(Tag tag : tags) {
+            allTags.putIfAbsent(tag.key(), tag);
+        }
     }
 }
