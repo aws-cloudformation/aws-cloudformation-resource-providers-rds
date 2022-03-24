@@ -6,8 +6,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -168,11 +171,51 @@ public class TaggingTest extends ProxyClientTestBase {
                 .resourceTags(resourceTags)
                 .build();
 
-        final Set<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
+        final Collection<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
 
         assertThat(allTags.containsAll(systemTags)).isTrue();
         assertThat(allTags.containsAll(stackTags)).isTrue();
         assertThat(allTags.containsAll(resourceTags)).isTrue();
+    }
+
+    @Test
+    void test_translateTagsToSdk_duplicate_tags() {
+        String duplicateTagKey = "duplicate-tag-key";
+        String duplicateTagValue = "valid-value";
+        Tag systemTag1 = Tag.builder().key("system-tag-key-1").value("system-tag-value-1").build();
+        Tag systemTag2 = Tag.builder().key("system-tag-key-2").value("system-tag-value-2").build();
+
+        final Set<Tag> systemTags = new LinkedHashSet<>();
+        systemTags.add(systemTag1);
+        systemTags.add(systemTag2);
+
+        Tag stackLevelTag1 = Tag.builder().key("stack-tag-key-1").value("stack-tag-value-1").build();
+        Tag stackLevelTagDuplicate = Tag.builder().key(duplicateTagKey).value("wrong-value").build();
+        final Set<Tag> stackTags =  new LinkedHashSet<>();
+        stackTags.add(stackLevelTag1);
+        stackTags.add(stackLevelTagDuplicate);
+
+        Tag resourceTag1 = Tag.builder().key("resource-tag-key-1").value("resource-tag-value-1").build();
+        Tag resourceTagDuplicate = Tag.builder().key(duplicateTagKey).value(duplicateTagValue).build();
+        final Set<Tag> resourceTags = new LinkedHashSet<>();
+        resourceTags.add(resourceTag1);
+        resourceTags.add(resourceTagDuplicate);
+
+
+        final Tagging.TagSet tagSet = Tagging.TagSet.builder()
+                .systemTags(systemTags)
+                .stackTags(stackTags)
+                .resourceTags(resourceTags)
+                .build();
+
+        final Collection<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
+        assertThat(allTags.size()).isEqualTo(5);
+        assertThat(allTags.stream().map(Tag::key).collect(Collectors.toList()))
+                .isEqualTo(Arrays.asList(resourceTag1.key(),resourceTagDuplicate.key(), stackLevelTag1.key(), systemTag1.key(), systemTag2.key()));
+        assertThat(allTags.containsAll(systemTags)).isTrue();
+        assertThat(allTags.containsAll(resourceTags)).isTrue();
+        assertThat(allTags.contains(stackLevelTag1)).isTrue();
+        assertThat(allTags.stream().filter(t -> t.key().equals(duplicateTagKey)).findFirst().get().value()).isEqualTo(duplicateTagValue);
     }
 
     @Test
