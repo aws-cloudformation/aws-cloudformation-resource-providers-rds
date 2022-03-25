@@ -284,12 +284,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private Map<String, Parameter> getParametersToReset(final ResourceModel model,
                                                         final Map<String, Parameter> defaultEngineParameters,
                                                         final Map<String, Parameter> currentParameters) {
-        return currentParameters.entrySet()
+        return defaultEngineParameters.entrySet()
                 .stream()
                 .filter(entry -> {
                     String parameterName = entry.getKey();
-                    String currentParameterValue = entry.getValue().parameterValue();
-                    String defaultParameterValue = defaultEngineParameters.get(parameterName).parameterValue();
+                    String defaultParameterValue = entry.getValue().parameterValue();
+                    String currentParameterValue = currentParameters.get(parameterName).parameterValue();
                     Map<String, Object> parametersToModify = model.getParameters();
                     return parametersToModify != null && currentParameterValue != null
                             && !currentParameterValue.equals(defaultParameterValue)
