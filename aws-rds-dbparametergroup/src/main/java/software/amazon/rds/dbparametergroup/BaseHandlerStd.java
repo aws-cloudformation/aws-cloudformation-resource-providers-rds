@@ -284,7 +284,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private Map<String, Parameter> getParametersToReset(final ResourceModel model,
                                                         final Map<String, Parameter> defaultEngineParameters,
                                                         final Map<String, Parameter> currentParameters) {
-        return defaultEngineParameters.entrySet()
+        Map<String, Parameter> defaultParametersToReset = Maps.newLinkedHashMap(defaultEngineParameters);
+        defaultParametersToReset.keySet().retainAll(currentParameters.keySet());
+        return defaultParametersToReset.entrySet()
                 .stream()
                 .filter(entry -> {
                     String parameterName = entry.getKey();

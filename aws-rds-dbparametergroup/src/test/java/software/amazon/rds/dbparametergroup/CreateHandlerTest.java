@@ -263,12 +263,19 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .isModifiable(isModifiable)
                 .applyType(secondParamApplyType)
                 .build();
+        //Adding parameter to default parameters and not adding it to current. Expected behaviour is to ignore it
+        Parameter param4 = Parameter.builder()
+                .parameterName("param4")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
 
 
         DescribeEngineDefaultParametersIterable describeEngineDefaultParametersResponses = mock(DescribeEngineDefaultParametersIterable.class);
         final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
                 .engineDefaults(EngineDefaults.builder()
-                        .parameters(param1, param2)
+                        .parameters(param1, param2, param4)
                         .build()
                 ).build();
         when(describeEngineDefaultParametersResponses.stream())
