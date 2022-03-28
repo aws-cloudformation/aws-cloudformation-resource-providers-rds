@@ -97,7 +97,6 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> ensureEngineSet(rdsProxyClient, progress))
                 .then(progress -> Commons.execOnce(progress, () ->
                                 updateDbInstance(proxy, request, rdsProxyClient, progress),
                         CallbackContext::isUpdated, CallbackContext::setUpdated)
