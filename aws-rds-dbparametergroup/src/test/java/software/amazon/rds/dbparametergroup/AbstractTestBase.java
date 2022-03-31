@@ -31,11 +31,13 @@ public class AbstractTestBase {
     protected static final LoggerProxy logger;
 
     protected static final ResourceModel RESOURCE_MODEL;
+    protected static final ResourceModel RESET_RESOURCE_MODEL;
     protected static final ResourceModel RESOURCE_MODEL_WITH_TAGS;
     protected static final DBParameterGroup DB_PARAMETER_GROUP_ACTIVE;
     protected static final Set<Tag> TAG_SET;
     protected static final String LOGICAL_RESOURCE_IDENTIFIER;
     protected static final Map<String, Object> PARAMS;
+    protected static final Map<String, Object> RESET_PARAMS;
     protected static final RequestLogger EMPTY_REQUEST_LOGGER;
 
 
@@ -50,12 +52,23 @@ public class AbstractTestBase {
         PARAMS.put("param1", "value");
         PARAMS.put("param2", "value");
 
+        RESET_PARAMS = new HashMap<>(PARAMS);
+        RESET_PARAMS.remove("param1");
+
         RESOURCE_MODEL = ResourceModel.builder()
                 .dBParameterGroupName("testDBParameterGroup")
                 .description("test DB Parameter group description")
                 .family("testFamily")
                 .tags(Collections.emptyList())
                 .parameters(PARAMS)
+                .build();
+
+        RESET_RESOURCE_MODEL = ResourceModel.builder()
+                .dBParameterGroupName("testDBParameterGroup")
+                .description("test DB Parameter group description")
+                .family("testFamily")
+                .tags(Collections.emptyList())
+                .parameters(RESET_PARAMS)
                 .build();
 
         RESOURCE_MODEL_WITH_TAGS = ResourceModel.builder()
