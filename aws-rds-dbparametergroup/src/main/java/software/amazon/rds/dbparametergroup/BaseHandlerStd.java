@@ -273,10 +273,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         if (!invalidParameters.isEmpty()) {
             requestLogger.log("InvalidParameters", invalidParameters);
-            return ProgressEvent.defaultFailureHandler(
-                    new CfnInvalidRequestException("Invalid / unmodifiable / Unsupported DB Parameter: " + invalidParameters.stream().findFirst().get()),
-                    HandlerErrorCode.InvalidRequest
-            );
+            return ProgressEvent.failed(
+                    progress.getResourceModel(),
+                    progress.getCallbackContext(),
+                    HandlerErrorCode.InvalidRequest,
+                    "Invalid / Unmodifiable / Unsupported DB Parameter: " + invalidParameters.stream().findFirst().get());
         }
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext());
     }
