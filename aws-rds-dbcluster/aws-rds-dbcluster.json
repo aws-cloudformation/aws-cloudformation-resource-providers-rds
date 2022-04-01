@@ -209,9 +209,17 @@
     {
       "oneOf": [
         {
-          "required": [
-            "MasterUserPassword",
-            "MasterUsername"
+          "anyOf": [
+            {
+              "required": [
+                "MasterUserPassword"
+              ]
+            },
+            {
+              "required": [
+                "MasterUsername"
+              ]
+            }
           ]
         },
         {
@@ -223,43 +231,10 @@
           "required": [
             "SourceDBClusterIdentifier"
           ]
-        }
-      ]
-    },
-    {
-      "oneOf": [
-        {
-          "required": [
-            "MasterUsername"
-          ]
         },
         {
           "required": [
-            "SnapshotIdentifier"
-          ]
-        },
-        {
-          "required": [
-            "SourceDBClusterIdentifier"
-          ]
-        }
-      ]
-    },
-    {
-      "oneOf": [
-        {
-          "required": [
-            "MasterUserPassword"
-          ]
-        },
-        {
-          "required": [
-            "SnapshotIdentifier"
-          ]
-        },
-        {
-          "required": [
-            "SourceDBClusterIdentifier"
+            "GlobalClusterIdentifier"
           ]
         }
       ]
