@@ -14,4 +14,8 @@ public enum ParameterType {
     public String toString() {
         return value;
     }
+
+    public boolean equalsIgnoreCase(String type) {
+        return value.equalsIgnoreCase(type);
+    }
 }

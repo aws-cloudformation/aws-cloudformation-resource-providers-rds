@@ -17,6 +17,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,6 +41,7 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBParametersIterable;
 import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
@@ -51,6 +54,9 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
+
+    @Captor
+    ArgumentCaptor<ResetDbParameterGroupRequest> captor;
 
     @Mock
     private AmazonWebServicesClientProxy proxy;
@@ -134,7 +140,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
-                .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceState(RESET_RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
 
@@ -147,6 +153,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(rdsClient).describeDBParametersPaginator(any(DescribeDbParametersRequest.class));
+        verify(rdsClient).resetDBParameterGroup(captor.capture());
+        assertThat(captor.getValue().parameters().get(0).applyMethod().toString().equals("pending-reboot")).isTrue();
         verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
     }
 
@@ -249,6 +257,11 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .parameterValue("system_value")
                 .isModifiable(isModifiable)
                 .applyType(firstParamApplyType)
+                .applyMethod("pending-reboot")
+                .build();
+        Parameter defaultParam1 = param1.toBuilder()
+                .parameterValue("default_value")
+                .applyMethod("")
                 .build();
         Parameter param2 = Parameter.builder()
                 .parameterName("param2")
@@ -275,7 +288,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         DescribeEngineDefaultParametersIterable describeEngineDefaultParametersResponses = mock(DescribeEngineDefaultParametersIterable.class);
         final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
                 .engineDefaults(EngineDefaults.builder()
-                        .parameters(param1, param2, param4)
+                        .parameters(defaultParam1, param2, param4)
                         .build()
                 ).build();
         when(describeEngineDefaultParametersResponses.stream())
