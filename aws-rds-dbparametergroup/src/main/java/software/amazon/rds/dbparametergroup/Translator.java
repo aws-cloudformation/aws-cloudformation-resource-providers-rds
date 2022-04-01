@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.amazonaws.util.CollectionUtils;
@@ -75,7 +74,9 @@ public class Translator {
     ) {
         return ResetDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
-                .parameters(parameters)
+                .parameters(parameters.stream()
+                        .map(p -> p.toBuilder().applyMethod(getParameterApplyMethod(p)).build())
+                        .collect(Collectors.toList()))
                 .build();
     }
 
@@ -90,16 +91,10 @@ public class Translator {
             final Parameter parameter
     ) {
         final Parameter.Builder param = parameter.toBuilder()
-                .parameterValue(newValue);
-
-        if (parameter.applyType().equalsIgnoreCase(ParameterType.Static.toString()))  // If the parameter is STATIC, flag for pending reboot
-            param.applyMethod(ApplyMethod.PENDING_REBOOT);
-        else if (parameter.applyType().equalsIgnoreCase(ParameterType.Dynamic.toString()))   // If the parameter is DYNAMIC, we can apply now
-            param.applyMethod(ApplyMethod.IMMEDIATE).build();
-
+                .parameterValue(newValue)
+                .applyMethod(getParameterApplyMethod(parameter));
         return param.build();
     }
-
 
     static Map<String, String> translateTagsFromSdk(Collection<Tag> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptyList())
@@ -134,5 +129,12 @@ public class Translator {
                         .value(tag.value())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    private static ApplyMethod getParameterApplyMethod(final Parameter parameter) {
+        if (ParameterType.Dynamic.equalsIgnoreCase(parameter.applyType())) {
+            return ApplyMethod.IMMEDIATE;
+        }
+        return ApplyMethod.PENDING_REBOOT;
     }
 }
