@@ -108,7 +108,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).modifyEventSubscription(any(ModifyEventSubscriptionRequest.class));
-        verify(proxyRdsClient.client(), times(4)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
+        verify(proxyRdsClient.client(), times(3)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
         verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 

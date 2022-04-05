@@ -1,8 +1,11 @@
 package software.amazon.rds.eventsubscription;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,7 +22,7 @@ import software.amazon.rds.common.handler.Tagging;
 public class Translator {
     static CreateEventSubscriptionRequest createEventSubscriptionRequest(
             final ResourceModel model,
-            final Map<String, String> tags
+            final Tagging.TagSet tags
     ) {
         return CreateEventSubscriptionRequest.builder()
                 .subscriptionName(model.getSubscriptionName())
@@ -80,19 +83,31 @@ public class Translator {
                 .build();
     }
 
-    static ResourceModel translateToModel(
-            final String subscriptionName,
-            final EventSubscription eventSubscription,
-            final Set<software.amazon.awssdk.services.rds.model.Tag> rdsTags
-    ) {
-        List<Tag> tags = CollectionUtils.isNullOrEmpty(rdsTags) ? null
+    public static List<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptyList())
+                .stream()
+                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key(tag.getKey())
+                        .value(tag.getValue())
+                        .build()
+                )
+                .collect(Collectors.toList());
+    }
+
+    static List<Tag> translateTags(final Collection<software.amazon.awssdk.services.rds.model.Tag> rdsTags) {
+        return CollectionUtils.isNullOrEmpty(rdsTags) ? null
                 : rdsTags.stream()
                 .map(tag -> Tag.builder()
                         .key(tag.key())
                         .value(tag.value())
                         .build())
                 .collect(Collectors.toList());
+    }
 
+    static ResourceModel translateToModel(
+            final String subscriptionName,
+            final EventSubscription eventSubscription
+    ) {
         return ResourceModel.builder()
                 .enabled(eventSubscription.enabled())
                 .eventCategories(eventSubscription.eventCategoriesList())
@@ -100,7 +115,6 @@ public class Translator {
                 .snsTopicArn(eventSubscription.snsTopicArn())
                 .sourceType(eventSubscription.sourceType())
                 .sourceIds(new HashSet<>(eventSubscription.sourceIdsList()))
-                .tags(tags)
                 .build();
     }
 }
