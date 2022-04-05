@@ -1,10 +1,11 @@
 package software.amazon.rds.eventsubscription;
 
 
-import java.util.List;
+import java.util.Set;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.EventSubscription;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -29,30 +30,16 @@ public class ReadHandler extends BaseHandlerStd {
                         exception,
                         DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
                 .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, model, context) -> {
-                    final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
-                    context.setEventSubscriptionArn(eventSubscription.eventSubscriptionArn());
-                    return ProgressEvent.progress(Translator.translateToModel(model.getSubscriptionName(), eventSubscription), context);
-                })
-                .then(progress -> readTags(proxyClient, progress));
+                    try {
+                        final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
+                        Set<Tag> tags = Tagging.listTagsForResource(proxyInvocation, eventSubscription.eventSubscriptionArn());
+                        return ProgressEvent.success(Translator.translateToModel(model.getSubscriptionName(), eventSubscription, tags), context);
+                    } catch (Exception exception) {
+                        return Commons.handleException(
+                                ProgressEvent.progress(model, context),
+                                exception,
+                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET);
+                    }
+                });
     }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> readTags(
-            final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        ResourceModel model = progress.getResourceModel();
-        CallbackContext context = progress.getCallbackContext();
-        try {
-            String arn = progress.getCallbackContext().getEventSubscriptionArn();
-            List<software.amazon.rds.eventsubscription.Tag> resourceTags = Translator.translateTags(Tagging.listTagsForResource(proxyClient, arn));
-            model.setTags(resourceTags);
-        } catch (Exception exception) {
-            return Commons.handleException(
-                    ProgressEvent.progress(model, context),
-                    exception,
-                    Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET.orElse(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET)
-            );
-        }
-        return ProgressEvent.success(model, context);
-    }
-
 }

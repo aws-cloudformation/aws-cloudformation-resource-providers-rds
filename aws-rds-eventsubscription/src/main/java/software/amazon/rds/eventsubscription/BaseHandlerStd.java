@@ -1,5 +1,6 @@
 package software.amazon.rds.eventsubscription;
 
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -88,59 +89,26 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .stabilize((resourceModel, response, proxyInvocation, model, callbackContext) -> isStabilized(resourceModel, proxyInvocation)).progress();
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
+    protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
             final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet previousTags,
-            final Tagging.TagSet desiredTags) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
-
-        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
-            return progress;
-        }
-
-        String arn = progress.getCallbackContext().getEventSubscriptionArn();
-        if (arn == null) {
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = fetchEventSubscriptionArn(proxy, rdsProxyClient, progress);
-            if (progressEvent.isFailed()) {
-                return progressEvent;
-            }
-            arn = progressEvent.getCallbackContext().getEventSubscriptionArn();
-        }
-
-        try {
-            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
-            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
-        } catch (Exception exception) {
-            return Commons.handleException(
-                    progress,
-                    exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
-                            .orElse(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET)
-            );
-        }
-
-        return progress;
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> fetchEventSubscriptionArn(final AmazonWebServicesClientProxy proxy,
-                                                                                      final ProxyClient<RdsClient> proxyClient,
-                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return proxy.initiate("rds::read-db-parameter-group-arn", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+            final Map<String, String> previousTags,
+            final Map<String, String> desiredTags) {
+        return proxy.initiate("rds::tag-event-subscription", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeEventSubscriptionsRequest)
                 .makeServiceCall((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
-                        ))
                 .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, resourceModel, context) -> {
                     final String arn = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get().eventSubscriptionArn();
-                    context.setEventSubscriptionArn(arn);
-                    return ProgressEvent.progress(resourceModel, context);
+                    return Tagging.updateTags(
+                            proxyInvocation,
+                            ProgressEvent.progress(resourceModel, context),
+                            arn,
+                            previousTags,
+                            desiredTags,
+                            DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
+                    );
                 });
     }
+
 }
