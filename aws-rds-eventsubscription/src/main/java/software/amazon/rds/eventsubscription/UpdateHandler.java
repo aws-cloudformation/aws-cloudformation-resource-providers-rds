@@ -1,7 +1,7 @@
 package software.amazon.rds.eventsubscription;
 
 import java.util.Collections;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,15 +28,32 @@ public class UpdateHandler extends BaseHandlerStd {
         final Set<String> desiredSourceIds = Optional.ofNullable(desiredModel.getSourceIds()).orElse(Collections.emptySet());
         final Set<String> previousSourceIds = Optional.ofNullable(previousModel.getSourceIds()).orElse(Collections.emptySet());
 
-        final Map<String, String> previousTags = Tagging.mergeTags(
-                request.getPreviousSystemTags(),
-                request.getPreviousResourceTags()
-        );
-        final Map<String, String> desiredTags = Tagging.mergeTags(
-                request.getSystemTags(),
-                request.getDesiredResourceTags()
-        );
+        final Tagging.TagSet previousTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags())))
+                .build();
 
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                .build();
+
+        return ProgressEvent.progress(desiredModel, callbackContext)
+                .then(progress -> updateEventSubscription(proxy, callbackContext, proxyClient, desiredModel))
+                .then(progress -> addSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))
+                .then(progress -> removeSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))
+                .then(progress -> waitForEventSubscription(proxy, proxyClient, progress))
+                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> updateEventSubscription(final AmazonWebServicesClientProxy proxy,
+                                                                                  final CallbackContext callbackContext,
+                                                                                  final ProxyClient<RdsClient> proxyClient,
+                                                                                  final ResourceModel desiredModel
+    ) {
         return proxy.initiate("rds::update-event-subscription", proxyClient, desiredModel, callbackContext)
                 .translateToServiceRequest(Translator::modifyEventSubscriptionRequest)
                 .makeServiceCall((modifyEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyEventSubscriptionRequest, proxyInvocation.client()::modifyEventSubscription))
@@ -46,12 +63,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
-                .progress()
-                .then(progress -> addSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))
-                .then(progress -> removeSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))
-                .then(progress -> waitForEventSubscription(proxy, proxyClient, progress))
-                .then(progress -> tagResource(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .progress();
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> removeSourceIds(
@@ -62,20 +74,21 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         final Set<String> sourceIdsToRemove = Sets.difference(previousSourceIds, desiredSourceIds);
-        return sourceIdsToRemove.stream().map(sourceId -> proxy
-                .initiate("rds::remove-source-id-event-subscription",
-                        proxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext())
-                .translateToServiceRequest((resourceModel) -> Translator.removeSourceIdentifierFromSubscriptionRequest(resourceModel, sourceId))
-                .makeServiceCall((removeSourceIdentifierFromSubscriptionRequest, proxyCall) -> proxyCall.injectCredentialsAndInvokeV2(
-                        removeSourceIdentifierFromSubscriptionRequest,
-                        proxyCall.client()::removeSourceIdentifierFromSubscription))
-                .handleError((removeSourceIdentifierFromSubscriptionRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, ctx),
-                        exception,
-                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
-                .progress())
+        return sourceIdsToRemove.stream()
+                .map(sourceId -> proxy
+                        .initiate("rds::remove-source-id-event-subscription",
+                                proxyClient,
+                                progress.getResourceModel(),
+                                progress.getCallbackContext())
+                        .translateToServiceRequest((resourceModel) -> Translator.removeSourceIdentifierFromSubscriptionRequest(resourceModel, sourceId))
+                        .makeServiceCall((removeSourceIdentifierFromSubscriptionRequest, proxyCall) -> proxyCall.injectCredentialsAndInvokeV2(
+                                removeSourceIdentifierFromSubscriptionRequest,
+                                proxyCall.client()::removeSourceIdentifierFromSubscription))
+                        .handleError((removeSourceIdentifierFromSubscriptionRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                                ProgressEvent.progress(resourceModel, ctx),
+                                exception,
+                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                        .progress())
                 .filter(ProgressEvent::isFailed)
                 .findFirst()
                 .orElse(progress);
