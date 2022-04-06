@@ -17,6 +17,6 @@ public class HandlerConfig {
     @Builder.Default
     final private Constant backoff = Constant.of()
             .delay(Duration.ofSeconds(30))
-            .timeout(Duration.ofMinutes(60))
+            .timeout(Duration.ofMinutes(90))
             .build();
 }
