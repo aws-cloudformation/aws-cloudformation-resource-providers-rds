@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.time.Duration;
 
@@ -20,6 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRequest;
@@ -46,7 +49,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        rds = mock(RdsClient.class);
+        rds = mock(RdsClient.class, withSettings().verboseLogging());
         proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
@@ -127,6 +130,9 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyRdsClient.client().listTagsForResource(any(
                 ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
 
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
         final ResourceModel model = ResourceModel.builder().subscriptionName("subscriptionName")
                 .build();
 
@@ -147,7 +153,8 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createEventSubscription(any(CreateEventSubscriptionRequest.class));
-        verify(proxyRdsClient.client(), times(2)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
+        verify(proxyRdsClient.client(), times(3)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 }
