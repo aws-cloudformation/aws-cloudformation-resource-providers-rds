@@ -41,7 +41,6 @@ public class UpdateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
-                .then(progress -> fetchDBParameterGroupArn(proxy, proxyClient, progress))
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags, requestLogger))
                 .then(progress -> applyParameters(proxy, proxyClient, progress, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));

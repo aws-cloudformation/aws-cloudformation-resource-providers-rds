@@ -71,6 +71,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                              final ResourceHandlerRequest<ResourceModel> request,
                                                                              final CallbackContext callbackContext,
                                                                              final Logger logger) {
+        callbackContext.setDbParameterGroupArn(Translator.buildParameterGroupArn(request).toString());
         return RequestLogger.handleRequest(
                 logger,
                 request,
@@ -96,16 +97,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return progress;
         }
 
-        String arn = progress.getCallbackContext().getDbParameterGroupArn();
-        if (arn == null) {
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = fetchDBParameterGroupArn(proxy, rdsProxyClient, progress);
-            if (progressEvent.isFailed()) {
-                return progressEvent;
-            }
-            arn = progressEvent.getCallbackContext().getDbParameterGroupArn();
-        }
-
         try {
+            String arn = progress.getCallbackContext().getDbParameterGroupArn();
             Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
             Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
         } catch (Exception exception) {
@@ -118,26 +111,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> fetchDBParameterGroupArn(final AmazonWebServicesClientProxy proxy,
-                                                                                     final ProxyClient<RdsClient> proxyClient,
-                                                                                     final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return proxy.initiate("rds::read-db-parameter-group-arn", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((describeDbParameterGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest, proxyInvocation.client()::describeDBParameterGroups))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
-                        ))
-                .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, invocation, resourceModel, context) -> {
-                    final String arn = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get().dbParameterGroupArn();
-                    context.setDbParameterGroupArn(arn);
-                    return ProgressEvent.progress(resourceModel, context);
-                });
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,

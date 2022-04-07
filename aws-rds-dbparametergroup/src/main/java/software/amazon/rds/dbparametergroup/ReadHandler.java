@@ -38,7 +38,7 @@ public class ReadHandler extends BaseHandlerStd {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                                SOFT_FAIL_NPROGRESS_TAGGING_ERROR_RULE_SET
                         ))
                 .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, model, context) -> {
                     try {
