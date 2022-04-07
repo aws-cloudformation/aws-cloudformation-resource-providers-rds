@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -232,9 +233,63 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        assertThat(response.getMessage()).isNull();
-
-        verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
+        assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
+    }
+
+    @Test
+    public void handleRequest_NoFinalSnapshotForClusterInstance() {
+        final DeleteDbInstanceResponse deleteDbInstanceResponse = DeleteDbInstanceResponse.builder().build();
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenReturn(deleteDbInstanceResponse);
+
+        final String dbClusterIdentifier = randomString(64, ALPHA);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().snapshotRequested(true),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                null,
+                () -> RESOURCE_MODEL_BLDR().dBClusterIdentifier(dbClusterIdentifier).build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
+        assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
+    }
+
+    @Test
+    public void handleRequest_NoFinalSnapshotForReadReplica() {
+        final DeleteDbInstanceResponse deleteDbInstanceResponse = DeleteDbInstanceResponse.builder().build();
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenReturn(deleteDbInstanceResponse);
+
+        final String sourceDBInstanceIdentifier = randomString(64, ALPHA);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().snapshotRequested(true),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                null,
+                () -> RESOURCE_MODEL_BLDR().sourceDBInstanceIdentifier(sourceDBInstanceIdentifier).build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
+        assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
     }
 }

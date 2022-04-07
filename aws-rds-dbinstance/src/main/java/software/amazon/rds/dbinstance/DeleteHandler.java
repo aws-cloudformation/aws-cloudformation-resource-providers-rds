@@ -35,10 +35,14 @@ public class DeleteHandler extends BaseHandlerStd {
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
+        final ResourceModel resourceModel = request.getDesiredResourceState();
         String snapshotIdentifier = null;
         // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
         // For AWS::RDS::DBInstance resources that don't specify the DBClusterIdentifier property, the default policy is Snapshot.
-        if (BooleanUtils.isTrue(request.getSnapshotRequested())) {
+        // Final snapshots are not allowed for read replicas and cluster instances.
+        if (BooleanUtils.isTrue(request.getSnapshotRequested()) &&
+                !isReadReplica(resourceModel) &&
+                !isDBClusterMember(resourceModel)) {
             snapshotIdentifier = generateResourceIdentifier(
                     Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
                     SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
@@ -48,7 +52,7 @@ public class DeleteHandler extends BaseHandlerStd {
         }
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
-        return proxy.initiate("rds::delete-db-instance", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
+        return proxy.initiate("rds::delete-db-instance", rdsProxyClient, resourceModel, callbackContext)
                 .translateToServiceRequest(model -> Translator.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
