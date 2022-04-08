@@ -190,7 +190,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     Parameter defaultParameter = defaultEngineParameters.get(parameterName);
                     if (!defaultEngineParameters.containsKey(parameterName)) return true;
                     //Parameter is not modifiable and input model contains different value from default value
-                    return !defaultParameter.isModifiable() && !defaultParameter.parameterValue().equals(newParameterValue);
+                    return newParameterValue != null && !defaultParameter.isModifiable()
+                            && !newParameterValue.equals(defaultParameter.parameterValue());
                 })
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
