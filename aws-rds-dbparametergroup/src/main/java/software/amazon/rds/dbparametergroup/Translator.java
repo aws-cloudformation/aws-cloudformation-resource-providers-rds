@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.amazonaws.arn.Arn;
 import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
@@ -18,9 +19,13 @@ import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParameters
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
+
+    public static final String RDS = "rds";
+    public static final String RESOURCE_PREFIX = "pg:";
 
     static CreateDbParameterGroupRequest createDbParameterGroupRequest(
             final ResourceModel model,
@@ -129,6 +134,17 @@ public class Translator {
                         .value(tag.value())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    static Arn buildParameterGroupArn(final ResourceHandlerRequest<ResourceModel> request) {
+        String resource = RESOURCE_PREFIX + request.getDesiredResourceState().getDBParameterGroupName();
+        return Arn.builder()
+                .withPartition(request.getAwsPartition())
+                .withRegion(request.getRegion())
+                .withService(RDS)
+                .withAccountId(request.getAwsAccountId())
+                .withResource(resource)
+                .build();
     }
 
     private static ApplyMethod getParameterApplyMethod(final Parameter parameter) {
