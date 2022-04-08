@@ -66,6 +66,10 @@
   "primaryIdentifier": [
     "/properties/DBParameterGroupName"
   ],
+  "createOnlyProperties": [
+    "/properties/Description",
+    "/properties/Family"
+  ],
   "writeOnlyProperties": [
     "/properties/Parameters"
   ],
