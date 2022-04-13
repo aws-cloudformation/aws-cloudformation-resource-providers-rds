@@ -71,14 +71,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                              final ResourceHandlerRequest<ResourceModel> request,
                                                                              final CallbackContext callbackContext,
                                                                              final Logger logger) {
-        callbackContext.setDbParameterGroupArn(Translator.buildParameterGroupArn(request).toString());
+        final CallbackContext context = callbackContext != null ? callbackContext : new CallbackContext();
+        context.setDbParameterGroupArn(Translator.buildParameterGroupArn(request).toString());
         return RequestLogger.handleRequest(
                 logger,
                 request,
                 PARAMETERS_FILTER,
                 requestLogger -> handleRequest(proxy,
                         request,
-                        callbackContext != null ? callbackContext : new CallbackContext(),
+                        context,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(ClientBuilder::getClient)),
                         requestLogger));
     }
