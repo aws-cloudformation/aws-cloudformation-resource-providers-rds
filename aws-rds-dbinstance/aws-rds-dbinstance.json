@@ -324,11 +324,6 @@
     },
     "StorageType": {
       "type": "string",
-      "enum": [
-        "standard",
-        "gp2",
-        "io1"
-      ],
       "description": "Specifies the storage type to be associated with the DB instance."
     },
     "Tags": {
