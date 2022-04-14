@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
@@ -69,8 +70,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleSuccess() {
 
-        final ModifyDbSubnetGroupResponse modifyDbSubnetGroupResponse = ModifyDbSubnetGroupResponse.builder().build();
-        when(proxyRdsClient.client().modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class))).thenReturn(modifyDbSubnetGroupResponse);
+        mockModifyCall();
 
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
@@ -83,21 +83,26 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .previousResourceState(ResourceModel.builder().build())
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class));
-        verify(proxyRdsClient.client(), times(3)).describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class));
         verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    private void mockModifyCall() {
+        final ModifyDbSubnetGroupResponse modifyDbSubnetGroupResponse = ModifyDbSubnetGroupResponse.builder().dbSubnetGroup(DBSubnetGroup.builder().dbSubnetGroupArn("arn").build()).build();
+        when(proxyRdsClient.client().modifyDBSubnetGroup(any(ModifyDbSubnetGroupRequest.class))).thenReturn(modifyDbSubnetGroupResponse);
     }
 
     @Test
@@ -108,6 +113,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL_ALTERNATIVE)
+                .previousResourceState(ResourceModel.builder().build())
                 .logicalResourceIdentifier("dbsubnet")
                 .clientRequestToken("4b90a7e4-b791-4512-a137-0cf12a23451e")
                 .build();
@@ -133,6 +139,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
+                .previousResourceState(ResourceModel.builder().build())
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 

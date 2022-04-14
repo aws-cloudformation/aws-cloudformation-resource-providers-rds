@@ -7,8 +7,18 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class DeleteHandler extends BaseHandlerStd {
+
+    public DeleteHandler() {
+        this(HandlerConfig.builder().build());
+    }
+
+    public DeleteHandler(final HandlerConfig config) {
+        super(config);
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -17,7 +27,7 @@ public class DeleteHandler extends BaseHandlerStd {
             final Logger logger) {
         return proxy.initiate("rds::delete-dbsubnet-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbSubnetGroupRequest)
-                .backoffDelay(CONSTANT)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((deleteDbSubnetGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteDbSubnetGroupRequest, proxyInvocation.client()::deleteDBSubnetGroup))
                 .stabilize((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, proxyInvocation, resourceModel, context) -> isDeleted(resourceModel, proxyInvocation))
                 .handleError((deleteDbSubnetGroupRequest, exception, client, resourceModel, cxt) -> Commons.handleException(

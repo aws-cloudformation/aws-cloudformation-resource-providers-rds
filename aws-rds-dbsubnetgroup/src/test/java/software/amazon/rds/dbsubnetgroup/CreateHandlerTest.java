@@ -21,8 +21,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupResponse;
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
@@ -65,12 +68,12 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-
-        final CreateDbSubnetGroupResponse createDbSubnetGroupResponse = CreateDbSubnetGroupResponse.builder().build();
-        when(proxyRdsClient.client().createDBSubnetGroup(any(CreateDbSubnetGroupRequest.class))).thenReturn(createDbSubnetGroupResponse);
-
+        mockCreateCall();
         final DescribeDbSubnetGroupsResponse describeCreatingDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_CREATING).build();
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
+
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         AtomicInteger attempt = new AtomicInteger(2);
         when(proxyRdsClient.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class))).then((m) -> {
@@ -95,7 +98,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
@@ -109,12 +111,12 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessAlternative() {
-
-        final CreateDbSubnetGroupResponse createDbSubnetGroupResponse = CreateDbSubnetGroupResponse.builder().build();
-        when(proxyRdsClient.client().createDBSubnetGroup(any(CreateDbSubnetGroupRequest.class))).thenReturn(createDbSubnetGroupResponse);
-
+        mockCreateCall();
         final DescribeDbSubnetGroupsResponse describeCreatingDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_CREATING).build();
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
+
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         AtomicInteger attempt = new AtomicInteger(2);
         when(proxyRdsClient.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class))).then((m) -> {
@@ -139,7 +141,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
@@ -199,5 +200,10 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
 
         verify(proxyRdsClient.client()).createDBSubnetGroup(any(CreateDbSubnetGroupRequest.class));
+    }
+
+    private void mockCreateCall() {
+        final CreateDbSubnetGroupResponse createDbSubnetGroupResponse = CreateDbSubnetGroupResponse.builder().dbSubnetGroup(DBSubnetGroup.builder().dbSubnetGroupArn("arn").build()).build();
+        when(proxyRdsClient.client().createDBSubnetGroup(any(CreateDbSubnetGroupRequest.class))).thenReturn(createDbSubnetGroupResponse);
     }
 }

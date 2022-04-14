@@ -1,10 +1,12 @@
 package software.amazon.rds.dbsubnetgroup;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.amazonaws.arn.Arn;
 import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
@@ -13,12 +15,16 @@ import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.Subnet;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
+    static final String RDS = "rds";
+    static final String RESOURCE_PREFIX = "subgrp:";
+
     static CreateDbSubnetGroupRequest createDbSubnetGroupRequest(
             final ResourceModel model,
-            final Map<String, String> tags
+            final Tagging.TagSet tags
     ) {
         return CreateDbSubnetGroupRequest.builder()
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
@@ -53,23 +59,43 @@ public class Translator {
                 .build();
     }
 
-    static ProgressEvent<ResourceModel, CallbackContext> translateToModel(
-            final DBSubnetGroup dbSubnetGroup,
-            final Collection<software.amazon.awssdk.services.rds.model.Tag> rdsTags
-    ) {
-        List<Tag> tags = CollectionUtils.isNullOrEmpty(rdsTags) ? null
+    static ResourceModel translateToModel(final DBSubnetGroup dbSubnetGroup) {
+        return ResourceModel.builder()
+                .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName())
+                .dBSubnetGroupDescription(dbSubnetGroup.dbSubnetGroupDescription())
+                .subnetIds(dbSubnetGroup.subnets().stream().map(Subnet::subnetIdentifier).collect(Collectors.toList()))
+                .build();
+    }
+
+    static Arn buildParameterGroupArn(final ResourceHandlerRequest<ResourceModel> request) {
+        String resource = RESOURCE_PREFIX + request.getDesiredResourceState().getDBSubnetGroupName();
+        return Arn.builder()
+                .withPartition(request.getAwsPartition())
+                .withRegion(request.getRegion())
+                .withService(RDS)
+                .withAccountId(request.getAwsAccountId())
+                .withResource(resource)
+                .build();
+    }
+
+    static List<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptyList())
+                .stream()
+                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key(tag.getKey())
+                        .value(tag.getValue())
+                        .build()
+                )
+                .collect(Collectors.toList());
+    }
+
+    static List<Tag> translateTags(final Collection<software.amazon.awssdk.services.rds.model.Tag> rdsTags) {
+        return CollectionUtils.isNullOrEmpty(rdsTags) ? null
                 : rdsTags.stream()
                 .map(tag -> Tag.builder()
                         .key(tag.key())
                         .value(tag.value())
                         .build())
                 .collect(Collectors.toList());
-
-        return ProgressEvent.defaultSuccessHandler(ResourceModel.builder()
-                .dBSubnetGroupName(dbSubnetGroup.dbSubnetGroupName())
-                .dBSubnetGroupDescription(dbSubnetGroup.dbSubnetGroupDescription())
-                .subnetIds(dbSubnetGroup.subnets().stream().map(Subnet::subnetIdentifier).collect(Collectors.toList()))
-                .tags(tags)
-                .build());
     }
 }
