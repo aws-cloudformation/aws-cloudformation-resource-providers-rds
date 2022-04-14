@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -17,6 +18,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
@@ -26,7 +28,10 @@ public class CreateHandler extends BaseHandlerStd {
     public static final String ILLEGAL_DELETION_POLICY_ERR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
 
     public CreateHandler() {
-        this(HandlerConfig.builder().probingEnabled(true).build());
+        this(HandlerConfig.builder()
+                .probingEnabled(true)
+                .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
+                .build());
     }
 
     public CreateHandler(final HandlerConfig config) {
