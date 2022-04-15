@@ -18,6 +18,7 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -26,8 +27,6 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int DB_SUBNET_GROUP_NAME_LENGTH = 255;
     protected static final String DB_SUBNET_GROUP_STATUS_COMPLETE = "Complete";
-    protected static final Constant CONSTANT = Constant.of().timeout(Duration.ofMinutes(120L))
-            .delay(Duration.ofSeconds(30L)).build();
 
     protected static final ErrorRuleSet DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
@@ -41,13 +40,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
+    protected HandlerConfig config;
+
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                              final ResourceHandlerRequest<ResourceModel> request,
                                                                              final CallbackContext callbackContext,
                                                                              final Logger logger) {
+        final CallbackContext context = callbackContext != null ? callbackContext : new CallbackContext();
+        context.setDbSubnetGroupArn(Translator.buildParameterGroupArn(request).toString());
         return RequestLogger.handleRequest(
                 logger,
                 request,
@@ -55,7 +63,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 requestLogger -> handleRequest(
                         proxy,
                         request,
-                        callbackContext != null ? callbackContext : new CallbackContext(),
+                        context,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(ClientBuilder::getClient)),
                         logger
                 ));
@@ -88,25 +96,34 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> tagResource(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient,
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
+            final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, String> previousTags,
-            final Map<String, String> desiredTags) {
-        return proxy.initiate("rds::tag-dbsubnet-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::describeDbSubnetGroupsRequest)
-                .makeServiceCall((describeDbSubnetGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbSubnetGroupsRequest, proxyInvocation.client()::describeDBSubnetGroups))
-                .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, resourceModel, context) -> {
-                    final String arn = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get().dbSubnetGroupArn();
-                    return Tagging.updateTags(
-                            proxyInvocation,
-                            ProgressEvent.progress(resourceModel, context),
-                            arn,
-                            previousTags,
-                            desiredTags,
-                            DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET
-                    );
-                });
+            final Tagging.TagSet previousTags,
+            final Tagging.TagSet desiredTags
+    ) {
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
+
+        try {
+            String arn = progress.getCallbackContext().getDbSubnetGroupArn();
+            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
+                            .orElse(DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET)
+            );
+        }
+
+        return progress;
     }
+
+
 }
