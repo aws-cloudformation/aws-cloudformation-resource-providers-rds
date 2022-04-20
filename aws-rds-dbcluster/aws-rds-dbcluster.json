@@ -9,6 +9,10 @@
     "ReadEndpoint": {
       "$ref": "#/definitions/ReadEndpoint"
     },
+    "AllocatedStorage": {
+      "description": "The amount of storage in gibibytes (GiB) to allocate to each DB instance in the Multi-AZ DB cluster.",
+      "type": "integer"
+    },
     "AssociatedRoles": {
       "description": "Provides a list of the AWS Identity and Access Management (IAM) roles that are associated with the DB cluster. IAM roles that are associated with a DB cluster grant permission for the DB cluster to access other AWS services on your behalf.",
       "type": "array",
@@ -24,6 +28,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "AutoMinorVersionUpgrade": {
+      "description": "A value that indicates whether minor engine upgrades are applied automatically to the DB cluster during the maintenance window. By default, minor engine upgrades are applied automatically.",
+      "type": "boolean"
     },
     "BacktrackWindow": {
       "description": "The target backtrack window, in seconds. To disable backtracking, set this value to 0.",
@@ -45,6 +53,10 @@
     },
     "DatabaseName": {
       "description": "The name of your database. If you don't provide a name, then Amazon RDS won't create a database in this DB cluster. For naming constraints, see Naming Constraints in the Amazon RDS User Guide.",
+      "type": "string"
+    },
+    "DBClusterInstanceClass": {
+      "description": "The compute and memory capacity of each DB instance in the Multi-AZ DB cluster, for example db.m6g.xlarge.",
       "type": "string"
     },
     "GlobalClusterIdentifier": {
@@ -116,6 +128,10 @@
       "description": "The version number of the database engine to use.",
       "type": "string"
     },
+    "Iops": {
+      "description": "The amount of Provisioned IOPS (input/output operations per second) to be initially allocated for each DB instance in the Multi-AZ DB cluster.",
+      "type": "integer"
+    },
     "KmsKeyId": {
       "description": "The Amazon Resource Name (ARN) of the AWS Key Management Service master key that is used to encrypt the database instances in the DB cluster, such as arn:aws:kms:us-east-1:012345678910:key/abcd1234-a123-456a-a12b-a123b4cd56ef. If you enable the StorageEncrypted property but don't specify this property, the default master key is used. If you specify this property, you must set the StorageEncrypted property to true.",
       "type": "string"
@@ -131,6 +147,36 @@
       "description": "The master password for the DB instance.",
       "type": "string"
     },
+    "MonitoringInterval": {
+      "description": "The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is 0.",
+      "type": "integer",
+      "default": 0,
+      "enum": [
+        0,
+        1,
+        5,
+        10,
+        15,
+        30,
+        60
+      ]
+    },
+    "MonitoringRoleArn": {
+      "description": "The Amazon Resource Name (ARN) for the IAM role that permits RDS to send Enhanced Monitoring metrics to Amazon CloudWatch Logs.",
+      "type": "string"
+    },
+    "PerformanceInsightsEnabled": {
+      "description": "A value that indicates whether to turn on Performance Insights for the DB cluster.",
+      "type": "boolean"
+    },
+    "PerformanceInsightsKmsKeyId": {
+      "description": "The Amazon Web Services KMS key identifier for encryption of Performance Insights data.",
+      "type": "string"
+    },
+    "PerformanceInsightsRetentionPeriod": {
+      "description": "The amount of time, in days, to retain Performance Insights data.",
+      "type": "integer"
+    },
     "Port": {
       "description": "The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.",
       "type": "integer",
@@ -143,6 +189,10 @@
     "PreferredMaintenanceWindow": {
       "description": "The weekly time range during which system maintenance can occur, in Universal Coordinated Time (UTC). The default is a 30-minute window selected at random from an 8-hour block of time for each AWS Region, occurring on a random day of the week. To see the time blocks available, see Adjusting the Preferred DB Cluster Maintenance Window in the Amazon Aurora User Guide.",
       "type": "string"
+    },
+    "PubliclyAccessible": {
+      "description": "A value that indicates whether the DB cluster is publicly accessible.",
+      "type": "boolean"
     },
     "ReplicationSourceIdentifier": {
       "description": "The Amazon Resource Name (ARN) of the source DB instance or DB cluster if this DB cluster is created as a Read Replica.",
@@ -176,6 +226,13 @@
     "StorageEncrypted": {
       "description": "Indicates whether the DB instance is encrypted.\nIf you specify the DBClusterIdentifier, SnapshotIdentifier, or SourceDBInstanceIdentifier property, don't specify this property. The value is inherited from the cluster, snapshot, or source DB instance.",
       "type": "boolean"
+    },
+    "StorageType": {
+      "description": "Specifies the storage type to be associated with the DB cluster.",
+      "type": "string",
+      "enum": [
+        "io1"
+      ]
     },
     "Tags": {
       "type": "array",
@@ -345,6 +402,7 @@
     "/properties/DatabaseName",
     "/properties/EngineMode",
     "/properties/KmsKeyId",
+    "/properties/PubliclyAccessible",
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",
@@ -375,6 +433,7 @@
         "rds:AddRoleToDBCluster",
         "rds:AddTagsToResource",
         "rds:CreateDBCluster",
+        "rds:CreateDBInstance",
         "rds:DescribeDBClusters",
         "rds:ModifyDBCluster",
         "rds:RestoreDBClusterFromSnapshot",
@@ -393,6 +452,7 @@
         "rds:AddTagsFromResource",
         "rds:DescribeDBClusters",
         "rds:ModifyDBCluster",
+        "rds:ModifyDBInstance",
         "rds:RemoveFromGlobalCluster",
         "rds:RemoveRoleFromDBCluster",
         "rds:RemoveTagsFromResource"
@@ -401,6 +461,7 @@
     "delete": {
       "permissions": [
         "rds:DeleteDBCluster",
+        "rds:DeleteDBInstance",
         "rds:DescribeDBClusters",
         "rds:RemoveFromGlobalCluster"
       ]

@@ -15,9 +15,7 @@ import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
@@ -28,34 +26,48 @@ import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
-    static CreateDbClusterRequest createDbClusterRequest(final ResourceModel model, final Tagging.TagSet tagSet) {
+    static CreateDbClusterRequest createDbClusterRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
         return CreateDbClusterRequest.builder()
+                .allocatedStorage(model.getAllocatedStorage())
+                .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZones(model.getAvailabilityZones())
                 .backtrackWindow(castToLong(model.getBacktrackWindow()))
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .dbClusterInstanceClass(model.getDBClusterInstanceClass())
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
+                .enablePerformanceInsights(model.getPerformanceInsightsEnabled())
                 .engine(model.getEngine())
                 .engineMode(model.getEngineMode())
                 .engineVersion(model.getEngineVersion())
                 .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+                .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUsername(model.getMasterUsername())
+                .monitoringInterval(model.getMonitoringInterval())
+                .monitoringRoleArn(model.getMonitoringRoleArn())
+                .performanceInsightsKMSKeyId(model.getPerformanceInsightsKmsKeyId())
+                .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
                 .port(model.getPort())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
+                .publiclyAccessible(model.getPubliclyAccessible())
                 .replicationSourceIdentifier(model.getReplicationSourceIdentifier())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .sourceRegion(model.getSourceRegion())
                 .storageEncrypted(model.getStorageEncrypted())
+                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
                 .build();
@@ -68,11 +80,15 @@ public class Translator {
         return RestoreDbClusterToPointInTimeRequest.builder()
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .dbClusterInstanceClass(model.getDBClusterInstanceClass())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .iops(model.getIops())
+                .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreType(model.getRestoreType())
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
-                .useLatestRestorableTime(model.getUseLatestRestorableTime())
+                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
+                .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .build();
     }
 
@@ -86,6 +102,7 @@ public class Translator {
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .dbClusterInstanceClass(model.getDBClusterInstanceClass())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
@@ -93,10 +110,13 @@ public class Translator {
                 .engine(model.getEngine())
                 .engineMode(model.getEngineMode())
                 .engineVersion(model.getEngineVersion())
+                .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .port(model.getPort())
+                .publiclyAccessible(model.getPubliclyAccessible())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .snapshotIdentifier(model.getSnapshotIdentifier())
+                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
                 .build();
@@ -139,39 +159,46 @@ public class Translator {
     }
 
     static ModifyDbClusterRequest modifyDbClusterRequest(
-            final ResourceModel previousResourceState,
-            final ResourceModel desiredResourceState,
+            final ResourceModel previousModel,
+            final ResourceModel desiredModel,
             final boolean isRollback
     ) {
 
-        final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(
-                previousResourceState,
-                desiredResourceState
-        );
+        final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(previousModel, desiredModel);
 
         ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
-                .backtrackWindow(castToLong(desiredResourceState.getBacktrackWindow()))
-                .backupRetentionPeriod(desiredResourceState.getBackupRetentionPeriod())
+                .allocatedStorage(desiredModel.getAllocatedStorage())
+                .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
+                .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
+                .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
                 .cloudwatchLogsExportConfiguration(config)
-                .copyTagsToSnapshot(desiredResourceState.getCopyTagsToSnapshot())
-                .dbClusterIdentifier(desiredResourceState.getDBClusterIdentifier())
-                .dbClusterParameterGroupName(desiredResourceState.getDBClusterParameterGroupName())
-                .deletionProtection(desiredResourceState.getDeletionProtection())
-                .enableHttpEndpoint(desiredResourceState.getEnableHttpEndpoint())
-                .enableIAMDatabaseAuthentication(desiredResourceState.getEnableIAMDatabaseAuthentication())
-                .port(desiredResourceState.getPort())
-                .preferredBackupWindow(desiredResourceState.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(desiredResourceState.getPreferredMaintenanceWindow())
-                .scalingConfiguration(translateScalingConfigurationToSdk(desiredResourceState.getScalingConfiguration()))
-                .vpcSecurityGroupIds(desiredResourceState.getVpcSecurityGroupIds());
+                .copyTagsToSnapshot(desiredModel.getCopyTagsToSnapshot())
+                .dbClusterIdentifier(desiredModel.getDBClusterIdentifier())
+                .dbClusterInstanceClass(desiredModel.getDBClusterInstanceClass())
+                .dbClusterParameterGroupName(desiredModel.getDBClusterParameterGroupName())
+                .deletionProtection(desiredModel.getDeletionProtection())
+                .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
+                .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
+                .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
+                .iops(desiredModel.getIops())
+                .monitoringInterval(desiredModel.getMonitoringInterval())
+                .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
+                .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKmsKeyId())
+                .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
+                .port(desiredModel.getPort())
+                .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
+                .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
+                .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
+                .storageType(desiredModel.getStorageType())
+                .vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
 
-        if (previousResourceState != null) {
-            if (!Objects.equals(previousResourceState.getMasterUserPassword(), desiredResourceState.getMasterUserPassword())) {
-                builder.masterUserPassword(desiredResourceState.getMasterUserPassword());
+        if (previousModel != null) {
+            if (!Objects.equals(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword())) {
+                builder.masterUserPassword(desiredModel.getMasterUserPassword());
             }
-            if (!(isRollback || Objects.equals(previousResourceState.getEngineVersion(), desiredResourceState.getEngineVersion()))) {
+            if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
                 builder.applyImmediately(true);
-                builder.engineVersion(desiredResourceState.getEngineVersion());
+                builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
             }
         }
@@ -180,13 +207,13 @@ public class Translator {
     }
 
     static CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration(
-            final ResourceModel previousResourceState,
-            final ResourceModel desiredResourceState
+            final ResourceModel previousModel,
+            final ResourceModel desiredModel
     ) {
         CloudwatchLogsExportConfiguration.Builder config = CloudwatchLogsExportConfiguration.builder();
 
-        final List<String> currentLogsExports = desiredResourceState.getEnableCloudwatchLogsExports();
-        final List<String> previousLogsExports = previousResourceState == null ? Collections.emptyList() : previousResourceState.getEnableCloudwatchLogsExports();
+        final List<String> currentLogsExports = desiredModel.getEnableCloudwatchLogsExports();
+        final List<String> previousLogsExports = previousModel == null ? Collections.emptyList() : previousModel.getEnableCloudwatchLogsExports();
 
         final Set<String> existingLogs = new HashSet<>(Optional.ofNullable(previousLogsExports).orElse(Collections.emptyList()));
         final Set<String> newLogsExports = new HashSet<>(Optional.ofNullable(currentLogsExports).orElse(Collections.emptyList()));
@@ -216,24 +243,6 @@ public class Translator {
         return RemoveFromGlobalClusterRequest.builder()
                 .dbClusterIdentifier(clusterArn)
                 .globalClusterIdentifier(globalClusterIdentifier)
-                .build();
-    }
-
-    static CreateDbClusterSnapshotRequest createDbClusterSnapshotRequest(
-            final ResourceModel model,
-            final String finalDBSnapshotIdentifier
-    ) {
-        return CreateDbClusterSnapshotRequest.builder()
-                .dbClusterIdentifier(model.getDBClusterIdentifier())
-                .dbClusterSnapshotIdentifier(finalDBSnapshotIdentifier)
-                .build();
-    }
-
-    static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(
-            final String dbSnapshotIdentifier
-    ) {
-        return DescribeDbClusterSnapshotsRequest.builder()
-                .dbClusterSnapshotIdentifier(dbSnapshotIdentifier)
                 .build();
     }
 
@@ -318,21 +327,11 @@ public class Translator {
                 .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
     }
 
-    public static Set<Tag> translateTagsFromRequest(final Map<String, String> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptyMap())
-                .entrySet()
-                .stream()
-                .map(entry -> Tag.builder()
-                        .key(entry.getKey())
-                        .value(entry.getValue())
-                        .build())
-                .collect(Collectors.toSet());
-    }
-
     public static ResourceModel translateDbClusterFromSdk(
             final software.amazon.awssdk.services.rds.model.DBCluster dbCluster
     ) {
         return ResourceModel.builder()
+                .allocatedStorage(dbCluster.allocatedStorage())
                 .associatedRoles(
                         Optional.ofNullable(dbCluster.associatedRoles())
                                 .orElse(Collections.emptyList())
@@ -341,11 +340,13 @@ public class Translator {
                                 .collect(Collectors.toList())
                 )
                 .availabilityZones(dbCluster.availabilityZones())
+                .autoMinorVersionUpgrade(dbCluster.autoMinorVersionUpgrade())
                 .backtrackWindow(Translator.castToInt(dbCluster.backtrackWindow()))
                 .backupRetentionPeriod(dbCluster.backupRetentionPeriod())
                 .copyTagsToSnapshot(dbCluster.copyTagsToSnapshot())
                 .databaseName(dbCluster.databaseName())
                 .dBClusterIdentifier(dbCluster.dbClusterIdentifier())
+                .dBClusterInstanceClass(dbCluster.dbClusterInstanceClass())
                 .dBClusterParameterGroupName(dbCluster.dbClusterParameterGroup())
                 .dBSubnetGroupName(dbCluster.dbSubnetGroup())
                 .deletionProtection(dbCluster.deletionProtection())
@@ -361,11 +362,18 @@ public class Translator {
                 .engine(dbCluster.engine())
                 .engineMode(dbCluster.engineMode())
                 .engineVersion(dbCluster.engineVersion())
+                .iops(dbCluster.iops())
                 .kmsKeyId(dbCluster.kmsKeyId())
                 .masterUsername(dbCluster.masterUsername())
+                .monitoringInterval(dbCluster.monitoringInterval())
+                .monitoringRoleArn(dbCluster.monitoringRoleArn())
+                .performanceInsightsEnabled(dbCluster.performanceInsightsEnabled())
+                .performanceInsightsKmsKeyId(dbCluster.performanceInsightsKMSKeyId())
+                .performanceInsightsRetentionPeriod(dbCluster.performanceInsightsRetentionPeriod())
                 .port(dbCluster.port())
                 .preferredBackupWindow(dbCluster.preferredBackupWindow())
                 .preferredMaintenanceWindow(dbCluster.preferredMaintenanceWindow())
+                .publiclyAccessible(dbCluster.publiclyAccessible())
                 .readEndpoint(
                         ReadEndpoint.builder()
                                 .address(dbCluster.readerEndpoint())
@@ -374,6 +382,7 @@ public class Translator {
                 .replicationSourceIdentifier(dbCluster.replicationSourceIdentifier())
                 .scalingConfiguration(Translator.translateScalingConfigurationFromSdk(dbCluster.scalingConfigurationInfo()))
                 .storageEncrypted(dbCluster.storageEncrypted())
+                .storageType(dbCluster.storageType())
                 .tags(Translator.translateTagsFromSdk(dbCluster.tagList()))
                 .vpcSecurityGroupIds(
                         Optional.ofNullable(dbCluster.vpcSecurityGroups())
