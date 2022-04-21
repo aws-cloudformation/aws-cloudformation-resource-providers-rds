@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazonaws.arn.Arn;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
@@ -17,9 +18,13 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
+
+    public static final String RDS = "rds";
+    public static final String RESOURCE_PREFIX = "cluster-pg:";
 
     static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(final ResourceModel model,
                                                                                      final Tagging.TagSet tags) {
@@ -109,5 +114,16 @@ public class Translator {
         return Optional.ofNullable(collection)
                 .map(Collection::stream)
                 .orElseGet(Stream::empty);
+    }
+
+    public static Arn buildClusterParameterGroupArn(final ResourceHandlerRequest<ResourceModel> request) {
+        String resource = RESOURCE_PREFIX + request.getDesiredResourceState().getDBClusterParameterGroupName();
+        return Arn.builder()
+                .withPartition(request.getAwsPartition())
+                .withRegion(request.getRegion())
+                .withService(RDS)
+                .withAccountId(request.getAwsAccountId())
+                .withResource(resource)
+                .build();
     }
 }

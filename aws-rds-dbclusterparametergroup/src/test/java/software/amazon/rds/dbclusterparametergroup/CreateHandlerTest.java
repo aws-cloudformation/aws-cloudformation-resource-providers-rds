@@ -199,13 +199,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateHandler handler = new CreateHandler();
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
-        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
-                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
-                        .dbClusterParameterGroupArn("arn")
-                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
-                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
-                        .description(RESOURCE_MODEL.getDescription()).build()).build();
-        when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", false);
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
@@ -224,7 +217,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
-        verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
     }
 
     @Test
@@ -232,13 +224,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateHandler handler = new CreateHandler();
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
-        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
-                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
-                        .dbClusterParameterGroupArn("arn")
-                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
-                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
-                        .description(RESOURCE_MODEL.getDescription()).build()).build();
-        when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", true);

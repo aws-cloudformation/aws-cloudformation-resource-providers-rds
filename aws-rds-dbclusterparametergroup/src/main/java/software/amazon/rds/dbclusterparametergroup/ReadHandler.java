@@ -10,9 +10,19 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
 public class ReadHandler extends BaseHandlerStd {
+
+    public ReadHandler() {
+        this(HandlerConfig.builder().build());
+    }
+
+    public ReadHandler(final HandlerConfig config) {
+        super(config);
+    }
+
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                           final ResourceHandlerRequest<ResourceModel> request,
