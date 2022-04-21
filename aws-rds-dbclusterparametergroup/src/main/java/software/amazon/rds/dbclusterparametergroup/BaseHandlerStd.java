@@ -20,11 +20,11 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroup
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.CallChain.Completed;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -32,6 +32,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -45,9 +46,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int CALLBACK_DELAY_SECONDS = 5 * 60;
     protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
-    protected static final int MAX_RECORDS_TO_DESCRIBE = 100;
-    protected static final int MAX_DEPTH_TO_DESCRIBE = 10_000 / MAX_RECORDS_TO_DESCRIBE;
-    protected static final int STABILIZATION_CALLBACK_DELAY = 30; //30 seconds between stabilization
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
@@ -71,13 +69,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     Exception.class)
             .build();
 
+    protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    ErrorCode.AccessDenied,
+                    ErrorCode.AccessDeniedException)
+            .build()
+            .orElse(DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+
+    protected HandlerConfig config;
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                        final ResourceHandlerRequest<ResourceModel> request,
                                                                        final CallbackContext callbackContext,
                                                                        final Logger logger) {
+        final CallbackContext context = callbackContext != null ? callbackContext : new CallbackContext();
+        context.setDbClusterParameterGroupArn(Translator.buildClusterParameterGroupArn(request).toString());
         return RequestLogger.handleRequest(
                 logger,
                 request,
@@ -107,16 +121,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return progress;
         }
 
-        String arn = progress.getCallbackContext().getDbClusterParameterGroupArn();
-        if (arn == null) {
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = fetchDBParameterGroupArn(proxy, rdsProxyClient, progress);
-            if (progressEvent.isFailed()) {
-                return progressEvent;
-            }
-            arn = progressEvent.getCallbackContext().getDbClusterParameterGroupArn();
-        }
-
         try {
+            String arn = progress.getCallbackContext().getDbClusterParameterGroupArn();
             Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
             Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
         } catch (Exception exception) {
@@ -129,17 +135,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> fetchDBParameterGroupArn(final AmazonWebServicesClientProxy proxy,
-                                                                                     final ProxyClient<RdsClient> proxyClient,
-                                                                                     final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return describeDbClusterParameterGroup(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .done((describeDbClusterParameterGroupsRequest, describeDbClusterParameterGroupsResponse, invocation, resourceModel, context) -> {
-                    final String arn = describeDbClusterParameterGroupsResponse.dbClusterParameterGroups().stream().findFirst().get().dbClusterParameterGroupArn();
-                    context.setDbClusterParameterGroupArn(arn);
-                    return ProgressEvent.progress(resourceModel, context);
-                });
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
@@ -174,7 +169,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((describeDbClusterParameterGroupsRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET));
+                        SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET));
     }
 
 
