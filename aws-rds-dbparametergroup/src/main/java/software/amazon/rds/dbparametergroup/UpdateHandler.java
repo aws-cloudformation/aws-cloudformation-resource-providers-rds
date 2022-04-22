@@ -42,7 +42,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags, requestLogger))
-                .then(progress -> applyParameters(proxy, proxyClient, progress, requestLogger))
+                .then(progress -> applyParametersWithReset(proxy, proxyClient, progress, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 }

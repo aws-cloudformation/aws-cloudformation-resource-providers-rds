@@ -69,7 +69,9 @@ public class Translator {
     ) {
         return ModifyDbParameterGroupRequest.builder()
                 .dbParameterGroupName(model.getDBParameterGroupName())
-                .parameters(parameters)
+                .parameters(parameters.stream()
+                        .map(p -> p.toBuilder().applyMethod(getParameterApplyMethod(p)).build())
+                        .collect(Collectors.toList()))
                 .build();
     }
 

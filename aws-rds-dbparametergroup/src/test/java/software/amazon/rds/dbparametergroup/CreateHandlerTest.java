@@ -55,9 +55,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
 
-    @Captor
-    ArgumentCaptor<ResetDbParameterGroupRequest> captor;
-
     @Mock
     private AmazonWebServicesClientProxy proxy;
 
@@ -130,7 +127,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleSuccessWithApplyParameters() {
         mockCreateCall();
-        mockDescribeDbParametersResponse("static", "dynamic", true);
+        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false);
 
         mockDescribeDBParameterGroup();
 
@@ -152,16 +149,13 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient).describeDBParametersPaginator(any(DescribeDbParametersRequest.class));
-        verify(rdsClient).resetDBParameterGroup(captor.capture());
-        assertThat(captor.getValue().parameters().get(0).applyMethod().toString().equals("pending-reboot")).isTrue();
         verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
     public void handleRequest_SimpleUnmodifiableParameterFail() {
         mockCreateCall();
-        mockDescribeDbParametersResponse("static", "dynamic", false);
+        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", false, false);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
@@ -247,70 +241,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-    }
-
-    private void mockDescribeDbParametersResponse(String firstParamApplyType,
-                                                  String secondParamApplyType,
-                                                  boolean isModifiable) {
-        Parameter param1 = Parameter.builder()
-                .parameterName("param1")
-                .parameterValue("system_value")
-                .isModifiable(isModifiable)
-                .applyType(firstParamApplyType)
-                .applyMethod("pending-reboot")
-                .build();
-        Parameter defaultParam1 = param1.toBuilder()
-                .parameterValue("default_value")
-                .applyMethod("")
-                .build();
-        Parameter param2 = Parameter.builder()
-                .parameterName("param2")
-                .parameterValue("system_value")
-                .isModifiable(isModifiable)
-                .applyType(secondParamApplyType)
-                .build();
-        //Adding parameter to current parameters and not adding it to default. Expected behaviour is to ignore it
-        Parameter param3 = Parameter.builder()
-                .parameterName("param3")
-                .parameterValue("system_value")
-                .isModifiable(isModifiable)
-                .applyType(secondParamApplyType)
-                .build();
-        //Adding parameter to default parameters and not adding it to current. Expected behaviour is to ignore it
-        Parameter param4 = Parameter.builder()
-                .parameterName("param4")
-                .parameterValue("system_value")
-                .isModifiable(isModifiable)
-                .applyType(secondParamApplyType)
-                .build();
-
-
-        DescribeEngineDefaultParametersIterable describeEngineDefaultParametersResponses = mock(DescribeEngineDefaultParametersIterable.class);
-        final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
-                .engineDefaults(EngineDefaults.builder()
-                        .parameters(defaultParam1, param2, param4)
-                        .build()
-                ).build();
-        when(describeEngineDefaultParametersResponses.stream())
-                .thenReturn(Stream.<DescribeEngineDefaultParametersResponse>builder().
-                        add(describeEngineDefaultParametersResponse)
-                        .build()
-                );
-        when(proxyClient.client().describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponses);
-
-        if (!isModifiable)
-            return;
-
-        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
-                .parameters(param1, param2, param3).build();
-
-        final DescribeDBParametersIterable describeDbParametersIterable = mock(DescribeDBParametersIterable.class);
-        when(describeDbParametersIterable.stream())
-                .thenReturn(Stream.<DescribeDbParametersResponse>builder()
-                        .add(describeDbParametersResponse)
-                        .build()
-                );
-        when(proxyClient.client().describeDBParametersPaginator(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersIterable);
     }
 
     private void mockCreateCall() {

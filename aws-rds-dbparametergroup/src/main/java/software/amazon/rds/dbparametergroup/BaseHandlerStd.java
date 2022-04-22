@@ -114,19 +114,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return progress;
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
-                                                                            final ProxyClient<RdsClient> proxyClient,
-                                                                            final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                            final RequestLogger requestLogger) {
-        ResourceModel model = progress.getResourceModel();
-        CallbackContext callbackContext = progress.getCallbackContext();
-        //isParametersApplied flag for unit testing
+    protected ProgressEvent<ResourceModel, CallbackContext> applyParametersWithReset(final AmazonWebServicesClientProxy proxy,
+                                                                                     final ProxyClient<RdsClient> proxyClient,
+                                                                                     final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                                     final RequestLogger requestLogger) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext callbackContext = progress.getCallbackContext();
+        //isParametersApplied flag for unit testing to skip these calls
         if (callbackContext.isParametersApplied())
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
-        callbackContext.setParametersApplied(true);
-
-        Map<String, Parameter> defaultEngineParameters = Maps.newHashMap();
-        Map<String, Parameter> currentDBParameters = Maps.newHashMap();
+        //Maps will be populated in upcoming calls in progress chain.
+        final Map<String, Parameter> defaultEngineParameters = Maps.newHashMap();
+        final Map<String, Parameter> currentDBParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progressEvent -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, requestLogger))
@@ -134,6 +133,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .then(progressEvent -> describeCurrentDBParameters(progressEvent, currentDBParameters, proxy, proxyClient, requestLogger))
                 .then(progressEvent -> resetParameters(progressEvent, defaultEngineParameters, currentDBParameters, proxy, proxyClient, requestLogger))
                 .then(progressEvent -> modifyParameters(progressEvent, currentDBParameters, proxy, proxyClient, requestLogger));
+    }
+
+
+    protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(final AmazonWebServicesClientProxy proxy,
+                                                                            final ProxyClient<RdsClient> proxyClient,
+                                                                            final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                            final RequestLogger requestLogger) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext callbackContext = progress.getCallbackContext();
+        //isParametersApplied flag for unit testing to skip these calls
+        if (callbackContext.isParametersApplied())
+            return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
+        //Map will be populated in upcoming calls in progress chain.
+        final Map<String, Parameter> defaultEngineParameters = Maps.newHashMap();
+
+        return ProgressEvent.progress(model, callbackContext)
+                .then(progressEvent -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, requestLogger))
+                .then(progressEvent -> validateModelParameters(progressEvent, defaultEngineParameters, requestLogger))
+                .then(progressEvent -> modifyParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, requestLogger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> resetParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,

@@ -1,5 +1,9 @@
 package software.amazon.rds.dbparametergroup;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,6 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.mockito.internal.util.collections.Sets;
 
@@ -18,6 +23,14 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
+import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbParametersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
+import software.amazon.awssdk.services.rds.model.EngineDefaults;
+import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.paginators.DescribeDBParametersIterable;
+import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
 import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
@@ -140,5 +153,71 @@ public class AbstractTestBase {
                 return rdsClient;
             }
         };
+    }
+
+    void mockDescribeDbParametersResponse(ProxyClient<RdsClient> proxyClient,
+                                          String firstParamApplyType,
+                                          String secondParamApplyType,
+                                          boolean isModifiable,
+                                          boolean mockDescribeParameters) {
+        Parameter param1 = Parameter.builder()
+                .parameterName("param1")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(firstParamApplyType)
+                .applyMethod("pending-reboot")
+                .build();
+        Parameter defaultParam1 = param1.toBuilder()
+                .parameterValue("default_value")
+                .applyMethod("")
+                .build();
+        Parameter param2 = Parameter.builder()
+                .parameterName("param2")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
+        //Adding parameter to current parameters and not adding it to default. Expected behaviour is to ignore it
+        Parameter param3 = Parameter.builder()
+                .parameterName("param3")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
+        //Adding parameter to default parameters and not adding it to current. Expected behaviour is to ignore it
+        Parameter param4 = Parameter.builder()
+                .parameterName("param4")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
+
+
+        DescribeEngineDefaultParametersIterable describeEngineDefaultParametersResponses = mock(DescribeEngineDefaultParametersIterable.class);
+        final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
+                .engineDefaults(EngineDefaults.builder()
+                        .parameters(defaultParam1, param2, param4)
+                        .build()
+                ).build();
+        when(describeEngineDefaultParametersResponses.stream())
+                .thenReturn(Stream.<DescribeEngineDefaultParametersResponse>builder().
+                        add(describeEngineDefaultParametersResponse)
+                        .build()
+                );
+        when(proxyClient.client().describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponses);
+
+        if (!mockDescribeParameters)
+            return;
+
+        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
+                .parameters(param1, param2, param3).build();
+
+        final DescribeDBParametersIterable describeDbParametersIterable = mock(DescribeDBParametersIterable.class);
+        when(describeDbParametersIterable.stream())
+                .thenReturn(Stream.<DescribeDbParametersResponse>builder()
+                        .add(describeDbParametersResponse)
+                        .build()
+                );
+        when(proxyClient.client().describeDBParametersPaginator(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersIterable);
     }
 }
