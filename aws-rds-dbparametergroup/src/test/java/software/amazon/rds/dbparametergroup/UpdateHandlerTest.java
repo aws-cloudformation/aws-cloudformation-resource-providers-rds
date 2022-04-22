@@ -15,17 +15,24 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -37,6 +44,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Mock
     RdsClient rdsClient;
+    @Captor
+    ArgumentCaptor<ResetDbParameterGroupRequest> captor;
     @Mock
     private AmazonWebServicesClientProxy proxy;
     @Mock
@@ -113,6 +122,45 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
+
+    @Test
+    public void handleRequest_SimpleSuccessWithApplyParameters() {
+        final UpdateHandler handler = new UpdateHandler();
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
+                .dbParameterGroups(simpleDbParameterGroup).build();
+        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        mockDescribeDbParametersResponse(proxyRdsClient, "static", "dynamic", true, true);
+
+        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
+        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .previousResourceState(previousResourceModel)
+                .desiredResourceState(RESET_RESOURCE_MODEL)
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(rdsClient).resetDBParameterGroup(captor.capture());
+        assertThat(captor.getValue().parameters().get(0).applyMethod().toString().equals("pending-reboot")).isTrue();
+        verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
+    }
+
 
     @Test
     public void handleRequest_SimpleSuccessSameParams() {
