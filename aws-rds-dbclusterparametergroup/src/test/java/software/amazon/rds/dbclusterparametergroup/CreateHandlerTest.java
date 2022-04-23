@@ -105,7 +105,8 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleSuccess() {
 
-        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(proxyRdsClient.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
 
         final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
@@ -147,7 +148,8 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleSuccessWithParameters() {
         final CreateHandler handler = new CreateHandler();
-        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         final ModifyDbClusterParameterGroupResponse modifyDbClusterParameterGroupResponse = ModifyDbClusterParameterGroupResponse.builder().build();
         when(rds.modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class))).thenReturn(modifyDbClusterParameterGroupResponse);
@@ -197,7 +199,8 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleInProgressFailedUnmodifiableParams() {
         final CreateHandler handler = new CreateHandler();
-        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", false);
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
@@ -222,7 +225,8 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
         final CreateHandler handler = new CreateHandler();
-        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse.builder().build();
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);

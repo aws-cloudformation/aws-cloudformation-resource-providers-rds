@@ -61,7 +61,10 @@ public class CreateHandler extends BaseHandlerStd {
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
                                 DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET))
-                .progress();
+                .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> {
+                    context.setDbClusterParameterGroupArn(paramGroupResponse.dbClusterParameterGroup().dbClusterParameterGroupArn());
+                    return ProgressEvent.progress(resourceModel, context);
+                });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> setDbClusterParameterGroupNameIfMissing(final ResourceHandlerRequest<ResourceModel> request,
