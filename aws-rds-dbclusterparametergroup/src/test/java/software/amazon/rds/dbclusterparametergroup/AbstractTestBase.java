@@ -93,7 +93,7 @@ public class AbstractTestBase {
         UPDATED_DESCRIPTION = "updated description";
         FAMILY = "default.aurora.5";
         TAG_SET = Lists.newArrayList(Tag.builder().key("key").value("value").build());
-        
+
         DB_CLUSTER_PARAMETER_GROUP = DBClusterParameterGroup.builder()
                 .dbClusterParameterGroupArn("arn")
                 .dbClusterParameterGroupName("name")
