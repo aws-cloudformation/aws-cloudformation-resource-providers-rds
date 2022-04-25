@@ -43,6 +43,7 @@ public class AbstractTestBase {
     protected static final String FAMILY;
     protected static final List<Tag> TAG_SET;
     protected static final Parameter PARAM_1, PARAM_2;
+    protected static final DBClusterParameterGroup DB_CLUSTER_PARAMETER_GROUP;
 
 
     static {
@@ -92,6 +93,11 @@ public class AbstractTestBase {
         UPDATED_DESCRIPTION = "updated description";
         FAMILY = "default.aurora.5";
         TAG_SET = Lists.newArrayList(Tag.builder().key("key").value("value").build());
+
+        DB_CLUSTER_PARAMETER_GROUP = DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn("arn")
+                .dbClusterParameterGroupName("name")
+                .build();
     }
 
     static Map<String, String> translateTagsToMap(final Collection<Tag> tags) {
