@@ -139,9 +139,8 @@
     "MasterUsername": {
       "description": "The name of the master user for the DB cluster. You must specify MasterUsername, unless you specify SnapshotIdentifier. In that case, don't specify MasterUsername.",
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}[a-zA-Z0-9_]{0,15}$",
-      "minLength": 1,
-      "maxLength": 16
+      "pattern": "^[a-zA-Z]{1}[a-zA-Z0-9_]*$",
+      "minLength": 1
     },
     "MasterUserPassword": {
       "description": "The master password for the DB instance.",
