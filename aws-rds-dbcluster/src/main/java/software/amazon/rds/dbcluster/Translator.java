@@ -83,6 +83,7 @@ public class Translator {
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .iops(model.getIops())
+                .kmsKeyId(model.getKmsKeyId())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreType(model.getRestoreType())
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
