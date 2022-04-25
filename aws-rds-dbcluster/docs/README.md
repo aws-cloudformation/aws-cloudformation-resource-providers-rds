@@ -13,12 +13,15 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "Type" : "AWS::RDS::DBCluster",
     "Properties" : {
         "<a href="#readendpoint" title="ReadEndpoint">ReadEndpoint</a>" : <i><a href="readendpoint.md">ReadEndpoint</a></i>,
+        "<a href="#allocatedstorage" title="AllocatedStorage">AllocatedStorage</a>" : <i>Integer</i>,
         "<a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>" : <i>[ <a href="dbclusterrole.md">DBClusterRole</a>, ... ]</i>,
         "<a href="#availabilityzones" title="AvailabilityZones">AvailabilityZones</a>" : <i>[ String, ... ]</i>,
+        "<a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>" : <i>Boolean</i>,
         "<a href="#backtrackwindow" title="BacktrackWindow">BacktrackWindow</a>" : <i>Integer</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
         "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
         "<a href="#databasename" title="DatabaseName">DatabaseName</a>" : <i>String</i>,
+        "<a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>" : <i>String</i>,
         "<a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>" : <i>String</i>,
@@ -30,12 +33,19 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
         "<a href="#enginemode" title="EngineMode">EngineMode</a>" : <i>String</i>,
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
+        "<a href="#iops" title="Iops">Iops</a>" : <i>Integer</i>,
         "<a href="#kmskeyid" title="KmsKeyId">KmsKeyId</a>" : <i>String</i>,
         "<a href="#masterusername" title="MasterUsername">MasterUsername</a>" : <i>String</i>,
         "<a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>" : <i>String</i>,
+        "<a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>" : <i>Integer</i>,
+        "<a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>" : <i>String</i>,
+        "<a href="#performanceinsightsenabled" title="PerformanceInsightsEnabled">PerformanceInsightsEnabled</a>" : <i>Boolean</i>,
+        "<a href="#performanceinsightskmskeyid" title="PerformanceInsightsKmsKeyId">PerformanceInsightsKmsKeyId</a>" : <i>String</i>,
+        "<a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>" : <i>Integer</i>,
         "<a href="#port" title="Port">Port</a>" : <i>Integer</i>,
         "<a href="#preferredbackupwindow" title="PreferredBackupWindow">PreferredBackupWindow</a>" : <i>String</i>,
         "<a href="#preferredmaintenancewindow" title="PreferredMaintenanceWindow">PreferredMaintenanceWindow</a>" : <i>String</i>,
+        "<a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>" : <i>Boolean</i>,
         "<a href="#replicationsourceidentifier" title="ReplicationSourceIdentifier">ReplicationSourceIdentifier</a>" : <i>String</i>,
         "<a href="#restoretype" title="RestoreType">RestoreType</a>" : <i>String</i>,
         "<a href="#scalingconfiguration" title="ScalingConfiguration">ScalingConfiguration</a>" : <i><a href="scalingconfiguration.md">ScalingConfiguration</a></i>,
@@ -43,6 +53,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#sourcedbclusteridentifier" title="SourceDBClusterIdentifier">SourceDBClusterIdentifier</a>" : <i>String</i>,
         "<a href="#sourceregion" title="SourceRegion">SourceRegion</a>" : <i>String</i>,
         "<a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>" : <i>Boolean</i>,
+        "<a href="#storagetype" title="StorageType">StorageType</a>" : <i>String</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>,
         "<a href="#uselatestrestorabletime" title="UseLatestRestorableTime">UseLatestRestorableTime</a>" : <i>Boolean</i>,
         "<a href="#vpcsecuritygroupids" title="VpcSecurityGroupIds">VpcSecurityGroupIds</a>" : <i>[ String, ... ]</i>
@@ -56,14 +67,17 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 Type: AWS::RDS::DBCluster
 Properties:
     <a href="#readendpoint" title="ReadEndpoint">ReadEndpoint</a>: <i><a href="readendpoint.md">ReadEndpoint</a></i>
+    <a href="#allocatedstorage" title="AllocatedStorage">AllocatedStorage</a>: <i>Integer</i>
     <a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>: <i>
       - <a href="dbclusterrole.md">DBClusterRole</a></i>
     <a href="#availabilityzones" title="AvailabilityZones">AvailabilityZones</a>: <i>
       - String</i>
+    <a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>: <i>Boolean</i>
     <a href="#backtrackwindow" title="BacktrackWindow">BacktrackWindow</a>: <i>Integer</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
     <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
     <a href="#databasename" title="DatabaseName">DatabaseName</a>: <i>String</i>
+    <a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>: <i>String</i>
     <a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>: <i>String</i>
@@ -76,12 +90,19 @@ Properties:
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
     <a href="#enginemode" title="EngineMode">EngineMode</a>: <i>String</i>
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
+    <a href="#iops" title="Iops">Iops</a>: <i>Integer</i>
     <a href="#kmskeyid" title="KmsKeyId">KmsKeyId</a>: <i>String</i>
     <a href="#masterusername" title="MasterUsername">MasterUsername</a>: <i>String</i>
     <a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>: <i>String</i>
+    <a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>: <i>Integer</i>
+    <a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>: <i>String</i>
+    <a href="#performanceinsightsenabled" title="PerformanceInsightsEnabled">PerformanceInsightsEnabled</a>: <i>Boolean</i>
+    <a href="#performanceinsightskmskeyid" title="PerformanceInsightsKmsKeyId">PerformanceInsightsKmsKeyId</a>: <i>String</i>
+    <a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>: <i>Integer</i>
     <a href="#port" title="Port">Port</a>: <i>Integer</i>
     <a href="#preferredbackupwindow" title="PreferredBackupWindow">PreferredBackupWindow</a>: <i>String</i>
     <a href="#preferredmaintenancewindow" title="PreferredMaintenanceWindow">PreferredMaintenanceWindow</a>: <i>String</i>
+    <a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>: <i>Boolean</i>
     <a href="#replicationsourceidentifier" title="ReplicationSourceIdentifier">ReplicationSourceIdentifier</a>: <i>String</i>
     <a href="#restoretype" title="RestoreType">RestoreType</a>: <i>String</i>
     <a href="#scalingconfiguration" title="ScalingConfiguration">ScalingConfiguration</a>: <i><a href="scalingconfiguration.md">ScalingConfiguration</a></i>
@@ -89,6 +110,7 @@ Properties:
     <a href="#sourcedbclusteridentifier" title="SourceDBClusterIdentifier">SourceDBClusterIdentifier</a>: <i>String</i>
     <a href="#sourceregion" title="SourceRegion">SourceRegion</a>: <i>String</i>
     <a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>: <i>Boolean</i>
+    <a href="#storagetype" title="StorageType">StorageType</a>: <i>String</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
     <a href="#uselatestrestorabletime" title="UseLatestRestorableTime">UseLatestRestorableTime</a>: <i>Boolean</i>
@@ -103,6 +125,16 @@ Properties:
 _Required_: No
 
 _Type_: <a href="readendpoint.md">ReadEndpoint</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### AllocatedStorage
+
+The amount of storage in gibibytes (GiB) to allocate to each DB instance in the Multi-AZ DB cluster.
+
+_Required_: No
+
+_Type_: Integer
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -125,6 +157,16 @@ _Required_: No
 _Type_: List of String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### AutoMinorVersionUpgrade
+
+A value that indicates whether minor engine upgrades are applied automatically to the DB cluster during the maintenance window. By default, minor engine upgrades are applied automatically.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### BacktrackWindow
 
@@ -165,6 +207,16 @@ _Required_: No
 _Type_: String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### DBClusterInstanceClass
+
+The compute and memory capacity of each DB instance in the Multi-AZ DB cluster, for example db.m6g.xlarge.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### GlobalClusterIdentifier
 
@@ -292,6 +344,16 @@ _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### Iops
+
+The amount of Provisioned IOPS (input/output operations per second) to be initially allocated for each DB instance in the Multi-AZ DB cluster.
+
+_Required_: No
+
+_Type_: Integer
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### KmsKeyId
 
 The Amazon Resource Name (ARN) of the AWS Key Management Service master key that is used to encrypt the database instances in the DB cluster, such as arn:aws:kms:us-east-1:012345678910:key/abcd1234-a123-456a-a12b-a123b4cd56ef. If you enable the StorageEncrypted property but don't specify this property, the default master key is used. If you specify this property, you must set the StorageEncrypted property to true.
@@ -326,6 +388,58 @@ _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### MonitoringInterval
+
+The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is 0.
+
+_Required_: No
+
+_Type_: Integer
+
+_Allowed Values_: <code>0</code> | <code>1</code> | <code>5</code> | <code>10</code> | <code>15</code> | <code>30</code> | <code>60</code>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### MonitoringRoleArn
+
+The Amazon Resource Name (ARN) for the IAM role that permits RDS to send Enhanced Monitoring metrics to Amazon CloudWatch Logs.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PerformanceInsightsEnabled
+
+A value that indicates whether to turn on Performance Insights for the DB cluster.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PerformanceInsightsKmsKeyId
+
+The Amazon Web Services KMS key identifier for encryption of Performance Insights data.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PerformanceInsightsRetentionPeriod
+
+The amount of time, in days, to retain Performance Insights data.
+
+_Required_: No
+
+_Type_: Integer
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### Port
 
 The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.
@@ -355,6 +469,16 @@ _Required_: No
 _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PubliclyAccessible
+
+A value that indicates whether the DB cluster is publicly accessible.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### ReplicationSourceIdentifier
 
@@ -432,6 +556,18 @@ _Required_: No
 _Type_: Boolean
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### StorageType
+
+Specifies the storage type to be associated with the DB cluster.
+
+_Required_: No
+
+_Type_: String
+
+_Allowed Values_: <code>io1</code>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### Tags
 

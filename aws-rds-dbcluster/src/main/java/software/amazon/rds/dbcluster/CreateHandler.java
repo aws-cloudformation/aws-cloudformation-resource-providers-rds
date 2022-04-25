@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
@@ -18,7 +20,10 @@ import software.amazon.rds.common.handler.Tagging;
 public class CreateHandler extends BaseHandlerStd {
 
     public CreateHandler() {
-        this(HandlerConfig.builder().probingEnabled(true).build());
+        this(HandlerConfig.builder()
+                .probingEnabled(true)
+                .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
+                .build());
     }
 
     public CreateHandler(final HandlerConfig config) {
