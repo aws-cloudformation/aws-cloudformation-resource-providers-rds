@@ -312,9 +312,7 @@ _Type_: String
 
 _Minimum_: <code>1</code>
 
-_Maximum_: <code>16</code>
-
-_Pattern_: <code>^[a-zA-Z]{1}[a-zA-Z0-9_]{0,15}$</code>
+_Pattern_: <code>^[a-zA-Z]{1}[a-zA-Z0-9_]*$</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
