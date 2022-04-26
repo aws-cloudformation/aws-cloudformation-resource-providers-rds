@@ -423,7 +423,7 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### Iops
 
-The number of I/O operations per second (IOPS) that the database provisions. The value must be equal to or greater than 1000.
+The number of I/O operations per second (IOPS) that the database provisions.
 
 _Required_: No
 
