@@ -12,10 +12,13 @@ import java.time.Duration;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import junit.framework.Assert;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -45,16 +48,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Mock
     @Getter
+    RdsClient rdsClient;
+    @Mock
+    @Getter
     private AmazonWebServicesClientProxy proxy;
-
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
-
-    @Mock
-    @Getter
-    RdsClient rdsClient;
-
     @Getter
     private CreateHandler handler;
 
@@ -191,6 +191,30 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ClusterRestoreSetKmsKeyId() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        final String kmsKeyId = randomString(32, ALPHA);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE.toBuilder().kmsKeyId(kmsKeyId).build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(argumentCaptor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assert.assertEquals(argumentCaptor.getValue().kmsKeyId(), kmsKeyId);
     }
 
     @Test
