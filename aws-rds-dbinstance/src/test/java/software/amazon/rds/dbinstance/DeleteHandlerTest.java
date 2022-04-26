@@ -67,10 +67,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         handler = new DeleteHandler(
                 HandlerConfig.builder()
                         .probingEnabled(false)
-                        .backoff(Constant.of()
-                                .delay(Duration.ofSeconds(1))
-                                .timeout(Duration.ofSeconds(120))
-                                .build())
+                        .backoff(TEST_BACKOFF_DELAY)
                         .build()
         );
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());

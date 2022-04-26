@@ -22,10 +22,17 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
 
     public static final String ILLEGAL_DELETION_POLICY_ERR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
+
+    private static final IdentifierFactory instanceIdentifierFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            RESOURCE_ID_MAX_LENGTH
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder()
@@ -54,12 +61,11 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
-            model.setDBInstanceIdentifier(generateResourceIdentifier(
-                    Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
-                    Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
-                    request.getClientRequestToken(),
-                    RESOURCE_ID_MAX_LENGTH
-            ).toLowerCase());
+            model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         }
 
         // The reason we split the tags in 2 sets is an attempt to soft-fail a potential AccessDenied response from

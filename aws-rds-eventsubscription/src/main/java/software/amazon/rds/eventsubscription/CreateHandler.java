@@ -1,7 +1,6 @@
 package software.amazon.rds.eventsubscription;
 
 import java.util.HashSet;
-import java.util.Optional;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -10,13 +9,17 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
 
-    private static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
+    private final static IdentifierFactory subscriptionNameFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            MAX_LENGTH_EVENT_SUBSCRIPTION
+    );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -65,12 +68,11 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         ResourceModel model = progress.getResourceModel();
         if (StringUtils.isNullOrEmpty(model.getSubscriptionName())) {
-            model.setSubscriptionName(IdentifierUtils.generateResourceIdentifier(
-                    Optional.ofNullable(request.getStackId()).orElse("rds"),
-                    Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse("eventsubscription"),
-                    request.getClientRequestToken(),
-                    MAX_LENGTH_EVENT_SUBSCRIPTION
-            ).toLowerCase());
+            model.setSubscriptionName(subscriptionNameFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         }
         return progress;
     }

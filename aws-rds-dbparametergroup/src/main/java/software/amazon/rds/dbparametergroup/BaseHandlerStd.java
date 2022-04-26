@@ -57,6 +57,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
+    protected static final String RESOURCE_IDENTIFIER = "dbparametergroup";
+    protected static final String STACK_NAME = "rds";
+
     protected HandlerConfig config;
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();

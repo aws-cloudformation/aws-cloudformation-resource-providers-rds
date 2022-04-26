@@ -30,32 +30,31 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbSubnetGroupResponse;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
 
     @Mock
+    RdsClient rds;
+    @Mock
     private AmazonWebServicesClientProxy proxy;
-
     @Mock
     private ProxyClient<RdsClient> proxyRdsClient;
-
-    @Mock
-    RdsClient rds;
-
     private UpdateHandler handler;
 
     @BeforeEach
     public void setup() {
-        handler = new UpdateHandler();
+        handler = new UpdateHandler(HandlerConfig.builder()
+                .probingEnabled(false)
+                .backoff(TEST_BACKOFF_DELAY)
+                .build());
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         proxyRdsClient = MOCK_PROXY(proxy, rds);

@@ -31,29 +31,23 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractHandlerTest {
 
+    final String DB_INSTANCE_IDENTIFIER = "test-db-instance-identifier";
+    final String DESCRIBE_DB_INSTANCES_MARKER = "test-describe-db-instances-marker";
     @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;
-
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
-
     @Mock
     @Getter
     private ProxyClient<Ec2Client> ec2Proxy;
-
     @Mock
     private RdsClient rdsClient;
-
     @Mock
     private Ec2Client ec2Client;
-
     @Getter
     private ListHandler handler;
-
-    final String DB_INSTANCE_IDENTIFIER = "test-db-instance-identifier";
-    final String DESCRIBE_DB_INSTANCES_MARKER = "test-describe-db-instances-marker";
 
     @BeforeEach
     public void setup() {

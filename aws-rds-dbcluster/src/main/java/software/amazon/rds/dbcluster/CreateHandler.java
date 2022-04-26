@@ -2,7 +2,6 @@ package software.amazon.rds.dbcluster;
 
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.Optional;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -12,12 +11,18 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
+
+    private final static IdentifierFactory dbClusterIdentifierFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            RESOURCE_ID_MAX_LENGTH
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder()
@@ -39,14 +44,11 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
         if (StringUtils.isNullOrEmpty(model.getDBClusterIdentifier())) {
-            model.setDBClusterIdentifier(
-                    IdentifierUtils.generateResourceIdentifier(
-                            Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
-                            Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
-                            request.getClientRequestToken(),
-                            RESOURCE_ID_MAX_LENGTH
-                    ).toLowerCase()
-            );
+            model.setDBClusterIdentifier(dbClusterIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         }
 
         final Tagging.TagSet systemTags = Tagging.TagSet.builder()

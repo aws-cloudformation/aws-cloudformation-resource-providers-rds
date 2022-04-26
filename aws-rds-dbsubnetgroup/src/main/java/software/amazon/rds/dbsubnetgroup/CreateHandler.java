@@ -9,12 +9,18 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
+
+    private final static IdentifierFactory groupNameFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            DB_SUBNET_GROUP_NAME_LENGTH
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder().build());
@@ -23,6 +29,7 @@ public class CreateHandler extends BaseHandlerStd {
     public CreateHandler(final HandlerConfig config) {
         super(config);
     }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -70,10 +77,12 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> setDbSubnetGroupNameIfEmpty(final ResourceHandlerRequest<ResourceModel> request,
                                                                                       final ProgressEvent<ResourceModel, CallbackContext> progress) {
         final ResourceModel model = progress.getResourceModel();
-        if (StringUtils.isNullOrEmpty(model.getDBSubnetGroupName())){
-            model.setDBSubnetGroupName(IdentifierUtils
-                    .generateResourceIdentifier(request.getLogicalResourceIdentifier(), request.getClientRequestToken(), DB_SUBNET_GROUP_NAME_LENGTH)
-                    .toLowerCase());
+        if (StringUtils.isNullOrEmpty(model.getDBSubnetGroupName())) {
+            model.setDBSubnetGroupName(groupNameFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         }
         return ProgressEvent.progress(model, progress.getCallbackContext());
     }
