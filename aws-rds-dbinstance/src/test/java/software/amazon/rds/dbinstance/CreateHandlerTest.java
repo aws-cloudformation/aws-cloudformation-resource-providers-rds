@@ -82,12 +82,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler(
-                HandlerConfig.builder()
-                        .probingEnabled(false)
-                        .backoff(TEST_BACKOFF_DELAY)
-                        .build()
-        );
+        handler = new CreateHandler(HandlerConfig.builder()
+                .probingEnabled(false)
+                .backoff(TEST_BACKOFF_DELAY)
+                .build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         ec2Client = mock(Ec2Client.class);

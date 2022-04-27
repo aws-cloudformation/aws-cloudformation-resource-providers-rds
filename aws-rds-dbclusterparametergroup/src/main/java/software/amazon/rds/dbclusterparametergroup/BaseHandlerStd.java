@@ -41,6 +41,8 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
     protected static final String AVAILABLE = "available";
+    protected static final String RESOURCE_IDENTIFIER = "dbclusterparametergroup";
+    protected static final String STACK_NAME = "rds";
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     // 5 min for waiting propagation according to https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBClusterParameterGroup.html
     protected static final int CALLBACK_DELAY_SECONDS = 5 * 60;

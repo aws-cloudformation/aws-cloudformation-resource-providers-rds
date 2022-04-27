@@ -1,7 +1,5 @@
 package software.amazon.rds.optiongroup;
 
-import java.util.Optional;
-
 import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -10,11 +8,17 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
+
+    private static final IdentifierFactory groupIdentifierFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            RESOURCE_ID_MAX_LENGTH
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder()
@@ -37,12 +41,11 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> {
                     final ResourceModel model = request.getDesiredResourceState();
                     if (StringUtils.isNullOrEmpty(model.getOptionGroupName())) {
-                        model.setOptionGroupName(IdentifierUtils.generateResourceIdentifier(
-                                Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
-                                Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
-                                request.getClientRequestToken(),
-                                RESOURCE_ID_MAX_LENGTH
-                        ).toLowerCase());
+                        model.setOptionGroupName(groupIdentifierFactory.newIdentifier()
+                                .withStackId(request.getStackId())
+                                .withResourceId(request.getLogicalResourceIdentifier())
+                                .withRequestToken(request.getClientRequestToken())
+                                .toString());
                     }
                     return ProgressEvent.progress(model, progress.getCallbackContext());
                 })

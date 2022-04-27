@@ -26,6 +26,10 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
 
+    protected static final String STACK_NAME = "rds";
+    protected static final String RESOURCE_IDENTIFIER = "eventsubscription";
+    protected static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
+
     protected static final ErrorRuleSet DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     SubscriptionAlreadyExistException.class)
@@ -70,8 +74,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final String status = proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeEventSubscriptionsRequest(model),
-                proxyClient.client()::describeEventSubscriptions)
+                        Translator.describeEventSubscriptionsRequest(model),
+                        proxyClient.client()::describeEventSubscriptions)
                 .eventSubscriptionsList().stream().findFirst().get().status();
         return status.equals("active");
     }

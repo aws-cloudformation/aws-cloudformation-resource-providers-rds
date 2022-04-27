@@ -1,8 +1,5 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import java.util.HashSet;
-import java.util.Map;
-
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;

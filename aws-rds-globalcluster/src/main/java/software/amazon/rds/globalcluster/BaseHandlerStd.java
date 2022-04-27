@@ -29,6 +29,8 @@ import java.util.List;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
   protected static final int GLOBAL_CLUSTER_ID_MAX_LENGTH = 63;
   protected static final int PAUSE_TIME_SECONDS = 60;
+  protected static final String STACK_NAME = "rds";
+  protected static final String RESOURCE_IDENTIFIER = "globalcluster";
   protected static final Constant BACKOFF_STRATEGY = Constant.of().timeout(Duration.ofMinutes(180L)).delay(Duration.ofSeconds(30L)).build();
   private static final String MESSAGE_FORMAT_FAILED_TO_STABILIZE = "GlobalCluster %s failed to stabilize.";
   protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;

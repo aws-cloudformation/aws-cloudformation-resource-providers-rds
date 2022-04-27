@@ -27,6 +27,8 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int DB_SUBNET_GROUP_NAME_LENGTH = 255;
     protected static final String DB_SUBNET_GROUP_STATUS_COMPLETE = "Complete";
+    protected static final String STACK_NAME = "rds";
+    protected static final String RESOURCE_IDENTIFIER = "dbsubnetgroup";
 
     protected static final ErrorRuleSet DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),

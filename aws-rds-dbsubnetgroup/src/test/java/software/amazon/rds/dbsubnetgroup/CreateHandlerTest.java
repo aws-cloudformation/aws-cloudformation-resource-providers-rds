@@ -37,24 +37,26 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
 
     @Mock
+    RdsClient rds;
+    @Mock
     private AmazonWebServicesClientProxy proxy;
-
     @Mock
     private ProxyClient<RdsClient> proxyRdsClient;
-
-    @Mock
-    RdsClient rds;
-
     private CreateHandler handler;
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler();
+        handler = new CreateHandler(HandlerConfig.builder()
+                .probingEnabled(false)
+                .backoff(TEST_BACKOFF_DELAY)
+                .build());
+
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         proxyRdsClient = MOCK_PROXY(proxy, rds);

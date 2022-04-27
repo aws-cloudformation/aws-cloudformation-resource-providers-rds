@@ -7,13 +7,19 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 
 public class CreateHandler extends BaseHandlerStd {
+
+    private final static IdentifierFactory groupIdentifierFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            MAX_LENGTH_GROUP_NAME
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder().build());
@@ -49,7 +55,7 @@ public class CreateHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> createDbClusterParameterGroup(final AmazonWebServicesClientProxy proxy,
                                                                                         final ProxyClient<RdsClient> proxyClient,
                                                                                         final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                        final Tagging.TagSet tags ) {
+                                                                                        final Tagging.TagSet tags) {
         return proxy
                 .initiate("rds::create-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator
@@ -71,12 +77,11 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress) {
         final ResourceModel model = progress.getResourceModel();
         if (StringUtils.isNullOrEmpty(model.getDBClusterParameterGroupName()))
-            model.setDBClusterParameterGroupName(IdentifierUtils
-                    .generateResourceIdentifier(request.getStackId(),
-                            request.getLogicalResourceIdentifier(),
-                            request.getClientRequestToken(),
-                            MAX_LENGTH_GROUP_NAME)
-                    .toLowerCase());
+            model.setDBClusterParameterGroupName(groupIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         return ProgressEvent.progress(model, progress.getCallbackContext());
     }
 }

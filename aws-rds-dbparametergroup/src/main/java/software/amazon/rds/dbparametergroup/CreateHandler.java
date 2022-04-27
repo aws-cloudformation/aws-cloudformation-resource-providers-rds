@@ -1,7 +1,6 @@
 package software.amazon.rds.dbparametergroup;
 
 import java.util.HashSet;
-import java.util.Optional;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -9,16 +8,20 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 
 public class CreateHandler extends BaseHandlerStd {
 
-    public static final String DEFAULT_LOGICAL_IDENTIFIER = "dbparametergroup";
+    private static final IdentifierFactory groupIdentifierFactory = new IdentifierFactory(
+            STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            MAX_LENGTH_GROUP_NAME
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder().build());
@@ -79,12 +82,11 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                          final ResourceModel model,
                                                                                          final ProgressEvent<ResourceModel, CallbackContext> progress) {
         if (StringUtils.isNullOrEmpty(model.getDBParameterGroupName()))
-            model.setDBParameterGroupName(IdentifierUtils.generateResourceIdentifier(
-                    request.getStackId(),
-                    Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(DEFAULT_LOGICAL_IDENTIFIER),
-                    request.getClientRequestToken(),
-                    MAX_LENGTH_GROUP_NAME
-            ).toLowerCase());
+            model.setDBParameterGroupName(groupIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         return ProgressEvent.progress(model, progress.getCallbackContext());
     }
 }

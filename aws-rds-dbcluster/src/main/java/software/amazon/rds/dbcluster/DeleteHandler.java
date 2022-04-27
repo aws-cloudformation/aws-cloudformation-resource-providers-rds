@@ -1,8 +1,7 @@
 package software.amazon.rds.dbcluster;
 
-import java.util.Optional;
-
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
@@ -12,15 +11,21 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.resource.IdentifierUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class DeleteHandler extends BaseHandlerStd {
 
     private static final String SNAPSHOT_PREFIX = "Snapshot-";
     private static final int SNAPSHOT_MAX_LENGTH = 255;
     private static final String DELETION_PROTECTION_ENABLED_ERROR = "Cannot delete protected Cluster %s, please disable deletion protection and try again";
+
+    private static final IdentifierFactory snapshotIdentifierFactory = new IdentifierFactory(
+            STACK_NAME,
+            SNAPSHOT_PREFIX + RESOURCE_IDENTIFIER,
+            SNAPSHOT_MAX_LENGTH
+    );
 
     public DeleteHandler() {
         this(HandlerConfig.builder().build());
@@ -79,12 +84,11 @@ public class DeleteHandler extends BaseHandlerStd {
         String snapshotIdentifier = null;
 
         if (BooleanUtils.isTrue(request.getSnapshotRequested())) {
-            snapshotIdentifier = IdentifierUtils.generateResourceIdentifier(
-                    Optional.ofNullable(request.getStackId()).orElse(STACK_NAME),
-                    SNAPSHOT_PREFIX + Optional.ofNullable(request.getLogicalResourceIdentifier()).orElse(RESOURCE_IDENTIFIER),
-                    request.getClientRequestToken(),
-                    SNAPSHOT_MAX_LENGTH
-            );
+            snapshotIdentifier = snapshotIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(StringUtils.prependIfMissing(request.getLogicalResourceIdentifier(), SNAPSHOT_PREFIX))
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString();
         }
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
