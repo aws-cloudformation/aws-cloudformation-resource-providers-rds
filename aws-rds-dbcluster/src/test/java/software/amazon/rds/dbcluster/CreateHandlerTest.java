@@ -12,8 +12,7 @@ import java.time.Duration;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import junit.framework.Assert;
-
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -214,7 +213,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(argumentCaptor.capture());
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
-        Assert.assertEquals(argumentCaptor.getValue().kmsKeyId(), kmsKeyId);
+        Assertions.assertThat(argumentCaptor.getValue().kmsKeyId()).isEqualTo(kmsKeyId);
     }
 
     @Test
