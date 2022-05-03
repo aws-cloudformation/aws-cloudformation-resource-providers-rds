@@ -292,6 +292,11 @@
           "required": [
             "GlobalClusterIdentifier"
           ]
+        },
+        {
+          "required": [
+            "ReplicationSourceIdentifier"
+          ]
         }
       ]
     }
