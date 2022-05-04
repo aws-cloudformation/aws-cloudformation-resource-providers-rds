@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,16 +51,13 @@ import software.amazon.rds.common.handler.HandlerConfig;
 public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Mock
+    RdsClient rdsClient;
+    @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;
-
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
-
-    @Mock
-    RdsClient rdsClient;
-
     @Getter
     private UpdateHandler handler;
 
@@ -186,6 +184,47 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_HandleAssociatedRoleWithEmptyFeature() {
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+
+        final DBCluster dbclusterActive = DBCLUSTER_ACTIVE.toBuilder()
+                .associatedRoles(software.amazon.awssdk.services.rds.model.DBClusterRole.builder()
+                        .roleArn(ROLE_WITH_EMPTY_FEATURE.getRoleArn())
+                        .build())
+                .build();
+
+        transitions.add(dbclusterActive);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return dbclusterActive;
+                },
+                () -> RESOURCE_MODEL.toBuilder().associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE)).build(),
+                () -> RESOURCE_MODEL.toBuilder().associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE)).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(5)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
     }
 
     @Test

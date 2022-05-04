@@ -5,6 +5,7 @@ import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRe
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import com.amazonaws.util.StringUtils;
@@ -20,7 +21,6 @@ import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundExcept
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
@@ -36,7 +36,6 @@ import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.CallChain;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -56,11 +55,7 @@ import software.amazon.rds.common.printer.JsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
     public static final String STACK_NAME = "rds";
-
-    private static final String DB_CLUSTER_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
-
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
-
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBClusterAlreadyExistsFault)
@@ -90,22 +85,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     KmsKeyNotAccessibleException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
-
     protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleAlreadyExistsException.class)
             .build()
             .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
-
     protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleNotFoundException.class)
             .build()
             .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
-
-    protected HandlerConfig config;
-
+    private static final String DB_CLUSTER_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
+    protected HandlerConfig config;
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -283,8 +275,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         if (role == null || sdkRole == null) {
             return role == null && sdkRole == null;
         }
-        return Optional.ofNullable(role.getRoleArn()).orElse("").equals(sdkRole.roleArn()) &&
-                Optional.ofNullable(role.getFeatureName()).orElse("").equals(sdkRole.featureName());
+        return Objects.equals(role.getRoleArn(), sdkRole.roleArn()) &&
+                Objects.equals(role.getFeatureName(), sdkRole.featureName());
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
@@ -332,9 +324,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final ResourceModel resourceModel = progress.getResourceModel();
         DBCluster cluster;
-        try{
+        try {
             cluster = fetchDBCluster(proxyClient, resourceModel);
-        } catch (Exception exception){
+        } catch (Exception exception) {
             return Commons.handleException(
                     ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
                     exception,

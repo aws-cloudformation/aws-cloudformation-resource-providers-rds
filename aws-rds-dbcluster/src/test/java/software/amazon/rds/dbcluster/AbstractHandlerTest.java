@@ -56,6 +56,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final String ROLE_ARN;
     protected static final String ROLE_FEATURE;
     protected static final DBClusterRole ROLE;
+    protected static final DBClusterRole ROLE_WITH_EMPTY_FEATURE;
 
     protected static final ResourceModel RESOURCE_MODEL;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE;
@@ -100,6 +101,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         ROLE_ARN = "sampleArn";
         ROLE_FEATURE = "sampleFeature";
         ROLE = DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build();
+        ROLE_WITH_EMPTY_FEATURE = DBClusterRole.builder().roleArn(ROLE_ARN).build();
 
         RESOURCE_MODEL = ResourceModel.builder()
                 .associatedRoles(Lists.newArrayList(ROLE))
