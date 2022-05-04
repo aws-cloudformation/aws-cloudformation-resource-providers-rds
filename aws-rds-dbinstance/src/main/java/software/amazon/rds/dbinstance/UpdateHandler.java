@@ -35,7 +35,7 @@ import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
-        this(HandlerConfig.builder().probingEnabled(true).build());
+        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
     }
 
     public UpdateHandler(final HandlerConfig config) {
