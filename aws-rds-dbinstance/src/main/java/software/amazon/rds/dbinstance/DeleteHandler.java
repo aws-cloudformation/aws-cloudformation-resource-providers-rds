@@ -26,7 +26,7 @@ public class DeleteHandler extends BaseHandlerStd {
     );
 
     public DeleteHandler() {
-        this(HandlerConfig.builder().probingEnabled(true).build());
+        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
     }
 
     public DeleteHandler(final HandlerConfig config) {

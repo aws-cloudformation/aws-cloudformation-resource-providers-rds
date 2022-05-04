@@ -15,7 +15,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 public class ListHandler extends BaseHandlerStd {
 
     public ListHandler() {
-        this(HandlerConfig.builder().build());
+        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
     }
 
     public ListHandler(final HandlerConfig config) {

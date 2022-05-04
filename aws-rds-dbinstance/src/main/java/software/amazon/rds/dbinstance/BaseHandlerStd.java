@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,6 +57,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
@@ -126,6 +128,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceAlreadyExistsException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+
     public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBInstanceAlreadyExists)
@@ -139,6 +142,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidRestoreException.class)
             .build()
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
     protected static final ErrorRuleSet CREATE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBInstanceAlreadyExists)
@@ -147,6 +151,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceAlreadyExistsException.class)
             .build()
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
     protected static final ErrorRuleSet CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBInstanceAlreadyExists)
@@ -208,7 +213,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSnapshotAlreadyExistsException.class)
             .build()
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+
+    protected final static HandlerConfig DEFAULT_DB_INSTANCE_HANDLER_CONFIG = HandlerConfig.builder()
+            .probingEnabled(true)
+            .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
+            .build();
+
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
+
     protected HandlerConfig config;
 
     public BaseHandlerStd(final HandlerConfig config) {

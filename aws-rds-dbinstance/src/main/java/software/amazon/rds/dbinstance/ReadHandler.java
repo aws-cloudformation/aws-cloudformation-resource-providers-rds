@@ -15,7 +15,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 public class ReadHandler extends BaseHandlerStd {
 
     public ReadHandler() {
-        this(HandlerConfig.builder().probingEnabled(true).build());
+        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
     }
 
     public ReadHandler(final HandlerConfig config) {
