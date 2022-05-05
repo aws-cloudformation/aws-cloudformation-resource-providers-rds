@@ -414,11 +414,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final DBCluster dbCluster = fetchDBCluster(rdsProxyClient, model);
         final List<DBClusterMember> dbClusterMembers = dbCluster.dbClusterMembers();
-        if (!CollectionUtils.isNullOrEmpty(dbClusterMembers)) {
-            for (DBClusterMember member : dbClusterMembers) {
-                if (model.getDBInstanceIdentifier().equals(member.dbInstanceIdentifier())) {
-                    return IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus());
-                }
+        if (CollectionUtils.isNullOrEmpty(dbClusterMembers)) {
+            return true;
+        }
+        for (DBClusterMember member : dbClusterMembers) {
+            if (model.getDBInstanceIdentifier().equals(member.dbInstanceIdentifier())) {
+                return IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus());
             }
         }
         return false;
