@@ -17,7 +17,6 @@ import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
-import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
@@ -125,18 +124,18 @@ public class UpdateHandler extends BaseHandlerStd {
             final Logger logger
     ) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
+                .then(progress -> {
+                    if (shouldReboot(rdsProxyClient, progress) ||
+                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient, progress))) {
+                        return rebootAwait(proxy, rdsProxyClient, progress);
+                    }
+                    return progress;
+                })
                 .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient, progress))
                 .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient, progress))
                 .then(progress -> {
                     if (isDBClusterMember(progress.getResourceModel())) {
                         return awaitDBClusterParameterGroup(proxy, rdsProxyClient, progress);
-                    }
-                    return progress;
-                })
-                .then(progress -> {
-                    if (shouldReboot(rdsProxyClient, progress) ||
-                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient, progress))) {
-                        return rebootAwait(proxy, rdsProxyClient, progress);
                     }
                     return progress;
                 })
@@ -149,9 +148,8 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         try {
             final DBInstance dbInstance = fetchDBInstance(proxyClient, progress.getResourceModel());
-            Optional<DBParameterGroupStatus> maybeStatus = dbInstance.dbParameterGroups().stream().findFirst();
-            if (maybeStatus.isPresent()) {
-                return PENDING_REBOOT_STATUS.equals(maybeStatus.get().parameterApplyStatus());
+            if (!CollectionUtils.isNullOrEmpty(dbInstance.dbParameterGroups())) {
+                return PENDING_REBOOT_STATUS.equals(dbInstance.dbParameterGroups().get(0).parameterApplyStatus());
             }
         } catch (DbInstanceNotFoundException e) {
             return false;
@@ -165,13 +163,12 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         final String dbInstanceIdentifier = progress.getResourceModel().getDBInstanceIdentifier();
         final DBCluster dbCluster = fetchDBCluster(proxyClient, progress.getResourceModel());
-        Optional<DBClusterMember> maybeDbClusterMember = Optional.ofNullable(dbCluster.dbClusterMembers())
-                .orElse(Collections.emptyList())
-                .stream()
-                .filter(member -> dbInstanceIdentifier.equals(member.dbInstanceIdentifier()))
-                .findFirst();
-        if (maybeDbClusterMember.isPresent()) {
-            return PENDING_REBOOT_STATUS.equals(maybeDbClusterMember.get().dbClusterParameterGroupStatus());
+        if (!CollectionUtils.isNullOrEmpty(dbCluster.dbClusterMembers())) {
+            for (final DBClusterMember member : dbCluster.dbClusterMembers()) {
+                if (dbInstanceIdentifier.equals(member.dbInstanceIdentifier())) {
+                    return PENDING_REBOOT_STATUS.equals(member.dbClusterParameterGroupStatus());
+                }
+            }
         }
         return false;
     }

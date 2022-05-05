@@ -700,6 +700,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
                 .dbParameterGroups(DBParameterGroupStatus.builder()
                         .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("pending-reboot")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
                         .parameterApplyStatus("applying")
                         .build())
                 .build());
@@ -719,12 +725,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .optionGroupMemberships(OptionGroupMembership.builder()
                         .optionGroupName("test-option-group")
                         .status("in-sync")
-                        .build())
-                .build());
-        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .dbParameterGroups(DBParameterGroupStatus.builder()
-                        .dbParameterGroupName("test-db-parameter-group")
-                        .parameterApplyStatus("pending-reboot")
                         .build())
                 .build());
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
@@ -747,13 +747,19 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
 
-        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(6)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
     }
 
     @Test
     public void handleRequest_ResourceDriftClusterInstance() {
         final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("test-db-parameter-group")
+                        .parameterApplyStatus("pending-reboot")
+                        .build())
+                .build());
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
                 .dbParameterGroups(DBParameterGroupStatus.builder()
                         .dbParameterGroupName("test-db-parameter-group")
@@ -776,12 +782,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .optionGroupMemberships(OptionGroupMembership.builder()
                         .optionGroupName("test-option-group")
                         .status("in-sync")
-                        .build())
-                .build());
-        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .dbParameterGroups(DBParameterGroupStatus.builder()
-                        .dbParameterGroupName("test-db-parameter-group")
-                        .parameterApplyStatus("pending-reboot")
                         .build())
                 .build());
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
@@ -821,7 +821,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(6)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
     }
@@ -871,14 +871,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .dbClusters(DBCluster.builder()
                                 .dbClusterMembers(DBClusterMember.builder()
                                         .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
-                                        .dbClusterParameterGroupStatus("in-sync")
-                                        .build())
-                                .build())
-                        .build())
-                .thenReturn(DescribeDbClustersResponse.builder()
-                        .dbClusters(DBCluster.builder()
-                                .dbClusterMembers(DBClusterMember.builder()
-                                        .dbInstanceIdentifier(DB_INSTANCE_ACTIVE.dbInstanceIdentifier())
                                         .dbClusterParameterGroupStatus("pending-reboot")
                                         .build())
                                 .build())
@@ -901,8 +893,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 }
