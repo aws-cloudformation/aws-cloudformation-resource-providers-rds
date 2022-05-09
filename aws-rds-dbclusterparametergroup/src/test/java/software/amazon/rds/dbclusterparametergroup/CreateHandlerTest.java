@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -22,6 +21,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
@@ -35,20 +36,17 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequ
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
-import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersResponse;
-import software.amazon.awssdk.services.rds.model.EngineDefaults;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClusterParametersIterable;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -119,8 +117,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
                 .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
@@ -143,6 +139,35 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleFailWithAccessDenied() {
+        final String message = "AccessDenied on create request";
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
+        when(proxyRdsClient.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder().errorMessage(message).errorCode("AccessDenied").build())
+                        .build());
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .desiredResourceState(RESOURCE_MODEL)
+                .stackId(StackId)
+                .logicalResourceIdentifier("logicalId").build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).contains(message);
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
     }
 
     @Test
@@ -170,8 +195,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
                 .tagList(Tag.builder().key("key").value("value").build()).build();
         when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         mockDescribeDbClusterParametersResponse("static", "dynamic", true);
 
@@ -203,8 +226,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", false);
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
@@ -228,8 +249,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
         mockDescribeDbClusterParametersResponse("static", "dynamic", true);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
