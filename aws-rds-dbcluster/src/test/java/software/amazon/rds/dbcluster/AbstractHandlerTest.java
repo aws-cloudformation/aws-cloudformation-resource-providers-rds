@@ -30,6 +30,7 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
@@ -76,6 +77,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final Set<Tag> TAG_LIST;
     protected static final Set<Tag> TAG_LIST_EMPTY;
     protected static final Set<Tag> TAG_LIST_ALTER;
+    protected static final Tagging.TagSet TAG_SET;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -248,13 +250,22 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 Tag.builder().key("bar").value("baz").build(),
                 Tag.builder().key("fizz").value("buzz").build()
         );
+
+        TAG_SET = Tagging.TagSet.builder()
+                .systemTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-1").value("system-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-2").value("system-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-3").value("system-tag-value3").build()
+                )).stackTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-1").value("stack-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-2").value("stack-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-3").value("stack-tag-value3").build()
+                )).resourceTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-1").value("resource-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-2").value("resource-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-3").value("resource-tag-value3").build()
+                )).build();
     }
-
-    protected abstract BaseHandlerStd getHandler();
-
-    protected abstract AmazonWebServicesClientProxy getProxy();
-
-    protected abstract ProxyClient<RdsClient> getRdsProxy();
 
     static ProxyClient<RdsClient> MOCK_PROXY(
             final AmazonWebServicesClientProxy proxy,
@@ -301,6 +312,12 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
             }
         };
     }
+
+    protected abstract BaseHandlerStd getHandler();
+
+    protected abstract AmazonWebServicesClientProxy getProxy();
+
+    protected abstract ProxyClient<RdsClient> getRdsProxy();
 
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
