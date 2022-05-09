@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -53,6 +54,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractHandlerTest {
@@ -108,8 +110,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(restoreResponse);
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -125,8 +125,66 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_AccessDeniedTagging() {
+        final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
+                .thenReturn(restoreResponse);
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(TAG_SET.getStackTags())
+                .resourceTags(TAG_SET.getResourceTags())
+                .build();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                () -> DB_INSTANCE_ACTIVE,
+                null,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(2)).restoreDBInstanceFromDBSnapshot(createCaptor.capture());
+
+        final RestoreDbInstanceFromDbSnapshotRequest requestWithAllTags = createCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+        final RestoreDbInstanceFromDbSnapshotRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+
+        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
     }
 
     @Test
@@ -138,8 +196,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(describeDbSnapshotsResponse);
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -155,8 +211,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -172,8 +227,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(describeDbSnapshotsResponse);
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -189,8 +242,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -281,8 +333,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_CreateReadReplica_Create_Success() {
         when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
                 .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -298,8 +348,65 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateReadReplica_AccessDeniedTagging() {
+        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
+                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(TAG_SET.getStackTags())
+                .resourceTags(TAG_SET.getResourceTags())
+                .build();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                () -> DB_INSTANCE_ACTIVE,
+                null,
+                () -> RESOURCE_MODEL_READ_REPLICA.toBuilder()
+                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbInstanceReadReplicaRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
+        verify(rdsProxy.client(), times(2)).createDBInstanceReadReplica(createCaptor.capture());
+
+        final CreateDbInstanceReadReplicaRequest requestWithAllTags = createCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+        final CreateDbInstanceReadReplicaRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+
+        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
     }
 
     @Test
@@ -356,8 +463,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_CreateReadReplica_Success() {
         when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
                 .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -373,8 +478,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -512,7 +616,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(2)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 
     @Test
@@ -535,6 +639,64 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateNewInstance_AccessDeniedTagging() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
+                .thenReturn(CreateDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(TAG_SET.getStackTags())
+                .resourceTags(TAG_SET.getResourceTags())
+                .build();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                () -> DB_INSTANCE_ACTIVE,
+                null,
+                () -> RESOURCE_MODEL_BLDR()
+                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbInstanceRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(2)).createDBInstance(createCaptor.capture());
+
+        final CreateDbInstanceRequest requestWithAllTags = createCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+        final CreateDbInstanceRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
     }
 
     @Test

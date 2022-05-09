@@ -47,28 +47,6 @@ public final class Tagging {
                     ErrorCode.AccessDeniedException
             ).build();
 
-    @Builder(toBuilder = true)
-    @AllArgsConstructor
-    @Data
-    public static class TagSet {
-        @Builder.Default
-        private Set<Tag> systemTags = new LinkedHashSet<>();
-        @Builder.Default
-        private Set<Tag> stackTags = new LinkedHashSet<>();
-        @Builder.Default
-        private Set<Tag> resourceTags = new LinkedHashSet<>();
-
-        public boolean isEmpty() {
-            return systemTags.isEmpty() &&
-                    stackTags.isEmpty() &&
-                    resourceTags.isEmpty();
-        }
-
-        public static TagSet emptySet() {
-            return TagSet.builder().build();
-        }
-    }
-
     public static TagSet exclude(final TagSet from, final TagSet what) {
         final Set<Tag> systemTags = new LinkedHashSet<>(from.getSystemTags());
         systemTags.removeAll(what.getSystemTags());
@@ -222,9 +200,31 @@ public final class Tagging {
         return hardFailErrorRuleSet;
     }
 
-    private static void addToMapIfAbsent(Map<String, Tag> allTags, Collection<Tag> tags){
-        for(Tag tag : tags) {
+    private static void addToMapIfAbsent(Map<String, Tag> allTags, Collection<Tag> tags) {
+        for (Tag tag : tags) {
             allTags.putIfAbsent(tag.key(), tag);
+        }
+    }
+
+    @Builder(toBuilder = true)
+    @AllArgsConstructor
+    @Data
+    public static class TagSet {
+        @Builder.Default
+        private Set<Tag> systemTags = new LinkedHashSet<>();
+        @Builder.Default
+        private Set<Tag> stackTags = new LinkedHashSet<>();
+        @Builder.Default
+        private Set<Tag> resourceTags = new LinkedHashSet<>();
+
+        public static TagSet emptySet() {
+            return TagSet.builder().build();
+        }
+
+        public boolean isEmpty() {
+            return systemTags.isEmpty() &&
+                    stackTags.isEmpty() &&
+                    resourceTags.isEmpty();
         }
     }
 }
