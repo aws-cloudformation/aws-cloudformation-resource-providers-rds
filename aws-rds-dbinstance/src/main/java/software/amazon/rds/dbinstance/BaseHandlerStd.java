@@ -73,6 +73,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbinstance";
     public static final String STACK_NAME = "rds";
 
+    public static final String API_VERSION_V12 = "2012-09-17";
+
     public static final String PENDING_REBOOT_STATUS = "pending-reboot";
     public static final String IN_SYNC_STATUS = "in-sync";
 
@@ -82,6 +84,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             "sqlserver-ee",
             "sqlserver-se"
     );
+
+    protected static final RuntimeException REQUEST_VERSION_ROUTE_MISSING = new RuntimeException("Failed to dispatch request to a particular API version");
 
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
 
@@ -250,8 +254,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         context != null ? context : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(RdsClientBuilder::getClient)),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(Ec2ClientBuilder::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(this::buildRdsClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(this::buildEc2Client)),
                         logger
                 ));
     }
@@ -318,7 +322,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model
     ) {
         final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbInstancesRequest(model),
+                TranslatorV19.describeDbInstancesRequest(model),
                 rdsProxyClient.client()::describeDBInstances
         );
         return response.dbInstances().stream().findFirst().get();
@@ -329,7 +333,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model
     ) {
         final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbClustersRequest(model),
+                TranslatorV19.describeDbClustersRequest(model),
                 rdsProxyClient.client()::describeDBClusters
         );
         return response.dbClusters().stream().findFirst().get();
@@ -340,7 +344,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model
     ) {
         final DescribeDbSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbSnapshotsRequest(model),
+                TranslatorV19.describeDbSnapshotsRequest(model),
                 rdsProxyClient.client()::describeDBSnapshots
         );
         return response.dbSnapshots().stream().findFirst().get();
@@ -352,7 +356,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final String groupName
     ) {
         final DescribeSecurityGroupsResponse response = ec2ProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeSecurityGroupsRequest(vpcId, groupName),
+                TranslatorV19.describeSecurityGroupsRequest(vpcId, groupName),
                 ec2ProxyClient.client()::describeSecurityGroups
         );
         return Optional.ofNullable(response.securityGroups())
@@ -487,7 +491,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         for (final DBInstanceRole role : rolesToAdd) {
             final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::add-roles-to-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                    .translateToServiceRequest(addRequest -> Translator.addRoleToDbInstanceRequest(progress.getResourceModel(), role))
+                    .translateToServiceRequest(addRequest -> TranslatorV19.addRoleToDbInstanceRequest(progress.getResourceModel(), role))
                     .backoffDelay(config.getBackoff())
                     .makeServiceCall((request, proxyInvocation) -> {
                         return proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::addRoleToDBInstance);
@@ -516,7 +520,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         for (final DBInstanceRole role : rolesToRemove) {
             final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::remove-roles-from-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                    .translateToServiceRequest(removeRequest -> Translator.removeRoleFromDbInstanceRequest(
+                    .translateToServiceRequest(removeRequest -> TranslatorV19.removeRoleFromDbInstanceRequest(
                             progress.getResourceModel(), role
                     ))
                     .backoffDelay(config.getBackoff())
@@ -549,7 +553,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         rdsProxyClient,
                         progress.getResourceModel(),
                         progress.getCallbackContext()
-                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                ).translateToServiceRequest(TranslatorV19::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
@@ -624,5 +628,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
+    }
+
+    protected RdsClient buildRdsClient() {
+        return RdsClientBuilder.getClient();
+    }
+
+    protected Ec2Client buildEc2Client() {
+        return Ec2ClientBuilder.getClient();
     }
 }

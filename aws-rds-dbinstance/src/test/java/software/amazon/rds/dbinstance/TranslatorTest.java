@@ -24,7 +24,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
                 .build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
     }
 
@@ -37,7 +37,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
                 .build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_DECR);
     }
 
@@ -50,7 +50,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
                 .build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
     }
 
@@ -63,7 +63,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
                 .build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE); // should stay unchanged
     }
 
@@ -76,7 +76,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_INCR)
                 .build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_INCR);
     }
 
@@ -89,7 +89,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_DECR)
                 .build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DECR);
     }
 
@@ -102,7 +102,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_INCR)
                 .build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_INCR);
     }
 
@@ -115,7 +115,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_DECR)
                 .build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
     }
 
@@ -128,7 +128,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .useDefaultProcessorFeatures(true)
                 .build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
         assertThat(request.useDefaultProcessorFeatures()).isTrue();
     }
 
@@ -141,24 +141,24 @@ class TranslatorTest extends AbstractHandlerTest {
                 .processorFeatures(PROCESSOR_FEATURES_ALTER)
                 .build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        assertThat(request.processorFeatures()).hasSameElementsAs(Translator.translateProcessorFeaturesToSdk(PROCESSOR_FEATURES_ALTER));
+        final ModifyDbInstanceRequest request = TranslatorV19.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.processorFeatures()).hasSameElementsAs(TranslatorV19.translateProcessorFeaturesToSdk(PROCESSOR_FEATURES_ALTER));
     }
 
     @Test
     public void test_createDBInstanceRequest_stableHashCode() {
         final Tagging.TagSet tagSet1 = Tagging.TagSet.builder()
-                .systemTags(Translator.translateTagsToSdk(TAG_LIST))
-                .resourceTags(Translator.translateTagsToSdk(TAG_LIST))
-                .stackTags(Translator.translateTagsToSdk(TAG_LIST))
+                .systemTags(TranslatorV19.translateTagsToSdk(TAG_LIST))
+                .resourceTags(TranslatorV19.translateTagsToSdk(TAG_LIST))
+                .stackTags(TranslatorV19.translateTagsToSdk(TAG_LIST))
                 .build();
         final Tagging.TagSet tagSet2 = Tagging.TagSet.builder()
-                .systemTags(Translator.translateTagsToSdk(TAG_LIST))
-                .resourceTags(Translator.translateTagsToSdk(TAG_LIST))
-                .stackTags(Translator.translateTagsToSdk(TAG_LIST))
+                .systemTags(TranslatorV19.translateTagsToSdk(TAG_LIST))
+                .resourceTags(TranslatorV19.translateTagsToSdk(TAG_LIST))
+                .stackTags(TranslatorV19.translateTagsToSdk(TAG_LIST))
                 .build();
-        final CreateDbInstanceRequest request1 = Translator.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet1);
-        final CreateDbInstanceRequest request2 = Translator.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet2);
+        final CreateDbInstanceRequest request1 = TranslatorV19.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet1);
+        final CreateDbInstanceRequest request2 = TranslatorV19.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet2);
 
         Assertions.assertEquals(request1.hashCode(), request2.hashCode());
     }

@@ -31,7 +31,7 @@ public class ReadHandler extends BaseHandlerStd {
             final Logger logger
     ) {
         return proxy.initiate("rds::describe-db-instance", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
-                .translateToServiceRequest(Translator::describeDbInstancesRequest)
+                .translateToServiceRequest(TranslatorV19::describeDbInstancesRequest)
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         proxyInvocation.client()::describeDBInstances
@@ -43,7 +43,7 @@ public class ReadHandler extends BaseHandlerStd {
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
                     final DBInstance dbInstance = describeResponse.dbInstances().stream().findFirst().get();
-                    return ProgressEvent.success(Translator.translateDbInstanceFromSdk(dbInstance), context);
+                    return ProgressEvent.success(TranslatorV19.translateDbInstanceFromSdk(dbInstance), context);
                 });
     }
 }

@@ -156,12 +156,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                        .systemTags(BaseTranslator.translateTagsToRequest(BaseTranslator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(BaseTranslator.translateTagsToRequest(BaseTranslator.translateTagsFromSdk(TAG_SET.getStackTags()))),
                 () -> DB_INSTANCE_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .tags(BaseTranslator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .build(),
                 expectSuccess()
         );
@@ -378,12 +378,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                        .systemTags(BaseTranslator.translateTagsToRequest(BaseTranslator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(BaseTranslator.translateTagsToRequest(BaseTranslator.translateTagsFromSdk(TAG_SET.getStackTags()))),
                 () -> DB_INSTANCE_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL_READ_REPLICA.toBuilder()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .tags(BaseTranslator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .build(),
                 expectSuccess()
         );
@@ -668,12 +668,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                        .systemTags(BaseTranslator.translateTagsToRequest(BaseTranslator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(BaseTranslator.translateTagsToRequest(BaseTranslator.translateTagsFromSdk(TAG_SET.getStackTags()))),
                 () -> DB_INSTANCE_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL_BLDR()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .tags(BaseTranslator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .build(),
                 expectSuccess()
         );
@@ -710,7 +710,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 computeAssociatedRoleTransitions(DB_INSTANCE_ACTIVE, Collections.emptyList(), ASSOCIATED_ROLES)
         );
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES))
+                .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(ASSOCIATED_ROLES))
                 .build());
 
         final CallbackContext context = new CallbackContext();
@@ -765,7 +765,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> dbInstance,
-                () -> Translator.translateDbInstanceFromSdk(dbInstance),
+                () -> TranslatorV19.translateDbInstanceFromSdk(dbInstance),
                 expectSuccess()
         );
 

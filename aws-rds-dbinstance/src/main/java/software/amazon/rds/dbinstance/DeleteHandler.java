@@ -58,7 +58,7 @@ public class DeleteHandler extends BaseHandlerStd {
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
         return proxy.initiate("rds::delete-db-instance", rdsProxyClient, resourceModel, callbackContext)
-                .translateToServiceRequest(model -> Translator.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
+                .translateToServiceRequest(model -> TranslatorV19.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         deleteRequest,

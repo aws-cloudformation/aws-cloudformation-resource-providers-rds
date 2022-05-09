@@ -263,7 +263,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(Collections.emptyMap())
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+                        .desiredResourceTags(TranslatorV19.translateTagsToRequest(TAG_LIST)),
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_BLDR().build(),
@@ -287,8 +287,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
+                        .previousResourceTags(TranslatorV19.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceTags(TranslatorV19.translateTagsToRequest(TAG_LIST_EMPTY)),
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_BLDR().build(),
@@ -307,10 +307,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
         // We expect describeDBInstances to be called 2 more times: for tag mutation and for the final resource fetch.
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
+                .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
                 .build());
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
+                .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
                 .build());
 
         when(rdsProxy.client().removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class))).thenThrow(DbInstanceRoleNotFoundException.class);
@@ -346,10 +346,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
         // We expect describeDBInstances to be called 2 more times: for tag mutation and for the final resource fetch.
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
+                .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
                 .build());
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
+                .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
                 .build());
 
         final RemoveRoleFromDbInstanceResponse removeRoleFromDBInstanceResponse = RemoveRoleFromDbInstanceResponse.builder().build();
@@ -465,7 +465,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         // We expect describeDBInstances to be called 3 more times: for tag mutation, reboot check and the final resource fetch.
         for (int i = 0; i < 3; i++) {
             transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
-                    .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
+                    .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(ASSOCIATED_ROLES_ALTER))
                     .build());
         }
 
@@ -485,8 +485,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
+                        .previousResourceTags(TranslatorV19.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceTags(TranslatorV19.translateTagsToRequest(TAG_LIST_ALTER)),
                 transitions::remove,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_ALTER,

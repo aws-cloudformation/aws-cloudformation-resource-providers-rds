@@ -32,12 +32,12 @@ public class ListHandler extends BaseHandlerStd {
             final Logger logger
     ) {
         return proxy.initiate("rds::list-db-instances", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
-                .translateToServiceRequest(resourceModel -> Translator.describeDbInstancesRequest(request.getNextToken()))
+                .translateToServiceRequest(resourceModel -> TranslatorV19.describeDbInstancesRequest(request.getNextToken()))
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         rdsProxyClient.client()::describeDBInstances
                 )).done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
-                    final List<ResourceModel> resourceModels = Translator.translateDbInstancesFromSdk(describeResponse.dbInstances());
+                    final List<ResourceModel> resourceModels = TranslatorV19.translateDbInstancesFromSdk(describeResponse.dbInstances());
                     return ProgressEvent.<ResourceModel, CallbackContext>builder()
                             .callbackContext(callbackContext)
                             .resourceModels(resourceModels)

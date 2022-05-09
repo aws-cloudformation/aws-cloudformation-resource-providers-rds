@@ -596,7 +596,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
         for (int i = 0; i < initialRoles.size(); i++) {
             result.add(dbInstance.toBuilder()
-                    .associatedRoles(Translator.translateAssociatedRolesToSdk(
+                    .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(
                             initialRoles.subList(i, initialRoles.size())
                     )).build());
         }
@@ -606,7 +606,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
         // in this case the second loop does it.
         for (int i = 0; i <= finalRoles.size(); i++) {
             result.add(dbInstance.toBuilder()
-                    .associatedRoles(Translator.translateAssociatedRolesToSdk(
+                    .associatedRoles(TranslatorV19.translateAssociatedRolesToSdk(
                             finalRoles.subList(0, i)
                     )).build());
         }
