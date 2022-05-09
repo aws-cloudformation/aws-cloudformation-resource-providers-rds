@@ -19,6 +19,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
 
@@ -63,21 +64,8 @@ public class CreateHandler extends BaseHandlerStd {
                     .toString());
         }
 
-        // The reason we split the tags in 2 sets is an attempt to soft-fail a potential AccessDenied response from
-        // the server.
-        // RDS API accepts system tags even with no explicit rds:AddTagsToResource permission, in case a request
-        // is recognized as an internal one.
-        // The extra tags consist of stack and resource tags. We gather them in a single set. The logic is the
-        // following:
-        //   1. Attempt to invoke AddTagsToResource
-        //   2. If an exception is thrown:
-        //     2.1. If the tag set only consists of stack tags, soft fail and move on.
-        //     2.2. Otherwise, resource tags were provided: hard fail and ask the customer to add the missing permission.
-        final Tagging.TagSet systemTags = Tagging.TagSet.builder()
+        final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
-                .build();
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
@@ -85,13 +73,19 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (isReadReplica(progress.getResourceModel())) {
-                        return createDbInstanceReadReplica(proxy, rdsProxyClient, progress, systemTags);
+                        return safeCreate(this::createDbInstanceReadReplica, proxy, rdsProxyClient, progress, allTags);
                     } else if (isRestoreFromSnapshot(progress.getResourceModel())) {
-                        return restoreDbInstanceFromSnapshot(proxy, rdsProxyClient, progress, systemTags);
+                        return safeCreate(this::restoreDbInstanceFromSnapshot, proxy, rdsProxyClient, progress, allTags);
                     }
-                    return createDbInstance(proxy, rdsProxyClient, progress, systemTags);
+                    return safeCreate(this::createDbInstance, proxy, rdsProxyClient, progress, allTags);
                 }, CallbackContext::isCreated, CallbackContext::setCreated))
-                .then(progress -> updateTags(proxy, rdsProxyClient, progress, Tagging.TagSet.emptySet(), extraTags))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                            .stackTags(allTags.getStackTags())
+                            .resourceTags(allTags.getResourceTags())
+                            .build();
+                    return updateTags(proxy, rdsProxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete))
                 .then(progress -> ensureEngineSet(rdsProxyClient, progress))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
@@ -111,6 +105,22 @@ public class CreateHandler extends BaseHandlerStd {
                                 updateAssociatedRoles(proxy, rdsProxyClient, progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> safeCreate(
+            final HandlerMethod<ResourceModel, CallbackContext> createMethod,
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet allTags
+    ) {
+        final ProgressEvent<ResourceModel, CallbackContext> result = createMethod.invoke(proxy, rdsProxyClient, progress, allTags);
+        if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
+            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
+            return createMethod.invoke(proxy, rdsProxyClient, progress, systemTags);
+        }
+        result.getCallbackContext().setCreateTagComplete(true);
+        return result;
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstance(

@@ -15,6 +15,7 @@ public class CallbackContext extends StdCallbackContext {
     private boolean updatedRoles;
     private boolean updated;
     private boolean rebooted;
+    private boolean createTagComplete;
 
     private Map<String, Integer> probes;
 
