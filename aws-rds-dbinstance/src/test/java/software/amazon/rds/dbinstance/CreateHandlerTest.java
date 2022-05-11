@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -39,6 +40,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
@@ -68,11 +70,17 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     private ProxyClient<RdsClient> rdsProxy;
 
     @Mock
+    private ProxyClient<RdsClient> rdsProxyV12;
+
+    @Mock
     @Getter
     private ProxyClient<Ec2Client> ec2Proxy;
 
     @Mock
     private RdsClient rdsClient;
+
+    @Mock
+    private RdsClient rdsClientV12;
 
     @Mock
     private Ec2Client ec2Client;
@@ -82,6 +90,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     private boolean expectServiceInvocation;
 
+    @Override
+    public ProxyClient<RdsClient> getRdsProxy(final String version) {
+        switch (version) {
+            case API_VERSION_V12:
+                return rdsProxyV12;
+            default:
+                return rdsProxy;
+        }
+    }
+
     @BeforeEach
     public void setup() {
         handler = new CreateHandler(HandlerConfig.builder()
@@ -90,9 +108,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
+        rdsClientV12 = mock(RdsClient.class);
         ec2Client = mock(Ec2Client.class);
-        rdsProxy = MOCK_PROXY(proxy, rdsClient);
-        ec2Proxy = MOCK_PROXY(proxy, ec2Client);
+
+        rdsProxy = mockProxy(proxy, rdsClient);
+        rdsProxyV12 = mockProxy(proxy, rdsClientV12);
+        ec2Proxy = mockProxy(proxy, ec2Client);
         expectServiceInvocation = true;
     }
 
@@ -126,6 +147,39 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshotV12_Success() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxyV12.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        // rdsClientV12 would be invoked on a stabilization.
+        when(rdsProxyV12.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+                .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(DB_INSTANCE_ACTIVE).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        // An attempt to create a new instance with DBSecurityGroups should downgrade the client to V12
+                        .dBSecurityGroups(DB_SECURITY_GROUPS)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxyV12.client(), times(1)).restoreDBInstanceFromDBSnapshot(argumentCaptor.capture());
+        verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
     @Test
@@ -642,6 +696,41 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_CreateNewInstanceV12_Success() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxyV12.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenReturn(CreateDbInstanceResponse.builder().build());
+        // rdsClientV12 would be invoked on a stabilization.
+        when(rdsProxyV12.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+                .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(DB_INSTANCE_ACTIVE).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        // An attempt to create a new instance with DBSecurityGroups should downgrade the client to V12
+                        .dBSecurityGroups(DB_SECURITY_GROUPS)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+        verify(rdsProxyV12.client(), times(1)).createDBInstance(argumentCaptor.capture());
+        verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+
+        Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS, String.class));
+    }
+
+    @Test
     public void handleRequest_CreateNewInstance_AccessDeniedTagging() {
         when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
                 .thenThrow(
@@ -818,7 +907,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_DbSecurityGroups_ShouldUpdate_Success() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+        when(rdsProxyV12.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+                .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(DB_INSTANCE_ACTIVE).build());
+        when(rdsProxyV12.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
                 .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
@@ -837,8 +928,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxyV12.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test

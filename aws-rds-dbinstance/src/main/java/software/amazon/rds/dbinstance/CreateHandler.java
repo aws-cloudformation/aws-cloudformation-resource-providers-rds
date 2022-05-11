@@ -6,11 +6,12 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
 
-import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.utils.CollectionUtils;
+import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -22,6 +23,8 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
+import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -45,8 +48,8 @@ public class CreateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
         final ResourceModel model = request.getDesiredResourceState();
@@ -73,28 +76,48 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (isReadReplica(progress.getResourceModel())) {
-                        return safeCreate(this::createDbInstanceReadReplica, proxy, rdsProxyClient, progress, allTags);
+                        // createDBInstanceReadReplica is not a versioned call, unlike the others.
+                        return safeAddTags(this::createDbInstanceReadReplica, allTags)
+                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (isRestoreFromSnapshot(progress.getResourceModel())) {
-                        return safeCreate(this::restoreDbInstanceFromSnapshot, proxy, rdsProxyClient, progress, allTags);
+                        if (model.getMultiAZ() == null) {
+                            try {
+                                final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
+                                final String engine = snapshot.engine();
+                                progress.getResourceModel().setMultiAZ(getDefaultMultiAzForEngine(engine));
+                            } catch (Exception e) {
+                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+                            }
+                        }
+                        return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
+                                ApiVersion.V12, this::restoreDbInstanceFromSnapshotV12,
+                                ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot, allTags)
+                        ));
                     }
-                    return safeCreate(this::createDbInstance, proxy, rdsProxyClient, progress, allTags);
+                    return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
+                            ApiVersion.V12, this::createDbInstanceV12,
+                            ApiVersion.DEFAULT, safeAddTags(this::createDbInstance, allTags)
+                    ));
                 }, CallbackContext::isCreated, CallbackContext::setCreated))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())
                             .resourceTags(allTags.getResourceTags())
                             .build();
-                    return updateTags(proxy, rdsProxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                    return updateTags(proxy, rdsProxyClient.defaultClient(), progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete))
-                .then(progress -> ensureEngineSet(rdsProxyClient, progress))
+                .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(progress, () ->
-                                                updateDbInstanceAfterCreate(proxy, rdsProxyClient, progress, request.getDesiredResourceState()),
+                                                versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
+                                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
+                                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
+                                                )),
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {
                                     if (shouldReboot(p.getResourceModel())) {
-                                        return rebootAwait(proxy, rdsProxyClient, p);
+                                        return rebootAwait(proxy, rdsProxyClient.defaultClient(), p);
                                     }
                                     return p;
                                 }, CallbackContext::isRebooted, CallbackContext::setRebooted));
@@ -102,25 +125,51 @@ public class CreateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> Commons.execOnce(progress, () ->
-                                updateAssociatedRoles(proxy, rdsProxyClient, progress, Collections.emptyList(), desiredRoles),
+                                updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> safeCreate(
-            final HandlerMethod<ResourceModel, CallbackContext> createMethod,
+    private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(
+            final HandlerMethod<ResourceModel, CallbackContext> handlerMethod,
+            final Tagging.TagSet allTags
+    ) {
+        return (proxy, rdsProxyClient, progress, tagSet) -> {
+            final ProgressEvent<ResourceModel, CallbackContext> result = handlerMethod.invoke(proxy, rdsProxyClient, progress, allTags);
+            if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
+                final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
+                return handlerMethod.invoke(proxy, rdsProxyClient, progress, systemTags);
+            }
+            result.getCallbackContext().setCreateTagComplete(true);
+            return result;
+        };
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet allTags
+            final Tagging.TagSet tagSet
     ) {
-        final ProgressEvent<ResourceModel, CallbackContext> result = createMethod.invoke(proxy, rdsProxyClient, progress, allTags);
-        if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
-            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-            return createMethod.invoke(proxy, rdsProxyClient, progress, systemTags);
-        }
-        result.getCallbackContext().setCreateTagComplete(true);
-        return result;
+        return proxy.initiate(
+                        "rds::create-db-instance-v12",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(Translator::createDbInstanceRequestV12)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        createRequest,
+                        proxyInvocation.client()::createDBInstance
+                ))
+                .stabilize((request, response, proxyInvocation, model, context) ->
+                        isDbInstanceStabilized(proxyInvocation, model))
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        CREATE_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstance(
@@ -150,27 +199,43 @@ public class CreateHandler extends BaseHandlerStd {
                 .progress();
     }
 
+    private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceFromSnapshotV12(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
+    ) {
+        return proxy.initiate(
+                        "rds::restore-db-instance-from-snapshot-v12",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(Translator::restoreDbInstanceFromSnapshotRequestV12)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        restoreRequest,
+                        proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
+                ))
+                .stabilize((request, response, proxyInvocation, model, context) ->
+                        isDbInstanceStabilized(proxyInvocation, model))
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
     private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceFromSnapshot(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
-        final ResourceModel resourceModel = progress.getResourceModel();
-        if (resourceModel.getMultiAZ() == null) {
-            try {
-                final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient, resourceModel);
-                final String engine = snapshot.engine();
-                resourceModel.setMultiAZ(getDefaultMultiAzForEngine(engine));
-            } catch (Exception e) {
-                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
-            }
-        }
-
         return proxy.initiate(
                         "rds::restore-db-instance-from-snapshot",
                         rdsProxyClient,
-                        resourceModel,
+                        progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(model -> Translator.restoreDbInstanceFromSnapshotRequest(model, tagSet))
                 .backoffDelay(config.getBackoff())
@@ -211,38 +276,6 @@ public class CreateHandler extends BaseHandlerStd {
                         ProgressEvent.progress(model, context),
                         exception,
                         CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET
-                ))
-                .progress();
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> updateDbInstanceAfterCreate(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final ResourceModel desiredModel
-    ) {
-        return proxy.initiate(
-                        "rds::modify-after-create-db-instance",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                )
-                .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(null, desiredModel, false))
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        modifyRequest,
-                        proxyInvocation.client()::modifyDBInstance
-                ))
-                .stabilize((request, response, proxyInvocation, model, context) -> withProbing(
-                        context,
-                        "modify-after-create-db-instance-available",
-                        3,
-                        () -> isDbInstanceStabilized(proxyInvocation, model)
-                ))
-                .handleError((request, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
     }
