@@ -4,8 +4,8 @@ Description: AWS SAM template for the AWS::RDS::DBClusterParameterGroup resource
 
 Globals:
   Function:
-    Timeout: 60  # docker start-up times can be long for SAM CLI
-    MemorySize: 512
+    Timeout: 180  # docker start-up times can be long for SAM CLI
+    MemorySize: 1024
 Resources:
   TypeFunction:
     Type: AWS::Serverless::Function
