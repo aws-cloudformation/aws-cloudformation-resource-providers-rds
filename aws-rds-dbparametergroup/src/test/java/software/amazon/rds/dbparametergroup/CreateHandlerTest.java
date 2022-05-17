@@ -11,17 +11,16 @@ import static org.mockito.Mockito.when;
 import java.security.InvalidParameterException;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
@@ -31,18 +30,11 @@ import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbParametersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
-import software.amazon.awssdk.services.rds.model.EngineDefaults;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupResponse;
-import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
-import software.amazon.awssdk.services.rds.paginators.DescribeDBParametersIterable;
 import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -86,9 +78,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         mockCreateCall();
         mockDescribeDBParameterGroup();
 
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
@@ -120,7 +109,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
-        verify(proxyClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
 
     }
 
@@ -150,6 +138,35 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleFailWithAccessDenied() {
+        final String message = "AccessDenied on create request";
+        final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse
+                .builder().dbParameterGroup(DB_PARAMETER_GROUP_ACTIVE).build();
+        when(rdsClient.createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder().errorMessage(message).errorCode("AccessDenied").build())
+                        .build());
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .desiredResourceState(RESOURCE_MODEL)
+                .stackId("StackId")
+                .logicalResourceIdentifier("logicalId").build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).contains(message);
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
     }
 
     @Test
