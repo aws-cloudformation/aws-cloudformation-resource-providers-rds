@@ -16,6 +16,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -148,7 +149,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken("4b90a7e4-b791-4512-a137-0cf12a23451e")
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
-        System.out.println(response);
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
@@ -157,5 +157,31 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyRdsClient.client()).createGlobalCluster(any(CreateGlobalClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateWithArnSourceDBClusterIdentifier() {
+        when(proxyRdsClient.client().createGlobalCluster(any(CreateGlobalClusterRequest.class)))
+                .thenReturn(CreateGlobalClusterResponse.builder().build());
+        when(proxyRdsClient.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class)))
+                .thenReturn(DescribeGlobalClustersResponse.builder().globalClusters(GLOBAL_CLUSTER_ACTIVE).build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(RESOURCE_MODEL_WITH_MASTER_ARN)
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<CreateGlobalClusterRequest> captor = ArgumentCaptor.forClass(CreateGlobalClusterRequest.class);
+        verify(proxyRdsClient.client()).createGlobalCluster(captor.capture());
+
+        assertThat(captor.getValue().sourceDBClusterIdentifier()).isEqualTo(RESOURCE_MODEL_WITH_MASTER_ARN.getSourceDBClusterIdentifier());
     }
 }
