@@ -1,10 +1,12 @@
 package software.amazon.rds.eventsubscription;
 
+import java.util.Collections;
 import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -30,29 +32,39 @@ public class CreateHandler extends BaseHandlerStd {
 
         final ResourceModel model = request.getDesiredResourceState();
 
-        final Tagging.TagSet systemTags = Tagging.TagSet.builder()
+        final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
-                .build();
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> setEventSubscriptionNameIfEmpty(request, progress))
-                .then(progress -> createEventSubscription(proxy, proxyClient, progress, systemTags))
-                .then(progress -> updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags))
+                .then(progress -> safeCreateEventSubscription(proxy, proxyClient, progress, allTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> safeCreateEventSubscription(final AmazonWebServicesClientProxy proxy,
+                                                                                     final ProxyClient<RdsClient> proxyClient,
+                                                                                     final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                                     final Tagging.TagSet allTags) {
+        ProgressEvent<ResourceModel, CallbackContext> progressEvent = createEventSubscription(proxy, proxyClient, progress, allTags);
+        if (HandlerErrorCode.AccessDenied.equals(progressEvent.getErrorCode())) { //Resource is subject to soft fail on stack level tags.
+            Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
+            Tagging.TagSet extraTags = allTags.toBuilder().systemTags(Collections.emptySet()).build();
+            return createEventSubscription(proxy, proxyClient, progress, systemTags)
+                    .then(prog -> updateTags(proxy, proxyClient, prog, Tagging.TagSet.emptySet(), extraTags));
+        }
+        return progressEvent;
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createEventSubscription(final AmazonWebServicesClientProxy proxy,
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                  final Tagging.TagSet systemTags
+                                                                                  final Tagging.TagSet tags
     ) {
         return proxy.initiate("rds::create-event-subscription", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest((resourceModel) -> Translator.createEventSubscriptionRequest(resourceModel, systemTags))
+                .translateToServiceRequest((resourceModel) -> Translator.createEventSubscriptionRequest(resourceModel, tags))
                 .makeServiceCall((createEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createEventSubscriptionRequest, proxyInvocation.client()::createEventSubscription))
                 .stabilize((createEventSubscriptionRequest, createEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))
