@@ -2,6 +2,7 @@ package software.amazon.rds.dbsubnetgroup;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ public class Translator {
         return CreateDbSubnetGroupRequest.builder()
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .dbSubnetGroupDescription(model.getDBSubnetGroupDescription())
-                .subnetIds(model.getSubnetIds())
+                .subnetIds(model.getSubnetIds().stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)))
                 .tags(Tagging.translateTagsToSdk(tags)).build();
     }
 
@@ -49,7 +50,7 @@ public class Translator {
         return ModifyDbSubnetGroupRequest.builder()
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .dbSubnetGroupDescription(model.getDBSubnetGroupDescription())
-                .subnetIds(model.getSubnetIds())
+                .subnetIds(model.getSubnetIds().stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)))
                 .build();
     }
 
