@@ -20,9 +20,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupResponse;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
@@ -74,9 +78,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         final DescribeDbSubnetGroupsResponse describeCreatingDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_CREATING).build();
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
 
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
-
         AtomicInteger attempt = new AtomicInteger(2);
         when(proxyRdsClient.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class))).then((m) -> {
             switch (attempt.getAndDecrement()) {
@@ -116,9 +117,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         mockCreateCall();
         final DescribeDbSubnetGroupsResponse describeCreatingDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_CREATING).build();
         final DescribeDbSubnetGroupsResponse describeActiveDbSubnetGroupsResponse = DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DB_SUBNET_GROUP_ACTIVE).build();
-
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
 
         AtomicInteger attempt = new AtomicInteger(2);
         when(proxyRdsClient.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class))).then((m) -> {
@@ -202,6 +200,32 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
 
         verify(proxyRdsClient.client()).createDBSubnetGroup(any(CreateDbSubnetGroupRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleFailWithAccessDenied() {
+        final String message = "AccessDenied on create request";
+        when(rds.createDBSubnetGroup(any(CreateDbSubnetGroupRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder().errorMessage(message).errorCode("AccessDenied").build())
+                        .build());
+
+        CallbackContext callbackContext = new CallbackContext();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .desiredResourceState(RESOURCE_MODEL)
+                .stackId("StackId")
+                .logicalResourceIdentifier("logicalId").build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).contains(message);
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
     }
 
     private void mockCreateCall() {
