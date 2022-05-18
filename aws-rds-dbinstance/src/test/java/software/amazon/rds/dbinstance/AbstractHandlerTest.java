@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.LinkedList;
@@ -27,6 +28,8 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, ResourceModel, CallbackContext> {
 
@@ -75,6 +78,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String DB_SECURITY_GROUP_DEFAULT = "default";
     protected static final String DB_SECURITY_GROUP_ID = "db-security-group-id";
     protected static final String DB_SECURITY_GROUP_VPC_ID = "db-security-group-vpc-id";
+    protected static final List<String> DB_SECURITY_GROUPS;
     protected static final String DB_SNAPSHOT_IDENTIFIER_EMPTY = null;
     protected static final String DB_SNAPSHOT_IDENTIFIER_NON_EMPTY = "db-snapshot-identifier";
     protected static final String DB_SUBNET_GROUP_NAME_DEFAULT = "default";
@@ -250,6 +254,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                         .build()
         );
 
+        DB_SECURITY_GROUPS = ImmutableList.of("db-sec-group-1", "db-sec-group-2", "db-sec-group-3");
 
         RESOURCE_MODEL_NO_IDENTIFIER = ResourceModel.builder()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())
@@ -534,8 +539,13 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT));
     }
 
-    static <ClientT> ProxyClient<ClientT> MOCK_PROXY(final AmazonWebServicesClientProxy proxy, final ClientT client) {
+    static <ClientT> ProxyClient<ClientT> mockProxy(final AmazonWebServicesClientProxy proxy, final ClientT client) {
         return new BaseProxyClient<>(proxy, client);
+    }
+
+    static <ClientT> VersionedProxyClient<ClientT> mockVersionedProxy(final AmazonWebServicesClientProxy proxy, final ClientT client) {
+        return new VersionedProxyClient<ClientT>()
+                .register(ApiVersion.DEFAULT, new BaseProxyClient<ClientT>(proxy, client));
     }
 
     protected abstract BaseHandlerStd getHandler();
@@ -544,14 +554,28 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     protected abstract ProxyClient<RdsClient> getRdsProxy();
 
+    protected ProxyClient<RdsClient> getRdsProxy(final String version) {
+        return getRdsProxy();
+    }
+
     protected abstract ProxyClient<Ec2Client> getEc2Proxy();
+
 
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), logger);
+        return getHandler().handleRequest(
+                getProxy(),
+                request,
+                context,
+                new VersionedProxyClient<RdsClient>()
+                        .register(ApiVersion.V12, getRdsProxy(API_VERSION_V12))
+                        .register(ApiVersion.DEFAULT, getRdsProxy()),
+                new VersionedProxyClient<Ec2Client>().register(ApiVersion.DEFAULT, getEc2Proxy()),
+                logger
+        );
     }
 
     @Override

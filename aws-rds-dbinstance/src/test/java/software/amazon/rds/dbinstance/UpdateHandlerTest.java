@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -23,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -48,6 +50,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
@@ -79,6 +82,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     private ProxyClient<RdsClient> rdsProxy;
 
     @Mock
+    private ProxyClient<RdsClient> rdsProxyV12;
+
+    @Mock
     @Getter
     private ProxyClient<Ec2Client> ec2Proxy;
 
@@ -86,10 +92,23 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     private RdsClient rdsClient;
 
     @Mock
+    private RdsClient rdsClientV12;
+
+    @Mock
     private Ec2Client ec2Client;
 
     @Getter
     private UpdateHandler handler;
+
+    @Override
+    public ProxyClient<RdsClient> getRdsProxy(final String version) {
+        switch (version) {
+            case API_VERSION_V12:
+                return rdsProxyV12;
+            default:
+                return rdsProxy;
+        }
+    }
 
     @BeforeEach
     public void setup() {
@@ -99,9 +118,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
+        rdsClientV12 = mock(RdsClient.class);
         ec2Client = mock(Ec2Client.class);
-        rdsProxy = MOCK_PROXY(proxy, rdsClient);
-        ec2Proxy = MOCK_PROXY(proxy, ec2Client);
+
+        rdsProxy = mockProxy(proxy, rdsClient);
+        rdsProxyV12 = mockProxy(proxy, rdsClientV12);
+        ec2Proxy = mockProxy(proxy, ec2Client);
     }
 
     @AfterEach
@@ -112,11 +134,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_InitiatesModifyRequest_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder()
-                .dbInstance(DB_INSTANCE_ACTIVE)
-                .build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+    public void handleRequest_modifyDbInstance_Success() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
@@ -139,6 +159,45 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_modifyDbInstanceV12_Success() {
+        when(rdsProxyV12.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxyV12.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+                .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(DB_INSTANCE_ACTIVE).build());
+
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        .dBSecurityGroups(DB_SECURITY_GROUPS)
+                        .build(),
+                () -> RESOURCE_MODEL_ALTER.toBuilder()
+                        .dBSecurityGroups(DB_SECURITY_GROUPS)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxyV12.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
+        verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+
+        Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS, String.class));
     }
 
     @Test

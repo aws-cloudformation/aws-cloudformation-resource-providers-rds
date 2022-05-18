@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
+import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -29,6 +30,8 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -45,8 +48,8 @@ public class UpdateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
         if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
@@ -61,6 +64,8 @@ public class UpdateHandler extends BaseHandlerStd {
         if (BooleanUtils.isTrue(request.getDriftable())) {
             return handleResourceDrift(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger);
         }
+
+        final ProxyClient<RdsClient> rdsClient = rdsProxyClient.defaultClient();
 
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
@@ -80,38 +85,45 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
                     if (shouldSetParameterGroupName(request)) {
-                        return setParameterGroupName(rdsProxyClient, progress);
+                        return setParameterGroupName(rdsClient, progress);
                     }
                     return progress;
                 })
                 .then(progress -> {
                     if (shouldSetDefaultVpcId(request)) {
-                        return setDefaultVpcId(rdsProxyClient, ec2ProxyClient, progress);
+                        return setDefaultVpcId(rdsClient, ec2ProxyClient.defaultClient(), progress);
                     }
                     return progress;
                 })
                 .then(progress -> {
                     if (shouldUnsetMaxAllocatedStorage(request)) {
-                        return unsetMaxAllocatedStorage(rdsProxyClient, request, progress);
+                        return unsetMaxAllocatedStorage(rdsClient, request, progress);
                     }
                     return progress;
                 })
                 .then(progress -> Commons.execOnce(progress, () ->
-                                updateDbInstance(proxy, request, rdsProxyClient, progress),
+                                versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
+                                        /*
+                                          {@code updateDbInstance*} is not entirely compatible with {@code HandlerMethod} interface.
+                                          Hence, we need to create a request-capturing closure.
+                                         */
+                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
+                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
+                                )),
                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                 )
                 .then(progress -> Commons.execOnce(progress, () -> {
-                            if (shouldReboot(rdsProxyClient, progress)) {
-                                return rebootAwait(proxy, rdsProxyClient, progress);
+                            if (shouldReboot(rdsClient, progress)) {
+                                return rebootAwait(proxy, rdsClient, progress);
                             }
                             return progress;
                         }, CallbackContext::isRebooted, CallbackContext::setRebooted)
                 )
                 .then(progress -> Commons.execOnce(progress, () ->
-                                updateAssociatedRoles(proxy, rdsProxyClient, progress, previousRoles, desiredRoles),
+                                updateAssociatedRoles(proxy, rdsClient, progress, previousRoles, desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles)
                 )
-                .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
+                .then(progress -> updateTags(proxy, rdsClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
@@ -119,23 +131,23 @@ public class UpdateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
-                    if (shouldReboot(rdsProxyClient, progress) ||
-                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient, progress))) {
-                        return rebootAwait(proxy, rdsProxyClient, progress);
+                    if (shouldReboot(rdsProxyClient.defaultClient(), progress) ||
+                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
+                        return rebootAwait(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
                 })
-                .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient, progress))
-                .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient, progress))
+                .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
+                .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
                     if (isDBClusterMember(progress.getResourceModel())) {
-                        return awaitDBClusterParameterGroup(proxy, rdsProxyClient, progress);
+                        return awaitDBClusterParameterGroup(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
                 })
@@ -180,37 +192,6 @@ public class UpdateHandler extends BaseHandlerStd {
         return ObjectUtils.notEqual(desiredModel.getDBParameterGroupName(), previousModel.getDBParameterGroupName()) &&
                 ObjectUtils.notEqual(desiredModel.getEngineVersion(), previousModel.getEngineVersion()) &&
                 BooleanUtils.isTrue(request.getRollback());
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> updateDbInstance(
-            final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
-    ) {
-        return proxy.initiate("rds::modify-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(
-                        request.getPreviousResourceState(),
-                        request.getDesiredResourceState(),
-                        BooleanUtils.isTrue(request.getRollback()))
-                )
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        modifyRequest,
-                        proxyInvocation.client()::modifyDBInstance
-                ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> withProbing(
-                        context,
-                        "update-db-instance-available",
-                        3,
-                        () -> isDbInstanceStabilized(proxyInvocation, model)
-                ))
-                .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
-                ))
-                .progress();
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> unsetMaxAllocatedStorage(
@@ -298,7 +279,7 @@ public class UpdateHandler extends BaseHandlerStd {
         if (securityGroup != null) {
             final String groupId = securityGroup.groupId();
             if (StringUtils.hasValue(groupId)) {
-                progress.getResourceModel().setDBSecurityGroups(Collections.singletonList(groupId));
+                progress.getResourceModel().setVPCSecurityGroups(Collections.singletonList(groupId));
             }
         }
 

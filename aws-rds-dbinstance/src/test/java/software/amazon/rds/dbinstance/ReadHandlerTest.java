@@ -53,8 +53,8 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         ec2Client = mock(Ec2Client.class);
-        rdsProxy = MOCK_PROXY(proxy, rdsClient);
-        ec2Proxy = MOCK_PROXY(proxy, ec2Client);
+        rdsProxy = mockProxy(proxy, rdsClient);
+        ec2Proxy = mockProxy(proxy, ec2Client);
     }
 
     @AfterEach

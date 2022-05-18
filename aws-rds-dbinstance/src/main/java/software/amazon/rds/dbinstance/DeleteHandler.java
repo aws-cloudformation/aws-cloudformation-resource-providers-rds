@@ -13,6 +13,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.util.IdentifierFactory;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public class DeleteHandler extends BaseHandlerStd {
 
@@ -37,8 +38,8 @@ public class DeleteHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
         final ResourceModel resourceModel = request.getDesiredResourceState();
@@ -57,7 +58,7 @@ public class DeleteHandler extends BaseHandlerStd {
         }
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
-        return proxy.initiate("rds::delete-db-instance", rdsProxyClient, resourceModel, callbackContext)
+        return proxy.initiate("rds::delete-db-instance", rdsProxyClient.defaultClient(), resourceModel, callbackContext)
                 .translateToServiceRequest(model -> Translator.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
