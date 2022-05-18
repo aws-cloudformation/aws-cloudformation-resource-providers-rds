@@ -12,7 +12,7 @@
     },
     "SubnetIds": {
       "type": "array",
-      "uniqueItems": true,
+      "uniqueItems": false,
       "items": {
         "type": "string"
       }
