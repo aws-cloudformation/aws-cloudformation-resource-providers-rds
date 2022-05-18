@@ -6,12 +6,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -63,15 +66,23 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
+import software.amazon.rds.dbinstance.client.Ec2ClientBuilder;
+import software.amazon.rds.dbinstance.client.RdsClientBuilder;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     public static final String RESOURCE_IDENTIFIER = "dbinstance";
     public static final String STACK_NAME = "rds";
+
+    public static final String API_VERSION_V12 = "2012-09-17";
 
     public static final String PENDING_REBOOT_STATUS = "pending-reboot";
     public static final String IN_SYNC_STATUS = "in-sync";
@@ -219,21 +230,31 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
             .build();
 
-    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
+    protected static final RuntimeException MISSING_METHOD_VERSION_EXCEPTION = new RuntimeException("Missing method version");
 
-    protected HandlerConfig config;
+    protected final HandlerConfig config;
+
+    private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
+
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
+        this.apiVersionDispatcher = new ApiVersionDispatcher<ResourceModel, CallbackContext>()
+                .register(ApiVersion.V12, (m, c) -> !software.amazon.awssdk.utils.CollectionUtils.isNullOrEmpty(m.getDBSecurityGroups()));
+    }
+
+    protected ApiVersionDispatcher<ResourceModel, CallbackContext> getApiVersionDispatcher() {
+        return apiVersionDispatcher;
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger);
 
     @Override
@@ -250,10 +271,75 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         context != null ? context : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(RdsClientBuilder::getClient)),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(Ec2ClientBuilder::getClient)),
+                        new VersionedProxyClient<RdsClient>()
+                                .register(ApiVersion.V12, new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientBuilder().getClient(API_VERSION_V12))))
+                                .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientBuilder()::getClient))),
+                        new VersionedProxyClient<Ec2Client>()
+                                .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientBuilder()::getClient))),
                         logger
                 ));
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> updateDbInstanceV12(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequestV12(
+                        request.getPreviousResourceState(),
+                        request.getDesiredResourceState(),
+                        BooleanUtils.isTrue(request.getRollback()))
+                )
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance
+                ))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> withProbing(
+                        context,
+                        "update-db-instance-available",
+                        3,
+                        () -> isDbInstanceStabilized(proxyInvocation, model)
+                ))
+                .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> updateDbInstance(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::modify-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(
+                        request.getPreviousResourceState(),
+                        request.getDesiredResourceState(),
+                        BooleanUtils.isTrue(request.getRollback()))
+                )
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance
+                ))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> withProbing(
+                        context,
+                        "update-db-instance-available",
+                        3,
+                        () -> isDbInstanceStabilized(proxyInvocation, model)
+                ))
+                .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> awaitDBInstanceAvailableStatus(
@@ -624,5 +710,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> versioned(
+            final AmazonWebServicesClientProxy proxy,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet allTags,
+            final Map<ApiVersion, HandlerMethod<ResourceModel, CallbackContext>> methodVersions
+    ) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext callbackContext = progress.getCallbackContext();
+        final ApiVersion apiVersion = getApiVersionDispatcher().dispatch(model, callbackContext);
+        if (!methodVersions.containsKey(apiVersion)) {
+            throw MISSING_METHOD_VERSION_EXCEPTION;
+        }
+        return methodVersions.get(apiVersion).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
     }
 }

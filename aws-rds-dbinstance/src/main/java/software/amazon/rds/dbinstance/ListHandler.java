@@ -11,6 +11,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public class ListHandler extends BaseHandlerStd {
 
@@ -27,15 +29,15 @@ public class ListHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
-        return proxy.initiate("rds::list-db-instances", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
+        return proxy.initiate("rds::list-db-instances", rdsProxyClient.defaultClient(), request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(resourceModel -> Translator.describeDbInstancesRequest(request.getNextToken()))
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
-                        rdsProxyClient.client()::describeDBInstances
+                        proxyInvocation.client()::describeDBInstances
                 )).done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
                     final List<ResourceModel> resourceModels = Translator.translateDbInstancesFromSdk(describeResponse.dbInstances());
                     return ProgressEvent.<ResourceModel, CallbackContext>builder()

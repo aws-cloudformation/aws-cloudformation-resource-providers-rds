@@ -7,10 +7,10 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -26,11 +26,11 @@ public class ReadHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     ) {
-        return proxy.initiate("rds::describe-db-instance", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
+        return proxy.initiate("rds::describe-db-instance", rdsProxyClient.defaultClient(), request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbInstancesRequest)
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
