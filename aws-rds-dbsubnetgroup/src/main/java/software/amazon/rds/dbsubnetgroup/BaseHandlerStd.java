@@ -5,6 +5,7 @@ import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
@@ -39,6 +40,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSubnetGroupQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbSubnetGroupStateException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    DbSubnetGroupDoesNotCoverEnoughAZsException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
