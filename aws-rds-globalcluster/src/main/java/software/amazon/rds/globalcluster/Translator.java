@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.DeleteGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
+import software.amazon.awssdk.utils.StringUtils;
 
 
 /**
@@ -27,7 +28,7 @@ public class Translator {
             .engineVersion(model.getEngineVersion())
             .deletionProtection(model.getDeletionProtection())
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
-            .sourceDBClusterIdentifier(dbClusterArn)
+            .sourceDBClusterIdentifier(StringUtils.isBlank(dbClusterArn) ? model.getSourceDBClusterIdentifier() : dbClusterArn)
             .storageEncrypted(model.getStorageEncrypted())
             .build();
   }
