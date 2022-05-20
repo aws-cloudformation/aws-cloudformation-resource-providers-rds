@@ -1,9 +1,9 @@
 package software.amazon.rds.dbinstance.util;
 
-import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 public final class ImmutabilityHelper {
@@ -15,7 +15,7 @@ public final class ImmutabilityHelper {
     private static final String AURORA = "aurora";
     private static final String AURORA_MYSQL = "aurora-mysql";
 
-    protected static final List<String> DEPRECATED_ORACLE_ENGINES = Arrays.asList(ORACLE_SE, ORACLE_SE1);
+    private static final List<String> DEPRECATED_ORACLE_ENGINES = ImmutableList.of(ORACLE_SE, ORACLE_SE1);
 
     private ImmutabilityHelper() {
     }

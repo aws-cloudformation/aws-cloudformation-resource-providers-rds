@@ -300,7 +300,6 @@ public class Translator {
                 .monitoringInterval(desiredModel.getMonitoringInterval())
                 .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
                 .multiAZ(desiredModel.getMultiAZ())
-                .newDBInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .optionGroupName(desiredModel.getOptionGroupName())
                 .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
@@ -318,16 +317,18 @@ public class Translator {
         );
         builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
 
-        if (previousModel != null && BooleanUtils.isTrue(isRollback)) {
-            builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
-            );
-            builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
-            );
-        } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
+        if (previousModel != null) {
+            if (BooleanUtils.isTrue(isRollback)) {
+                builder.allocatedStorage(
+                        canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
+                );
+                builder.iops(
+                        canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
+                );
+            } else {
+                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
+            }
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
