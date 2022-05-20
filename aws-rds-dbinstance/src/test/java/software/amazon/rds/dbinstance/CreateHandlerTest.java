@@ -11,6 +11,7 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -52,6 +53,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
@@ -1218,5 +1220,26 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<CreateDbInstanceRequest> argument = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstance(argument.capture());
         Assertions.assertThat(argument.getValue().port()).isNull();
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_RestoreOriginalIdentifier() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final String dbInstanceIdentifier = "TestIdentifierInMixedCase";
+
+        final ProgressEvent<ResourceModel, CallbackContext> progressEvent = test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceIdentifier(dbInstanceIdentifier.toLowerCase(Locale.getDefault())).build(),
+                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+        Assertions.assertThat(progressEvent.getResourceModel().getDBInstanceIdentifier()).isEqualTo(dbInstanceIdentifier);
     }
 }

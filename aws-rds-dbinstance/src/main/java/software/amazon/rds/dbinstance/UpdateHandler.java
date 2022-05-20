@@ -177,7 +177,7 @@ public class UpdateHandler extends BaseHandlerStd {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, progress.getResourceModel());
         if (!CollectionUtils.isNullOrEmpty(dbCluster.dbClusterMembers())) {
             for (final DBClusterMember member : dbCluster.dbClusterMembers()) {
-                if (dbInstanceIdentifier.equals(member.dbInstanceIdentifier())) {
+                if (dbInstanceIdentifier.equalsIgnoreCase(member.dbInstanceIdentifier())) {
                     return PENDING_REBOOT_STATUS.equals(member.dbClusterParameterGroupStatus());
                 }
             }
@@ -224,7 +224,7 @@ public class UpdateHandler extends BaseHandlerStd {
         final String engine = progress.getResourceModel().getEngine();
         final String engineVersion = progress.getResourceModel().getEngineVersion();
 
-        DescribeDbParameterGroupsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+        final DescribeDbParameterGroupsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbParameterGroupsRequest(dbParameterGroupName),
                 rdsProxyClient.client()::describeDBParameterGroups
         );
