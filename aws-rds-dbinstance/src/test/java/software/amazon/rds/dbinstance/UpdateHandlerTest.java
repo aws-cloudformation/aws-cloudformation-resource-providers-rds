@@ -11,6 +11,7 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -65,6 +66,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
@@ -955,5 +957,31 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
         verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_modifyDbInstance_RestoreOriginalIdentifier() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final String dbInstanceIdentifier = "TestIdentifierInMixedCase";
+
+        final ProgressEvent<ResourceModel, CallbackContext> progressEvent = test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceIdentifier(dbInstanceIdentifier.toLowerCase(Locale.getDefault())).build(),
+                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
+                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+
+        Assertions.assertThat(progressEvent.getResourceModel().getDBInstanceIdentifier()).isEqualTo(dbInstanceIdentifier);
     }
 }

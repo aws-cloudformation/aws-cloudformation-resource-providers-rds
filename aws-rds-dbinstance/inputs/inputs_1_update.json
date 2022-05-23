@@ -1,7 +1,7 @@
 {
   "AllocatedStorage": "5",
   "AutoMinorVersionUpgrade": false,
-  "DBInstanceIdentifier": "dbinstance-contract-test",
+  "DBInstanceIdentifier": "test-db-instance",
   "DBInstanceClass": "db.t3.micro",
   "DBName": "testdbname",
   "EnablePerformanceInsights": true,

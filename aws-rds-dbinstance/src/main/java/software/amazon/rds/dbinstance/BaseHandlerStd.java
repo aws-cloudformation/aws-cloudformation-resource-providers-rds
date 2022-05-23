@@ -399,6 +399,39 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return StringUtils.isNotBlank(model.getDBClusterIdentifier());
     }
 
+    protected ResourceModel restoreIdentifier(final ResourceModel observed, final ResourceModel original) {
+        if (StringUtils.isBlank(original.getDBInstanceIdentifier()) ||
+            StringUtils.equals(observed.getDBInstanceIdentifier(), original.getDBInstanceIdentifier())) {
+            return observed;
+        }
+        observed.setDBInstanceIdentifier(original.getDBInstanceIdentifier());
+        return observed;
+    }
+
+    protected DBInstance restoreIdentifier(final DBInstance dbInstance, final ResourceModel model) {
+        if (StringUtils.isBlank(model.getDBInstanceIdentifier()) ||
+                StringUtils.equals(dbInstance.dbInstanceIdentifier(), model.getDBInstanceIdentifier())) {
+            return dbInstance;
+        }
+        return dbInstance.toBuilder().dbInstanceIdentifier(model.getDBInstanceIdentifier()).build();
+    }
+
+    protected DBCluster restoreIdentifier(final DBCluster dbCluster, final ResourceModel model) {
+        if (StringUtils.isBlank(model.getDBClusterIdentifier()) ||
+                StringUtils.equals(dbCluster.dbClusterIdentifier(), model.getDBClusterIdentifier())) {
+            return dbCluster;
+        }
+        return dbCluster.toBuilder().dbClusterIdentifier(model.getDBClusterIdentifier()).build();
+    }
+
+    protected DBSnapshot restoreIdentifier(final DBSnapshot dbSnapshot, final ResourceModel model) {
+        if (StringUtils.isBlank(model.getDBSnapshotIdentifier()) ||
+                StringUtils.equals(dbSnapshot.dbSnapshotIdentifier(), model.getDBSnapshotIdentifier())) {
+            return dbSnapshot;
+        }
+        return dbSnapshot.toBuilder().dbSnapshotIdentifier(model.getDBSnapshotIdentifier()).build();
+    }
+
     protected DBInstance fetchDBInstance(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
@@ -407,7 +440,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbInstancesRequest(model),
                 rdsProxyClient.client()::describeDBInstances
         );
-        return response.dbInstances().stream().findFirst().get();
+        return restoreIdentifier(response.dbInstances().stream().findFirst().get(), model);
     }
 
     protected DBCluster fetchDBCluster(
@@ -418,7 +451,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbClustersRequest(model),
                 rdsProxyClient.client()::describeDBClusters
         );
-        return response.dbClusters().stream().findFirst().get();
+        return restoreIdentifier(response.dbClusters().stream().findFirst().get(), model);
     }
 
     protected DBSnapshot fetchDBSnapshot(
@@ -429,7 +462,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbSnapshotsRequest(model),
                 rdsProxyClient.client()::describeDBSnapshots
         );
-        return response.dbSnapshots().stream().findFirst().get();
+        return restoreIdentifier(response.dbSnapshots().stream().findFirst().get(), model);
     }
 
     protected SecurityGroup fetchSecurityGroup(
