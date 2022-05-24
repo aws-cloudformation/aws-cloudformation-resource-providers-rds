@@ -23,8 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRequest;
@@ -32,6 +30,7 @@ import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRespo
 import software.amazon.awssdk.services.rds.model.EventSubscription;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -186,5 +185,34 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).contains(message);
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
+    }
+
+    @Test
+    public void handleRequest_SimpleFailWithNotFound() {
+        final String message = "AccessDenied on create request";
+
+        final CreateHandler handler = new CreateHandler();
+
+        when(proxyRdsClient.client().createEventSubscription(any(CreateEventSubscriptionRequest.class)))
+                .thenThrow(SourceNotFoundException.builder()
+                        .message("Could not find source : test")
+                        .build());
+
+        final ResourceModel model = ResourceModel.builder().subscriptionName("subscriptionName")
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .clientRequestToken("sampleToken")
+                .desiredResourceTags(ImmutableMap.of("sampleNewKey", "sampleNewValue"))
+                .logicalResourceIdentifier("sampleResource")
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
     }
 }
