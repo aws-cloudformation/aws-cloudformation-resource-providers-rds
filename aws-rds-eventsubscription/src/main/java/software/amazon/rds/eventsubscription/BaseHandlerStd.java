@@ -7,6 +7,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.EventSubscriptionQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InvalidEventSubscriptionStateException;
 import software.amazon.awssdk.services.rds.model.SnsTopicArnNotFoundException;
+import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.awssdk.services.rds.model.SubscriptionAlreadyExistException;
 import software.amazon.awssdk.services.rds.model.SubscriptionNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -35,7 +36,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     SubscriptionAlreadyExistException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     SubscriptionNotFoundException.class,
-                    SnsTopicArnNotFoundException.class)
+                    SnsTopicArnNotFoundException.class,
+                    SourceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     EventSubscriptionQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
