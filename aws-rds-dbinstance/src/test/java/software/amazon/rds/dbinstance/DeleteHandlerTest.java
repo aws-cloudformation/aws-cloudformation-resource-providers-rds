@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -116,6 +117,29 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_DBInstanceIsBeingDeleted() {
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenThrow(
+                InvalidDbInstanceStateException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.InvalidDBInstanceState.toString())
+                                .errorMessage("Instance foo-bar is already being deleted.")
+                                .build()
+                        ).build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test

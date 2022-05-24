@@ -16,20 +16,21 @@ public class PlainErrorRuleSet implements ErrorRuleSet {
     }
 
     public ErrorStatus handle(final Exception exception) {
+        ErrorStatus errorStatus = new UnexpectedErrorStatus(exception);
+
         if (errorClassMap.containsKey(exception.getClass())) {
-            return errorClassMap.get(exception.getClass());
-        }
-        if (exception instanceof AwsServiceException) {
+            errorStatus = errorClassMap.get(exception.getClass());
+        } else if (exception instanceof AwsServiceException) {
             final AwsServiceException awsServiceException = (AwsServiceException) exception;
             final AwsErrorDetails errorDetails = awsServiceException.awsErrorDetails();
             if (errorDetails != null) {
                 final String errorStr = errorDetails.errorCode();
                 final ErrorCode errorCode = ErrorCode.fromString(errorStr);
                 if (errorCode != null && errorCodeMap.containsKey(errorCode)) {
-                    return errorCodeMap.get(errorCode);
+                    errorStatus = errorCodeMap.get(errorCode);
                 }
             }
         }
-        return new UnexpectedErrorStatus(exception);
+        return errorStatus.interpret(exception);
     }
 }
