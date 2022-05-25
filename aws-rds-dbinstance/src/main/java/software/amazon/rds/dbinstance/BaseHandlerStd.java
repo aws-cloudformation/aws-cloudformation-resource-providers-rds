@@ -57,6 +57,7 @@ import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -94,7 +95,36 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             "sqlserver-se"
     );
 
+    protected final static HandlerConfig DEFAULT_DB_INSTANCE_HANDLER_CONFIG = HandlerConfig.builder()
+            .probingEnabled(true)
+            .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
+            .build();
+
+    protected static final RuntimeException MISSING_METHOD_VERSION_EXCEPTION = new RuntimeException("Missing method version");
+
+    // Note: looking up this error message fragment is the only way to distinguish between an already deleting
+    // instance and any other invalid states (e.g. a stopped instance). It relies on a specific error text returned by
+    // AWS RDS API. The message text is by no means guarded by any public contract. This error message can change
+    // in the future with no prior notice by AWS RDS. A change in this error message would cause a CFN stack failure
+    // upon a stack deletion: if an instance is being deleted out-of-bounds. This is a pretty corner (still common) case
+    // where the CFN handler is trying to help the customer. A regular stack deletion will not be impacted.
+    // Considered bounded-safe.
+    protected static final String IS_ALREADY_BEING_DELETED_ERROR_MSG = "is already being deleted";
+
+    protected final HandlerConfig config;
+
+    private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
+
+    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
+
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
+
+    protected static final Function<Exception, ErrorStatus> ignoreDBInstanceBeingDeletedConditionalErrorStatus = exception -> {
+        if (isDBInstanceBeingDeletedException(exception)) {
+            return ErrorStatus.ignore(OperationStatus.IN_PROGRESS);
+        }
+        return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
+    };
 
     protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
@@ -212,37 +242,38 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.InvalidParameterValue)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DBInstanceNotFound)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+            .withErrorCodes(ErrorStatus.conditional(ignoreDBInstanceBeingDeletedConditionalErrorStatus),
                     ErrorCode.InvalidDBInstanceState)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.DBSnapshotAlreadyExists)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     DbInstanceNotFoundException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+            .withErrorClasses(ErrorStatus.conditional(ignoreDBInstanceBeingDeletedConditionalErrorStatus),
                     InvalidDbInstanceStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSnapshotAlreadyExistsException.class)
             .build()
             .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
 
-    protected final static HandlerConfig DEFAULT_DB_INSTANCE_HANDLER_CONFIG = HandlerConfig.builder()
-            .probingEnabled(true)
-            .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
-            .build();
-
-    protected static final RuntimeException MISSING_METHOD_VERSION_EXCEPTION = new RuntimeException("Missing method version");
-
-    protected final HandlerConfig config;
-
-    private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
-
-    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
-
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
         this.apiVersionDispatcher = new ApiVersionDispatcher<ResourceModel, CallbackContext>()
                 .register(ApiVersion.V12, (m, c) -> !software.amazon.awssdk.utils.CollectionUtils.isNullOrEmpty(m.getDBSecurityGroups()));
+    }
+
+    private static boolean looksLikeDBInstanceBeingDeletedMessage(final String message) {
+        if (StringUtils.isBlank(message)) {
+            return false;
+        }
+        return message.contains(IS_ALREADY_BEING_DELETED_ERROR_MSG);
+    }
+
+    private static boolean isDBInstanceBeingDeletedException(final Exception e) {
+        if (e instanceof InvalidDbInstanceStateException) {
+            return looksLikeDBInstanceBeingDeletedMessage(e.getMessage());
+        }
+        return false;
     }
 
     protected ApiVersionDispatcher<ResourceModel, CallbackContext> getApiVersionDispatcher() {
@@ -401,7 +432,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected ResourceModel restoreIdentifier(final ResourceModel observed, final ResourceModel original) {
         if (StringUtils.isBlank(original.getDBInstanceIdentifier()) ||
-            StringUtils.equals(observed.getDBInstanceIdentifier(), original.getDBInstanceIdentifier())) {
+                StringUtils.equals(observed.getDBInstanceIdentifier(), original.getDBInstanceIdentifier())) {
             return observed;
         }
         observed.setDBInstanceIdentifier(original.getDBInstanceIdentifier());

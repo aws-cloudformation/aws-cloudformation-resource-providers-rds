@@ -1,5 +1,7 @@
 package software.amazon.rds.dbinstance;
 
+import java.util.function.Function;
+
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -8,7 +10,6 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
@@ -58,19 +59,38 @@ public class DeleteHandler extends BaseHandlerStd {
         }
         final String finalSnapshotIdentifier = snapshotIdentifier;
 
-        return proxy.initiate("rds::delete-db-instance", rdsProxyClient.defaultClient(), resourceModel, callbackContext)
-                .translateToServiceRequest(model -> Translator.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        deleteRequest,
-                        proxyInvocation.client()::deleteDBInstance
-                ))
-                .stabilize((deleteRequest, deleteResponse, proxyInvocation, model, context) -> isDbInstanceDeleted(proxyInvocation, model))
-                .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        DELETE_DB_INSTANCE_ERROR_RULE_SET
-                ))
-                .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
+        return ProgressEvent.progress(resourceModel, callbackContext)
+                .then(progress -> proxy.initiate("rds::delete-db-instance", rdsProxyClient.defaultClient(), resourceModel, callbackContext)
+                        .translateToServiceRequest(model -> Translator.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
+                        .backoffDelay(config.getBackoff())
+                        .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                                deleteRequest,
+                                proxyInvocation.client()::deleteDBInstance
+                        ))
+                        .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
+                                ProgressEvent.progress(model, context),
+                                exception,
+                                DELETE_DB_INSTANCE_ERROR_RULE_SET
+                        )).progress()
+                )
+                // The reason we split a pretty trivial execution chain in 2 is because of the error handling.
+                // Delete handler should ignore some exceptions and go straight to the stabilization step.
+                // The execution chain interrupts immediately once handleError is called. This eliminates
+                // the stabilization step. For the sake of enforcing the stabilization, we spin up a separate
+                // execution chain with a no-op service call. Note that it is only supposed to handle exceptions
+                // thrown by isDbInstanceDeleted, hence the default ruleset is put in place instead.
+                .then(progress -> proxy.initiate("rds::delete-db-instance-stabilize", rdsProxyClient.defaultClient(), progress.getResourceModel(), progress.getCallbackContext())
+                        .translateToServiceRequest(Function.identity())
+                        .backoffDelay(config.getBackoff())
+                        .makeServiceCall(NOOP_CALL)
+                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDbInstanceDeleted(proxyInvocation, model))
+                        .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
+                                ProgressEvent.progress(model, context),
+                                exception,
+                                DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                        ))
+                        .progress()
+                )
+                .then(progress -> ProgressEvent.defaultSuccessHandler(null));
     }
 }
