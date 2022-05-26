@@ -25,9 +25,12 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+
+import software.amazon.rds.common.handler.Tagging;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -109,8 +112,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, String> previousTags,
-            final Map<String, String> desiredTags
+            final Tagging.TagSet previousTags,
+            final Tagging.TagSet desiredTags
     ) {
         return proxy.initiate("rds::tag-option-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeOptionGroupsRequest)
@@ -123,21 +126,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         DEFAULT_OPTION_GROUP_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
+                    final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+                    final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+                    if (tagsToRemove.isEmpty() && tagsToAdd.isEmpty()) {
+                        return progress;
+                    }
+
                     final String arn = describeResponse.optionGroupsList().stream().findFirst().get().optionGroupArn();
-
-                    final Set<Tag> previousTagSet = Translator.translateTagsToModelResource(previousTags);
-                    final Set<Tag> desiredTagSet = Translator.translateTagsToModelResource(desiredTags);
-                    final Set<Tag> tagsToRemove = Sets.difference(previousTagSet, desiredTagSet);
-                    final Set<Tag> tagsToAdd = Sets.difference(desiredTagSet, previousTagSet);
-
-                    proxyClient.injectCredentialsAndInvokeV2(
-                            Translator.removeTagsFromResourceRequest(arn, tagsToRemove),
-                            proxyClient.client()::removeTagsFromResource
-                    );
-                    proxyClient.injectCredentialsAndInvokeV2(
-                            Translator.addTagsToResourceRequest(arn, tagsToAdd),
-                            proxyClient.client()::addTagsToResource
-                    );
+                    try {
+                        Tagging.removeTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+                        Tagging.addTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+                    } catch (Exception exception) {
+                        return Commons.handleException(
+                                progress,
+                                exception,
+                                Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
+                                        .orElse(DEFAULT_OPTION_GROUP_ERROR_RULE_SET)
+                        );
+                    }
                     return ProgressEvent.progress(resourceModel, ctx);
                 });
     }

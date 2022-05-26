@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableSet;
 import org.mockito.internal.util.collections.Sets;
 
 import com.google.common.collect.ImmutableList;
@@ -28,6 +29,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.handler.Tagging;
 
 public abstract class AbstractTestBase extends software.amazon.rds.common.test.AbstractTestBase<OptionGroup, ResourceModel, CallbackContext> {
 
@@ -39,9 +41,11 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
     protected static final LoggerProxy logger;
 
     protected static final ResourceModel RESOURCE_MODEL;
-    protected static final ResourceModel RESOURCE_MODEL_NO_OPTION_CONFIGURATIONS;
+    protected static final ResourceModel RESOURCE_MODEL_NO_OPTION_GROUP_NAME;
+    protected static final ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS;
+    protected static final ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS;
     protected static final OptionGroup OPTION_GROUP_ACTIVE;
-    protected static final Set<Tag> TAG_SET;
+    protected static final Tagging.TagSet TAG_SET;
 
     protected static Constant TEST_BACKOFF_DELAY = Constant.of()
             .delay(Duration.ofSeconds(1L))
@@ -52,7 +56,43 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
         logger = new LoggerProxy();
 
+        TAG_SET = Tagging.TagSet.builder()
+                .systemTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-1").value("system-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-2").value("system-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-3").value("system-tag-value3").build()
+                )).stackTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-1").value("stack-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-2").value("stack-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-3").value("stack-tag-value3").build()
+                )).resourceTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-1").value("resource-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-2").value("resource-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-3").value("resource-tag-value3").build()
+                )).build();
+
         RESOURCE_MODEL = ResourceModel.builder()
+                .optionGroupName("testOptionGroup")
+                .optionGroupDescription("test option group description")
+                .engineName("testEngineVersion")
+                .majorEngineVersion("testMajorVersionName")
+                .build();
+
+        RESOURCE_MODEL_NO_OPTION_GROUP_NAME = ResourceModel.builder()
+                .optionGroupDescription("test option group description")
+                .engineName("testEngineVersion")
+                .majorEngineVersion("testMajorVersionName")
+                .build();
+
+        RESOURCE_MODEL_WITH_RESOURCE_TAGS = ResourceModel.builder()
+                .optionGroupName("testOptionGroup")
+                .optionGroupDescription("test option group description")
+                .engineName("testEngineVersion")
+                .majorEngineVersion("testMajorVersionName")
+                .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                .build();
+
+        RESOURCE_MODEL_WITH_CONFIGURATIONS = ResourceModel.builder()
                 .optionGroupName("testOptionGroup")
                 .optionGroupDescription("test option group description")
                 .engineName("testEngineVersion")
@@ -65,19 +105,10 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
                 ))
                 .build();
 
-        RESOURCE_MODEL_NO_OPTION_CONFIGURATIONS = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .build();
-
         OPTION_GROUP_ACTIVE = OptionGroup.builder()
                 .optionGroupArn("arn")
                 .optionGroupName("testOptionGroup")
                 .build();
-
-        TAG_SET = Sets.newSet(Tag.builder().key("key").value("value").build());
     }
 
     static ProxyClient<RdsClient> MOCK_PROXY(

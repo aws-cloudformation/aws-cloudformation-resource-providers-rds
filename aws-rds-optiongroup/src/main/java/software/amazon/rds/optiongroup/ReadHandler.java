@@ -12,6 +12,8 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
+import software.amazon.rds.common.handler.Tagging;
+
 public class ReadHandler extends BaseHandlerStd {
 
     public ReadHandler() {
@@ -47,6 +49,7 @@ public class ReadHandler extends BaseHandlerStd {
                     final OptionGroup optionGroup = describeResponse.optionGroupsList().stream().findFirst().get();
                     final List<OptionConfiguration> optionConfigurations = Translator.translateOptionConfigurationsFromSdk(optionGroup.options());
                     final List<Tag> tags = listTags(proxyInvocation, optionGroup.optionGroupArn());
+                    context.setOptionGroupArn(optionGroup.optionGroupArn());
                     return ProgressEvent.success(
                             ResourceModel.builder()
                                     .optionGroupName(optionGroup.optionGroupName())

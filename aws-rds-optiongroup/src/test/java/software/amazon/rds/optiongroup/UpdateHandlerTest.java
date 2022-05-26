@@ -1,5 +1,6 @@
 package software.amazon.rds.optiongroup;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -10,32 +11,28 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
-import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
-import software.amazon.awssdk.services.rds.model.ModifyOptionGroupRequest;
-import software.amazon.awssdk.services.rds.model.ModifyOptionGroupResponse;
-import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
-import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.awssdk.services.rds.model.*;
+import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.cloudformation.proxy.*;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,22 +70,39 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_CoreUpdate_Success() {
+        final ImmutableList<OptionConfiguration> desiredOptionConfigurations = ImmutableList.of(
+                OptionConfiguration.builder()
+                        .optionName("testOptionConfiguration")
+                        .optionVersion("2.2.3")
+                        .build()
+        );
+
         when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
                 .thenReturn(ModifyOptionGroupResponse.builder().build());
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
-                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> OPTION_GROUP_ACTIVE,
-                () -> ResourceModel.builder().optionGroupName(RESOURCE_MODEL.getOptionGroupName()).build(),
-                () -> RESOURCE_MODEL,
-                expectSuccess()
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
+                .desiredResourceState(
+                        RESOURCE_MODEL_WITH_CONFIGURATIONS.toBuilder()
+                                .optionConfigurations(desiredOptionConfigurations).build()
+                )
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
@@ -97,30 +111,156 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_TagUpdate_Success() {
-        final Map<String, String> previousTags = ImmutableMap.of("foo", "bar", "boo", "baz");
-        final Map<String, String> desiredTags = ImmutableMap.of("boo", "moo");
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_RESOURCE_TAGS.toBuilder()
+                .tags(
+                        Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
+                                        ImmutableMap.of("desiredKey", "desiredValue")
+                                )
+                        )).build();
 
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
+                .thenReturn(describeDbClusterParameterGroupsResponse);
         when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
         when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(previousTags)
-                        .desiredResourceTags(desiredTags),
-                () -> OPTION_GROUP_ACTIVE,
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL,
-                expectSuccess()
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
+                .desiredResourceState(desiredModel)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SoftFailingTaggingOnRemoveTags() {
+        final Map<String, String> previousResourceTags = Translator.translateTagsToRequest(
+                Translator.translateTagsFromSdk(
+                        ImmutableSet.of(
+                                Tag.builder().key("stack-tag-1").value("stack-tag-value1").build(),
+                                Tag.builder().key("stack-tag-2").value("stack-tag-value2").build(),
+                                Tag.builder().key("stack-tag-3").value("stack-tag-value3").build()
+                        )
+                )
+        );
+
+        final Map<String, String> desiredResourceTags = Translator.translateTagsToRequest(
+                Translator.translateTagsFromSdk(
+                        ImmutableSet.of(
+                                Tag.builder().key("stack-tag-2").value("stack-tag-value2").build(),
+                                Tag.builder().key("stack-tag-3").value("stack-tag-value3").build(),
+                                Tag.builder().key("stack-tag-4").value("stack-tag-value4").build()
+                        )
+                )
+        );
+
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
+                .thenReturn(describeDbClusterParameterGroupsResponse);
+        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceTags(previousResourceTags)
+                .desiredResourceTags(desiredResourceTags)
+                .previousResourceState(RESOURCE_MODEL)
+                .desiredResourceState(RESOURCE_MODEL)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_HardFailingTaggingOnAddTags() {
+        final Map<String, String> previousResourceTags = Translator.translateTagsToRequest(
+                Translator.translateTagsFromSdk(
+                        ImmutableSet.of(
+                                Tag.builder().key("stack-tag-1").value("stack-tag-value1").build(),
+                                Tag.builder().key("stack-tag-2").value("stack-tag-value2").build()
+                        )
+                )
+        );
+
+        final Map<String, String> desiredResourceTags = Translator.translateTagsToRequest(
+                Translator.translateTagsFromSdk(
+                        ImmutableSet.of(
+                                Tag.builder().key("stack-tag-1").value("stack-tag-value1").build(),
+                                Tag.builder().key("stack-tag-2").value("stack-tag-value2").build(),
+                                Tag.builder().key("stack-tag-3").value("stack-tag-value3").build()
+                        )
+                )
+        );
+
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
+                .thenReturn(describeDbClusterParameterGroupsResponse);
+        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(RESOURCE_MODEL)
+                .desiredResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getMessage()).isNotNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
+        assertThat(response.getResourceModels()).isNull();
+
+        verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
     }
 
     @Test
@@ -141,18 +281,26 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenReturn(ModifyOptionGroupResponse.builder().build());
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
-                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
+                .thenReturn(describeDbClusterParameterGroupsResponse);
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> OPTION_GROUP_ACTIVE,
-                () -> previousModel,
-                () -> desiredModel,
-                expectSuccess()
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(previousModel)
+                .desiredResourceState(desiredModel)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
@@ -177,18 +325,26 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenReturn(ModifyOptionGroupResponse.builder().build());
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
-                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
+                .thenReturn(describeDbClusterParameterGroupsResponse);
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> OPTION_GROUP_ACTIVE,
-                () -> previousModel,
-                () -> desiredModel,
-                expectSuccess()
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(previousModel)
+                .desiredResourceState(desiredModel)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
@@ -215,18 +371,26 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
-        when(proxyClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
-                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
+                .thenReturn(describeDbClusterParameterGroupsResponse);
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> OPTION_GROUP_ACTIVE,
-                () -> previousModel,
-                () -> desiredModel,
-                expectSuccess()
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(previousModel)
+                .desiredResourceState(desiredModel)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(0)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
@@ -235,36 +399,56 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_NotFound() {
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_CONFIGURATIONS.toBuilder()
+                .optionConfigurations(Collections.emptyList())
+                .build();
+
         when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
                 .thenThrow(OptionGroupNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL.toBuilder()
-                        .optionConfigurations(Collections.emptyList())
-                        .build(),
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.NotFound)
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(previousModel)
+                .desiredResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getMessage()).isNotNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
+        assertThat(response.getResourceModels()).isNull();
 
         verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
     }
 
     @Test
     public void handleRequest_RuntimeException() {
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_CONFIGURATIONS.toBuilder()
+                .optionConfigurations(Collections.emptyList())
+                .build();
+
         when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
                 .thenThrow(new RuntimeException("test exception"));
 
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL.toBuilder()
-                        .optionConfigurations(Collections.emptyList())
-                        .build(),
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(previousModel)
+                .desiredResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getMessage()).isNotNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
+        assertThat(response.getResourceModels()).isNull();
 
         verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
     }
