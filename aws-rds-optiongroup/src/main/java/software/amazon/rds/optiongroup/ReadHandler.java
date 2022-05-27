@@ -12,8 +12,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
-import software.amazon.rds.common.handler.Tagging;
-
 public class ReadHandler extends BaseHandlerStd {
 
     public ReadHandler() {

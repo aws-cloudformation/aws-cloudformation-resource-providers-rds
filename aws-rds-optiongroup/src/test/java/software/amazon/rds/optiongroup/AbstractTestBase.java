@@ -4,15 +4,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.google.common.collect.ImmutableSet;
-import org.mockito.internal.util.collections.Sets;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ResponseBytes;

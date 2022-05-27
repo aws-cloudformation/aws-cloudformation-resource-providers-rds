@@ -10,7 +10,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 import software.amazon.rds.common.handler.Tagging;
@@ -68,9 +67,6 @@ public class CreateHandler extends BaseHandlerStd {
                         return progress;
                     }
                     return updateOptionGroup(proxy, proxyClient, progress);
-                })
-                .then(progress -> {
-                    return progress;
                 })
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }

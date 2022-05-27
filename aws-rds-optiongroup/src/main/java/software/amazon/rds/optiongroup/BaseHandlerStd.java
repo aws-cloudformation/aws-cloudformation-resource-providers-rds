@@ -4,9 +4,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
@@ -29,8 +27,6 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
-
-import software.amazon.rds.common.handler.Tagging;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 

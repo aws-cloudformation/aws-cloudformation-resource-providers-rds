@@ -10,15 +10,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import jdk.nashorn.internal.runtime.regexp.joni.exception.InternalException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,14 +24,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
-import software.amazon.cloudformation.proxy.*;
-import software.amazon.rds.common.error.ErrorCode;
-import software.amazon.rds.common.handler.HandlerConfig;
-
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupResponse;
-import software.amazon.rds.common.handler.Tagging;
+import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.ModifyOptionGroupRequest;
+import software.amazon.awssdk.services.rds.model.ModifyOptionGroupResponse;
+import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.RdsException;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
