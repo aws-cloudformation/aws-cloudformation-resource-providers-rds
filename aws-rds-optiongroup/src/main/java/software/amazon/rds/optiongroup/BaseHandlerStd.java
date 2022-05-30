@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
@@ -86,10 +87,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger);
 
-    protected ProgressEvent<ResourceModel, CallbackContext> updateOptionGroup(
+    protected ProgressEvent<ResourceModel, CallbackContext> updateOptionGroupIfRequired(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        if (CollectionUtils.isNullOrEmpty(progress.getResourceModel().getOptionConfigurations())) {
+            return progress;
+        }
         return proxy.initiate("rds::update-option-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::modifyOptionGroupRequest)
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(

@@ -25,7 +25,6 @@ import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupResponse;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
@@ -44,6 +43,7 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -108,7 +108,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
@@ -143,7 +143,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
@@ -178,14 +178,25 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
     @Test
     public void handleRequest_SoftFailingTagging() {
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(TAG_SET.getSystemTags())
+                .stackTags(TAG_SET.getStackTags())
+                .build();
+
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
                 .thenReturn(CreateOptionGroupResponse.builder().build());
 
         final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
@@ -198,16 +209,15 @@ public class CreateHandlerTest extends AbstractTestBase {
                                 .awsErrorDetails(AwsErrorDetails.builder()
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
-                                ).build())
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+                                ).build());
 
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(randomString(32, ALPHA))
-                .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags())))
+                .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(desiredTags.getSystemTags())))
+                .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(desiredTags.getStackTags())))
                 .desiredResourceState(RESOURCE_MODEL)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
@@ -222,28 +232,42 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
 
         ArgumentCaptor<CreateOptionGroupRequest> createOptionGroupCaptor = ArgumentCaptor.forClass(CreateOptionGroupRequest.class);
-        verify(proxyClient.client(), times(1)).createOptionGroup(createOptionGroupCaptor.capture());
-        final CreateOptionGroupRequest createOptionGroupWithSystemTags = createOptionGroupCaptor.getAllValues().get(0);
+        verify(proxyClient.client(), times(2)).createOptionGroup(createOptionGroupCaptor.capture());
+        final CreateOptionGroupRequest createOptionGroupWithAllTags = createOptionGroupCaptor.getAllValues().get(0);
+        Assertions.assertThat(createOptionGroupWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(desiredTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+        final CreateOptionGroupRequest createOptionGroupWithSystemTags = createOptionGroupCaptor.getAllValues().get(1);
         Assertions.assertThat(createOptionGroupWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+                Iterables.toArray(desiredTags.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(proxyClient.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        final AddTagsToResourceRequest requestWithAllTags = addTagsCaptor.getAllValues().get(0);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getStackTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        final AddTagsToResourceRequest requestWithStackTags = addTagsCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithStackTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(desiredTags.getStackTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
 
     @Test
     public void handleRequest_HardFailingTagging() {
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(TAG_SET.getSystemTags())
+                .resourceTags(TAG_SET.getResourceTags())
+                .build();
+
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
                 .thenReturn(CreateOptionGroupResponse.builder().build());
 
         final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
@@ -275,21 +299,24 @@ public class CreateHandlerTest extends AbstractTestBase {
         Assertions.assertThat(response.getResourceModels()).isNull();
 
         verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
         verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
 
         ArgumentCaptor<CreateOptionGroupRequest> createOptionGroupCaptor = ArgumentCaptor.forClass(CreateOptionGroupRequest.class);
-        verify(proxyClient.client(), times(1)).createOptionGroup(createOptionGroupCaptor.capture());
-        final CreateOptionGroupRequest createOptionGroupWithSystemTags = createOptionGroupCaptor.getAllValues().get(0);
+        verify(proxyClient.client(), times(2)).createOptionGroup(createOptionGroupCaptor.capture());
+        final CreateOptionGroupRequest createOptionGroupWithAllTags = createOptionGroupCaptor.getAllValues().get(0);
+        Assertions.assertThat(createOptionGroupWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(desiredTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+        final CreateOptionGroupRequest createOptionGroupWithSystemTags = createOptionGroupCaptor.getAllValues().get(1);
         Assertions.assertThat(createOptionGroupWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+                Iterables.toArray(desiredTags.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(proxyClient.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        final AddTagsToResourceRequest requestWithAllTags = addTagsCaptor.getAllValues().get(0);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getResourceTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        final AddTagsToResourceRequest requestWithResourceTags = addTagsCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithResourceTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(desiredTags.getResourceTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
 
@@ -322,7 +349,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
