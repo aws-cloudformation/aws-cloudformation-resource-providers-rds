@@ -1,5 +1,6 @@
 package software.amazon.rds.optiongroup;
 
+import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -53,7 +54,12 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setOptionGroupNameIfEmpty(request, progress))
                 .then(progress -> safeCreateOptionGroup(proxy, proxyClient, progress, allTags))
-                .then(progress -> updateOptionGroupIfRequired(proxy, proxyClient, progress))
+                .then(progress -> {
+                    if (CollectionUtils.isNullOrEmpty(progress.getResourceModel().getOptionConfigurations())) {
+                        return progress;
+                    }
+                    return updateOptionGroupConfigurations(proxy, proxyClient, progress);
+                })
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
