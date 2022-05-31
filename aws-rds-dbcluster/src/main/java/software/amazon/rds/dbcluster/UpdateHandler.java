@@ -41,15 +41,6 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger
     ) {
-        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
-            return ProgressEvent.failed(
-                    request.getDesiredResourceState(),
-                    callbackContext,
-                    HandlerErrorCode.NotUpdatable,
-                    "Resource is immutable"
-            );
-        }
-
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))

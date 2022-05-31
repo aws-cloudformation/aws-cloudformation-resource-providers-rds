@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -33,6 +32,7 @@ import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
+import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -56,6 +56,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
     public static final String STACK_NAME = "rds";
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
+
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBClusterAlreadyExistsFault)
@@ -85,18 +86,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     KmsKeyNotAccessibleException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+
     protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleAlreadyExistsException.class)
             .build()
             .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+
     protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleNotFoundException.class)
             .build()
             .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+
     private static final String DB_CLUSTER_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
+
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
+
     protected HandlerConfig config;
 
     public BaseHandlerStd(final HandlerConfig config) {
@@ -132,6 +138,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Logger logger
     );
 
+    protected ResourceModel restoreIdentifier(final ResourceModel observed, final ResourceModel original) {
+        if (StringUtils.isBlank(original.getDBClusterIdentifier()) ||
+                StringUtils.equals(original.getDBClusterIdentifier(), observed.getDBClusterIdentifier())) {
+            return observed;
+        }
+        observed.setDBClusterIdentifier(original.getDBClusterIdentifier());
+        return observed;
+    }
+
+    protected DBCluster restoreIdentifier(final DBCluster dbCluster, final ResourceModel model) {
+        if (StringUtils.isBlank(dbCluster.dbClusterIdentifier()) ||
+                StringUtils.equals(model.getDBClusterIdentifier(), dbCluster.dbClusterIdentifier())) {
+            return dbCluster;
+        }
+        return dbCluster.toBuilder().dbClusterIdentifier(model.getDBClusterIdentifier()).build();
+    }
+
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
@@ -140,11 +163,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbClustersRequest(model),
                 proxyClient.client()::describeDBClusters
         );
-        return response.dbClusters().stream().findFirst().get();
+        return restoreIdentifier(response.dbClusters().stream().findFirst().get(), model);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {
-        return StringUtils.hasValue(model.getGlobalClusterIdentifier());
+        return StringUtils.isNotBlank(model.getGlobalClusterIdentifier());
     }
 
     protected boolean isDBClusterStabilized(
