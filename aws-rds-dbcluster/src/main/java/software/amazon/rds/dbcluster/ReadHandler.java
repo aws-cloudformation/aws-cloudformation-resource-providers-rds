@@ -41,7 +41,10 @@ public class ReadHandler extends BaseHandlerStd {
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final DBCluster dbCluster = describeResponse.dbClusters().stream().findFirst().get();
-                    return ProgressEvent.success(Translator.translateDbClusterFromSdk(dbCluster), context);
+                    return ProgressEvent.success(
+                            restoreIdentifier(Translator.translateDbClusterFromSdk(dbCluster), request.getDesiredResourceState()),
+                            context
+                    );
                 });
     }
 }
