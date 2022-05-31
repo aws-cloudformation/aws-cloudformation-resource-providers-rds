@@ -453,7 +453,7 @@
       "permissions": [
         "iam:PassRole",
         "rds:AddRoleToDBCluster",
-        "rds:AddTagsFromResource",
+        "rds:AddTagsToResource",
         "rds:DescribeDBClusters",
         "rds:ModifyDBCluster",
         "rds:ModifyDBInstance",
