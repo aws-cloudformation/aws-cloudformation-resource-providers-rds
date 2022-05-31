@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.time.Duration;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,5 +65,20 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreOriginalIdentifier() {
+        final String dbClusterIdentifier = "TestDBClusterIdentifier";
+        final ProgressEvent<ResourceModel, CallbackContext> result = test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE.toBuilder().dbClusterIdentifier(dbClusterIdentifier.toLowerCase()).build(),
+                () -> RESOURCE_MODEL.toBuilder().dBClusterIdentifier(dbClusterIdentifier).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(result.getResourceModel().getDBClusterIdentifier()).isEqualTo(dbClusterIdentifier);
     }
 }
