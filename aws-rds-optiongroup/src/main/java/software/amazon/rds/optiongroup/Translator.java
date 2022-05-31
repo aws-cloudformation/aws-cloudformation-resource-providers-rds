@@ -3,11 +3,14 @@ package software.amazon.rds.optiongroup;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupRequest;
@@ -18,16 +21,17 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyOptionGroupRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
+import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
 
-    static CreateOptionGroupRequest createOptionGroupRequest(final ResourceModel model, final Map<String, String> tags) {
+    static CreateOptionGroupRequest createOptionGroupRequest(final ResourceModel model, final Tagging.TagSet tags) {
         return CreateOptionGroupRequest.builder()
                 .optionGroupName(model.getOptionGroupName())
                 .engineName(model.getEngineName())
                 .majorEngineVersion(model.getMajorEngineVersion())
                 .optionGroupDescription(model.getOptionGroupDescription())
-                .tags(translateTagsToSdk(tags))
+                .tags(Tagging.translateTagsToSdk(tags))
                 .build();
     }
 
@@ -160,7 +164,7 @@ public class Translator {
                         .key(entry.getKey())
                         .value(entry.getValue())
                         .build())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Map<String, String> tags) {
@@ -180,6 +184,17 @@ public class Translator {
                         .key(tag.key())
                         .value(tag.value())
                         .build()).collect(Collectors.toList());
+    }
+
+    private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
+        return Optional.ofNullable(collection)
+                .map(Collection::stream)
+                .orElseGet(Stream::empty);
+    }
+
+    public static Map<String, String> translateTagsToRequest(final Collection<Tag> tags) {
+        return streamOfOrEmpty(tags)
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2, LinkedHashMap::new));
     }
 
     static AddTagsToResourceRequest addTagsToResourceRequest(final String arn, final Set<Tag> tags) {

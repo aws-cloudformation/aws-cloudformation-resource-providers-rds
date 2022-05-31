@@ -3,7 +3,6 @@ package software.amazon.rds.optiongroup;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -17,6 +16,8 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+
+import software.amazon.rds.common.handler.Tagging;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -52,14 +53,17 @@ public class UpdateHandler extends BaseHandlerStd {
         final Collection<OptionConfiguration> optionsToInclude = getOptionsToInclude(previousOptions, desiredOptions);
         final Collection<OptionConfiguration> optionsToRemove = getOptionsToRemove(previousOptions, desiredOptions);
 
-        final Map<String, String> previousTags = mergeMaps(
-                request.getPreviousSystemTags(),
-                request.getPreviousResourceTags()
-        );
-        final Map<String, String> desiredTags = mergeMaps(
-                request.getSystemTags(),
-                request.getDesiredResourceTags()
-        );
+        final Tagging.TagSet previousTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
+                .resourceTags(Translator.translateTagsToSdk(request.getPreviousResourceState().getTags()))
+                .build();
+
+        final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
+                .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
+                .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
+                .build();
 
         // Here we explicitly use some immutability properties of an OptionGroup resource.
         // In fact, ModifyOptionGroupRequest only passes optionConfigurations, the rest is immutable.
