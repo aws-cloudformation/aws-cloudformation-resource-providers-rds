@@ -7,6 +7,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -24,6 +25,10 @@ public class ReadHandler extends BaseHandlerStd {
                         describeRequest,
                         proxyInvocation.client()::describeDBClusterEndpoints
                 ))
+                .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, ctx),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final DBClusterEndpoint dbClusterEndpoint = describeResponse.dbClusterEndpoints().stream().findFirst().get();
                     return ProgressEvent.success(Translator.translateDbClusterEndpointFromSdk(dbClusterEndpoint), context);
