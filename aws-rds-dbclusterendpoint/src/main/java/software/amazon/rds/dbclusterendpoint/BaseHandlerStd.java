@@ -58,14 +58,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
 
-
         DescribeDbClusterEndpointsResponse response = proxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersEndpointRequest(model),
                 proxyClient.client()::describeDBClusterEndpoints);
 
         final Optional<DBClusterEndpoint> clusterEndpoint = response
                 .dbClusterEndpoints().stream().findFirst();
-
 
         if (clusterEndpoint.isPresent()) {
             final DBClusterEndpoint endpoint = clusterEndpoint.get();

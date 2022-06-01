@@ -69,7 +69,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     @Test
     public void handleRequest_NotFound() {
         when(proxyClient.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
-                .thenThrow(DbClusterNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
+                .thenThrow(DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build());
 
         test_handleRequest_base(
                 new CallbackContext(),

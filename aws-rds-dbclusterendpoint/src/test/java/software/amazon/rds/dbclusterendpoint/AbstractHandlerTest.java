@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndpoint, ResourceModel, CallbackContext> {
     protected static final LoggerProxy logger;
     protected static final Credentials MOCK_CREDENTIALS;
-    protected static final String MSG_NOT_FOUND_ERR = "Cluster Endpoint not found";
+    protected static final String MSG_NOT_FOUND = "Cluster Endpoint not found";
 
 
 

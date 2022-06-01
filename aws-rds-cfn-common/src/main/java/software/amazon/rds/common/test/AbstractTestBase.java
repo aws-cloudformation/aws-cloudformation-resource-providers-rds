@@ -74,16 +74,16 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
 
     protected ProgressEvent<ModelT, CallbackT> test_handleRequest_base(
             final CallbackT context,
-            final Supplier<ResourceT> dbInstanceSupplier,
+            final Supplier<ResourceT> resourceSupplier,
             final Supplier<ModelT> desiredStateSupplier,
             final Consumer<ProgressEvent<ModelT, CallbackT>> expect
     ) {
-        return test_handleRequest_base(context, dbInstanceSupplier, null, desiredStateSupplier, expect);
+        return test_handleRequest_base(context, resourceSupplier, null, desiredStateSupplier, expect);
     }
 
     protected ProgressEvent<ModelT, CallbackT> test_handleRequest_base(
             final CallbackT context,
-            final Supplier<ResourceT> dbInstanceSupplier,
+            final Supplier<ResourceT> resourceSupplier,
             final Supplier<ModelT> previousStateSupplier,
             final Supplier<ModelT> desiredStateSupplier,
             final Consumer<ProgressEvent<ModelT, CallbackT>> expect
@@ -91,7 +91,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         return test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ModelT>builder(),
-                dbInstanceSupplier,
+                resourceSupplier,
                 previousStateSupplier,
                 desiredStateSupplier,
                 expect
@@ -101,13 +101,13 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
     protected ProgressEvent<ModelT, CallbackT> test_handleRequest_base(
             final CallbackT context,
             final ResourceHandlerRequest.ResourceHandlerRequestBuilder<ModelT> builder,
-            final Supplier<ResourceT> dbInstanceSupplier,
+            final Supplier<ResourceT> resourceSupplier,
             final Supplier<ModelT> previousStateSupplier,
             final Supplier<ModelT> desiredStateSupplier,
             final Consumer<ProgressEvent<ModelT, CallbackT>> expect
     ) {
-        if (dbInstanceSupplier != null) {
-            expectResourceSupply(dbInstanceSupplier);
+        if (resourceSupplier != null) {
+            expectResourceSupply(resourceSupplier);
         }
 
         builder.desiredResourceState(desiredStateSupplier.get());

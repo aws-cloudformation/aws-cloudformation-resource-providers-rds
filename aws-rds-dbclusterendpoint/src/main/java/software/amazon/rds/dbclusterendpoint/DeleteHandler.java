@@ -1,7 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -26,17 +26,22 @@ public class DeleteHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
+                .success();
     }
 
     protected boolean isDeleted(final ResourceModel model,
                                 final ProxyClient<RdsClient> proxyClient) {
-        try {
-            proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersEndpointRequest(model),
-                    proxyClient.client()::describeDBClusterEndpoints);
-            return false;
-        } catch (DbClusterEndpointNotFoundException e) {
+
+        final DescribeDbClusterEndpointsResponse resp = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersEndpointRequest(model),
+                proxyClient.client()::describeDBClusterEndpoints);
+
+        if (!resp.hasDbClusterEndpoints()) {
             return true;
         }
+        if (!resp.dbClusterEndpoints().stream().findFirst().isPresent()) {
+            return true;
+        }
+        return false;
+
     }
 }
