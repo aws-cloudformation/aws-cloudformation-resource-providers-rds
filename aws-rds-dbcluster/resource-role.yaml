@@ -25,7 +25,6 @@ Resources:
                 Action:
                 - "iam:PassRole"
                 - "rds:AddRoleToDBCluster"
-                - "rds:AddTagsFromResource"
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBCluster"
                 - "rds:CreateDBInstance"
