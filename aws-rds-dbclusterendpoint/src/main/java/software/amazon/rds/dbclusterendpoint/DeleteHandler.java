@@ -1,7 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -32,16 +32,12 @@ public class DeleteHandler extends BaseHandlerStd {
     protected boolean isDeleted(final ResourceModel model,
                                 final ProxyClient<RdsClient> proxyClient) {
 
-        final DescribeDbClusterEndpointsResponse resp = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClustersEndpointRequest(model),
-                proxyClient.client()::describeDBClusterEndpoints);
-
-        if (!resp.hasDbClusterEndpoints()) {
+        try {
+            fetchDBClusterEndpoint(proxyClient, model);
+            return false;
+        } catch (CfnNotFoundException e) {
             return true;
         }
-        if (!resp.dbClusterEndpoints().stream().findFirst().isPresent()) {
-            return true;
-        }
-        return false;
 
     }
 }

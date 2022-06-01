@@ -87,8 +87,7 @@
     ],
     "createOnlyProperties": [
         "/properties/DBClusterEndpointIdentifier",
-        "/properties/DBClusterEndpoint",
-        "/properties/Tags"
+        "/properties/DBClusterEndpoint"
     ],
     "primaryIdentifier": [
         "/properties/DBClusterEndpointIdentifier"
@@ -97,6 +96,7 @@
         "create": {
             "permissions": [
                 "rds:AddTagsToResource",
+                "rds:RemoveTagsFromResource",
                 "rds:CreateDBClusterEndpoint",
                 "rds:DescribeDBClusterEndpoints",
                 "rds:ModifyDBClusterEndpoint"
@@ -109,6 +109,8 @@
         },
         "update": {
             "permissions": [
+                "rds:AddTagsToResource",
+                "rds:RemoveTagsFromResource",
                 "rds:DescribeDBClusterEndpoints",
                 "rds:ModifyDBClusterEndpoint"
             ]

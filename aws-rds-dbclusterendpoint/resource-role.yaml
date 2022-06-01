@@ -35,6 +35,7 @@ Resources:
                 - "rds:DeleteDBClusterEndpoint"
                 - "rds:DescribeDBClusterEndpoints"
                 - "rds:ModifyDBClusterEndpoint"
+                - "rds:RemoveTagsFromResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

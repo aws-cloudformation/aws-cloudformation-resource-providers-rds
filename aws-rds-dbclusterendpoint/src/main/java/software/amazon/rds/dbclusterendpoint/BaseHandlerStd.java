@@ -7,6 +7,7 @@ import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundExcept
 import software.amazon.awssdk.services.rds.model.DbClusterEndpointQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -16,6 +17,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Tagging;
 
 import java.util.Optional;
 
@@ -57,18 +59,54 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Logger logger);
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
+        final DBClusterEndpoint endpoint = fetchDBClusterEndpoint(proxyClient, model);
+        return DB_CLUSTER_ENDPOINT_AVAILABLE.equals(endpoint.status());
+    }
 
-        DescribeDbClusterEndpointsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet previousTags,
+            final Tagging.TagSet desiredTags
+    ) {
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
+
+        final DBClusterEndpoint dbClusterEndpoint = fetchDBClusterEndpoint(rdsProxyClient, progress.getResourceModel());
+        final String arn = dbClusterEndpoint.dbClusterEndpointArn();
+
+        try {
+            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET)
+            );
+        }
+
+        return progress;
+    }
+
+    protected DBClusterEndpoint fetchDBClusterEndpoint(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbClusterEndpointsResponse response = proxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersEndpointRequest(model),
-                proxyClient.client()::describeDBClusterEndpoints);
+                proxyClient.client()::describeDBClusterEndpoints
+        );
 
         final Optional<DBClusterEndpoint> clusterEndpoint = response
                 .dbClusterEndpoints().stream().findFirst();
 
-        if (clusterEndpoint.isPresent()) {
-            final DBClusterEndpoint endpoint = clusterEndpoint.get();
-            return DB_CLUSTER_ENDPOINT_AVAILABLE.equals(endpoint.status());
-        }
-        return false;
+        return clusterEndpoint.orElseThrow(() -> new CfnNotFoundException(ResourceModel.TYPE_NAME,
+                "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found"));
     }
 }
