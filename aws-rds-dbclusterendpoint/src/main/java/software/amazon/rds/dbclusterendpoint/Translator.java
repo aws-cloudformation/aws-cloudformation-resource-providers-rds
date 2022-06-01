@@ -27,7 +27,7 @@ public class Translator {
 
     static DescribeDbClusterEndpointsRequest describeDbClustersEndpointRequest(final ResourceModel model) {
         return DescribeDbClusterEndpointsRequest.builder()
-                .dbClusterEndpointIdentifier(model.getDBClusterIdentifier())
+                .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .build();
     }
 
@@ -43,7 +43,7 @@ public class Translator {
         return ResourceModel.builder()
                 .dBClusterEndpointIdentifier(dbClusterEndpoint.dbClusterEndpointIdentifier())
                 .dBClusterIdentifier(dbClusterEndpoint.dbClusterIdentifier())
-                .endpointType(dbClusterEndpoint.endpointType())
+                .endpointType(dbClusterEndpoint.customEndpointType())
                 .staticMembers(new HashSet<>(dbClusterEndpoint.staticMembers()))
                 .excludedMembers(new HashSet<>(dbClusterEndpoint.excludedMembers()))
                 .build();

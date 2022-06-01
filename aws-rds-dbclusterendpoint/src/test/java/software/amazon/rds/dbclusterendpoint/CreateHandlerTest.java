@@ -2,70 +2,70 @@ package software.amazon.rds.dbclusterendpoint;
 
 import java.time.Duration;
 
-import org.junit.jupiter.api.Disabled;
-import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.OperationStatus;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointResponse;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class CreateHandlerTest extends AbstractTestBase {
+public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Mock
+    @Getter
     private AmazonWebServicesClientProxy proxy;
 
     @Mock
+    @Getter
     private ProxyClient<RdsClient> proxyClient;
 
     @Mock
-    RdsClient sdkClient;
+    RdsClient rdsClient;
+
+    @Getter
+    private CreateHandler handler;
 
     @BeforeEach
     public void setup() {
+        handler = new CreateHandler();
+        rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        sdkClient = mock(RdsClient.class);
-        proxyClient = MOCK_PROXY(proxy, sdkClient);
+        proxyClient = MOCK_PROXY(proxy, rdsClient);
     }
 
     @AfterEach
     public void tear_down() {
-        verify(sdkClient, atLeastOnce()).serviceName();
-        verifyNoMoreInteractions(sdkClient);
+        verify(rdsClient, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(rdsClient);
     }
 
     @Test
-    @Disabled
-    public void handleRequest_SimpleSuccess() {
-        final CreateHandler handler = new CreateHandler();
+    public void handleRequest_CreateSuccess() {
+        when(proxyClient.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
 
-        final ResourceModel model = ResourceModel.builder().build();
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .desiredResourceState(model)
-                .build();
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
+        verify(proxyClient.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
     }
 }

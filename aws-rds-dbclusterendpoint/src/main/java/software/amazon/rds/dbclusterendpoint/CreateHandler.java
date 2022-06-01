@@ -1,5 +1,6 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import lombok.extern.java.Log;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -22,7 +23,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> createDbClusterEndpoint(proxy, proxyClient, progress, request.getDesiredResourceTags()))
+                .then(progress -> createDbClusterEndpoint(proxy, proxyClient, progress, request.getDesiredResourceTags(), logger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
@@ -31,7 +32,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                   final Map<String, String> tags
-    ) {
+                                                                                  ) {
         return proxy.initiate("rds::create-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.createDbClusterEndpointRequest(resourceModel, tags))
                 .makeServiceCall((createDbClusterEndpointRequest, proxyInvocation) ->
