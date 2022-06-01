@@ -756,6 +756,29 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_NoDefaultVpcIdForClusterInstance() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        // A default vpc group won't be set for a db cluster member
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
     public void handleRequest_ResourceDrift() {
         final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
