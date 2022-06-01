@@ -1,25 +1,8 @@
 {
     "typeName": "AWS::RDS::DBClusterEndpoint",
-    "description": "An example resource schema demonstrating some basic constructs and validation rules.",
-    "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+    "description": "The AWS::RDS::DBClusterEndpoint resource allows you to create custom Aurora Cluster endpoint. For more information, see Using custom endpoints in the Amazon RDS Aurora Guide.",
+    "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
     "definitions": {
-        "InitechDateFormat": {
-            "$comment": "Use the `definitions` block to provide shared resource property schemas",
-            "type": "string",
-            "format": "date-time"
-        },
-        "Memo": {
-            "type": "object",
-            "properties": {
-                "Heading": {
-                    "type": "string"
-                },
-                "Body": {
-                    "type": "string"
-                }
-            },
-            "additionalProperties": false
-        },
         "Tag": {
             "description": "A key-value pair to associate with a resource.",
             "type": "object",
@@ -45,43 +28,34 @@
         }
     },
     "properties": {
-        "TPSCode": {
-            "description": "A TPS Code is automatically generated on creation and assigned as the unique identifier.",
+        "DBClusterIdentifier": {
+            "description": "The DB cluster identifier of the DB cluster associated with the endpoint. This parameter is stored as a lowercase string.",
             "type": "string",
-            "pattern": "^[A-Z]{3,5}[0-9]{8}-[0-9]{4}$"
+            "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+            "minLength": 1,
+            "maxLength": 63
         },
-        "Title": {
-            "description": "The title of the TPS report is a mandatory element.",
+        "DbClusterEndpointIdentifier": {
+            "description": "The identifier to use for the new endpoint. This parameter is stored as a lowercase string.",
             "type": "string",
-            "minLength": 20,
-            "maxLength": 250
+            "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+            "minLength": 1,
+            "maxLength": 63
         },
-        "CoverSheetIncluded": {
-            "description": "Required for all TPS Reports submitted after 2/19/1999",
-            "type": "boolean"
-        },
-        "DueDate": {
-            "$ref": "#/definitions/InitechDateFormat"
-        },
-        "ApprovalDate": {
-            "$ref": "#/definitions/InitechDateFormat"
-        },
-        "Memo": {
-            "$ref": "#/definitions/Memo"
-        },
-        "SecondCopyOfMemo": {
-            "description": "In case you didn't get the first one.",
-            "$ref": "#/definitions/Memo"
-        },
-        "TestCode": {
+        "EndpointType": {
+            "description": "The type of the endpoint, one of: READER , WRITER , ANY",
             "type": "string",
             "enum": [
-                "NOT_STARTED",
-                "CANCELLED"
+                "READER",
+                "WRITER",
+                "ANY"
             ]
         },
-        "Authors": {
+        "StaticMembers": {
+            "description": "List of DB instance identifiers that are part of the custom endpoint group.",
             "type": "array",
+            "uniqueItems": true,
+            "insertionOrder": false,
             "items": {
                 "type": "string"
             }
@@ -98,39 +72,38 @@
     },
     "additionalProperties": false,
     "required": [
-        "TestCode",
-        "Title"
+        "DbClusterIdentifier",
+        "DbClusterEndpointIdentifier",
+        "EndpointType"
     ],
-    "readOnlyProperties": [
-        "/properties/TPSCode"
+    "createOnlyProperties": [
+        "/properties/DbClusterEndpointIdentifier",
+        "/properties/DbClusterEndpoint",
+        "/properties/EndpointType",
+        "/properties/StaticMembers"
     ],
     "primaryIdentifier": [
-        "/properties/TPSCode"
+        "/properties/DbClusterEndpointIdentifier"
     ],
     "handlers": {
         "create": {
             "permissions": [
-                "initech:CreateReport"
             ]
         },
         "read": {
             "permissions": [
-                "initech:DescribeReport"
             ]
         },
         "update": {
             "permissions": [
-                "initech:UpdateReport"
             ]
         },
         "delete": {
             "permissions": [
-                "initech:DeleteReport"
             ]
         },
         "list": {
             "permissions": [
-                "initech:ListReports"
             ]
         }
     }

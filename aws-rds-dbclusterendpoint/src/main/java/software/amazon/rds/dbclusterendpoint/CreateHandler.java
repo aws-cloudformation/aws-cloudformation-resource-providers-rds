@@ -6,6 +6,7 @@ package software.amazon.rds.dbclusterendpoint;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkClient;
+import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -21,7 +22,7 @@ public class CreateHandler extends BaseHandlerStd {
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceModel> request,
         final CallbackContext callbackContext,
-        final ProxyClient<SdkClient> proxyClient,
+        final ProxyClient<RdsClient> proxyClient,
         final Logger logger) {
 
         this.logger = logger;
@@ -42,7 +43,7 @@ public class CreateHandler extends BaseHandlerStd {
                 proxy.initiate("AWS-RDS-DBClusterEndpoint::Create::PreExistanceCheck", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
 
                     // STEP 1.1 [TODO: construct a body of a request]
-                    .translateToServiceRequest(Translator::translateToReadRequest)
+                    .translateToServiceRequest(Translator::describeDbClustersEndpointRequest)
 
                     // STEP 1.2 [TODO: make an api call]
                     .makeServiceCall((awsRequest, client) -> {

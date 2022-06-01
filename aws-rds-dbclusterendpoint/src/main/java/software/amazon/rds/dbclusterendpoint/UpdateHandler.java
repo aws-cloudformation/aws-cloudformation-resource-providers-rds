@@ -1,11 +1,9 @@
 package software.amazon.rds.dbclusterendpoint;
 
-// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
-// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
-
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkClient;
+import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -20,7 +18,7 @@ public class UpdateHandler extends BaseHandlerStd {
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceModel> request,
         final CallbackContext callbackContext,
-        final ProxyClient<SdkClient> proxyClient,
+        final ProxyClient<RdsClient> proxyClient,
         final Logger logger) {
 
         this.logger = logger;
@@ -41,7 +39,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 proxy.initiate("AWS-RDS-DBClusterEndpoint::Update::PreUpdateCheck", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
 
                     // STEP 1.1 [initialize a proxy context]
-                    .translateToServiceRequest(Translator::translateToReadRequest)
+                    .translateToServiceRequest(Translator::describeDbClustersEndpointRequest)
 
                     // STEP 1.2 [TODO: make an api call]
                     .makeServiceCall((awsRequest, client) -> {
