@@ -1,15 +1,19 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
-import software.amazon.cloudformation.proxy.*;
+import software.amazon.awssdk.services.rds.model.DbClusterEndpointAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterEndpointQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -54,16 +58,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxyClient.client()::describeDBClusterEndpoints)
                 .dbClusterEndpoints().stream().findFirst().get().status();
         return status.equals(DB_CLUSTER_ENDPOINT_AVAILABLE);
-    }
-
-    protected <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
-        final Map<K, V> result = new HashMap<>();
-        if (m1 != null) {
-            result.putAll(m1);
-        }
-        if (m2 != null) {
-            result.putAll(m2);
-        }
-        return result;
     }
 }

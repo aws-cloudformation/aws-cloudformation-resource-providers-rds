@@ -1,7 +1,11 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.cloudformation.proxy.*;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 
 import java.util.Map;
@@ -17,10 +21,8 @@ public class CreateHandler extends BaseHandlerStd {
 
         final ResourceModel model = request.getDesiredResourceState();
 
-        final Map<String, String> allTags = mergeMaps(request.getSystemTags(), request.getDesiredResourceTags());
-
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> createDbClusterEndpoint(proxy, proxyClient, progress, allTags))
+                .then(progress -> createDbClusterEndpoint(proxy, proxyClient, progress, request.getDesiredResourceTags()))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 

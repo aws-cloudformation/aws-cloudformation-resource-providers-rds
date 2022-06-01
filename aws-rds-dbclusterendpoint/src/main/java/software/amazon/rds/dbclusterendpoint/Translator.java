@@ -16,7 +16,7 @@ public class Translator {
             final Map<String, String> tags
     ) {
         return CreateDbClusterEndpointRequest.builder()
-                .dbClusterEndpointIdentifier(model.getDbClusterEndpointIdentifier())
+                .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .endpointType(model.getEndpointType())
                 .staticMembers(model.getStaticMembers())
@@ -41,7 +41,7 @@ public class Translator {
     static ResourceModel translateDbClusterEndpointFromSdk(
             final software.amazon.awssdk.services.rds.model.DBClusterEndpoint dbClusterEndpoint) {
         return ResourceModel.builder()
-                .dbClusterEndpointIdentifier(dbClusterEndpoint.dbClusterEndpointIdentifier())
+                .dBClusterEndpointIdentifier(dbClusterEndpoint.dbClusterEndpointIdentifier())
                 .dBClusterIdentifier(dbClusterEndpoint.dbClusterIdentifier())
                 .endpointType(dbClusterEndpoint.endpointType())
                 .staticMembers(new HashSet<>(dbClusterEndpoint.staticMembers()))
@@ -51,13 +51,13 @@ public class Translator {
 
     static DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest(final ResourceModel model) {
         return DeleteDbClusterEndpointRequest.builder()
-                .dbClusterEndpointIdentifier(model.getDbClusterEndpointIdentifier())
+                .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .build();
     }
 
     static ModifyDbClusterEndpointRequest modifyDbClusterEndpoint(final ResourceModel model) {
         return ModifyDbClusterEndpointRequest.builder()
-                .dbClusterEndpointIdentifier(model.getDbClusterEndpointIdentifier())
+                .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .endpointType(model.getEndpointType())
                 .staticMembers(model.getStaticMembers())
                 .excludedMembers(model.getExcludedMembers())

@@ -28,9 +28,13 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              - Effect: Deny
+              - Effect: Allow
                 Action:
-                - "*"
+                - "rds:AddTagsToResource"
+                - "rds:CreateDBClusterEndpoint"
+                - "rds:DeleteDBClusterEndpoint"
+                - "rds:DescribeDBClusterEndpoints"
+                - "rds:ModifyDBClusterEndpoint"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

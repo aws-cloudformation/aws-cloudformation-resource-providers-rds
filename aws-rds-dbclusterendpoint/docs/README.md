@@ -13,7 +13,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "Type" : "AWS::RDS::DBClusterEndpoint",
     "Properties" : {
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
-        "<a href="#dbclusterendpointidentifier" title="DbClusterEndpointIdentifier">DbClusterEndpointIdentifier</a>" : <i>String</i>,
+        "<a href="#dbclusterendpointidentifier" title="DBClusterEndpointIdentifier">DBClusterEndpointIdentifier</a>" : <i>String</i>,
         "<a href="#endpointtype" title="EndpointType">EndpointType</a>" : <i>String</i>,
         "<a href="#staticmembers" title="StaticMembers">StaticMembers</a>" : <i>[ String, ... ]</i>,
         "<a href="#excludedmembers" title="ExcludedMembers">ExcludedMembers</a>" : <i>[ String, ... ]</i>,
@@ -28,7 +28,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 Type: AWS::RDS::DBClusterEndpoint
 Properties:
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
-    <a href="#dbclusterendpointidentifier" title="DbClusterEndpointIdentifier">DbClusterEndpointIdentifier</a>: <i>String</i>
+    <a href="#dbclusterendpointidentifier" title="DBClusterEndpointIdentifier">DBClusterEndpointIdentifier</a>: <i>String</i>
     <a href="#endpointtype" title="EndpointType">EndpointType</a>: <i>String</i>
     <a href="#staticmembers" title="StaticMembers">StaticMembers</a>: <i>
       - String</i>
@@ -44,7 +44,7 @@ Properties:
 
 The DB cluster identifier of the DB cluster associated with the endpoint. This parameter is stored as a lowercase string.
 
-_Required_: No
+_Required_: Yes
 
 _Type_: String
 
@@ -56,7 +56,7 @@ _Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
-#### DbClusterEndpointIdentifier
+#### DBClusterEndpointIdentifier
 
 The identifier to use for the new endpoint. This parameter is stored as a lowercase string.
 
@@ -118,4 +118,4 @@ _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/l
 
 ### Ref
 
-When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the DbClusterEndpointIdentifier.
+When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the DBClusterEndpointIdentifier.

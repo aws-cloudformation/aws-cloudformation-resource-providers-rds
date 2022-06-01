@@ -2,9 +2,7 @@ package software.amazon.rds.dbclusterendpoint;
 
 import java.time.Duration;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.Disabled;
-import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;

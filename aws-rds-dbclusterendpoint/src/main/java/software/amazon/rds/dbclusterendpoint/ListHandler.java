@@ -1,15 +1,15 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsResponse;
-import software.amazon.cloudformation.proxy.*;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class ListHandler extends BaseHandlerStd {
@@ -40,7 +40,7 @@ public class ListHandler extends BaseHandlerStd {
                         describeDbClusterEndpointsResponse.dbClusterEndpoints()
                                 .stream()
                                 .map(dbClusterEndpoint -> ResourceModel.builder()
-                                        .dbClusterEndpointIdentifier(dbClusterEndpoint.dbClusterEndpointIdentifier())
+                                        .dBClusterEndpointIdentifier(dbClusterEndpoint.dbClusterEndpointIdentifier())
                                         .build()
                                 ).collect(Collectors.toList())
                 ).nextToken(describeDbClusterEndpointsResponse.marker())
