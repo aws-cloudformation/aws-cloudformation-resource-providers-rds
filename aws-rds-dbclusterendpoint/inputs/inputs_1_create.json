@@ -1,12 +1,15 @@
 {
-    "TPSCode": "...",
-    "Title": "...",
-    "CoverSheetIncluded": "...",
-    "DueDate": "...",
-    "ApprovalDate": "...",
-    "Memo": "...",
-    "SecondCopyOfMemo": "...",
-    "TestCode": "...",
-    "Authors": "...",
-    "Tags": "..."
+    "DBClusterEndpointIdentifier": "db-cluster-endpoint-identifier-contract-test",
+    "DBClusterIdentifier": "db-cluster-identifier-contract-test",
+    "EndpointType": "ANY",
+    "Tags": [
+        {
+            "Key": "TagKey1",
+            "Value": "TagValue1"
+        },
+        {
+            "Key": "TagKey2",
+            "Value": "TagValue2"
+        }
+    ]
 }
