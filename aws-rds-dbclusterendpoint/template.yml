@@ -21,4 +21,3 @@ Resources:
       Handler: software.amazon.rds.dbclusterendpoint.HandlerWrapper::testEntrypoint
       Runtime: java8
       CodeUri: ./target/aws-rds-dbclusterendpoint-handler-1.0-SNAPSHOT.jar
-
