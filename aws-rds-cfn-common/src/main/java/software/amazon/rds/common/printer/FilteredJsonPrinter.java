@@ -1,6 +1,5 @@
 package software.amazon.rds.common.printer;
 
-import com.fasterxml.jackson.databind.*;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -10,6 +9,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
@@ -32,7 +35,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
     public FilteredJsonPrinter(String... filterFields) {
         this.filterFields = filterFields;
         mapper = new ObjectMapper()
-                .setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
+                .setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE)
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         mapper.registerModule(new JavaTimeModule());
