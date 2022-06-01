@@ -9,6 +9,7 @@ import software.amazon.rds.common.handler.Commons;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 

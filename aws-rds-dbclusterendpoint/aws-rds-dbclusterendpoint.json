@@ -60,6 +60,15 @@
                 "type": "string"
             }
         },
+        "ExcludedMembers": {
+            "description": "List of DB instance identifiers that aren't part of the custom endpoint group. All other eligible instances are reachable through the custom endpoint. This parameter is relevant only if the list of static members is empty.",
+            "type": "array",
+            "uniqueItems": true,
+            "insertionOrder": false,
+            "items": {
+                "type": "string"
+            }
+        },
         "Tags": {
             "description": "An array of key-value pairs to apply to this resource.",
             "type": "array",
@@ -79,8 +88,7 @@
     "createOnlyProperties": [
         "/properties/DbClusterEndpointIdentifier",
         "/properties/DbClusterEndpoint",
-        "/properties/EndpointType",
-        "/properties/StaticMembers"
+        "/properties/Tags"
     ],
     "primaryIdentifier": [
         "/properties/DbClusterEndpointIdentifier"

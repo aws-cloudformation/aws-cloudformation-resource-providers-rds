@@ -16,6 +16,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#dbclusterendpointidentifier" title="DbClusterEndpointIdentifier">DbClusterEndpointIdentifier</a>" : <i>String</i>,
         "<a href="#endpointtype" title="EndpointType">EndpointType</a>" : <i>String</i>,
         "<a href="#staticmembers" title="StaticMembers">StaticMembers</a>" : <i>[ String, ... ]</i>,
+        "<a href="#excludedmembers" title="ExcludedMembers">ExcludedMembers</a>" : <i>[ String, ... ]</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>
     }
 }
@@ -30,6 +31,8 @@ Properties:
     <a href="#dbclusterendpointidentifier" title="DbClusterEndpointIdentifier">DbClusterEndpointIdentifier</a>: <i>String</i>
     <a href="#endpointtype" title="EndpointType">EndpointType</a>: <i>String</i>
     <a href="#staticmembers" title="StaticMembers">StaticMembers</a>: <i>
+      - String</i>
+    <a href="#excludedmembers" title="ExcludedMembers">ExcludedMembers</a>: <i>
       - String</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
@@ -79,7 +82,7 @@ _Type_: String
 
 _Allowed Values_: <code>READER</code> | <code>WRITER</code> | <code>ANY</code>
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### StaticMembers
 
@@ -89,7 +92,17 @@ _Required_: No
 
 _Type_: List of String
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### ExcludedMembers
+
+List of DB instance identifiers that aren't part of the custom endpoint group. All other eligible instances are reachable through the custom endpoint. This parameter is relevant only if the list of static members is empty.
+
+_Required_: No
+
+_Type_: List of String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### Tags
 
@@ -99,7 +112,7 @@ _Required_: No
 
 _Type_: List of <a href="tag.md">Tag</a>
 
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 ## Return Values
 

@@ -3,7 +3,6 @@ package software.amazon.rds.dbclusterendpoint;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.*;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.Tagging;
 
 import java.util.Map;
 
@@ -33,8 +32,9 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::create-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.createDbClusterEndpointRequest(resourceModel, tags))
-                .makeServiceCall((createEventSubscriptionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createEventSubscriptionRequest, proxyInvocation.client()::createDBClusterEndpoint))
-                .stabilize((createEventSubscriptionRequest, createEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
+                .makeServiceCall((createDbClusterEndpointRequest, proxyInvocation) ->
+                        proxyInvocation.injectCredentialsAndInvokeV2(createDbClusterEndpointRequest, proxyInvocation.client()::createDBClusterEndpoint))
+                .stabilize((createDbClusterEndpointRequest, createDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))
                 .handleError((createRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),

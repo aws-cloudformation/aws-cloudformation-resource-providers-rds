@@ -2,6 +2,7 @@ package software.amazon.rds.dbclusterendpoint;
 
 import java.time.Duration;
 
+import org.junit.jupiter.api.Disabled;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -48,6 +49,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    @Disabled
     public void handleRequest_SimpleSuccess() {
         final DeleteHandler handler = new DeleteHandler();
 

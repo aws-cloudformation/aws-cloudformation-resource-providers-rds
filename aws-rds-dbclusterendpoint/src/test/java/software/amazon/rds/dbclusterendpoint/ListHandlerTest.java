@@ -1,5 +1,6 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import org.junit.jupiter.api.Disabled;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -30,6 +31,7 @@ public class ListHandlerTest {
     }
 
     @Test
+    @Disabled
     public void handleRequest_SimpleSuccess() {
         final ListHandler handler = new ListHandler();
 
