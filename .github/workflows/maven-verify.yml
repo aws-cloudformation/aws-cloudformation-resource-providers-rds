@@ -75,6 +75,7 @@ jobs:
         mvn clean verify --no-transfer-progress
         cat rpdk.log
     - name: Verify AWS::RDS::DBClusterEndpoint
+      run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-dbclusterendpoint"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
