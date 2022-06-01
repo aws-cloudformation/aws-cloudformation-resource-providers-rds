@@ -36,7 +36,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .makeServiceCall((modifyDbClusterEndpointRequest, proxyInvocation) ->
                         proxyInvocation.injectCredentialsAndInvokeV2(modifyDbClusterEndpointRequest, proxyInvocation.client()::modifyDBClusterEndpoint))
                 .stabilize((modifyDbClusterEndpointRequest, modifyDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->
-                        isStabilized(resourceModel, proxyInvocation, logger))
+                        isStabilized(resourceModel, proxyInvocation))
                 .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,

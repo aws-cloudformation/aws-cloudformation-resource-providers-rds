@@ -23,7 +23,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> createDbClusterEndpoint(proxy, proxyClient, progress, request.getDesiredResourceTags(), logger))
+                .then(progress -> createDbClusterEndpoint(proxy, proxyClient, progress, request.getDesiredResourceTags()))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
