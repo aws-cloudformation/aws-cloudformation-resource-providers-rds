@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import java.time.Duration;
+
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -53,8 +54,8 @@ public class DeleteHandlerTest extends AbstractTestBase {
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(model)
-            .build();
+                .desiredResourceState(model)
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 

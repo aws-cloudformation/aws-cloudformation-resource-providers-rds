@@ -15,10 +15,10 @@ public class ListHandler extends BaseHandler<CallbackContext> {
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-        final AmazonWebServicesClientProxy proxy,
-        final ResourceHandlerRequest<ResourceModel> request,
-        final CallbackContext callbackContext,
-        final Logger logger) {
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final Logger logger) {
 
         final List<ResourceModel> models = new ArrayList<>();
 
@@ -35,9 +35,9 @@ public class ListHandler extends BaseHandler<CallbackContext> {
         // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ListHandler.java#L19-L21
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
-            .resourceModels(models)
-            .nextToken(nextToken)
-            .status(OperationStatus.SUCCESS)
-            .build();
+                .resourceModels(models)
+                .nextToken(nextToken)
+                .status(OperationStatus.SUCCESS)
+                .build();
     }
 }

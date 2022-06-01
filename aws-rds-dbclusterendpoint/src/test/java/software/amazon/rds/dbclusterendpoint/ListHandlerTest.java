@@ -36,11 +36,11 @@ public class ListHandlerTest {
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-            .desiredResourceState(model)
-            .build();
+                .desiredResourceState(model)
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-            handler.handleRequest(proxy, request, null, logger);
+                handler.handleRequest(proxy, request, null, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
