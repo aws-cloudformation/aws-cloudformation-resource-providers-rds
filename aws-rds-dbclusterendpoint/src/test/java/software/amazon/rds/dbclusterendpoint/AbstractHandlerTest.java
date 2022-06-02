@@ -1,5 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -15,8 +17,12 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,22 +34,60 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
     protected static final LoggerProxy logger;
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final String MSG_NOT_FOUND = "Cluster Endpoint not found";
+    private static final String DB_CLUSTER_ENDPOINT_IDENTIFIER = "db-cluster-endpoint-identifier";
+    private static final String DB_CLUSTER_ENDPOINT_TYPE = "ANY";
+    private static final String DB_CLUSTER_IDENTIFIER = "db-cluster-identifier";
 
+    protected static final List<Tag> TAG_LIST_EMPTY;
+    protected static final List<Tag> TAG_LIST;
+    protected static final List<Tag> TAG_LIST_ALTER;
+    protected static final Tagging.TagSet TAG_SET;
 
 
     static {
         logger = new LoggerProxy();
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
+
+        TAG_LIST_EMPTY = ImmutableList.of();
+        TAG_LIST = ImmutableList.of(
+                Tag.builder().key("foo-1").value("bar-1").build(),
+                Tag.builder().key("foo-2").value("bar-2").build(),
+                Tag.builder().key("foo-3").value("bar-3").build()
+        );
+
+        TAG_LIST_ALTER = ImmutableList.of(
+                Tag.builder().key("foo-4").value("bar-4").build(),
+                Tag.builder().key("foo-5").value("bar-5").build()
+        );
+
+        TAG_SET = Tagging.TagSet.builder()
+                .systemTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-1").value("system-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-2").value("system-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("system-tag-3").value("system-tag-value3").build()
+                )).stackTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-1").value("stack-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-2").value("stack-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("stack-tag-3").value("stack-tag-value3").build()
+                )).resourceTags(ImmutableSet.of(
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-1").value("resource-tag-value1").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-2").value("resource-tag-value2").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-3").value("resource-tag-value3").build()
+                )).build();
     }
     protected static final ResourceModel RESOURCE_MODEL;
+    protected static final ResourceModel RESOURCE_MODEL_ALTER;
+
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_AVAILABLE;
+    protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_CREATING;
+    protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_DELETING;
     protected static final String LOGICAL_IDENTIFIER = "DBClusterEndpointLogicalId";
 
     protected abstract BaseHandlerStd getHandler();
 
     protected abstract AmazonWebServicesClientProxy getProxy();
 
-    protected abstract ProxyClient<RdsClient> getProxyClient();
+    protected abstract ProxyClient<RdsClient> getRdsProxy();
 
     static {
         RESOURCE_MODEL = ResourceModel.builder()
@@ -52,12 +96,41 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .endpointType("ANY")
                 .build();
 
+        RESOURCE_MODEL_ALTER = ResourceModel.builder()
+                .dBClusterIdentifier("dbClusterEndpointIdentifier")
+                .dBClusterIdentifier("clusterIdentifier")
+                .endpointType("ANY")
+                .tags(TAG_LIST_ALTER)
+                .build();
+
         DB_CLUSTER_ENDPOINT_AVAILABLE = DBClusterEndpoint.builder()
                 .dbClusterEndpointIdentifier("dbClusterEndpointIdentifier")
                 .dbClusterIdentifier("clusterIdentifier")
                 .endpointType("ANY")
                 .status("available")
                 .build();
+
+        DB_CLUSTER_ENDPOINT_CREATING = DBClusterEndpoint.builder()
+                .dbClusterEndpointIdentifier("dbClusterEndpointIdentifier")
+                .dbClusterIdentifier("clusterIdentifier")
+                .endpointType("ANY")
+                .status("creating")
+                .build();
+
+        DB_CLUSTER_ENDPOINT_DELETING = DBClusterEndpoint.builder()
+                .dbClusterEndpointIdentifier("dbClusterEndpointIdentifier")
+                .dbClusterIdentifier("clusterIdentifier")
+                .endpointType("ANY")
+                .status("deleting")
+                .build();
+    }
+
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BLDR() {
+        return ResourceModel.builder()
+                .dBClusterEndpointIdentifier(DB_CLUSTER_ENDPOINT_IDENTIFIER)
+                .endpointType(DB_CLUSTER_ENDPOINT_TYPE)
+                .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+                .tags(TAG_LIST);
     }
 
     @Override
@@ -65,7 +138,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
         return LOGICAL_IDENTIFIER;
     }
 
-    static ProxyClient<RdsClient> MOCK_PROXY(
+    static ProxyClient<RdsClient> mockProxy(
             final AmazonWebServicesClientProxy proxy,
             final RdsClient rdsClient
     ) {
@@ -115,13 +188,18 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
 
     @Override
     protected void expectResourceSupply(Supplier<DBClusterEndpoint> supplier) {
-        when(getProxyClient()
-                .client()
-                .describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class))
-        ).then(res -> DescribeDbClusterEndpointsResponse.builder()
-                .dbClusterEndpoints(supplier.get())
-                .build()
-        );
+
+        when(getRdsProxy().client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class))).then(res -> {
+            DBClusterEndpoint resource = supplier.get();
+
+            Collection<DBClusterEndpoint> endpoints;
+            if (resource != null) {
+                endpoints = Collections.singletonList(resource);
+            } else {
+                endpoints = Collections.emptyList();
+            }
+            return DescribeDbClusterEndpointsResponse.builder().dbClusterEndpoints(endpoints).build();
+        });
     }
 
     @Override
@@ -129,6 +207,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getProxyClient(), logger);
+        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), logger);
     }
 }

@@ -6,7 +6,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 
 
@@ -35,28 +34,8 @@ public class UpdateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(desiredModel, callbackContext)
                 // Since modifying any property if DBClusterEndpoint causes interruption,
-                // we should only update tags. Updating any other properties requires replacement
+                // we should only update tags. Updating any other properties should require replacement
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
-
-    private ProgressEvent<ResourceModel, CallbackContext> updateDbClusterEndpoint(final AmazonWebServicesClientProxy proxy,
-                                                                                  final ProxyClient<RdsClient> proxyClient,
-                                                                                  final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                  final ResourceModel desiredModel,
-                                                                                  final Logger logger
-    ) {
-        return proxy.initiate("rds::modify-db-cluster-endpoint", proxyClient, desiredModel, progress.getCallbackContext())
-                .translateToServiceRequest(Translator::modifyDbClusterEndpoint)
-                .makeServiceCall((modifyDbClusterEndpointRequest, proxyInvocation) ->
-                        proxyInvocation.injectCredentialsAndInvokeV2(modifyDbClusterEndpointRequest, proxyInvocation.client()::modifyDBClusterEndpoint))
-                .stabilize((modifyDbClusterEndpointRequest, modifyDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->
-                        isStabilized(resourceModel, proxyInvocation))
-                .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, ctx),
-                        exception,
-                        DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .progress();
-    }
-
 }

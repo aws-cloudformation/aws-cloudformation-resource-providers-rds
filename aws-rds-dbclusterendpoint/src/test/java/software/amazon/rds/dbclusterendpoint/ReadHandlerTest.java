@@ -32,7 +32,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
     @Mock
     @Getter
-    private ProxyClient<RdsClient> proxyClient;
+    private ProxyClient<RdsClient> rdsProxy;
 
     @Mock
     RdsClient rdsClient;
@@ -45,7 +45,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         handler = new ReadHandler();
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
-        proxyClient = MOCK_PROXY(proxy, rdsClient);
+        rdsProxy = mockProxy(proxy, rdsClient);
     }
 
     @AfterEach
@@ -63,12 +63,12 @@ public class ReadHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(proxyClient.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
     public void handleRequest_NotFound() {
-        when(proxyClient.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
                 .thenThrow(DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build());
 
         test_handleRequest_base(
@@ -78,12 +78,12 @@ public class ReadHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
-        verify(proxyClient.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
     public void handleRequest_RuntimeException() {
-        when(proxyClient.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
                 .thenThrow(new RuntimeException("test exception"));
 
         test_handleRequest_base(
@@ -93,6 +93,6 @@ public class ReadHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 
-        verify(proxyClient.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 }

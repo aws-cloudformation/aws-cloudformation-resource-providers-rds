@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
@@ -10,6 +11,7 @@ import org.mockito.Mock;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +34,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Mock
     @Getter
-    private ProxyClient<RdsClient> proxyClient;
+    private ProxyClient<RdsClient> rdsProxy;
 
     @Mock
     RdsClient rdsClient;
@@ -45,7 +47,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         handler = new CreateHandler();
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyClient = MOCK_PROXY(proxy, rdsClient);
+        rdsProxy = mockProxy(proxy, rdsClient);
     }
 
     @AfterEach
@@ -56,7 +58,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateSuccess() {
-        when(proxyClient.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
                 .thenReturn(CreateDbClusterEndpointResponse.builder().build());
 
         test_handleRequest_base(
@@ -66,6 +68,30 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(proxyClient.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
     }
+
+    @Test
+    public void handleRequest_creating_Stabilize() {
+        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
+
+        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (fetchedOnce.compareAndSet(false, true)) {
+                        return DB_CLUSTER_ENDPOINT_CREATING;
+                    }
+                    return DB_CLUSTER_ENDPOINT_AVAILABLE;
+                },
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+    }
+
 }

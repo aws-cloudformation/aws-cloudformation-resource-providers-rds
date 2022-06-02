@@ -1,15 +1,14 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import java.time.Duration;
-
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
-import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterEndpointResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
@@ -17,9 +16,9 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRespo
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,7 +38,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
     @Mock
     @Getter
-    private ProxyClient<RdsClient> proxyClient;
+    private ProxyClient<RdsClient> rdsProxy;
 
     @Mock
     RdsClient rdsClient;
@@ -52,7 +51,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         handler = new DeleteHandler();
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
-        proxyClient = MOCK_PROXY(proxy, rdsClient);
+        rdsProxy = mockProxy(proxy, rdsClient);
     }
 
     @AfterEach
@@ -62,10 +61,10 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_DeleteSuccess() {
-        when(proxyClient.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class)))
+    public void handleRequest_simpleSuccess() {
+        when(rdsProxy.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class)))
                 .thenReturn(DeleteDbClusterEndpointResponse.builder().build());
-        when(proxyClient.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
                 .thenReturn(DescribeDbClusterEndpointsResponse.builder()
                         .dbClusterEndpoints(new DBClusterEndpoint[]{}).build());
 
@@ -78,6 +77,31 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
         assertThat(response.getMessage()).isNull();
 
-        verify(proxyClient.client(), times(1)).deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class));
+        verify(rdsProxy.client(), times(1)).deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class));
+    }
+
+    @Test
+    public void handleRequest_isDeleting_stabilize() {
+
+        final DeleteDbClusterEndpointResponse deleteDbClusterEndpointResponse = DeleteDbClusterEndpointResponse.builder().build();
+        when(rdsProxy.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class))).thenReturn(deleteDbClusterEndpointResponse);
+
+        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (fetchedOnce.compareAndSet(false, true)) {
+                        return DB_CLUSTER_ENDPOINT_DELETING;
+                    }
+                    return null;
+                },
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectSuccess()
+        );
+
+        assertThat(response.getMessage()).isNull();
+
+        verify(rdsProxy.client(), times(1)).deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 }
