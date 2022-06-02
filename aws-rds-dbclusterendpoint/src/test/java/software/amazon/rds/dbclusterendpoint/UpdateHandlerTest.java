@@ -18,6 +18,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
 
@@ -48,7 +49,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new UpdateHandler();
+        handler = new UpdateHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
 

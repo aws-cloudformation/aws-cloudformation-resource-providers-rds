@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRespo
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +49,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new DeleteHandler();
+        handler = new DeleteHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         rdsProxy = mockProxy(proxy, rdsClient);
@@ -61,7 +62,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_simpleSuccess() {
+    public void handleRequest_SimpleSuccess() {
         when(rdsProxy.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class)))
                 .thenReturn(DeleteDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
@@ -81,7 +82,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_isDeleting_stabilize() {
+    public void handleRequest_IsDeleting_stabilize() {
 
         final DeleteDbClusterEndpointResponse deleteDbClusterEndpointResponse = DeleteDbClusterEndpointResponse.builder().build();
         when(rdsProxy.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class))).thenReturn(deleteDbClusterEndpointResponse);

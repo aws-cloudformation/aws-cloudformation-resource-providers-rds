@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsReque
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
 
@@ -42,7 +43,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new ReadHandler();
+        handler = new ReadHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         rdsProxy = mockProxy(proxy, rdsClient);

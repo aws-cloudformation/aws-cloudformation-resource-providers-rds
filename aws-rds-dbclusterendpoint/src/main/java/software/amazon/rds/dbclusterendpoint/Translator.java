@@ -8,6 +8,7 @@ import software.amazon.rds.common.handler.Tagging;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -51,6 +52,14 @@ public class Translator {
                 .staticMembers(new HashSet<>(dbClusterEndpoint.staticMembers()))
                 .excludedMembers(new HashSet<>(dbClusterEndpoint.excludedMembers()))
                 .build();
+    }
+
+    public static List<ResourceModel> translateDbClusterEndpointFromSdk(
+            final List<software.amazon.awssdk.services.rds.model.DBClusterEndpoint> dbInstances
+    ) {
+        return streamOfOrEmpty(dbInstances)
+                .map(Translator::translateDbClusterEndpointFromSdk)
+                .collect(Collectors.toList());
     }
 
     static DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest(final ResourceModel model) {

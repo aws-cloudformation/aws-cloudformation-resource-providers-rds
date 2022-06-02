@@ -17,9 +17,11 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +44,11 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
     protected static final List<Tag> TAG_LIST;
     protected static final List<Tag> TAG_LIST_ALTER;
     protected static final Tagging.TagSet TAG_SET;
+
+    protected static Constant TEST_BACKOFF_DELAY = Constant.of()
+            .delay(Duration.ofSeconds(1L))
+            .timeout(Duration.ofSeconds(10L))
+            .build();
 
 
     static {

@@ -8,8 +8,21 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ReadHandler extends BaseHandlerStd {
+
+
+    public ReadHandler() {
+        this(HandlerConfig.builder()
+                .backoff(BACKOFF_DELAY)
+                .build());
+    }
+
+    public ReadHandler(HandlerConfig config) {
+        super(config);
+    }
+
 
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -21,6 +34,7 @@ public class ReadHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::describe-db-cluster-endpoint", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbClustersEndpointRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         proxyInvocation.client()::describeDBClusterEndpoints

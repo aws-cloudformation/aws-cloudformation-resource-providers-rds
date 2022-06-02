@@ -14,12 +14,14 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRespo
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -29,6 +31,7 @@ import static org.mockito.Mockito.when;
 public class ListHandlerTest extends AbstractHandlerTest {
     final String DB_CLUSTER_ENDPOINT_IDENTIFIER = "test-db-cluster-endpoint-identifier";
     final String DB_CLUSTER_IDENTIFIER = "test-db-cluster-identifier";
+    final String ENDPOINT_TYPE = "ANY";
 
     final String DESCRIBE_DB_CLUSTER_ENDPOINTS_MARKER = "test-describe-db-cluster-endpoints-marker";
     @Mock
@@ -44,7 +47,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new ListHandler();
+        handler = new ListHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         rdsProxy = mockProxy(proxy, rdsClient);
@@ -52,6 +55,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
 
     @AfterEach
     public void tear_down() {
+        verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
     }
 
@@ -62,6 +66,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                         DBClusterEndpoint.builder()
                                 .dbClusterEndpointIdentifier(DB_CLUSTER_ENDPOINT_IDENTIFIER)
                                 .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+                                .customEndpointType(ENDPOINT_TYPE)
                                 .build()
                 ))
                 .marker(DESCRIBE_DB_CLUSTER_ENDPOINTS_MARKER)
@@ -78,6 +83,10 @@ public class ListHandlerTest extends AbstractHandlerTest {
 
         final ResourceModel expectedModel = ResourceModel.builder()
                 .dBClusterEndpointIdentifier(DB_CLUSTER_ENDPOINT_IDENTIFIER)
+                .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+                .endpointType(ENDPOINT_TYPE)
+                .excludedMembers(Collections.emptySet())
+                .staticMembers(Collections.emptySet())
                 .build();
 
         assertThat(response.getResourceModels()).isNotNull();

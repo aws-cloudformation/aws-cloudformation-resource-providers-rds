@@ -16,6 +16,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -44,7 +45,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler();
+        handler = new CreateHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsProxy = mockProxy(proxy, rdsClient);
@@ -72,7 +73,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_creating_Stabilize() {
+    public void handleRequest_Create_Stabilize() {
         when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
                 .thenReturn(CreateDbClusterEndpointResponse.builder().build());
 

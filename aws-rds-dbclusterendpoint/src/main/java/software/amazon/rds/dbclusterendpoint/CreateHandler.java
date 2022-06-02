@@ -8,12 +8,23 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 
 import java.util.HashSet;
 
 public class CreateHandler extends BaseHandlerStd {
+
+    public CreateHandler() {
+        this(HandlerConfig.builder()
+                .backoff(BACKOFF_DELAY)
+                .build());
+    }
+
+    public CreateHandler(HandlerConfig config) {
+        super(config);
+    }
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -54,6 +65,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   ) {
         return proxy.initiate("rds::create-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.createDbClusterEndpointRequest(resourceModel, tags))
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((createDbClusterEndpointRequest, proxyInvocation) ->
                         proxyInvocation.injectCredentialsAndInvokeV2(createDbClusterEndpointRequest, proxyInvocation.client()::createDBClusterEndpoint))
                 .stabilize((createDbClusterEndpointRequest, createDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->

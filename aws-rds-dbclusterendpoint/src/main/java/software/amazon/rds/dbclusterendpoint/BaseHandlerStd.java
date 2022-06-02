@@ -14,17 +14,24 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
+import java.time.Duration;
 import java.util.Optional;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String DB_CLUSTER_ENDPOINT_AVAILABLE = "available";
 
+    protected static final Constant BACKOFF_DELAY = Constant.of()
+            .timeout(Duration.ofSeconds(150L))
+            .delay(Duration.ofSeconds(5L))
+            .build();
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterEndpointAlreadyExistsException.class)
@@ -35,6 +42,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbClusterEndpointQuotaExceededException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+
+    protected final HandlerConfig config;
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
