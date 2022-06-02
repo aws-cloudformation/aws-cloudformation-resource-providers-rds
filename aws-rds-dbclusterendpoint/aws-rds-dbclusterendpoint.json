@@ -38,7 +38,7 @@
     "DBClusterEndpointIdentifier": {
       "description": "The identifier to use for the new endpoint. This parameter is stored as a lowercase string.",
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
+      "pattern": "^[a-z]{1}(?:-?[a-z0-9]){0,62}$",
       "minLength": 1,
       "maxLength": 63
     },
@@ -87,7 +87,10 @@
   ],
   "createOnlyProperties": [
     "/properties/DBClusterEndpointIdentifier",
-    "/properties/DBClusterEndpoint"
+    "/properties/DBClusterEndpoint",
+    "/properties/EndpointType",
+    "/properties/ExcludedMembers",
+    "/properties/StaticMembers"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterEndpointIdentifier"

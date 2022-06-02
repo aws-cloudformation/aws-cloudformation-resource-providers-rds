@@ -68,7 +68,7 @@ _Minimum_: <code>1</code>
 
 _Maximum_: <code>63</code>
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
+_Pattern_: <code>^[a-z]{1}(?:-?[a-z0-9]){0,62}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -82,7 +82,7 @@ _Type_: String
 
 _Allowed Values_: <code>READER</code> | <code>WRITER</code> | <code>ANY</code>
 
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### StaticMembers
 
@@ -92,7 +92,7 @@ _Required_: No
 
 _Type_: List of String
 
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### ExcludedMembers
 
@@ -102,7 +102,7 @@ _Required_: No
 
 _Type_: List of String
 
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### Tags
 

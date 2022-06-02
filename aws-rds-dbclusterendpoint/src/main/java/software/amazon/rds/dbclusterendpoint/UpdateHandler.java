@@ -34,7 +34,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(desiredModel, callbackContext)
-                .then(progress -> updateDbClusterEndpoint(proxy, proxyClient, progress, desiredModel, logger))
+                // Since modifying any property if DBClusterEndpoint causes interruption,
+                // we should only update tags. Updating any other properties requires replacement
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
