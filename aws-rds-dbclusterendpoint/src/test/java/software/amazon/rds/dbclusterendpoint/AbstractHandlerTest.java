@@ -1,6 +1,5 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
@@ -24,7 +23,7 @@ import software.amazon.rds.common.test.AbstractTestBase;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -40,9 +39,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
     private static final String DB_CLUSTER_ENDPOINT_TYPE = "ANY";
     private static final String DB_CLUSTER_IDENTIFIER = "db-cluster-identifier";
 
-    protected static final List<Tag> TAG_LIST_EMPTY;
-    protected static final List<Tag> TAG_LIST;
-    protected static final List<Tag> TAG_LIST_ALTER;
+    protected static final Set<Tag> TAG_LIST_EMPTY;
+    protected static final Set<Tag> TAG_LIST;
+    protected static final Set<Tag> TAG_LIST_ALTER;
     protected static final Tagging.TagSet TAG_SET;
 
     protected static Constant TEST_BACKOFF_DELAY = Constant.of()
@@ -55,14 +54,14 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
         logger = new LoggerProxy();
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
 
-        TAG_LIST_EMPTY = ImmutableList.of();
-        TAG_LIST = ImmutableList.of(
+        TAG_LIST_EMPTY = ImmutableSet.of();
+        TAG_LIST = ImmutableSet.of(
                 Tag.builder().key("foo-1").value("bar-1").build(),
                 Tag.builder().key("foo-2").value("bar-2").build(),
                 Tag.builder().key("foo-3").value("bar-3").build()
         );
 
-        TAG_LIST_ALTER = ImmutableList.of(
+        TAG_LIST_ALTER = ImmutableSet.of(
                 Tag.builder().key("foo-4").value("bar-4").build(),
                 Tag.builder().key("foo-5").value("bar-5").build()
         );

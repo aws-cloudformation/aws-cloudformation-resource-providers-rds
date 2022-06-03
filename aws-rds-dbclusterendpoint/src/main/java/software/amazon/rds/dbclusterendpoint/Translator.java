@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsReque
 import software.amazon.rds.common.handler.Tagging;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -74,10 +75,23 @@ public class Translator {
                 .orElseGet(Stream::empty);
     }
 
-    private static void addToMapIfAbsent(Map<String, software.amazon.awssdk.services.rds.model.Tag> allTags, Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
-        for (software.amazon.awssdk.services.rds.model.Tag tag : tags) {
-            allTags.putIfAbsent(tag.key(), tag);
-        }
+
+    static Set<Tag> translateTagsFromSdk(
+            final Collection<software.amazon.awssdk.services.rds.model.Tag> tags
+    ) {
+        return Optional.ofNullable(tags).orElse(Collections.emptySet())
+                .stream()
+                .map(tag -> software.amazon.rds.dbclusterendpoint.Tag.builder()
+                        .key(tag.key())
+                        .value(tag.value())
+                        .build())
+                .collect(Collectors.toSet());
+    }
+
+    public static Map<String, String> translateTagsToRequest(final Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptyList())
+                .stream()
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
     }
 
     public static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {
