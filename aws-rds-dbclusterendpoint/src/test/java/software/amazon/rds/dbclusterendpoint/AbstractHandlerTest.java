@@ -45,7 +45,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
     protected static final Tagging.TagSet TAG_SET;
 
     protected static Constant TEST_BACKOFF_DELAY = Constant.of()
-            .delay(Duration.ofSeconds(1L))
+            .delay(Duration.ofMillis(1L))
             .timeout(Duration.ofSeconds(10L))
             .build();
 
@@ -82,7 +82,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 )).build();
     }
     protected static final ResourceModel RESOURCE_MODEL;
-    protected static final ResourceModel RESOURCE_MODEL_ALTER;
+    protected static final ResourceModel RESOURCE_MODEL_WITH_TAGS;
 
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_AVAILABLE;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_CREATING;
@@ -102,7 +102,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .endpointType("ANY")
                 .build();
 
-        RESOURCE_MODEL_ALTER = ResourceModel.builder()
+        RESOURCE_MODEL_WITH_TAGS = ResourceModel.builder()
                 .dBClusterIdentifier("dbClusterEndpointIdentifier")
                 .dBClusterIdentifier("clusterIdentifier")
                 .endpointType("ANY")
@@ -131,12 +131,16 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .build();
     }
 
-    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BLDR() {
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER() {
+        return RESOURCE_MODEL_BUILDER_WITHOUT_TAGS()
+                .tags(TAG_LIST);
+    }
+
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER_WITHOUT_TAGS() {
         return ResourceModel.builder()
                 .dBClusterEndpointIdentifier(DB_CLUSTER_ENDPOINT_IDENTIFIER)
                 .endpointType(DB_CLUSTER_ENDPOINT_TYPE)
-                .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
-                .tags(TAG_LIST);
+                .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER);
     }
 
     @Override

@@ -1,36 +1,29 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
-import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.OperationStatus;
-import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
-import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -67,12 +60,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @AfterEach
     public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+        verify(rdsProxy.client(), atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
     }
 
     @Test
-    public void handleRequest_modifyDbClusterEndpoint_Success() {
+    public void handleRequest_ModifyDbClusterEndpoint_Success() {
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
@@ -83,13 +76,103 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_ALTER,
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_WITH_TAGS,
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_HardFailingTaggingOnRemoveTags() {
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL_WITH_TAGS,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.AccessDenied)
+        );
+
+        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_HardFailingTaggingOnAddTags() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_TAGS,
+                expectFailed(HandlerErrorCode.AccessDenied)
+        );
+
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SoftFailingTaggingOnRemoveTags() {
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .systemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL_BUILDER_WITHOUT_TAGS().build(),
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SoftFailingTaggingOnAddTags() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY))
+                        .systemTags(Translator.translateTagsToRequest(TAG_LIST)),
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL_BUILDER_WITHOUT_TAGS().build(),
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 }

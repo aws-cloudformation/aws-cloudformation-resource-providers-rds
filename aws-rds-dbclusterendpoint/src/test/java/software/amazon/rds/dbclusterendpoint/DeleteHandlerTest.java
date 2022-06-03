@@ -96,7 +96,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                     }
                     return null;
                 },
-                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectSuccess()
         );
 

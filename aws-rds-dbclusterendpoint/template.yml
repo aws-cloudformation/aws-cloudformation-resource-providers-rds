@@ -4,7 +4,7 @@ Description: AWS SAM template for the AWS::RDS::DBClusterEndpoint resource type
 
 Globals:
   Function:
-    Timeout: 180  # docker start-up times can be long for SAM CLI
+    Timeout: 60
     MemorySize: 256
 
 Resources:
