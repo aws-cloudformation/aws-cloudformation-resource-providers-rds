@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TranslatorTest {
 
     @Test
-    public void describeDbClusterEndpointRequest_setsDbClusterEndpointIdentifier() {
+    public void describeDbClusterEndpointRequest_SetsDbClusterEndpointIdentifier() {
         final ResourceModel model = ResourceModel.builder().dBClusterEndpointIdentifier("foo").build();
 
         DescribeDbClusterEndpointsRequest describeDbClusterEndpointsRequest = Translator.describeDbClustersEndpointRequest(model);
@@ -19,14 +19,14 @@ public class TranslatorTest {
     }
 
     @Test
-    public void describeDbClusterEndpointRequest_setsMarker() {
+    public void describeDbClusterEndpointRequest_SetsMarker() {
         final DescribeDbClusterEndpointsRequest describeDbClusterEndpointsRequest = Translator.describeDbClustersEndpointRequest("marker");
 
         assertThat(describeDbClusterEndpointsRequest.marker()).isEqualTo("marker");
     }
 
     @Test
-    public void deleteDbClusterEndpointRequest_setsDbClusterEndpointIdentifier() {
+    public void deleteDbClusterEndpointRequest_SetsDbClusterEndpointIdentifier() {
         final ResourceModel model = ResourceModel.builder().dBClusterEndpointIdentifier("foo").build();
 
         final DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest =  Translator.deleteDbClusterEndpointRequest(model);

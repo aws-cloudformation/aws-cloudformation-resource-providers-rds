@@ -30,8 +30,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String CUSTOM_ENDPOINT = "CUSTOM";
 
     protected static final Constant BACKOFF_DELAY = Constant.of()
-            .timeout(Duration.ofSeconds(150L))
-            .delay(Duration.ofSeconds(5L))
+            .timeout(Duration.ofSeconds(180L))
+            .delay(Duration.ofSeconds(15L))
             .build();
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),

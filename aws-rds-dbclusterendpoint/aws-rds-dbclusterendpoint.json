@@ -2,6 +2,10 @@
   "typeName": "AWS::RDS::DBClusterEndpoint",
   "description": "The AWS::RDS::DBClusterEndpoint resource allows you to create custom Aurora Cluster endpoint. For more information, see Using custom endpoints in the Amazon RDS Aurora Guide.",
   "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+  "tagging": {
+    "taggable": true
+  },
+  "replacementStrategy": "delete_then_create",
   "definitions": {
     "Tag": {
       "description": "A key-value pair to associate with a resource.",
@@ -88,7 +92,7 @@
   ],
   "createOnlyProperties": [
     "/properties/DBClusterEndpointIdentifier",
-    "/properties/DBClusterEndpoint",
+    "/properties/DBClusterIdentifier",
     "/properties/EndpointType",
     "/properties/ExcludedMembers",
     "/properties/StaticMembers"
