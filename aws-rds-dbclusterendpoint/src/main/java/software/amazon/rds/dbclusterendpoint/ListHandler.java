@@ -39,7 +39,9 @@ public class ListHandler extends BaseHandlerStd {
                         describeRequest,
                         proxyInvocation.client()::describeDBClusterEndpoints
                 )).done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
-                    final List<ResourceModel> resourceModels = Translator.translateDbClusterEndpointFromSdk(describeResponse.dbClusterEndpoints());
+                    final List<ResourceModel> resourceModels = Translator.translateDbClusterEndpointFromSdk(describeResponse.dbClusterEndpoints()
+                            // Only Custom endpoints have primary identifier, therefore we need to filter them in our list handler
+                            .stream().filter(endpoint -> CUSTOM_ENDPOINT.equals(endpoint.endpointType())));
                     return ProgressEvent.<ResourceModel, CallbackContext>builder()
                             .callbackContext(callbackContext)
                             .resourceModels(resourceModels)

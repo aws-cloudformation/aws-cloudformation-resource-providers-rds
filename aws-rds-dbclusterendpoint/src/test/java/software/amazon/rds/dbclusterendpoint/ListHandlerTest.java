@@ -32,6 +32,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
     final String DB_CLUSTER_ENDPOINT_IDENTIFIER = "test-db-cluster-endpoint-identifier";
     final String DB_CLUSTER_IDENTIFIER = "test-db-cluster-identifier";
     final String ENDPOINT_TYPE = "ANY";
+    final String CUSTOM_ENDPOINT = "CUSTOM";
 
     final String DESCRIBE_DB_CLUSTER_ENDPOINTS_MARKER = "test-describe-db-cluster-endpoints-marker";
     @Mock
@@ -67,6 +68,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                                 .dbClusterEndpointIdentifier(DB_CLUSTER_ENDPOINT_IDENTIFIER)
                                 .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
                                 .customEndpointType(ENDPOINT_TYPE)
+                                .endpointType(CUSTOM_ENDPOINT)
                                 .build()
                 ))
                 .marker(DESCRIBE_DB_CLUSTER_ENDPOINTS_MARKER)
@@ -92,6 +94,31 @@ public class ListHandlerTest extends AbstractHandlerTest {
         assertThat(response.getResourceModels()).isNotNull();
         assertThat(response.getResourceModels()).containsExactly(expectedModel);
         assertThat(response.getNextToken()).isEqualTo(DESCRIBE_DB_CLUSTER_ENDPOINTS_MARKER);
+
+        verify(rdsProxy.client()).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_OnlyCustomEndpointsAreShown() {
+        final DescribeDbClusterEndpointsResponse describeDbClusterEndpointsResponse = DescribeDbClusterEndpointsResponse.builder()
+                .dbClusterEndpoints(Collections.singletonList(
+                        DBClusterEndpoint.builder()
+                                .endpointType("WRITER")
+                                .build()
+                ))
+                .marker(DESCRIBE_DB_CLUSTER_ENDPOINTS_MARKER)
+                .build();
+        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+                .thenReturn(describeDbClusterEndpointsResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                expectSuccess()
+        );
+
+        assertThat(response.getResourceModels()).isEmpty();
 
         verify(rdsProxy.client()).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }

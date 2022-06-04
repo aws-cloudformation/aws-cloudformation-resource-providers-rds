@@ -5,7 +5,6 @@ import lombok.Getter;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -129,7 +128,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbClusterEndpoint_AccessDeniedTagging() {
+    public void handleRequest_AccessDeniedTagging() {
         when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
                 .thenThrow(
                         RdsException.builder()
@@ -181,7 +180,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
 
     @Test
-    public void handleRequest_CreateDbClusterEndpoint_HardFailTagging() {
+    public void handleRequest_HardFailTagging() {
         when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
                 .thenThrow(
                         RdsException.builder()

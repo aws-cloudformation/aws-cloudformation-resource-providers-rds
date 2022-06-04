@@ -1,6 +1,5 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;

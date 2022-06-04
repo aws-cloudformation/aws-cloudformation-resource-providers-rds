@@ -87,6 +87,26 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
 
     }
+
+    @Test
+    public void handleRequest_PreCheckFails() {
+
+        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+                .thenThrow(new RuntimeException("Internal Failure"));
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                expectFailed(HandlerErrorCode.InternalFailure)
+        );
+
+        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+
+    }
     @Test
     public void handleRequest_SimpleTagUpdate_Success() {
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))

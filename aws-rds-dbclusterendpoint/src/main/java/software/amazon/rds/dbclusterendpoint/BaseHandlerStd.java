@@ -27,6 +27,7 @@ import java.util.Optional;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String DB_CLUSTER_ENDPOINT_AVAILABLE = "available";
+    protected static final String CUSTOM_ENDPOINT = "CUSTOM";
 
     protected static final Constant BACKOFF_DELAY = Constant.of()
             .timeout(Duration.ofSeconds(150L))
@@ -76,7 +77,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return DB_CLUSTER_ENDPOINT_AVAILABLE.equals(endpoint.status());
     }
 
-        protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
+    protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
         final AmazonWebServicesClientProxy proxy,
         final ProxyClient<RdsClient> proxyClient,
         final ProgressEvent<ResourceModel, CallbackContext> progress,

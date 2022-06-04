@@ -1,15 +1,15 @@
 {
   "DBClusterEndpointIdentifier": "dbclusterendpoint-contract-test",
   "DBClusterIdentifier": "dbclusterendpoint-contract-test-cluster",
-  "EndpointType": "WRITE",
+  "EndpointType": "ANY",
   "Tags": [
     {
       "Key": "TagKey1",
       "Value": "TagValue1"
     },
     {
-      "Key": "TagKey3",
-      "Value": "TagValue3"
+      "Key": "TagKey2",
+      "Value": "TagValue2"
     }
   ]
 }

@@ -56,9 +56,9 @@ public class Translator {
     }
 
     public static List<ResourceModel> translateDbClusterEndpointFromSdk(
-            final List<software.amazon.awssdk.services.rds.model.DBClusterEndpoint> dbInstances
+            final Stream<software.amazon.awssdk.services.rds.model.DBClusterEndpoint> dbClusterEndpointStream
     ) {
-        return streamOfOrEmpty(dbInstances)
+        return dbClusterEndpointStream
                 .map(Translator::translateDbClusterEndpointFromSdk)
                 .collect(Collectors.toList());
     }
