@@ -103,12 +103,14 @@
         "rds:RemoveTagsFromResource",
         "rds:CreateDBClusterEndpoint",
         "rds:DescribeDBClusterEndpoints",
-        "rds:ModifyDBClusterEndpoint"
+        "rds:ModifyDBClusterEndpoint",
+        "rds:ListTagsForResource"
       ]
     },
     "read": {
       "permissions": [
-        "rds:DescribeDBClusterEndpoints"
+        "rds:DescribeDBClusterEndpoints",
+        "rds:ListTagsForResource"
       ]
     },
     "update": {
@@ -116,18 +118,21 @@
         "rds:AddTagsToResource",
         "rds:RemoveTagsFromResource",
         "rds:DescribeDBClusterEndpoints",
-        "rds:ModifyDBClusterEndpoint"
+        "rds:ModifyDBClusterEndpoint",
+        "rds:ListTagsForResource"
       ]
     },
     "delete": {
       "permissions": [
         "rds:DeleteDBClusterEndpoint",
-        "rds:DescribeDBClusterEndpoints"
+        "rds:DescribeDBClusterEndpoints",
+        "rds:ListTagsForResource"
       ]
     },
     "list": {
       "permissions": [
-        "rds:DescribeDBClusterEndpoints"
+        "rds:DescribeDBClusterEndpoints",
+        "rds:ListTagsForResource"
       ]
     }
   }

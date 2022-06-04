@@ -1,6 +1,6 @@
 {
-  "DBClusterEndpointIdentifier": "db-cluster-endpoint-identifier-contract-test",
-  "DBClusterIdentifier": "db-cluster-identifier-contract-test",
+  "DBClusterEndpointIdentifier": "dbclusterendpoint-contract-test",
+  "DBClusterIdentifier": "dbclusterendpoint-contract-test-cluster",
   "EndpointType": "INVALID",
   "Tags": [
     {

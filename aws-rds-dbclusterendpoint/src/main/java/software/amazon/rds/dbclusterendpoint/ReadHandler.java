@@ -3,12 +3,17 @@ package software.amazon.rds.dbclusterendpoint;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Tagging;
+
+import java.util.Optional;
+import java.util.Set;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -44,8 +49,34 @@ public class ReadHandler extends BaseHandlerStd {
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
-                    final DBClusterEndpoint dbClusterEndpoint = describeResponse.dbClusterEndpoints().stream().findFirst().get();
-                    return ProgressEvent.success(Translator.translateDbClusterEndpointFromSdk(dbClusterEndpoint), context);
-                });
+                    final Optional<DBClusterEndpoint> dbClusterEndpoint = describeResponse.dbClusterEndpoints().stream().findFirst();
+
+                    if (!dbClusterEndpoint.isPresent()){
+                        return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
+                                "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found");
+                    }
+                    context.setDbClusterEndpointArn(dbClusterEndpoint.get().dbClusterEndpointArn());
+                    return ProgressEvent.progress(model, context);
+                })
+                .then(progress -> readTags(proxyClient, progress));
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> readTags(
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        ResourceModel model = progress.getResourceModel();
+        CallbackContext context = progress.getCallbackContext();
+        try {
+            String arn = progress.getCallbackContext().getDbClusterEndpointArn();
+            Set<software.amazon.rds.dbclusterendpoint.Tag> resourceTags = Translator.translateTagsFromSdk(Tagging.listTagsForResource(proxyClient, arn));
+            model.setTags(resourceTags);
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    ProgressEvent.progress(model, context),
+                    exception,
+                    Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET.orElse(DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET)
+            );
+        }
+        return ProgressEvent.success(model, context);
     }
 }

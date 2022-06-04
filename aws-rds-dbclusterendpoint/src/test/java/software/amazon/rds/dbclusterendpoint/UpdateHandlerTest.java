@@ -12,6 +12,9 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
@@ -23,6 +26,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -65,23 +69,44 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ModifyDbClusterEndpoint_Success() {
+    public void handleRequest_ModifyDbClusterEndpoint_NotFound() {
+
+        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+                .thenReturn(DescribeDbClusterEndpointsResponse.builder().dbClusterEndpoints(Collections.emptyList()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+
+    }
+    @Test
+    public void handleRequest_SimpleTagUpdate_Success() {
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
 
         test_handleRequest_base(
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_WITH_TAGS,
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
@@ -98,13 +123,13 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_WITH_TAGS,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
@@ -119,13 +144,13 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL_WITH_TAGS,
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
@@ -143,13 +168,13 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST))
                         .systemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER_WITHOUT_TAGS().build(),
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
@@ -167,12 +192,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY))
                         .systemTags(Translator.translateTagsToRequest(TAG_LIST)),
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER_WITHOUT_TAGS().build(),
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 }

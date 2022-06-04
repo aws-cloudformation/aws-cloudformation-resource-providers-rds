@@ -9,11 +9,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
+import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterEndpointResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
@@ -82,6 +84,21 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_NotFound() {
+        when(rdsProxy.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class)))
+                .thenThrow(DbClusterEndpointNotFoundException.builder().message(MSG_NOT_FOUND).build());
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class));
+    }
+
+    @Test
     public void handleRequest_IsDeleting_stabilize() {
 
         final DeleteDbClusterEndpointResponse deleteDbClusterEndpointResponse = DeleteDbClusterEndpointResponse.builder().build();
@@ -96,7 +113,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                     }
                     return null;
                 },
-                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
                 expectSuccess()
         );
 

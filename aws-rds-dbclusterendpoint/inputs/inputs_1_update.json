@@ -1,6 +1,6 @@
 {
-  "DBClusterEndpointIdentifier": "db-cluster-endpoint-identifier-contract-test",
-  "DBClusterIdentifier": "db-cluster-identifier-contract-test",
+  "DBClusterEndpointIdentifier": "dbclusterendpoint-contract-test",
+  "DBClusterIdentifier": "dbclusterendpoint-contract-test-cluster",
   "EndpointType": "WRITE",
   "Tags": [
     {
@@ -8,8 +8,8 @@
       "Value": "TagValue1"
     },
     {
-      "Key": "TagKey2",
-      "Value": "TagValue2"
+      "Key": "TagKey3",
+      "Value": "TagValue3"
     }
   ]
 }

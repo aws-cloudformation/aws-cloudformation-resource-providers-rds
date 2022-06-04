@@ -1,5 +1,6 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,12 +11,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -57,20 +62,30 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_ReadSuccess() {
-        test_handleRequest_base(
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+                .tagList(software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key("foo-4").value("bar-4").build(),
+                         software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key("foo-5").value("bar-5").build()).build();
+
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(listTagsForResourceResponse);
+
+        final software.amazon.cloudformation.proxy.ProgressEvent<ResourceModel, CallbackContext> progress = test_handleRequest_base(
                 new CallbackContext(),
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_TAGS,
                 expectSuccess()
         );
-
+        progress.getResourceModel();
         verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
     public void handleRequest_NotFound() {
         when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
-                .thenThrow(DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build());
+                .thenReturn(DescribeDbClusterEndpointsResponse.builder()
+                        .dbClusterEndpoints(Collections.emptyList()).build());
 
         test_handleRequest_base(
                 new CallbackContext(),

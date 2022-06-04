@@ -114,6 +114,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .dbClusterIdentifier("clusterIdentifier")
                 .endpointType("ANY")
                 .status("available")
+                .dbClusterEndpointArn("db-cluster-endpoint-arn")
                 .build();
 
         DB_CLUSTER_ENDPOINT_CREATING = DBClusterEndpoint.builder()
@@ -121,6 +122,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .dbClusterIdentifier("clusterIdentifier")
                 .endpointType("ANY")
                 .status("creating")
+                .dbClusterEndpointArn("db-cluster-endpoint-arn")
                 .build();
 
         DB_CLUSTER_ENDPOINT_DELETING = DBClusterEndpoint.builder()
@@ -128,15 +130,16 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .dbClusterIdentifier("clusterIdentifier")
                 .endpointType("ANY")
                 .status("deleting")
+                .dbClusterEndpointArn("db-cluster-endpoint-arn")
                 .build();
     }
 
-    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER() {
-        return RESOURCE_MODEL_BUILDER_WITHOUT_TAGS()
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER_WITH_TAGS() {
+        return RESOURCE_MODEL_BUILDER()
                 .tags(TAG_LIST);
     }
 
-    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER_WITHOUT_TAGS() {
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER() {
         return ResourceModel.builder()
                 .dBClusterEndpointIdentifier(DB_CLUSTER_ENDPOINT_IDENTIFIER)
                 .endpointType(DB_CLUSTER_ENDPOINT_TYPE)

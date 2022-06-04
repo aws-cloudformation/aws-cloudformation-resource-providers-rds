@@ -27,6 +27,7 @@ Resources:
                 - "rds:CreateDBClusterEndpoint"
                 - "rds:DeleteDBClusterEndpoint"
                 - "rds:DescribeDBClusterEndpoints"
+                - "rds:ListTagsForResource"
                 - "rds:ModifyDBClusterEndpoint"
                 - "rds:RemoveTagsFromResource"
                 Resource: "*"

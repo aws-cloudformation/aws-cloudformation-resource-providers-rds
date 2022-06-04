@@ -39,18 +39,16 @@ public class DeleteHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .success();
+                .done(progress -> ProgressEvent.defaultSuccessHandler(null));
     }
 
     protected boolean isDeleted(final ResourceModel model,
                                 final ProxyClient<RdsClient> proxyClient) {
-
         try {
             fetchDBClusterEndpoint(proxyClient, model);
             return false;
         } catch (CfnNotFoundException e) {
             return true;
         }
-
     }
 }

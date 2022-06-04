@@ -1,0 +1,21 @@
+Resources:
+  ContractTestSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Superuser credentials for the DBCluster
+      Name: dbclusterendpoint-contract-test-secret
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: password
+        PasswordLength: 16
+        ExcludeCharacters: '"''@/\ ,'
+
+  DBClusterEndpointContractCluster:
+    Type: AWS::RDS::DBCluster
+    DependsOn:
+      - ContractTestSecret
+    Properties:
+      DBClusterIdentifier: dbclusterendpoint-contract-test-cluster
+      Engine: aurora-mysql
+      MasterUsername: '{{resolve:secretsmanager:dbclusterendpoint-contract-test-secret:SecretString:username}}'
+      MasterUserPassword: '{{resolve:secretsmanager:dbclusterendpoint-contract-test-secret:SecretString:password}}'
