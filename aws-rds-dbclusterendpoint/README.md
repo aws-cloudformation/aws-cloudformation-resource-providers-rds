@@ -11,7 +11,7 @@ The RPDK will automatically generate the correct resource model from the schema 
 
 The code uses [Lombok](https://projectlombok.org/), and [you may have to install IDE integrations](https://projectlombok.org/) to enable auto-complete for Lombok-annotated classes.
 
-To launch contract tests locally, make sure to register required resources stack:
+To run contract tests locally, make sure to register required resources stack:
 ```shell
 aws cloudformation --region <region> create-stack --stack-name dbclusterendpoint-contract-test-resources --template-body 'file://./contract-test-required-resources.template.yaml'
 ```
