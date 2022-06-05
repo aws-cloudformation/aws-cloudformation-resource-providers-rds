@@ -2,7 +2,6 @@ package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -46,35 +45,29 @@ public class UpdateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(desiredModel, callbackContext)
-                .then(progress -> doPreCheck(proxy, request, callbackContext, proxyClient))
-                // Since modifying any property of DBClusterEndpoint causes interruption,
-                // we should only update tags. Updating any other properties should require replacement
+                .then(progress -> updateEndpoint(proxy, request, callbackContext, proxyClient))
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> doPreCheck(
+    protected ProgressEvent<ResourceModel, CallbackContext> updateEndpoint(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient
     ) {
-        return proxy.initiate("rds::update-cluster-endpoint-precheck", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .translateToServiceRequest(Translator::describeDbClustersEndpointRequest)
+        return proxy.initiate("rds::update-cluster-endpoint", proxyClient, request.getDesiredResourceState(), callbackContext)
+                .translateToServiceRequest(Translator::modifyDbClusterEndpointRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
-                        proxyInvocation.client()::describeDBClusterEndpoints
+                        proxyInvocation.client()::modifyDBClusterEndpoint
                 ))
+                .stabilize((createDbClusterEndpointRequest, createDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->
+                        isStabilized(resourceModel, proxyInvocation))
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
-                    if (!describeResponse.hasDbClusterEndpoints() || describeResponse.dbClusterEndpoints().isEmpty()) {
-                        return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
-                                "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found");
-                    }
-                    return ProgressEvent.progress(model, context);
-                });
+                .done((describeRequest, describeResponse, proxyInvocation, model, context) -> ProgressEvent.progress(model, context));
     }
 }

@@ -92,10 +92,7 @@
   ],
   "createOnlyProperties": [
     "/properties/DBClusterEndpointIdentifier",
-    "/properties/DBClusterIdentifier",
-    "/properties/EndpointType",
-    "/properties/ExcludedMembers",
-    "/properties/StaticMembers"
+    "/properties/DBClusterIdentifier"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterEndpointIdentifier"

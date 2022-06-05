@@ -3,6 +3,7 @@ package software.amazon.rds.dbclusterendpoint;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterEndpointRequest;
 import software.amazon.rds.common.handler.Tagging;
 
 import java.util.Collection;
@@ -29,6 +30,15 @@ public class Translator {
                 .staticMembers(model.getStaticMembers())
                 .excludedMembers(model.getExcludedMembers())
                 .tags(Tagging.translateTagsToSdk(tags))
+                .build();
+    }
+
+    static ModifyDbClusterEndpointRequest modifyDbClusterEndpointRequest(final ResourceModel model) {
+        return ModifyDbClusterEndpointRequest.builder()
+                .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
+                .endpointType(model.getEndpointType())
+                .staticMembers(model.getStaticMembers())
+                .excludedMembers(model.getExcludedMembers())
                 .build();
     }
 

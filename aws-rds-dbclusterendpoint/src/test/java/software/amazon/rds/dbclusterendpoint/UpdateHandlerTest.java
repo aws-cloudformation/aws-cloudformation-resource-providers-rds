@@ -11,10 +11,12 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterEndpointRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterEndpointResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
@@ -26,7 +28,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 import java.time.Duration;
-import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -71,8 +73,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Test
     public void handleRequest_ModifyDbClusterEndpoint_NotFound() {
 
-        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
-                .thenReturn(DescribeDbClusterEndpointsResponse.builder().dbClusterEndpoints(Collections.emptyList()).build());
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenThrow(DbClusterEndpointNotFoundException.builder().message(MSG_NOT_FOUND).build());
 
         final CallbackContext context = new CallbackContext();
 
@@ -84,14 +86,14 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
-        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
 
     }
 
     @Test
-    public void handleRequest_PreCheckFails() {
+    public void handleRequest_ModifyThrowsRuntimeError() {
 
-        when(rdsProxy.client().describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class)))
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
                 .thenThrow(new RuntimeException("Internal Failure"));
 
         final CallbackContext context = new CallbackContext();
@@ -104,7 +106,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 
-        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
 
     }
     @Test
@@ -115,6 +117,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
         when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
 
@@ -127,12 +131,49 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(4)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
+        verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ModifyStabilize() {
+
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+
+        test_handleRequest_base(
+                context,
+                () -> {
+                    if (fetchedOnce.compareAndSet(false, true)) {
+                        return DB_CLUSTER_ENDPOINT_MODIFYING;
+                    }
+                    return DB_CLUSTER_ENDPOINT_AVAILABLE;
+                },
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(5)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 
     @Test
     public void handleRequest_HardFailingTaggingOnRemoveTags() {
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -148,12 +189,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
     public void handleRequest_HardFailingTaggingOnAddTags() {
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -169,12 +213,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
     public void handleRequest_SoftFailingTaggingOnRemoveTags() {
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -193,12 +240,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 
     @Test
     public void handleRequest_SoftFailingTaggingOnAddTags() {
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -217,6 +267,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }

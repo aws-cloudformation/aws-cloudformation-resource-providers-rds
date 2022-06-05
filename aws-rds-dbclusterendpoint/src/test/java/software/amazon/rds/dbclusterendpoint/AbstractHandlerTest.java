@@ -86,6 +86,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
 
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_AVAILABLE;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_CREATING;
+    protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_MODIFYING;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_DELETING;
     protected static final String LOGICAL_IDENTIFIER = "DBClusterEndpointLogicalId";
 
@@ -122,6 +123,14 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .dbClusterIdentifier("clusterIdentifier")
                 .endpointType("ANY")
                 .status("creating")
+                .dbClusterEndpointArn("db-cluster-endpoint-arn")
+                .build();
+
+        DB_CLUSTER_ENDPOINT_MODIFYING = DBClusterEndpoint.builder()
+                .dbClusterEndpointIdentifier("dbClusterEndpointIdentifier")
+                .dbClusterIdentifier("clusterIdentifier")
+                .endpointType("ANY")
+                .status("modifying")
                 .dbClusterEndpointArn("db-cluster-endpoint-arn")
                 .build();
 

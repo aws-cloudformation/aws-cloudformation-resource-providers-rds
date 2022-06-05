@@ -2,6 +2,9 @@
   "DBClusterEndpointIdentifier": "dbclusterendpoint-contract-test",
   "DBClusterIdentifier": "dbclusterendpoint-contract-test-cluster",
   "EndpointType": "ANY",
+  "StaticMembers": [
+    "dbclusterendpoint-contract-test-instance"
+  ],
   "Tags": [
     {
       "Key": "TagKey1",

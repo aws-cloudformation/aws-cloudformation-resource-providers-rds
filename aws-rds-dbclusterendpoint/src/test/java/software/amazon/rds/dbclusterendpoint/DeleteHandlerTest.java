@@ -99,7 +99,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_IsDeleting_stabilize() {
+    public void handleRequest_IsDeleting_Stabilize() {
 
         final DeleteDbClusterEndpointResponse deleteDbClusterEndpointResponse = DeleteDbClusterEndpointResponse.builder().build();
         when(rdsProxy.client().deleteDBClusterEndpoint(any(DeleteDbClusterEndpointRequest.class))).thenReturn(deleteDbClusterEndpointResponse);

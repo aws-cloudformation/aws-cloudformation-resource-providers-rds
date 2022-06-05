@@ -86,6 +86,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
             return proxy.initiate("rds::tag-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                     .translateToServiceRequest(Translator::describeDbClustersEndpointRequest)
+                    .backoffDelay(config.getBackoff())
                     .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                             describeRequest,
                             proxyInvocation.client()::describeDBClusterEndpoints

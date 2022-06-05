@@ -19,3 +19,13 @@ Resources:
       Engine: aurora-mysql
       MasterUsername: '{{resolve:secretsmanager:dbclusterendpoint-contract-test-secret:SecretString:username}}'
       MasterUserPassword: '{{resolve:secretsmanager:dbclusterendpoint-contract-test-secret:SecretString:password}}'
+
+  DBClusterEndpointContractInstance:
+    Type: AWS::RDS::DBInstance
+    DependsOn:
+      - DBClusterEndpointContractCluster
+    Properties:
+      DBClusterIdentifier: dbclusterendpoint-contract-test-cluster
+      DBInstanceIdentifier: dbclusterendpoint-contract-test-instance
+      DBInstanceClass: db.t3.small
+      Engine: "aurora-mysql"
