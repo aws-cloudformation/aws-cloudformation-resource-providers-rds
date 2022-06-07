@@ -82,8 +82,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 )).build();
     }
     protected static final ResourceModel RESOURCE_MODEL;
-    protected static final ResourceModel RESOURCE_MODEL_WITH_TAGS;
-
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_AVAILABLE;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_CREATING;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_MODIFYING;
@@ -98,9 +96,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
 
     static {
         RESOURCE_MODEL = RESOURCE_MODEL_BUILDER()
-                .build();
-
-        RESOURCE_MODEL_WITH_TAGS = RESOURCE_MODEL_BUILDER_WITH_TAGS()
                 .build();
 
         DB_CLUSTER_ENDPOINT_AVAILABLE = DBClusterEndpoint.builder()
@@ -134,11 +129,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                 .status("deleting")
                 .dbClusterEndpointArn("db-cluster-endpoint-arn")
                 .build();
-    }
-
-    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER_WITH_TAGS() {
-        return RESOURCE_MODEL_BUILDER()
-                .tags(TAG_LIST);
     }
 
     static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER() {

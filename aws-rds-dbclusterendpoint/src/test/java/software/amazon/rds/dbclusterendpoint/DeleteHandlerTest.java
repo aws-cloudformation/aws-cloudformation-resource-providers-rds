@@ -113,7 +113,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                     }
                     return null;
                 },
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
 

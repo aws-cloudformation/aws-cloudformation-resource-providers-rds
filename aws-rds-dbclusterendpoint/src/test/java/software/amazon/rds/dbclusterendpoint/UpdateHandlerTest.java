@@ -82,8 +82,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 null,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
@@ -102,8 +102,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 null,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 
@@ -128,7 +128,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
 
@@ -151,7 +151,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
-        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+        final AtomicBoolean fetchedOnce = new AtomicBoolean(false);
 
         test_handleRequest_base(
                 context,
@@ -162,7 +162,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     return DB_CLUSTER_ENDPOINT_AVAILABLE;
                 },
                 () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
 
@@ -183,7 +183,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
 null,
                 () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectFailed(HandlerErrorCode.ResourceConflict)
         );
 
@@ -204,7 +204,7 @@ null,
         test_handleRequest_base(
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 () -> RESOURCE_MODEL_BUILDER().build(),
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
@@ -229,7 +229,7 @@ null,
                 context,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
@@ -255,8 +255,8 @@ null,
                         .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST))
                         .systemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectSuccess()
         );
 
@@ -282,8 +282,8 @@ null,
                         .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY))
                         .systemTags(Translator.translateTagsToRequest(TAG_LIST)),
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectSuccess()
         );
 

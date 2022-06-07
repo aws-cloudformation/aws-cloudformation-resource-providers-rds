@@ -13,7 +13,7 @@ public class TranslatorTest {
     public void describeDbClusterEndpointRequest_SetsDbClusterEndpointIdentifier() {
         final ResourceModel model = ResourceModel.builder().dBClusterEndpointIdentifier("foo").build();
 
-        DescribeDbClusterEndpointsRequest describeDbClusterEndpointsRequest = Translator.describeDbClustersEndpointRequest(model);
+        final DescribeDbClusterEndpointsRequest describeDbClusterEndpointsRequest = Translator.describeDbClustersEndpointRequest(model);
 
         assertThat(describeDbClusterEndpointsRequest.dbClusterEndpointIdentifier()).isEqualTo("foo");
     }

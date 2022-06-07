@@ -72,7 +72,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         final software.amazon.cloudformation.proxy.ProgressEvent<ResourceModel, CallbackContext> progress = test_handleRequest_base(
                 new CallbackContext(),
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
-                () -> RESOURCE_MODEL_WITH_TAGS,
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
         progress.getResourceModel();

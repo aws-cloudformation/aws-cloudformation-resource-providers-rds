@@ -110,7 +110,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
-        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+        final AtomicBoolean fetchedOnce = new AtomicBoolean(false);
 
         test_handleRequest_base(
                 new CallbackContext(),

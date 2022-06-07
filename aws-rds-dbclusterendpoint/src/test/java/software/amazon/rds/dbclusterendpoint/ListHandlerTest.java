@@ -79,7 +79,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
 
@@ -114,7 +114,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
 
