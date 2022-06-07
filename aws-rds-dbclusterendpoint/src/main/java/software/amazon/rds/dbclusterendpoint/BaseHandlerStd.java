@@ -104,8 +104,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         return progress;
                     }
 
-                    final DBClusterEndpoint dbClusterEndpoint = fetchDBClusterEndpoint(proxyClient, progress.getResourceModel());
-                    final String arn = dbClusterEndpoint.dbClusterEndpointArn();
+                    final String arn = describeResponse.dbClusterEndpoints().stream().findFirst().get().dbClusterEndpointArn();
 
                     try {
                         Tagging.removeTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
