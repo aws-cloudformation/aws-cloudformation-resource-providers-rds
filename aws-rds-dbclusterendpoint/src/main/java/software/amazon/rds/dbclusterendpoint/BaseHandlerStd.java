@@ -6,7 +6,11 @@ import software.amazon.awssdk.services.rds.model.DbClusterEndpointAlreadyExistsE
 import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterEndpointQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsResponse;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterEndpointStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -38,9 +42,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbClusterEndpointAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     DbClusterEndpointNotFoundException.class,
-                    DbClusterNotFoundException.class)
+                    DbClusterNotFoundException.class,
+                    DbInstanceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbClusterEndpointQuotaExceededException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    InvalidDbInstanceStateException.class,
+                    InvalidDbClusterStateException.class,
+                    InvalidDbClusterEndpointStateException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 

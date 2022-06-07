@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 public class Translator {
 
-    static CreateDbClusterEndpointRequest createDbClusterEndpointRequest(
+    public static CreateDbClusterEndpointRequest createDbClusterEndpointRequest(
             final ResourceModel model,
             final Tagging.TagSet tags
     ) {
@@ -33,7 +33,7 @@ public class Translator {
                 .build();
     }
 
-    static ModifyDbClusterEndpointRequest modifyDbClusterEndpointRequest(final ResourceModel model) {
+    public static ModifyDbClusterEndpointRequest modifyDbClusterEndpointRequest(final ResourceModel model) {
         return ModifyDbClusterEndpointRequest.builder()
                 .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .endpointType(model.getEndpointType())
@@ -42,24 +42,26 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbClusterEndpointsRequest describeDbClustersEndpointRequest(final ResourceModel model) {
+    public static DescribeDbClusterEndpointsRequest describeDbClustersEndpointRequest(final ResourceModel model) {
         return DescribeDbClusterEndpointsRequest.builder()
                 .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .build();
     }
 
-    static DescribeDbClusterEndpointsRequest describeDbClustersEndpointRequest(final String nextToken) {
+    public static DescribeDbClusterEndpointsRequest describeDbClustersEndpointRequest(final String nextToken) {
         return DescribeDbClusterEndpointsRequest.builder()
                 .marker(nextToken)
                 .build();
     }
 
-    static ResourceModel translateDbClusterEndpointFromSdk(
+    public static ResourceModel translateDbClusterEndpointFromSdk(
             final software.amazon.awssdk.services.rds.model.DBClusterEndpoint dbClusterEndpoint) {
         return ResourceModel.builder()
                 .dBClusterEndpointIdentifier(dbClusterEndpoint.dbClusterEndpointIdentifier())
                 .dBClusterIdentifier(dbClusterEndpoint.dbClusterIdentifier())
                 .endpointType(dbClusterEndpoint.customEndpointType())
+                .dBClusterEndpointArn(dbClusterEndpoint.dbClusterEndpointArn())
+                .endpoint(dbClusterEndpoint.endpoint())
                 .staticMembers(new HashSet<>(dbClusterEndpoint.staticMembers()))
                 .excludedMembers(new HashSet<>(dbClusterEndpoint.excludedMembers()))
                 .build();

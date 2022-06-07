@@ -55,6 +55,14 @@
         "ANY"
       ]
     },
+    "DBClusterEndpointArn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) for the endpoint."
+    },
+    "Endpoint": {
+      "type": "string",
+      "description": "The DNS address of the endpoint."
+    },
     "StaticMembers": {
       "description": "List of DB instance identifiers that are part of the custom endpoint group.",
       "type": "array",
@@ -96,6 +104,10 @@
   ],
   "primaryIdentifier": [
     "/properties/DBClusterEndpointIdentifier"
+  ],
+  "readOnlyProperties": [
+    "/properties/Endpoint",
+    "/properties/DBClusterEndpointArn"
   ],
   "handlers": {
     "create": {

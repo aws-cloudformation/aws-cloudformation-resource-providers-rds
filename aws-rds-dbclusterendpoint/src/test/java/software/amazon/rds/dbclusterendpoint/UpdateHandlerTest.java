@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterEndpointRequest;
@@ -169,6 +170,24 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ClusterIsRebooting() {
+        when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
+                .thenThrow(InvalidDbClusterStateException.builder().message("Cluster is rebooting").build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+null,
+                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
+                () -> RESOURCE_MODEL_BUILDER_WITH_TAGS().build(),
+                expectFailed(HandlerErrorCode.ResourceConflict)
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
     }
 
     @Test
