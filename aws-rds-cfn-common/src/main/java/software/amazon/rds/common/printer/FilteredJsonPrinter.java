@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+@SuppressWarnings( "deprecation" )
 public class FilteredJsonPrinter implements JsonPrinter {
     final static String PWD = "pwd";
     public static final String STACK_TRACE = "StackTrace";
