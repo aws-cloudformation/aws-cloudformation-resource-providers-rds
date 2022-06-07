@@ -592,6 +592,37 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_NoEngineVersionChangeOnRollback() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .engineVersion(ENGINE_VERSION_MYSQL_56)
+                .build();
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .engineVersion(ENGINE_VERSION_MYSQL_80)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        // Ensure that engineVersion is not set on a rollback, otherwise it will fail the attempt.
+        final ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+        Assertions.assertThat(captor.getValue().engineVersion()).isNull();
+    }
+
+    @Test
     public void handleRequest_SetParameterGroupName() {
         final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
                 .dbParameterGroups(ImmutableList.of(DBParameterGroup.builder().build()))
