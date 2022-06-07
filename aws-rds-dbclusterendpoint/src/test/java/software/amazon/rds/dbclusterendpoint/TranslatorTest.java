@@ -6,7 +6,6 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsReque
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 public class TranslatorTest {
 
     @Test
@@ -29,7 +28,7 @@ public class TranslatorTest {
     public void deleteDbClusterEndpointRequest_SetsDbClusterEndpointIdentifier() {
         final ResourceModel model = ResourceModel.builder().dBClusterEndpointIdentifier("foo").build();
 
-        final DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest =  Translator.deleteDbClusterEndpointRequest(model);
+        final DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest = Translator.deleteDbClusterEndpointRequest(model);
 
         assertThat(deleteDbClusterEndpointRequest.dbClusterEndpointIdentifier()).isEqualTo("foo");
     }

@@ -17,7 +17,6 @@ import java.util.Set;
 
 public class ReadHandler extends BaseHandlerStd {
 
-
     public ReadHandler() {
         this(HandlerConfig.builder()
                 .backoff(BACKOFF_DELAY)
@@ -51,7 +50,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final Optional<DBClusterEndpoint> dbClusterEndpoint = describeResponse.dbClusterEndpoints().stream().findFirst();
 
-                    if (!dbClusterEndpoint.isPresent()){
+                    if (!dbClusterEndpoint.isPresent()) {
                         return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
                                 "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found");
                     }

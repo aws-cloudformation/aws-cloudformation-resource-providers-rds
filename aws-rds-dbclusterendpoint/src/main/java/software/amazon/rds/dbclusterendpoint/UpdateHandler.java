@@ -23,6 +23,7 @@ public class UpdateHandler extends BaseHandlerStd {
     public UpdateHandler(HandlerConfig config) {
         super(config);
     }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -49,6 +50,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
+
     protected ProgressEvent<ResourceModel, CallbackContext> updateEndpoint(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,

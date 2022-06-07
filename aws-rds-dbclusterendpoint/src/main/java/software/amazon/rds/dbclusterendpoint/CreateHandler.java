@@ -62,7 +62,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                   final Tagging.TagSet tags
-                                                                                  ) {
+    ) {
         return proxy.initiate("rds::create-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.createDbClusterEndpointRequest(resourceModel, tags))
                 .backoffDelay(config.getBackoff())

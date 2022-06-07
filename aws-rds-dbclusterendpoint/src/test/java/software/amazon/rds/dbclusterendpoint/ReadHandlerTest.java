@@ -62,9 +62,9 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     public void handleRequest_ReadSuccess() {
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
                 .tagList(software.amazon.awssdk.services.rds.model.Tag.builder()
-                        .key("foo-4").value("bar-4").build(),
-                         software.amazon.awssdk.services.rds.model.Tag.builder()
-                        .key("foo-5").value("bar-5").build()).build();
+                                .key("foo-4").value("bar-4").build(),
+                        software.amazon.awssdk.services.rds.model.Tag.builder()
+                                .key("foo-5").value("bar-5").build()).build();
 
         when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(listTagsForResourceResponse);

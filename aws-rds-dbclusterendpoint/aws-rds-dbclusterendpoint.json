@@ -104,7 +104,6 @@
         "rds:RemoveTagsFromResource",
         "rds:CreateDBClusterEndpoint",
         "rds:DescribeDBClusterEndpoints",
-        "rds:ModifyDBClusterEndpoint",
         "rds:ListTagsForResource"
       ]
     },

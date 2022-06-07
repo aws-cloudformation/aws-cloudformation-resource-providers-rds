@@ -109,6 +109,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
 
     }
+
     @Test
     public void handleRequest_SimpleTagUpdate_Success() {
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
