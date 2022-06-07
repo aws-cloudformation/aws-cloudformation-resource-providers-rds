@@ -293,7 +293,6 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
                 .enablePerformanceInsights(desiredModel.getEnablePerformanceInsights())
-                .engineVersion(desiredModel.getEngineVersion())
                 .licenseModel(desiredModel.getLicenseModel())
                 .masterUserPassword(desiredModel.getMasterUserPassword())
                 .maxAllocatedStorage(desiredModel.getMaxAllocatedStorage())
@@ -328,6 +327,7 @@ public class Translator {
             } else {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
                 builder.iops(desiredModel.getIops());
+                builder.engineVersion(desiredModel.getEngineVersion());
             }
         }
 
