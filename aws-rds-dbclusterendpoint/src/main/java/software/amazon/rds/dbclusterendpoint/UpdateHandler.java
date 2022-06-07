@@ -60,16 +60,16 @@ public class UpdateHandler extends BaseHandlerStd {
         return proxy.initiate("rds::update-cluster-endpoint", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::modifyDbClusterEndpointRequest)
                 .backoffDelay(config.getBackoff())
-                .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        describeRequest,
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        modifyRequest,
                         proxyInvocation.client()::modifyDBClusterEndpoint
                 ))
-                .stabilize((createDbClusterEndpointRequest, createDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->
+                .stabilize((modifyDbClusterEndpointRequest, createDbClusterEndpointResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))
-                .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .done((describeRequest, describeResponse, proxyInvocation, model, context) -> ProgressEvent.progress(model, context));
+                .done((modifyRequest, modifyResponse, proxyInvocation, model, context) -> ProgressEvent.progress(model, context));
     }
 }

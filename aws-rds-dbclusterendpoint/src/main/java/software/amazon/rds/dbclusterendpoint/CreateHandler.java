@@ -43,18 +43,15 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> safeCreate(this::createDbClusterEndpoint, proxy, proxyClient, progress, allTags))
-                .then(progress -> updateTags(proxy, request, proxyClient, progress))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                                    .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
+                                    .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
+                                    .build();
+                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                        }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete
+                ))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> updateTags(AmazonWebServicesClientProxy proxy, ResourceHandlerRequest<ResourceModel> request, ProxyClient<RdsClient> proxyClient, ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return Commons.execOnce(progress, () -> {
-            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                    .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
-                    .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
-                    .build();
-            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
-        }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete);
     }
 
 
