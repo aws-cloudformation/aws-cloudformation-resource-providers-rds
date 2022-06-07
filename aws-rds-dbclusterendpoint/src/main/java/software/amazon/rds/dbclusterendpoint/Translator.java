@@ -73,7 +73,7 @@ public class Translator {
                 .collect(Collectors.toList());
     }
 
-    static DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest(final ResourceModel model) {
+    public static DeleteDbClusterEndpointRequest deleteDbClusterEndpointRequest(final ResourceModel model) {
         return DeleteDbClusterEndpointRequest.builder()
                 .dbClusterEndpointIdentifier(model.getDBClusterEndpointIdentifier())
                 .build();
@@ -86,7 +86,7 @@ public class Translator {
     }
 
 
-    static Set<Tag> translateTagsFromSdk(
+    public static Set<Tag> translateTagsFromSdk(
             final Collection<software.amazon.awssdk.services.rds.model.Tag> tags
     ) {
         return Optional.ofNullable(tags).orElse(Collections.emptySet())

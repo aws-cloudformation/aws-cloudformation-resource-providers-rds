@@ -74,7 +74,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Logger logger);
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
-        final DBClusterEndpoint endpoint = fetchDBClusterEndpoint(proxyClient, model);
+        final DBClusterEndpoint endpoint = fetchDBClusterEndpoint(model, proxyClient);
         return DB_CLUSTER_ENDPOINT_AVAILABLE.equals(endpoint.status());
     }
 
@@ -122,8 +122,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected DBClusterEndpoint fetchDBClusterEndpoint(
-            final ProxyClient<RdsClient> proxyClient,
-            final ResourceModel model
+            final ResourceModel model,
+            final ProxyClient<RdsClient> proxyClient
     ) {
         final DescribeDbClusterEndpointsResponse response = proxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersEndpointRequest(model),

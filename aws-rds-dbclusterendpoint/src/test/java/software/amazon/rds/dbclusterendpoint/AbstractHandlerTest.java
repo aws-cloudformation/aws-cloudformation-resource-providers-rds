@@ -97,17 +97,10 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
     protected abstract ProxyClient<RdsClient> getRdsProxy();
 
     static {
-        RESOURCE_MODEL = ResourceModel.builder()
-                .dBClusterEndpointIdentifier("dbClusterEndpointIdentifier")
-                .dBClusterIdentifier("clusterIdentifier")
-                .endpointType("ANY")
+        RESOURCE_MODEL = RESOURCE_MODEL_BUILDER()
                 .build();
 
-        RESOURCE_MODEL_WITH_TAGS = ResourceModel.builder()
-                .dBClusterIdentifier("dbClusterEndpointIdentifier")
-                .dBClusterIdentifier("clusterIdentifier")
-                .endpointType("ANY")
-                .tags(TAG_LIST_ALTER)
+        RESOURCE_MODEL_WITH_TAGS = RESOURCE_MODEL_BUILDER_WITH_TAGS()
                 .build();
 
         DB_CLUSTER_ENDPOINT_AVAILABLE = DBClusterEndpoint.builder()

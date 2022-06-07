@@ -45,7 +45,7 @@ public class DeleteHandler extends BaseHandlerStd {
     protected boolean isDeleted(final ResourceModel model,
                                 final ProxyClient<RdsClient> proxyClient) {
         try {
-            fetchDBClusterEndpoint(proxyClient, model);
+            fetchDBClusterEndpoint(model, proxyClient);
             return false;
         } catch (CfnNotFoundException e) {
             return true;
