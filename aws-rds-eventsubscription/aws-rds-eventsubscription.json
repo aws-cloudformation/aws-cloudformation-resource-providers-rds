@@ -87,6 +87,7 @@
     "SnsTopicArn"
   ],
   "createOnlyProperties": [
+    "/properties/SubscriptionName",
     "/properties/SnsTopicArn"
   ],
   "primaryIdentifier": [
