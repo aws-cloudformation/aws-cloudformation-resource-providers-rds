@@ -106,7 +106,7 @@ public class TaggingTest extends ProxyClientTestBase {
                 event,
                 tagSet,
                 tagSet,
-                () -> "arn",
+                () -> Either.left("arn"),
                 Commons.DEFAULT_ERROR_RULE_SET);
 
         assertThat(resultEvent).isNotNull();
@@ -138,7 +138,7 @@ public class TaggingTest extends ProxyClientTestBase {
                 event,
                 previousTagSet,
                 desiredTagSet,
-                () -> "arn",
+                () -> Either.left("arn"),
                 Commons.DEFAULT_ERROR_RULE_SET);
 
         assertThat(resultEvent).isNotNull();
@@ -170,7 +170,7 @@ public class TaggingTest extends ProxyClientTestBase {
                 event,
                 previousTagSet,
                 desiredTagSet,
-                () -> "arn",
+                () -> Either.left("arn"),
                 Commons.DEFAULT_ERROR_RULE_SET);
 
         assertThat(resultEvent).isNotNull();
@@ -201,7 +201,7 @@ public class TaggingTest extends ProxyClientTestBase {
                 event,
                 previousTagSet,
                 desiredTagSet,
-                () -> "arn",
+                () -> Either.left("arn"),
                 Commons.DEFAULT_ERROR_RULE_SET);
 
         assertThat(resultEvent).isNotNull();
@@ -233,7 +233,7 @@ public class TaggingTest extends ProxyClientTestBase {
                 event,
                 previousTagSet,
                 desiredTagSet,
-                () -> "arn",
+                () -> Either.left("arn"),
                 Commons.DEFAULT_ERROR_RULE_SET);
 
         assertThat(resultEvent).isNotNull();
@@ -264,7 +264,7 @@ public class TaggingTest extends ProxyClientTestBase {
                 event,
                 previousTagSet,
                 desiredTagSet,
-                () -> "arn",
+                () -> Either.left("arn"),
                 Commons.DEFAULT_ERROR_RULE_SET);
 
         assertThat(resultEvent).isNotNull();

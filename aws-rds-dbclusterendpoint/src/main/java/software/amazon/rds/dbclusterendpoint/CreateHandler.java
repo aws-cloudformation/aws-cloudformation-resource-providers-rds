@@ -8,6 +8,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Either;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
@@ -52,7 +53,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     progress,
                                     Tagging.TagSet.emptySet(),
                                     extraTags,
-                                    () -> callbackContext.getDbClusterEndpointArn(),
+                                    () -> Either.left(callbackContext.getDbClusterEndpointArn()),
                                     DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET);
                         }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete
                 ))
@@ -76,7 +77,10 @@ public class CreateHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .progress();
+                .done((createRequest, createResponse, proxyInvocation, model, context) -> {
+                    context.setDbClusterEndpointArn(createResponse.dbClusterEndpointArn());
+                    return ProgressEvent.progress(model, context);
+                });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreate(

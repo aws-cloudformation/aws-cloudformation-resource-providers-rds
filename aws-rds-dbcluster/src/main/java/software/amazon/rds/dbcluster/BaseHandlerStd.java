@@ -45,6 +45,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Either;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
@@ -309,34 +310,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags
     ) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+        return Tagging.softUpdateTags(
+                rdsProxyClient,
+                progress,
+                previousTags,
+                desiredTags,
+                () -> {
+                    DBCluster dbCluster;
+                    try {
+                        dbCluster = fetchDBCluster(rdsProxyClient, progress.getResourceModel());
+                    } catch (Exception exception) {
+                        return Either.right(Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET));
+                    }
 
-        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
-            return progress;
-        }
-
-        DBCluster dbCluster;
-        try {
-            dbCluster = fetchDBCluster(rdsProxyClient, progress.getResourceModel());
-        } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
-        }
-
-        final String arn = dbCluster.dbClusterArn();
-
-        try {
-            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
-            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
-        } catch (Exception exception) {
-            return Commons.handleException(
-                    progress,
-                    exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
-            );
-        }
-
-        return progress;
+                    return Either.left(dbCluster.dbClusterArn());
+                },
+                DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> removeFromGlobalCluster(

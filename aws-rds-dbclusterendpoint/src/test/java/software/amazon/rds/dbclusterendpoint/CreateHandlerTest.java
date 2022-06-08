@@ -152,7 +152,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
                                 ).build())
-                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
+                .thenReturn(CreateDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
 
@@ -204,7 +204,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
                                 ).build())
-                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
+                .thenReturn(CreateDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
 
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
