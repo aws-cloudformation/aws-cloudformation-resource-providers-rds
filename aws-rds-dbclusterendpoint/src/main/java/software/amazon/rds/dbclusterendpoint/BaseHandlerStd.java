@@ -11,7 +11,6 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRespo
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterEndpointStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
-import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -98,7 +97,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final Optional<DBClusterEndpoint> clusterEndpoint = response
                 .dbClusterEndpoints().stream().findFirst();
 
-        return clusterEndpoint.orElseThrow(() -> new CfnNotFoundException(ResourceModel.TYPE_NAME,
-                "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found"));
+        return clusterEndpoint.orElseThrow(() -> DbClusterEndpointNotFoundException.builder().message(
+                "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found").build());
     }
 }
