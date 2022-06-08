@@ -186,7 +186,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
 
-        verify(rdsProxy.client(), times(3)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
@@ -241,7 +241,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
 
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());

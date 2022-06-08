@@ -3,6 +3,9 @@ package software.amazon.rds.common.handler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -10,12 +13,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -28,13 +31,16 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.IgnoreErrorStatus;
@@ -84,6 +90,189 @@ public class TaggingTest extends ProxyClientTestBase {
         ProgressEvent<Void, Void> resultEvent = Tagging.updateTags(proxyRdsClient, event, "test-arn", previousTags, previousTags, Commons.DEFAULT_ERROR_RULE_SET);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isFalse();
+    }
+
+    @Test
+    void softAddTags_noTagsToAdd() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+        final Set<Tag> previousSystemTags = Collections.emptySet();
+
+        Tagging.TagSet tagSet = Tagging.TagSet.builder()
+                .systemTags(previousSystemTags)
+                .build();
+
+        ProgressEvent<Void, Void> resultEvent = Tagging.softUpdateTags(
+                proxyRdsClient,
+                event,
+                tagSet,
+                tagSet,
+                () -> "arn",
+                Commons.DEFAULT_ERROR_RULE_SET);
+
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isFalse();
+        verifyNoMoreInteractions(proxyRdsClient.client());
+    }
+
+    @Test
+    void softAddTags_simpleSuccess() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+
+        Tagging.TagSet previousTagSet = Tagging.TagSet.builder()
+                .resourceTags(
+                        ImmutableSet.of(Tag.builder().key("key1").value("value1").build(),
+                                Tag.builder().key("key2").value("value2").build())
+                ).build();
+
+        Tagging.TagSet desiredTagSet = Tagging.TagSet.builder()
+                .resourceTags(
+                        ImmutableSet.of(Tag.builder().key("key1").value("value1").build(),
+                                Tag.builder().key("key3").value("value3").build())
+                ).build();
+
+        when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(AddTagsToResourceResponse.builder().build());
+        when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(RemoveTagsFromResourceResponse.builder().build());
+
+        ProgressEvent<Void, Void> resultEvent = Tagging.softUpdateTags(
+                proxyRdsClient,
+                event,
+                previousTagSet,
+                desiredTagSet,
+                () -> "arn",
+                Commons.DEFAULT_ERROR_RULE_SET);
+
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isFalse();
+        verify(proxyRdsClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verifyNoMoreInteractions(proxyRdsClient.client());
+    }
+
+    @Test
+    void softAddTags_softFailOnRemove() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+
+        Tagging.TagSet previousTagSet = Tagging.TagSet.builder()
+                .stackTags(
+                        Collections.singleton(Tag.builder().key("key1").value("value1").build())
+                ).build();
+
+        Tagging.TagSet desiredTagSet = Tagging.TagSet.builder()
+                .stackTags(Collections.emptySet()).build();
+
+        when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        ProgressEvent<Void, Void> resultEvent = Tagging.softUpdateTags(
+                proxyRdsClient,
+                event,
+                previousTagSet,
+                desiredTagSet,
+                () -> "arn",
+                Commons.DEFAULT_ERROR_RULE_SET);
+
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isFalse();
+        verify(proxyRdsClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verifyNoMoreInteractions(proxyRdsClient.client());
+    }
+
+    @Test
+    void softAddTags_hardFailOnRemove() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+
+        Tagging.TagSet previousTagSet = Tagging.TagSet.builder()
+                .resourceTags(
+                        Collections.singleton(Tag.builder().key("key1").value("value1").build())
+                ).build();
+
+        Tagging.TagSet desiredTagSet = Tagging.TagSet.builder()
+                .resourceTags(Collections.emptySet()).build();
+
+        when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        ProgressEvent<Void, Void> resultEvent = Tagging.softUpdateTags(
+                proxyRdsClient,
+                event,
+                previousTagSet,
+                desiredTagSet,
+                () -> "arn",
+                Commons.DEFAULT_ERROR_RULE_SET);
+
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed());
+        assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
+        verify(proxyRdsClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verifyNoMoreInteractions(proxyRdsClient.client());
+    }
+
+    @Test
+    void softAddTags_softFailOnAdd() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+
+        Tagging.TagSet previousTagSet = Tagging.TagSet.builder()
+                .systemTags(Collections.emptySet()).build();
+
+        Tagging.TagSet desiredTagSet = Tagging.TagSet.builder()
+                .systemTags(
+                        Collections.singleton(Tag.builder().key("key1").value("value1").build())
+                ).build();
+
+        when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        ProgressEvent<Void, Void> resultEvent = Tagging.softUpdateTags(
+                proxyRdsClient,
+                event,
+                previousTagSet,
+                desiredTagSet,
+                () -> "arn",
+                Commons.DEFAULT_ERROR_RULE_SET);
+
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isFalse();
+        verify(proxyRdsClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verifyNoMoreInteractions(proxyRdsClient.client());
+    }
+
+    @Test
+    void softAddTags_hardFailOnAdd() {
+        final ProgressEvent<Void, Void> event = new ProgressEvent<>();
+
+        Tagging.TagSet previousTagSet = Tagging.TagSet.builder()
+                .resourceTags(Collections.emptySet()).build();
+
+        Tagging.TagSet desiredTagSet = Tagging.TagSet.builder()
+                .resourceTags(
+                        Collections.singleton(Tag.builder().key("key1").value("value1").build())
+                ).build();
+
+        when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenThrow(
+                        RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.AccessDeniedException.toString()).build()).build());
+
+        ProgressEvent<Void, Void> resultEvent = Tagging.softUpdateTags(
+                proxyRdsClient,
+                event,
+                previousTagSet,
+                desiredTagSet,
+                () -> "arn",
+                Commons.DEFAULT_ERROR_RULE_SET);
+
+        assertThat(resultEvent).isNotNull();
+
+        assertThat(resultEvent.isFailed());
+        assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
+        verify(proxyRdsClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verifyNoMoreInteractions(proxyRdsClient.client());
     }
 
     @Test
@@ -191,7 +380,7 @@ public class TaggingTest extends ProxyClientTestBase {
 
         Tag stackLevelTag1 = Tag.builder().key("stack-tag-key-1").value("stack-tag-value-1").build();
         Tag stackLevelTagDuplicate = Tag.builder().key(duplicateTagKey).value("wrong-value").build();
-        final Set<Tag> stackTags =  new LinkedHashSet<>();
+        final Set<Tag> stackTags = new LinkedHashSet<>();
         stackTags.add(stackLevelTag1);
         stackTags.add(stackLevelTagDuplicate);
 
@@ -211,7 +400,7 @@ public class TaggingTest extends ProxyClientTestBase {
         final Collection<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
         assertThat(allTags.size()).isEqualTo(5);
         assertThat(allTags.stream().map(Tag::key).collect(Collectors.toList()))
-                .isEqualTo(Arrays.asList(resourceTag1.key(),resourceTagDuplicate.key(), stackLevelTag1.key(), systemTag1.key(), systemTag2.key()));
+                .isEqualTo(Arrays.asList(resourceTag1.key(), resourceTagDuplicate.key(), stackLevelTag1.key(), systemTag1.key(), systemTag2.key()));
         assertThat(allTags.containsAll(systemTags)).isTrue();
         assertThat(allTags.containsAll(resourceTags)).isTrue();
         assertThat(allTags.contains(stackLevelTag1)).isTrue();
