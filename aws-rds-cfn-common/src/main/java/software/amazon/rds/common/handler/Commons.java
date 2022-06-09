@@ -26,7 +26,8 @@ public final class Commons {
                     ErrorCode.AccessDeniedException,
                     ErrorCode.NotAuthorized)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.Throttling),
-                    ErrorCode.ThrottlingException)
+                    ErrorCode.ThrottlingException,
+                    ErrorCode.Throttling)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.InvalidParameterCombination,
                     ErrorCode.InvalidParameterValue,
