@@ -33,7 +33,8 @@ public enum ErrorCode {
     ProvisionedIopsNotAvailableInAZFault("ProvisionedIopsNotAvailableInAZFault"),
     SnapshotQuotaExceeded("SnapshotQuotaExceeded"),
     StorageQuotaExceeded("StorageQuotaExceeded"),
-    ThrottlingException("ThrottlingException");
+    ThrottlingException("ThrottlingException"),
+    Throttling("Throttling");
 
     private final String code;
 
