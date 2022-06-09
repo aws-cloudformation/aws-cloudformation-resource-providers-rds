@@ -41,6 +41,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(desiredModel, callbackContext)
+                .then(progress -> setEnabledDefaultValue(progress))
                 .then(progress -> updateEventSubscription(proxy, callbackContext, proxyClient, desiredModel))
                 .then(progress -> addSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))
                 .then(progress -> removeSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))

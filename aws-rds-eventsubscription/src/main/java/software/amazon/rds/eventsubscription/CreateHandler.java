@@ -39,6 +39,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> setEnabledDefaultValue(progress))
                 .then(progress -> setEventSubscriptionNameIfEmpty(request, progress))
                 .then(progress -> safeCreateEventSubscription(proxy, proxyClient, progress, allTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
