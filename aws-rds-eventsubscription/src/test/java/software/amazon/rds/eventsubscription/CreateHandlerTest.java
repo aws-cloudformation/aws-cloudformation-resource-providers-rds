@@ -16,6 +16,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,6 +42,9 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
+
+    @Captor
+    ArgumentCaptor<CreateEventSubscriptionRequest> captor;
 
     @Mock
     RdsClient rds;
@@ -214,5 +219,54 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
+    }
+
+    @Test
+    public void handleRequest_DefaultEnabledValue() {
+
+        final CreateHandler handler = new CreateHandler();
+
+        final CreateEventSubscriptionResponse createEventSubscriptionResponse = CreateEventSubscriptionResponse.builder().build();
+        when(proxyRdsClient.client().createEventSubscription(captor.capture())).thenReturn(createEventSubscriptionResponse);
+
+        final DescribeEventSubscriptionsResponse describeEventSubscriptionsResponse = DescribeEventSubscriptionsResponse.builder()
+                .eventSubscriptionsList(EventSubscription.builder()
+                        .enabled(true)
+                        .eventCategoriesList("sampleCategory")
+                        .snsTopicArn("sampleSnsArn")
+                        .sourceType("sampleSourceType")
+                        .sourceIdsList("sampleSourceId")
+                        .status("active").build())
+                .build();
+        when(proxyRdsClient.client().describeEventSubscriptions(any(
+                DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(proxyRdsClient.client().listTagsForResource(any(
+                ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .clientRequestToken("sampleToken")
+                .logicalResourceIdentifier("sampleResource")
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(captor.getValue().enabled()).isTrue();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getResourceModel().getEnabled()).isTrue();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).createEventSubscription(any(CreateEventSubscriptionRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
+        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 }

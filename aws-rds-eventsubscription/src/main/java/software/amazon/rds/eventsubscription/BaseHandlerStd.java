@@ -76,10 +76,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final String status = proxyClient.injectCredentialsAndInvokeV2(
-                        Translator.describeEventSubscriptionsRequest(model),
-                        proxyClient.client()::describeEventSubscriptions)
+                    Translator.describeEventSubscriptionsRequest(model),
+                    proxyClient.client()::describeEventSubscriptions)
                 .eventSubscriptionsList().stream().findFirst().get().status();
         return status.equals("active");
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> setEnabledDefaultValue(
+            final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        ResourceModel model = progress.getResourceModel();
+        if (model.getEnabled() == null) {
+            model.setEnabled(true);
+        }
+        return progress;
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> waitForEventSubscription(
