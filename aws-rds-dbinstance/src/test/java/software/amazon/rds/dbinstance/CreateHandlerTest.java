@@ -791,6 +791,55 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_CreateDBInstance_SoftFailTagsReentrance() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenReturn(CreateDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setSoftFailTags(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(TAG_SET.getStackTags())
+                .resourceTags(TAG_SET.getResourceTags())
+                .build();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                () -> DB_INSTANCE_ACTIVE,
+                null,
+                () -> RESOURCE_MODEL_BLDR()
+                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbInstanceRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstance(createCaptor.capture());
+
+        final CreateDbInstanceRequest requestWithSystemTags = createCaptor.getValue();
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+    }
+
+    @Test
     public void handleRequest_CreateNewInstance_UpdateRoles_Success() {
         when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class)))
                 .thenReturn(AddRoleToDbInstanceResponse.builder().build());
