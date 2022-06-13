@@ -7,7 +7,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.amazonaws.util.CollectionUtils;
@@ -199,34 +198,6 @@ public final class Tagging {
             return softFailErrorRuleSet;
         }
         return hardFailErrorRuleSet;
-    }
-
-    public static <M,C> ProgressEvent<M, C> softUpdateTags(
-            ProxyClient<RdsClient> proxyClient,
-            ProgressEvent<M, C> progress,
-            Tagging.TagSet previousTags,
-            Tagging.TagSet desiredTags,
-            Supplier<String> arnSupplier,
-            ErrorRuleSet errorRuleSet) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
-
-        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
-            return progress;
-        }
-        final String arn = arnSupplier.get();
-
-        try {
-            Tagging.removeTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
-            Tagging.addTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
-        } catch (Exception exception) {
-            return Commons.handleException(
-                    progress,
-                    exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(errorRuleSet)
-            );
-        }
-        return progress;
     }
 
     private static void addToMapIfAbsent(Map<String, Tag> allTags, Collection<Tag> tags) {

@@ -48,12 +48,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                                     .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                                     .build();
-                            return Tagging.softUpdateTags(proxyClient,
-                                    progress,
-                                    Tagging.TagSet.emptySet(),
-                                    extraTags,
-                                    () -> callbackContext.getDbClusterEndpointArn(),
-                                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET);
+                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                         }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete
                 ))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
