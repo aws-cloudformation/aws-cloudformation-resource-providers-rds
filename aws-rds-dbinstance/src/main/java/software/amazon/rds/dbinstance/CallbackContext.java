@@ -16,6 +16,7 @@ public class CallbackContext extends StdCallbackContext {
     private boolean updated;
     private boolean rebooted;
     private boolean createTagComplete;
+    private boolean softFailTags;
 
     private Map<String, Integer> probes;
 

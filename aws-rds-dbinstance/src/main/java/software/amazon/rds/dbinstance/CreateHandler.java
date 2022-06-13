@@ -134,15 +134,28 @@ public class CreateHandler extends BaseHandlerStd {
             final HandlerMethod<ResourceModel, CallbackContext> handlerMethod,
             final Tagging.TagSet allTags
     ) {
-        return (proxy, rdsProxyClient, progress, tagSet) -> {
-            final ProgressEvent<ResourceModel, CallbackContext> result = handlerMethod.invoke(proxy, rdsProxyClient, progress, allTags);
-            if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
-                final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-                return handlerMethod.invoke(proxy, rdsProxyClient, progress, systemTags);
+        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> {
+            final CallbackContext context = p.getCallbackContext();
+            if (context.isSoftFailTags()) {
+                return p;
+            }
+            final ProgressEvent<ResourceModel, CallbackContext> result = handlerMethod.invoke(proxy, rdsProxyClient, p, allTags);
+            if (result.isFailed()) {
+                if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
+                    context.setSoftFailTags(true);
+                    return ProgressEvent.progress(result.getResourceModel(), context);
+                }
+                return result;
             }
             result.getCallbackContext().setCreateTagComplete(true);
             return result;
-        };
+        }).then(p -> {
+            if (!p.getCallbackContext().isSoftFailTags()) {
+                return p;
+            }
+            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
+            return handlerMethod.invoke(proxy, rdsProxyClient, p, systemTags);
+        });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(
