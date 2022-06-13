@@ -120,7 +120,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
         when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
-                .thenReturn(ModifyDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
 
@@ -148,7 +148,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
         when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
-                .thenReturn(ModifyDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         final AtomicBoolean fetchedOnce = new AtomicBoolean(false);
@@ -193,7 +193,7 @@ null,
     @Test
     public void handleRequest_HardFailingTaggingOnRemoveTags() {
         when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
-                .thenReturn(ModifyDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -217,7 +217,7 @@ null,
     @Test
     public void handleRequest_HardFailingTaggingOnAddTags() {
         when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
-                .thenReturn(ModifyDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -241,7 +241,7 @@ null,
     @Test
     public void handleRequest_SoftFailingTaggingOnRemoveTags() {
         when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
-                .thenReturn(ModifyDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -268,7 +268,7 @@ null,
     @Test
     public void handleRequest_SoftFailingTaggingOnAddTags() {
         when(rdsProxy.client().modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class)))
-                .thenReturn(ModifyDbClusterEndpointResponse.builder().dbClusterEndpointArn("arn").build());
+                .thenReturn(ModifyDbClusterEndpointResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()

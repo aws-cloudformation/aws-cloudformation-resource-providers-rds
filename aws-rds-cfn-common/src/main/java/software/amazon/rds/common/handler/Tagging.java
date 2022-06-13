@@ -201,12 +201,12 @@ public final class Tagging {
         return hardFailErrorRuleSet;
     }
 
-    public static <M, C> ProgressEvent<M, C> softUpdateTags(
+    public static <M,C> ProgressEvent<M, C> softUpdateTags(
             ProxyClient<RdsClient> proxyClient,
             ProgressEvent<M, C> progress,
             Tagging.TagSet previousTags,
             Tagging.TagSet desiredTags,
-            Supplier<Either<String, ProgressEvent<M, C>>> arnSupplier,
+            Supplier<String> arnSupplier,
             ErrorRuleSet errorRuleSet) {
         final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
         final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
@@ -214,12 +214,7 @@ public final class Tagging {
         if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
             return progress;
         }
-
-        final Either<String, ProgressEvent<M, C>> arnOrError = arnSupplier.get();
-        if (!arnOrError.getLeft().isPresent()) {
-            return arnOrError.getRight().get();
-        }
-        final String arn = arnOrError.getLeft().get();
+        final String arn = arnSupplier.get();
 
         try {
             Tagging.removeTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));

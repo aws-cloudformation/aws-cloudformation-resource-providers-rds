@@ -7,7 +7,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.Either;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
@@ -53,7 +52,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         progress,
                         previousTags,
                         desiredTags,
-                        () -> Either.left(callbackContext.getDbClusterEndpointArn()),
+                        () -> callbackContext.getDbClusterEndpointArn(),
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }

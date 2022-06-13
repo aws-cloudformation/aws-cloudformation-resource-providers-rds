@@ -66,7 +66,6 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.Either;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
@@ -747,22 +746,34 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags
     ) {
-        return Tagging.softUpdateTags(
-                rdsProxyClient,
-                progress,
-                previousTags,
-                desiredTags,
-                () -> {
-                    DBInstance dbInstance;
-                    try {
-                        dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
-                    } catch (Exception exception) {
-                        return Either.<String, ProgressEvent<ResourceModel, CallbackContext>>right(
-                                Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET));
-                    }
-                    return Either.left(dbInstance.dbInstanceArn());
-                },
-                DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
+
+        DBInstance dbInstance;
+        try {
+            dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
+        } catch (Exception exception) {
+            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+        }
+
+        final String arn = dbInstance.dbInstanceArn();
+
+        try {
+            Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+            );
+        }
+
+        return progress;
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> versioned(
