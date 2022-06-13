@@ -48,7 +48,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                                     .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                                     .build();
-                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                            return updateTags(proxy, proxyClient, progress, model.getDBClusterEndpointArn(), Tagging.TagSet.emptySet(), extraTags);
                         }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete
                 ))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
@@ -71,7 +71,11 @@ public class CreateHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .progress();
+                .done((createRequest, createResponse, proxyInvocation, model, context) ->
+                {
+                    context.setDbClusterEndpointArn(createResponse.dbClusterEndpointArn());
+                    return ProgressEvent.progress(model, context);
+                });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreate(

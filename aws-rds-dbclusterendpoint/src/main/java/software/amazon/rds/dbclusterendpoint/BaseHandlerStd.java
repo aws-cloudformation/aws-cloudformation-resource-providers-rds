@@ -90,43 +90,28 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final String dbClusterEndpointArn,
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags
     ) {
-        return proxy.initiate("rds::tag-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::describeDbClustersEndpointRequest)
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        describeRequest,
-                        proxyInvocation.client()::describeDBClusterEndpoints
-                )).handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, ctx),
-                        exception,
-                        DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET
-                ))
-                .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
-                    final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-                    final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
 
-                    if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
-                        return progress;
-                    }
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
 
-                    final String arn = describeResponse.dbClusterEndpoints().stream().findFirst().get().dbClusterEndpointArn();
-
-                    try {
-                        Tagging.removeTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
-                        Tagging.addTags(proxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
-                    } catch (Exception exception) {
-                        return Commons.handleException(
-                                progress,
-                                exception,
-                                Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET)
-                        );
-                    }
-                    return progress;
-                });
-
+        try {
+            Tagging.removeTags(proxyClient, dbClusterEndpointArn, Tagging.translateTagsToSdk(tagsToRemove));
+            Tagging.addTags(proxyClient, dbClusterEndpointArn, Tagging.translateTagsToSdk(tagsToAdd));
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    progress,
+                    exception,
+                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET)
+            );
+        }
+        return progress;
     }
 
     protected DBClusterEndpoint fetchDBClusterEndpoint(
