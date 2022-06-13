@@ -1,9 +1,9 @@
 {
   "DBClusterEndpointIdentifier": "dbclusterendpoint-contract-test",
-  "DBClusterIdentifier": "{{DBClusterIdentifier}}",
+  "DBClusterIdentifier": "{{DBClusterEndpointContractCluster}}",
   "EndpointType": "ANY",
   "StaticMembers": [
-    "{{DBInstanceIdentifier}}"
+    "{{DBClusterEndpointContractInstance}}"
   ],
   "Tags": [
     {
