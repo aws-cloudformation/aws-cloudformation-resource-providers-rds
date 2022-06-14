@@ -10,15 +10,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -32,6 +34,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -45,14 +48,31 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public class TaggingTest extends ProxyClientTestBase {
 
+    private final static String FAILED_MSG = "Test message: failed";
+
+    final Set<Tag> SYSTEM_TAGS = Stream.of(
+            Tag.builder().key("system-tag-key-1").value("system-tag-value-1").build(),
+            Tag.builder().key("system-tag-key-2").value("system-tag-value-2").build()
+    ).collect(Collectors.toSet());
+
+    final Set<Tag> STACK_TAGS = Stream.of(
+            Tag.builder().key("stack-tag-key-1").value("stack-tag-value-1").build(),
+            Tag.builder().key("stack-tag-key-2").value("stack-tag-value-2").build()
+    ).collect(Collectors.toSet());
+
+    final Set<Tag> RESOURCE_TAGS = Stream.of(
+            Tag.builder().key("resource-tag-key-1").value("resource-tag-value-1").build(),
+            Tag.builder().key("resource-tag-key-2").value("resource-tag-value-2").build()
+    ).collect(Collectors.toSet());
+
+    @Mock
+    RdsClient rds;
+
     @Mock
     private AmazonWebServicesClientProxy proxy;
 
     @Mock
     private ProxyClient<RdsClient> proxyRdsClient;
-
-    @Mock
-    RdsClient rds;
 
     @BeforeEach
     public void setup() {
@@ -152,30 +172,17 @@ public class TaggingTest extends ProxyClientTestBase {
 
     @Test
     void test_translateTagsToSdk() {
-        final Set<Tag> systemTags = Stream.of(
-                Tag.builder().key("system-tag-key-1").value("system-tag-value-1").build(),
-                Tag.builder().key("system-tag-key-2").value("system-tag-value-2").build()
-        ).collect(Collectors.toSet());
-        final Set<Tag> stackTags = Stream.of(
-                Tag.builder().key("stack-tag-key-1").value("stack-tag-value-1").build(),
-                Tag.builder().key("stack-tag-key-2").value("stack-tag-value-2").build()
-        ).collect(Collectors.toSet());
-        final Set<Tag> resourceTags = Stream.of(
-                Tag.builder().key("resource-tag-key-1").value("resource-tag-value-1").build(),
-                Tag.builder().key("resource-tag-key-2").value("resource-tag-value-2").build()
-        ).collect(Collectors.toSet());
-
         final Tagging.TagSet tagSet = Tagging.TagSet.builder()
-                .systemTags(systemTags)
-                .stackTags(stackTags)
-                .resourceTags(resourceTags)
+                .systemTags(SYSTEM_TAGS)
+                .stackTags(STACK_TAGS)
+                .resourceTags(RESOURCE_TAGS)
                 .build();
 
         final Collection<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
 
-        assertThat(allTags.containsAll(systemTags)).isTrue();
-        assertThat(allTags.containsAll(stackTags)).isTrue();
-        assertThat(allTags.containsAll(resourceTags)).isTrue();
+        assertThat(allTags.containsAll(SYSTEM_TAGS)).isTrue();
+        assertThat(allTags.containsAll(STACK_TAGS)).isTrue();
+        assertThat(allTags.containsAll(RESOURCE_TAGS)).isTrue();
     }
 
     @Test
@@ -191,7 +198,7 @@ public class TaggingTest extends ProxyClientTestBase {
 
         Tag stackLevelTag1 = Tag.builder().key("stack-tag-key-1").value("stack-tag-value-1").build();
         Tag stackLevelTagDuplicate = Tag.builder().key(duplicateTagKey).value("wrong-value").build();
-        final Set<Tag> stackTags =  new LinkedHashSet<>();
+        final Set<Tag> stackTags = new LinkedHashSet<>();
         stackTags.add(stackLevelTag1);
         stackTags.add(stackLevelTagDuplicate);
 
@@ -211,7 +218,7 @@ public class TaggingTest extends ProxyClientTestBase {
         final Collection<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
         assertThat(allTags.size()).isEqualTo(5);
         assertThat(allTags.stream().map(Tag::key).collect(Collectors.toList()))
-                .isEqualTo(Arrays.asList(resourceTag1.key(),resourceTagDuplicate.key(), stackLevelTag1.key(), systemTag1.key(), systemTag2.key()));
+                .isEqualTo(Arrays.asList(resourceTag1.key(), resourceTagDuplicate.key(), stackLevelTag1.key(), systemTag1.key(), systemTag2.key()));
         assertThat(allTags.containsAll(systemTags)).isTrue();
         assertThat(allTags.containsAll(resourceTags)).isTrue();
         assertThat(allTags.contains(stackLevelTag1)).isTrue();
@@ -319,5 +326,86 @@ public class TaggingTest extends ProxyClientTestBase {
                         .resourceTags(Collections.emptySet())
                         .build()
         )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void safeCreate_allTagsSuccess() {
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> progress = ProgressEvent.progress(null, new CommonsTest.TaggingCallbackContext());
+        final Tagging.TagSet allTags = Tagging.TagSet.builder()
+                .systemTags(SYSTEM_TAGS)
+                .stackTags(STACK_TAGS)
+                .resourceTags(RESOURCE_TAGS)
+                .build();
+
+        final HandlerMethod<Void, CommonsTest.TaggingCallbackContext> handlerMethod = Mockito.mock(HandlerMethod.class);
+
+        Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
+                .thenReturn(ProgressEvent.success(null, progress.getCallbackContext()));
+
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.safeCreate(null, null, handlerMethod, progress, allTags);
+
+        Assertions.assertThat(result.isSuccess()).isTrue();
+        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isTrue();
+
+        Mockito.verify(handlerMethod, Mockito.times(1))
+                .invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void safeCreate_allTagsFailAccessDenied() {
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> progress = ProgressEvent.progress(null, new CommonsTest.TaggingCallbackContext());
+        final Tagging.TagSet allTags = Tagging.TagSet.builder()
+                .systemTags(SYSTEM_TAGS)
+                .stackTags(STACK_TAGS)
+                .resourceTags(RESOURCE_TAGS)
+                .build();
+
+        final HandlerMethod<Void, CommonsTest.TaggingCallbackContext> handlerMethod = Mockito.mock(HandlerMethod.class);
+
+        Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
+                .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.AccessDenied, FAILED_MSG))
+                .thenReturn(ProgressEvent.success(null, progress.getCallbackContext()));
+
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.safeCreate(null, null, handlerMethod, progress, allTags);
+
+        Assertions.assertThat(result.isSuccess()).isTrue();
+        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isSoftFailTags()).isTrue();
+        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isFalse();
+
+        ArgumentCaptor<Tagging.TagSet> captor = ArgumentCaptor.forClass(Tagging.TagSet.class);
+        Mockito.verify(handlerMethod, Mockito.times(2)).invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), captor.capture());
+
+        final Tagging.TagSet tagSetInvoke1 = captor.getAllValues().get(0);
+        final Tagging.TagSet tagSetInvoke2 = captor.getAllValues().get(1);
+
+        Assertions.assertThat(tagSetInvoke1).isEqualTo(allTags);
+        Assertions.assertThat(tagSetInvoke2).isEqualTo(Tagging.TagSet.builder().systemTags(SYSTEM_TAGS).build());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void safeCreate_allTagsFailGeneric() {
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> progress = ProgressEvent.progress(null, new CommonsTest.TaggingCallbackContext());
+        final Tagging.TagSet allTags = Tagging.TagSet.builder()
+                .systemTags(SYSTEM_TAGS)
+                .stackTags(STACK_TAGS)
+                .resourceTags(RESOURCE_TAGS)
+                .build();
+
+        final HandlerMethod<Void, CommonsTest.TaggingCallbackContext> handlerMethod = Mockito.mock(HandlerMethod.class);
+
+        Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
+                .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.InternalFailure, FAILED_MSG));
+
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.safeCreate(null, null, handlerMethod, progress, allTags);
+
+        Assertions.assertThat(result.isFailed()).isTrue();
+        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isFalse();
+        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isSoftFailTags()).isFalse();
+
+        Mockito.verify(handlerMethod, Mockito.times(1))
+                .invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class));
     }
 }
