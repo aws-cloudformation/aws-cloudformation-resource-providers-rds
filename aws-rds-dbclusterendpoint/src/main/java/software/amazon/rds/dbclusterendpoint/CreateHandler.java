@@ -56,14 +56,14 @@ public class CreateHandler extends BaseHandlerStd {
                     .toString());
         }
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> safeCreate(this::createDbClusterEndpoint, proxy, proxyClient, progress, allTags))
+                .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterEndpoint, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                                     .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                                     .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                                     .build();
                             return updateTags(proxy, proxyClient, progress, model.getDBClusterEndpointArn(), Tagging.TagSet.emptySet(), extraTags);
-                        }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete
+                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
                 ))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
@@ -90,21 +90,5 @@ public class CreateHandler extends BaseHandlerStd {
                     context.setDbClusterEndpointArn(createResponse.dbClusterEndpointArn());
                     return ProgressEvent.progress(model, context);
                 });
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> safeCreate(
-            final HandlerMethod<ResourceModel, CallbackContext> createMethod,
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet allTags
-    ) {
-        final ProgressEvent<ResourceModel, CallbackContext> result = createMethod.invoke(proxy, rdsProxyClient, progress, allTags);
-        if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
-            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-            return createMethod.invoke(proxy, rdsProxyClient, progress, systemTags);
-        }
-        result.getCallbackContext().setCreateTagComplete(true);
-        return result;
     }
 }
