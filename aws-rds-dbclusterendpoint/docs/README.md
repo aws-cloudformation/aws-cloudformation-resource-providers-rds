@@ -60,7 +60,7 @@ _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/l
 
 The identifier to use for the new endpoint. This parameter is stored as a lowercase string.
 
-_Required_: Yes
+_Required_: No
 
 _Type_: String
 

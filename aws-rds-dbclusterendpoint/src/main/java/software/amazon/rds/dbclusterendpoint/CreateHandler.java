@@ -1,5 +1,6 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -11,10 +12,16 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 import java.util.HashSet;
 
 public class CreateHandler extends BaseHandlerStd {
+    private final IdentifierFactory dbClusterEndpointIdentifierFactory = new IdentifierFactory(
+            DEFAULT_STACK_NAME,
+            RESOURCE_IDENTIFIER,
+            RESOURCE_ID_MAX_LENGTH
+    );
 
     public CreateHandler() {
         this(HandlerConfig.builder()
@@ -41,6 +48,13 @@ public class CreateHandler extends BaseHandlerStd {
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
+        if (StringUtils.isNullOrEmpty(model.getDBClusterEndpointIdentifier())) {
+            model.setDBClusterEndpointIdentifier(dbClusterEndpointIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
+        }
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> safeCreate(this::createDbClusterEndpoint, proxy, proxyClient, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {

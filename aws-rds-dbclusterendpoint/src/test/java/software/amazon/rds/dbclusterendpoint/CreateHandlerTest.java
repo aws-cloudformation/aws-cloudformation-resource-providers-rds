@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointResponse;
+import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
@@ -33,6 +34,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -86,6 +88,24 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateWithEmptyIdentifier() {
+        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL_BUILDER().dBClusterEndpointIdentifier("").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(
+                argThat((CreateDbClusterEndpointRequest request) -> !request.dbClusterEndpointIdentifier().isEmpty()));
     }
 
     @Test
