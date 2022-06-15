@@ -14,9 +14,6 @@ import software.amazon.rds.common.error.IgnoreErrorStatus;
 
 public final class Commons {
 
-    private Commons() {
-    }
-
     public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
                     ErrorCode.ClientUnavailable,
@@ -37,6 +34,9 @@ public final class Commons {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
                     SdkClientException.class)
             .build();
+
+    private Commons() {
+    }
 
     public static <M, C> ProgressEvent<M, C> handleException(
             final ProgressEvent<M, C> progress,

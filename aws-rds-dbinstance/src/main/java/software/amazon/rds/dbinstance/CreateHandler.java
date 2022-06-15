@@ -77,7 +77,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (isReadReplica(progress.getResourceModel())) {
                         // createDBInstanceReadReplica is not a versioned call, unlike the others.
-                        return safeAddTags(this::createDbInstanceReadReplica, allTags)
+                        return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (isRestoreFromSnapshot(progress.getResourceModel())) {
                         if (model.getMultiAZ() == null) {
@@ -91,12 +91,12 @@ public class CreateHandler extends BaseHandlerStd {
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
                                 ApiVersion.V12, this::restoreDbInstanceFromSnapshotV12,
-                                ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot, allTags)
+                                ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot)
                         ));
                     }
                     return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
                             ApiVersion.V12, this::createDbInstanceV12,
-                            ApiVersion.DEFAULT, safeAddTags(this::createDbInstance, allTags)
+                            ApiVersion.DEFAULT, safeAddTags(this::createDbInstance)
                     ));
                 }, CallbackContext::isCreated, CallbackContext::setCreated))
                 .then(progress -> Commons.execOnce(progress, () -> {
@@ -105,7 +105,7 @@ public class CreateHandler extends BaseHandlerStd {
                             .resourceTags(allTags.getResourceTags())
                             .build();
                     return updateTags(proxy, rdsProxyClient.defaultClient(), progress, Tagging.TagSet.emptySet(), extraTags);
-                }, CallbackContext::isCreateTagComplete, CallbackContext::setCreateTagComplete))
+                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
@@ -130,32 +130,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
     }
 
-    private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(
-            final HandlerMethod<ResourceModel, CallbackContext> handlerMethod,
-            final Tagging.TagSet allTags
-    ) {
-        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> {
-            final CallbackContext context = p.getCallbackContext();
-            if (context.isSoftFailTags()) {
-                return p;
-            }
-            final ProgressEvent<ResourceModel, CallbackContext> result = handlerMethod.invoke(proxy, rdsProxyClient, p, allTags);
-            if (result.isFailed()) {
-                if (HandlerErrorCode.AccessDenied.equals(result.getErrorCode())) {
-                    context.setSoftFailTags(true);
-                    return ProgressEvent.progress(result.getResourceModel(), context);
-                }
-                return result;
-            }
-            result.getCallbackContext().setCreateTagComplete(true);
-            return result;
-        }).then(p -> {
-            if (!p.getCallbackContext().isSoftFailTags()) {
-                return p;
-            }
-            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-            return handlerMethod.invoke(proxy, rdsProxyClient, p, systemTags);
-        });
+    private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
+        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(

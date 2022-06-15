@@ -799,7 +799,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
-        context.setSoftFailTags(true);
+        context.getTaggingContext().setSoftFailTags(true);
         context.setUpdated(true);
         context.setRebooted(true);
         context.setUpdatedRoles(true);

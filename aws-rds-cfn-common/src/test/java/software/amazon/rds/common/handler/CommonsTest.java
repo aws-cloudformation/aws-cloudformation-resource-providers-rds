@@ -155,4 +155,18 @@ public class CommonsTest {
                         .errorCode(errorCode.toString())
                         .build()).build();
     }
+
+    static class TaggingCallbackContext implements TaggingContext.Provider {
+
+        private final TaggingContext taggingContext;
+
+        public TaggingCallbackContext() {
+            this.taggingContext = new TaggingContext();
+        }
+
+        @Override
+        public TaggingContext getTaggingContext() {
+            return this.taggingContext;
+        }
+    }
 }
