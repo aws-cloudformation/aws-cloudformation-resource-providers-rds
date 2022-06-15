@@ -95,7 +95,6 @@
   "additionalProperties": false,
   "required": [
     "DBClusterIdentifier",
-    "DBClusterEndpointIdentifier",
     "EndpointType"
   ],
   "createOnlyProperties": [
