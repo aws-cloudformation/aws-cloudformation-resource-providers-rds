@@ -28,7 +28,9 @@ import java.time.Duration;
 import java.util.Optional;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
-
+    protected static final int RESOURCE_ID_MAX_LENGTH = 63;
+    protected static final String RESOURCE_IDENTIFIER = "dbclusterendpoint";
+    protected static final String DEFAULT_STACK_NAME = "rds";
     protected static final String DB_CLUSTER_ENDPOINT_AVAILABLE = "available";
     protected static final String CUSTOM_ENDPOINT = "CUSTOM";
 
