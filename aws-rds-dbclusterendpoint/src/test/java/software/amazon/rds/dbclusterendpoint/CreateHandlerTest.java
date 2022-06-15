@@ -7,6 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.platform.commons.util.StringUtils;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -105,7 +106,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(
-                argThat((CreateDbClusterEndpointRequest request) -> !request.dbClusterEndpointIdentifier().isEmpty()));
+                argThat((CreateDbClusterEndpointRequest request) -> StringUtils.isNotBlank(request.dbClusterEndpointIdentifier())));
     }
 
     @Test
