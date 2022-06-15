@@ -1,0 +1,18 @@
+{
+  "DBClusterEndpointIdentifier": "dbclusterendpoint-contract-test",
+  "DBClusterIdentifier": "{{DBClusterEndpointContractCluster}}",
+  "EndpointType": "ANY",
+  "StaticMembers": [
+    "{{DBClusterEndpointContractInstance}}"
+  ],
+  "Tags": [
+    {
+      "Key": "TagKey1",
+      "Value": "TagValue1"
+    },
+    {
+      "Key": "TagKey3",
+      "Value": "TagValue3"
+    }
+  ]
+}
