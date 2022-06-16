@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
@@ -185,7 +186,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .resourceTags(TAG_SET.getResourceTags())
                 .build();
 
-        test_handleRequest_base(
+        final ProgressEvent<ResourceModel, CallbackContext> progress = test_handleRequest_base(
                 new CallbackContext(),
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
@@ -197,6 +198,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .build(),
                 expectSuccess()
         );
+
+        Assertions.assertThat(progress.getCallbackContext().isAddTagsComplete()).isTrue();
+        Assertions.assertThat(progress.getCallbackContext().getTaggingContext().isSoftFailTags()).isTrue();
 
         ArgumentCaptor<CreateDbClusterEndpointRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterEndpointRequest.class);
         verify(rdsProxy.client(), times(2)).createDBClusterEndpoint(createCaptor.capture());
