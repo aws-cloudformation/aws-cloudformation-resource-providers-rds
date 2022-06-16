@@ -30,6 +30,7 @@ public class ReadHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::describe-db-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbClustersRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
                         proxyInvocation.client()::describeDBClusters
