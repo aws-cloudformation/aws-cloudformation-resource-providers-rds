@@ -69,7 +69,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 HandlerConfig.builder()
                         .probingEnabled(false)
                         .backoff(Constant.of()
-                                .delay(Duration.ofSeconds(1))
+                                .delay(Duration.ofMillis(1))
                                 .timeout(Duration.ofSeconds(120))
                                 .build())
                         .build()
