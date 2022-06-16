@@ -213,6 +213,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             dbClusterRole.getRoleArn(),
                             dbClusterRole.getFeatureName()
                     ))
+                    .backoffDelay(config.getBackoff())
                     .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                             modelRequest,
                             proxyInvocation.client()::addRoleToDBCluster
@@ -249,6 +250,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             dbClusterRole.getRoleArn(),
                             dbClusterRole.getFeatureName()
                     ))
+                    .backoffDelay(config.getBackoff())
                     .makeServiceCall((modelRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                             modelRequest,
                             proxyInvocation.client()::removeRoleFromDBCluster
