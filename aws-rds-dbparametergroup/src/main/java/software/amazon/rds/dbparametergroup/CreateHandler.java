@@ -12,6 +12,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.util.IdentifierFactory;
@@ -60,14 +61,15 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                      final Tagging.TagSet allTags,
                                                                                      final RequestLogger requestLogger) {
-        ProgressEvent<ResourceModel, CallbackContext> progressEvent = createDBParameterGroup(proxy, proxyClient, progress, allTags, requestLogger);
-        if (HandlerErrorCode.AccessDenied.equals(progressEvent.getErrorCode())) { //Resource is subject to soft fail on stack level tags.
-            Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-            Tagging.TagSet extraTags = allTags.toBuilder().systemTags(Collections.emptySet()).build();
-            return createDBParameterGroup(proxy, proxyClient, progress, systemTags, requestLogger)
-                    .then(prog -> updateTags(proxy, proxyClient, prog, Tagging.TagSet.emptySet(), extraTags, requestLogger));
-        }
-        return progressEvent;
+        final HandlerMethod<ResourceModel, CallbackContext> createMethod = (pxy, pcl, prg, tgs) -> createDBParameterGroup(pxy, pcl, prg, tgs, requestLogger);
+        return Tagging.safeCreate(proxy, proxyClient, createMethod, progress, allTags)
+                .then(p -> Commons.execOnce(p, () -> {
+                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                            .stackTags(allTags.getStackTags())
+                            .resourceTags(allTags.getResourceTags())
+                            .build();
+                    return updateTags(proxy, proxyClient, p, Tagging.TagSet.emptySet(), extraTags, requestLogger);
+                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDBParameterGroup(final AmazonWebServicesClientProxy proxy,
