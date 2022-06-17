@@ -6,7 +6,6 @@ import java.util.LinkedHashSet;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -57,14 +56,14 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                   final Tagging.TagSet allTags) {
-        ProgressEvent<ResourceModel, CallbackContext> progressEvent = createDbSubnetGroup(proxy, proxyClient, progress, allTags);
-        if (HandlerErrorCode.AccessDenied.equals(progressEvent.getErrorCode())) { //Resource is subject to soft fail on stack level tags.
-            Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-            Tagging.TagSet extraTags = allTags.toBuilder().systemTags(Collections.emptySet()).build();
-            return createDbSubnetGroup(proxy, proxyClient, progress, systemTags)
-                    .then(prog -> updateTags(proxyClient, prog, Tagging.TagSet.emptySet(), extraTags));
-        }
-        return progressEvent;
+        return Tagging.safeCreate(proxy, proxyClient, this::createDbSubnetGroup, progress, allTags)
+                .then(p -> Commons.execOnce(p, () -> {
+                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                            .stackTags(allTags.getStackTags())
+                            .resourceTags(allTags.getResourceTags())
+                            .build();
+                    return updateTags(proxyClient, p, Tagging.TagSet.emptySet(), extraTags);
+                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbSubnetGroup(final AmazonWebServicesClientProxy proxy,
