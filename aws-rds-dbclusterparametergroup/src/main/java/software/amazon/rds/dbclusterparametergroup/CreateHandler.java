@@ -49,12 +49,12 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
                 .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                                    .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
-                                    .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
-                                    .build();
-                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
-                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
+                        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                            .stackTags(allTags.getStackTags())
+                            .resourceTags(allTags.getResourceTags())
+                            .build();
+                        return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                    }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
                 ))
                 .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
