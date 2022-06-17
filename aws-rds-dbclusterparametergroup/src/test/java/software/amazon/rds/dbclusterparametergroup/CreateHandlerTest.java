@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -11,13 +12,18 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,6 +47,7 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClusterParametersIterable;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
@@ -51,6 +58,8 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.handler.Tagging;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -139,6 +148,61 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SuccessOnSoftCrate() {
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
+
+        when(proxyRdsClient.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
+                .thenReturn(createDbClusterParameterGroupResponse);
+        when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        Map<String, String> resourceTags = ImmutableMap.of("key", "value");
+        Map<String, String> systemTags = ImmutableMap.of("systemTag1", "value2", "systemTag2", "value3");
+        Map<String, String> allTags = ImmutableMap.<String,String>builder()
+                .putAll(resourceTags)
+                .putAll(systemTags)
+                .build();
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceTags(resourceTags)
+                .systemTags(systemTags)
+                .stackId(StackId)
+                .logicalResourceIdentifier("logicalId").build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyRdsClient, logger);
+
+        Assertions.assertThat(response.getCallbackContext().isAddTagsComplete()).isTrue();
+        Assertions.assertThat(response.getCallbackContext().getTaggingContext().isSoftFailTags()).isTrue();
+
+        ArgumentCaptor<CreateDbClusterParameterGroupRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterParameterGroupRequest.class);
+        verify(proxyRdsClient.client(), times(2)).createDBClusterParameterGroup(createCaptor.capture());
+        final CreateDbClusterParameterGroupRequest requestWithAllTags = createCaptor.getAllValues().get(0);
+        final CreateDbClusterParameterGroupRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(allTags), software.amazon.awssdk.services.rds.model.Tag.class));
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(systemTags), software.amazon.awssdk.services.rds.model.Tag.class));
+
+        verify(proxyRdsClient.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
+
+        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(proxyRdsClient.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
+        Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(resourceTags), software.amazon.awssdk.services.rds.model.Tag.class));
     }
 
     @Test
