@@ -22,8 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
@@ -35,6 +33,7 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -229,6 +228,30 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AlreadyExists);
 
         verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleThrottlingException() {
+        mockCreateCall();
+        when(rdsClient.describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class)))
+                .thenThrow(RdsException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder().errorCode("ThrottlingException").build())
+                        .build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .desiredResourceState(RESOURCE_MODEL)
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.Throttling);
+        verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
+        verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
