@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnough
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
+import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -41,7 +42,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbSubnetGroupStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    DbSubnetGroupDoesNotCoverEnoughAZsException.class)
+                    DbSubnetGroupDoesNotCoverEnoughAZsException.class,
+                    InvalidSubnetException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
