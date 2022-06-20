@@ -217,12 +217,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 exception,
                                 DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET))
                 .done((describeDbClusterParameterGroupsRequest, describeDbClusterParameterGroupsResponse, proxyInvocation, resourceModel, context) -> {
-                    currentDBClusterParameters.putAll(
-                            describeDbClusterParameterGroupsResponse.stream()
-                                    .flatMap(describeDbClusterParametersResponse -> describeDbClusterParametersResponse.parameters().stream())
-                                    .collect(Collectors.toMap(Parameter::parameterName, Function.identity()))
-                    );
-                    return ProgressEvent.progress(resourceModel, context);
+                    try{
+                        currentDBClusterParameters.putAll(
+                                describeDbClusterParameterGroupsResponse.stream()
+                                        .flatMap(describeDbClusterParametersResponse -> describeDbClusterParametersResponse.parameters().stream())
+                                        .collect(Collectors.toMap(Parameter::parameterName, Function.identity()))
+                        );
+                        return ProgressEvent.progress(resourceModel, context);
+                    } catch (Exception exception) {
+                        return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+                    }
                 });
     }
 
