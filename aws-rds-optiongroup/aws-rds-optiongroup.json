@@ -101,23 +101,7 @@
     },
     "EngineName": {
       "description": "Indicates the name of the engine that this option group can be applied to.",
-      "type": "string",
-      "enum": [
-        "aurora",
-        "aurora-mysql",
-        "aurora-postgresql",
-        "mariadb",
-        "mysql",
-        "oracle-ee",
-        "oracle-se2",
-        "oracle-se1",
-        "oracle-se",
-        "postgres",
-        "sqlserver-ee",
-        "sqlserver-se",
-        "sqlserver-ex",
-        "sqlserver-web"
-      ]
+      "type": "string"
     },
     "MajorEngineVersion": {
       "description": "Indicates the major engine version associated with this option group.",

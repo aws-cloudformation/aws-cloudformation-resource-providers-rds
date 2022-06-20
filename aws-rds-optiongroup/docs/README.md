@@ -55,8 +55,6 @@ _Required_: Yes
 
 _Type_: String
 
-_Allowed Values_: <code>aurora</code> | <code>aurora-mysql</code> | <code>aurora-postgresql</code> | <code>mariadb</code> | <code>mysql</code> | <code>oracle-ee</code> | <code>oracle-se2</code> | <code>oracle-se1</code> | <code>oracle-se</code> | <code>postgres</code> | <code>sqlserver-ee</code> | <code>sqlserver-se</code> | <code>sqlserver-ex</code> | <code>sqlserver-web</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### MajorEngineVersion
