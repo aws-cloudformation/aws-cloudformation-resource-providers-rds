@@ -12,12 +12,9 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +24,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -168,7 +167,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         Map<String, String> resourceTags = ImmutableMap.of("key", "value");
         Map<String, String> systemTags = ImmutableMap.of("systemTag1", "value2", "systemTag2", "value3");
-        Map<String, String> allTags = ImmutableMap.<String,String>builder()
+        Map<String, String> allTags = ImmutableMap.<String, String>builder()
                 .putAll(resourceTags)
                 .putAll(systemTags)
                 .build();
@@ -329,6 +328,35 @@ public class CreateHandlerTest extends AbstractTestBase {
             assertThat(e.getMessage()).isEqualTo("Invalid request provided: Invalid / Unsupported DB Parameter: param");
         }
 
+        verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleThrottlingFailure() {
+        final CreateHandler handler = new CreateHandler();
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
+        when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
+        when(proxyRdsClient.client().describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class)))
+                .thenThrow(RdsException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder().errorCode("ThrottlingException").build())
+                        .build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
+                .logicalResourceIdentifier("logicalId").build();
+        request.getDesiredResourceState().setParameters(Collections.singletonMap("Wrong Key", "Wrong value"));
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.Throttling);
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
     }
