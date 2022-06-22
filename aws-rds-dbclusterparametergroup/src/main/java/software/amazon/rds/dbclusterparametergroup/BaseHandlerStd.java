@@ -45,7 +45,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     // 5 min for waiting propagation according to https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBClusterParameterGroup.html
-    protected static final int CALLBACK_DELAY_SECONDS = 5 * 60;
     protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
@@ -69,7 +68,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.NotAuthorized)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotStabilized),
                     Exception.class)
-            .build();
+            .build()
+            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
 
     protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
@@ -217,7 +217,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 exception,
                                 DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET))
                 .done((describeDbClusterParameterGroupsRequest, describeDbClusterParameterGroupsResponse, proxyInvocation, resourceModel, context) -> {
-                    try{
+                    try {
                         currentDBClusterParameters.putAll(
                                 describeDbClusterParameterGroupsResponse.stream()
                                         .flatMap(describeDbClusterParametersResponse -> describeDbClusterParametersResponse.parameters().stream())
