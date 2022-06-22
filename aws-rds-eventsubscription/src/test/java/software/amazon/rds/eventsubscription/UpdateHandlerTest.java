@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.rds.model.AddSourceIdentifierToSubscripti
 import software.amazon.awssdk.services.rds.model.AddSourceIdentifierToSubscriptionResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsResponse;
 import software.amazon.awssdk.services.rds.model.EventSubscription;
@@ -35,7 +36,10 @@ import software.amazon.awssdk.services.rds.model.ModifyEventSubscriptionResponse
 import software.amazon.awssdk.services.rds.model.RemoveSourceIdentifierFromSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.RemoveSourceIdentifierFromSubscriptionResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
+import software.amazon.awssdk.services.rds.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -144,6 +148,72 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final RemoveSourceIdentifierFromSubscriptionResponse removeSourceIdentifierFromSubscriptionResponse = RemoveSourceIdentifierFromSubscriptionResponse.builder().build();
         when(proxyRdsClient.client().removeSourceIdentifierFromSubscription(any(RemoveSourceIdentifierFromSubscriptionRequest.class)))
                 .thenReturn(removeSourceIdentifierFromSubscriptionResponse);
+
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(proxyRdsClient.client().addTagsToResource(any(
+                AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        final ResourceModel model = ResourceModel.builder()
+                .subscriptionName("sampleId")
+                .sourceIds(Sets.newHashSet("sampleNewId")).build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .desiredResourceTags(ImmutableMap.of("sampleNewKey", "sampleNewValue"))
+                .previousResourceTags(ImmutableMap.of("oldKey", "oldValue"))
+                .previousResourceState(ResourceModel.builder()
+                        .sourceIds(Sets.newHashSet("sampleId"))
+                        .build())
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).modifyEventSubscription(any(ModifyEventSubscriptionRequest.class));
+        verify(proxyRdsClient.client(), times(4)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
+        verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).addSourceIdentifierToSubscription(any(AddSourceIdentifierToSubscriptionRequest.class));
+        verify(proxyRdsClient.client(), times(1)).removeSourceIdentifierFromSubscription(any(RemoveSourceIdentifierFromSubscriptionRequest.class));
+        verify(proxyRdsClient.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSoftFailWithResourceNotFound() {
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ModifyEventSubscriptionResponse modifyEventSubscriptionResponse = ModifyEventSubscriptionResponse.builder().build();
+        when(proxyRdsClient.client().modifyEventSubscription(any(
+                ModifyEventSubscriptionRequest.class))).thenReturn(modifyEventSubscriptionResponse);
+
+        final DescribeEventSubscriptionsResponse describeEventSubscriptionsResponse = DescribeEventSubscriptionsResponse.builder()
+                .eventSubscriptionsList(EventSubscription.builder()
+                        .enabled(true)
+                        .eventCategoriesList("sampleCategory")
+                        .snsTopicArn("sampleSnsArn")
+                        .sourceType("sampleSourceType")
+                        .sourceIdsList("sampleSourceId")
+                        .status("active").build())
+                .build();
+        when(proxyRdsClient.client().describeEventSubscriptions(any(
+                DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(proxyRdsClient.client().listTagsForResource(any(
+                ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        final AddSourceIdentifierToSubscriptionResponse addSourceIdentifierToSubscriptionResponse = AddSourceIdentifierToSubscriptionResponse.builder().build();
+        when(proxyRdsClient.client().addSourceIdentifierToSubscription(any(AddSourceIdentifierToSubscriptionRequest.class)))
+                .thenReturn(addSourceIdentifierToSubscriptionResponse);
+
+        when(proxyRdsClient.client().removeSourceIdentifierFromSubscription(any(RemoveSourceIdentifierFromSubscriptionRequest.class)))
+                .thenThrow(SourceNotFoundException.builder().build());
 
         final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
         when(proxyRdsClient.client().addTagsToResource(any(

@@ -7,15 +7,26 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorRuleSet;
+import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 
 public class UpdateHandler extends BaseHandlerStd {
+
+    protected static final ErrorRuleSet REMOVE_SOURCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+            .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    SourceNotFoundException.class)
+            .build()
+            .orElse(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET);
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -88,7 +99,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         .handleError((removeSourceIdentifierFromSubscriptionRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                                REMOVE_SOURCE_ERROR_RULE_SET))
                         .progress())
                 .filter(ProgressEvent::isFailed)
                 .findFirst()
