@@ -30,19 +30,22 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 
 public final class Tagging {
-    public static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET = ErrorRuleSet.builder()
+    public static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET = ErrorRuleSet
+            .extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException)
             .build();
 
-    public static final ErrorRuleSet SOFT_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet.builder()
+    public static final ErrorRuleSet SOFT_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet
+            .extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.ignore(),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException
             ).build();
 
-    public static final ErrorRuleSet HARD_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet.builder()
+    public static final ErrorRuleSet HARD_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet
+            .extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException

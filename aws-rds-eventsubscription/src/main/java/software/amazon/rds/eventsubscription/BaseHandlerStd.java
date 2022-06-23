@@ -31,7 +31,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String RESOURCE_IDENTIFIER = "eventsubscription";
     protected static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
 
-    protected static final ErrorRuleSet DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     SubscriptionAlreadyExistException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -42,8 +43,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     EventSubscriptionQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidEventSubscriptionStateException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
@@ -134,8 +134,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
-                            .orElse(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET)
+                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(
+                                    Tagging.bestEffortErrorRuleSet(
+                                            tagsToAdd,
+                                            tagsToRemove,
+                                            Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
+                                            Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                                    )
+                            )
             );
         }
 

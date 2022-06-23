@@ -14,7 +14,7 @@ import software.amazon.rds.common.error.IgnoreErrorStatus;
 
 public final class Commons {
 
-    public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.builder()
+    public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
                     ErrorCode.ClientUnavailable,
                     ErrorCode.InternalFailure)

@@ -126,7 +126,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
     };
 
-    protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     ErrorCode.InstanceQuotaExceeded,
                     ErrorCode.InsufficientDBInstanceCapacity,
@@ -167,10 +168,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ProvisionedIopsNotAvailableInAzException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
-    public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBInstanceAlreadyExists)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
@@ -181,27 +182,27 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     InvalidDbSnapshotStateException.class,
                     InvalidRestoreException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet CREATE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet CREATE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBInstanceAlreadyExists)
             .withErrorClasses(
                     ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBInstanceAlreadyExists)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet REBOOT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet REBOOT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DBInstanceNotFound)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
@@ -210,10 +211,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbInstanceStateException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     ErrorCode.InvalidDBInstanceState,
                     ErrorCode.InvalidParameterCombination)
@@ -227,17 +228,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     InvalidDbSecurityGroupStateException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(),
                     DbInstanceRoleAlreadyExistsException.class,
                     DbInstanceRoleNotFoundException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet DELETE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DELETE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.InvalidParameterValue)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -252,8 +253,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidDbInstanceStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSnapshotAlreadyExistsException.class)
-            .build()
-            .orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            .build();
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -769,7 +769,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
             );
         }
 
