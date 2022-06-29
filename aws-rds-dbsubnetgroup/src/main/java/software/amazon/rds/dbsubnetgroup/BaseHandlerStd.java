@@ -1,8 +1,5 @@
 package software.amazon.rds.dbsubnetgroup;
 
-import java.time.Duration;
-import java.util.Map;
-
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
@@ -16,7 +13,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
@@ -32,7 +28,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "dbsubnetgroup";
 
-    protected static final ErrorRuleSet DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbSubnetGroupAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -44,8 +41,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     InvalidSubnetException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
     protected HandlerConfig config;
 
@@ -85,8 +81,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final String status = proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbSubnetGroupsRequest(model),
-                proxyClient.client()::describeDBSubnetGroups)
+                        Translator.describeDbSubnetGroupsRequest(model),
+                        proxyClient.client()::describeDBSubnetGroups)
                 .dbSubnetGroups().stream().findFirst().get().subnetGroupStatus();
         return status.equals(DB_SUBNET_GROUP_STATUS_COMPLETE);
     }
@@ -124,8 +120,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
-                            .orElse(DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET)
+                    DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET.extendWith(
+                            Tagging.bestEffortErrorRuleSet(
+                                    tagsToAdd,
+                                    tagsToRemove,
+                                    Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
+                                    Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                            )
+                    )
             );
         }
 

@@ -21,11 +21,11 @@ import software.amazon.rds.common.handler.Tagging;
 
 public class UpdateHandler extends BaseHandlerStd {
 
-    protected static final ErrorRuleSet REMOVE_SOURCE_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet REMOVE_SOURCE_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
                     SourceNotFoundException.class)
-            .build()
-            .orElse(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET);
+            .build();
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
