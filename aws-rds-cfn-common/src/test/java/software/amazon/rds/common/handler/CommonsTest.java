@@ -1,5 +1,6 @@
 package software.amazon.rds.common.handler;
 
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,6 +38,18 @@ public class CommonsTest {
         final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(newAwsServiceException(ErrorCode.NotAuthorized));
         assertThat(status).isInstanceOf(HandlerErrorStatus.class);
         assertThat(((HandlerErrorStatus) status).getHandlerErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
+    }
+
+    @Test
+    public void handle_AlreadyExistsException() {
+        final ErrorRuleSet errorRuleSet =  ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
+                .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists), RuntimeException.class)
+                .build();
+
+        final ProgressEvent<Void, Void> progress = new ProgressEvent<>();
+        final ProgressEvent<Void, Void> handledExceptionProgress = Commons.handleException(progress, new RuntimeException(), errorRuleSet);
+        assertThat(handledExceptionProgress.getResourceModel()).isNull();
+        assertThat(handledExceptionProgress.getCallbackContext()).isNull();
     }
 
     @Test

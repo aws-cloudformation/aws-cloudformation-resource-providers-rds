@@ -57,6 +57,12 @@ public final class Commons {
             }
         } else if (errorStatus instanceof HandlerErrorStatus) {
             final HandlerErrorStatus handlerErrorStatus = (HandlerErrorStatus) errorStatus;
+            // We need to set model and context to null in case of AlreadyExists errors
+            // If we not set model and context to null, CFN will attempt to perform delete of the resource it has attempted to create,
+            // even if resource belongs to a different stack altogether, or was created out of bounds
+            if (handlerErrorStatus.getHandlerErrorCode() == HandlerErrorCode.AlreadyExists) {
+                return ProgressEvent.failed(null, null, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
+            }
             return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
         }
 
