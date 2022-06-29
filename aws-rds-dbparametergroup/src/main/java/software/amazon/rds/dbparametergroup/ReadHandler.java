@@ -69,7 +69,7 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET.orElse(DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET)
+                    DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET)
             );
         }
         return ProgressEvent.success(model, context);

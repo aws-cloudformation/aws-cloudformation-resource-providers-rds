@@ -46,7 +46,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         this.config = config;
     }
 
-    protected static final ErrorRuleSet DEFAULT_OPTION_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_OPTION_GROUP_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     ErrorCode.InvalidOptionGroupStateFault)
             .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
@@ -55,8 +56,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     OptionGroupNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     OptionGroupQuotaExceededException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
@@ -137,8 +137,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         return Commons.handleException(
                                 progress,
                                 exception,
-                                Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
-                                        .orElse(DEFAULT_OPTION_GROUP_ERROR_RULE_SET)
+                                DEFAULT_OPTION_GROUP_ERROR_RULE_SET.extendWith(
+                                        Tagging.bestEffortErrorRuleSet(
+                                                tagsToAdd,
+                                                tagsToRemove,
+                                                Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
+                                                Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                                        )
+                                )
                         );
                     }
                     return ProgressEvent.progress(resourceModel, ctx);
