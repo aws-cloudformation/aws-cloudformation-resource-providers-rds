@@ -42,7 +42,7 @@ public class CommonsTest {
 
     @Test
     public void handle_AlreadyExistsException() {
-        final ErrorRuleSet errorRuleSet = ErrorRuleSet.builder()
+        final ErrorRuleSet errorRuleSet =  ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
                 .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists), RuntimeException.class)
                 .build();
 
