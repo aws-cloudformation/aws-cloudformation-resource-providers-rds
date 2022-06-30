@@ -4,12 +4,14 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.EventSubscriptionQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.InvalidEventSubscriptionStateException;
-import software.amazon.awssdk.services.rds.model.SnsTopicArnNotFoundException;
-import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
-import software.amazon.awssdk.services.rds.model.SubscriptionAlreadyExistException;
-import software.amazon.awssdk.services.rds.model.SubscriptionNotFoundException;
+import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException;
+import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -19,6 +21,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -27,23 +30,31 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
 
+    protected static final String AVAILABLE_STATE = "available";
     protected static final String STACK_NAME = "rds";
-    protected static final String RESOURCE_IDENTIFIER = "eventsubscription";
-    protected static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
+    protected static final String RESOURCE_IDENTIFIER = "dbsnapshot";
+    protected static final int MAX_LENGTH_DB_SNAPSHOT = 255;
 
-    protected static final ErrorRuleSet DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET = ErrorRuleSet.builder()
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    SubscriptionAlreadyExistException.class)
+                    DbSnapshotAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    SubscriptionNotFoundException.class,
-                    SnsTopicArnNotFoundException.class,
-                    SourceNotFoundException.class)
+                    DbSnapshotNotFoundException.class,
+                    DbInstanceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
-                    EventSubscriptionQuotaExceededException.class)
+                    SnapshotQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    InvalidEventSubscriptionStateException.class)
+                    InvalidDbSnapshotStateException.class,
+                    InvalidDbInstanceStateException.class)
             .build()
             .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+
+    protected final HandlerConfig config;
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
@@ -75,27 +86,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
-        final String status = proxyClient.injectCredentialsAndInvokeV2(
-                    Translator.describeEventSubscriptionsRequest(model),
-                    proxyClient.client()::describeEventSubscriptions)
-                .eventSubscriptionsList().stream().findFirst().get().status();
-        return status.equals("active");
+        DBSnapshot dbSnapshot = fetchDBSnapshot(model, proxyClient);
+        return dbSnapshot.status().equals(AVAILABLE_STATE);
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> setEnabledDefaultValue(
-            final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        ResourceModel model = progress.getResourceModel();
-        if (model.getEnabled() == null) {
-            model.setEnabled(true);
-        }
-        return progress;
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> waitForEventSubscription(
+    protected ProgressEvent<ResourceModel, CallbackContext> waitForDbSnapshot(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return proxy.initiate("rds::stabilize-event-subscription" + getClass().getSimpleName(), proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+        return proxy.initiate("rds::stabilize-db-snapshot" + getClass().getSimpleName(), proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 // only stabilization is necessary so this is a dummy call
                 // Function.identity() takes ResourceModel as an input and returns (the same) ResourceModel
                 // Function.identity() is roughly similar to `model -> model`
@@ -118,14 +117,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return progress;
         }
 
-        String arn = progress.getCallbackContext().getEventSubscriptionArn();
-        if (arn == null) {
-            ProgressEvent<ResourceModel, CallbackContext> progressEvent = fetchEventSubscriptionArn(proxy, rdsProxyClient, progress);
-            if (progressEvent.isFailed()) {
-                return progressEvent;
-            }
-            arn = progressEvent.getCallbackContext().getEventSubscriptionArn();
-        }
+        final String arn = progress.getResourceModel().getDBSnapshotArn();
 
         try {
             Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
@@ -135,29 +127,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     progress,
                     exception,
                     Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
-                            .orElse(DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET)
+                            .orElse(DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET)
             );
         }
 
         return progress;
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> fetchEventSubscriptionArn(final AmazonWebServicesClientProxy proxy,
-                                                                                      final ProxyClient<RdsClient> proxyClient,
-                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return proxy.initiate("rds::read-db-parameter-group-arn", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::describeEventSubscriptionsRequest)
-                .makeServiceCall((describeEventSubscriptionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeEventSubscriptionsRequest, proxyInvocation.client()::describeEventSubscriptions))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
-                        ))
-                .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, resourceModel, context) -> {
-                    final String arn = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get().eventSubscriptionArn();
-                    context.setEventSubscriptionArn(arn);
-                    return ProgressEvent.progress(resourceModel, context);
-                });
+    protected DBSnapshot fetchDBSnapshot(
+            final ResourceModel model,
+            final ProxyClient<RdsClient> proxyClient
+    ) {
+        final DescribeDbSnapshotsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbSnapshotsRequest(model),
+                proxyClient.client()::describeDBSnapshots
+        );
+
+        return response.dbSnapshots().stream().findFirst().get();
     }
+
 }
