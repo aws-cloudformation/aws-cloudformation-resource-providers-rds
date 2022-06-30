@@ -57,7 +57,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String STACK_NAME = "rds";
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
-    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBClusterAlreadyExistsFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
@@ -84,20 +85,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     KmsKeyNotAccessibleException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleAlreadyExistsException.class)
-            .build()
-            .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleNotFoundException.class)
-            .build()
-            .orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+            .build();
 
     private static final String DB_CLUSTER_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
 
@@ -334,7 +334,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
             );
         }
 

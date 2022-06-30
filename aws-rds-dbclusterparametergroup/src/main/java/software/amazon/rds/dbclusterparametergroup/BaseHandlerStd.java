@@ -45,11 +45,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     // 5 min for waiting propagation according to https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBClusterParameterGroup.html
-    protected static final int CALLBACK_DELAY_SECONDS = 5 * 60;
     protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
-    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbParameterGroupStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
@@ -59,10 +59,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     DbClusterParameterGroupNotFoundException.class,
                     DbParameterGroupNotFoundException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
-    protected static final ErrorRuleSet DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.ignore(),
                     ErrorCode.AccessDeniedException,
                     ErrorCode.AccessDenied,
@@ -71,12 +71,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     Exception.class)
             .build();
 
-    protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet.builder()
+    protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException)
-            .build()
-            .orElse(DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+            .build();
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
@@ -131,8 +131,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET, Tagging.HARD_FAIL_TAG_ERROR_RULE_SET)
-                            .orElse(DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET)
+                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(
+                            Tagging.bestEffortErrorRuleSet(
+                                    tagsToAdd,
+                                    tagsToRemove,
+                                    Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
+                                    Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                            )
+                    )
             );
         }
 
@@ -217,7 +223,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 exception,
                                 DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET))
                 .done((describeDbClusterParameterGroupsRequest, describeDbClusterParameterGroupsResponse, proxyInvocation, resourceModel, context) -> {
-                    try{
+                    try {
                         currentDBClusterParameters.putAll(
                                 describeDbClusterParameterGroupsResponse.stream()
                                         .flatMap(describeDbClusterParametersResponse -> describeDbClusterParametersResponse.parameters().stream())

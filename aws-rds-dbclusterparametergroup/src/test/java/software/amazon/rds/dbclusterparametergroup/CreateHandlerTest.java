@@ -234,6 +234,95 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    public void handleRequest_MissingDescribeDBClusterParameterGroupsPermission() {
+        when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenReturn(CreateDbClusterParameterGroupResponse.builder()
+                        .dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP)
+                        .build());
+        when(rds.modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class)))
+                .thenReturn(ModifyDbClusterParameterGroupResponse.builder().build());
+        when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class)))
+                .thenThrow(RdsException.builder().awsErrorDetails(
+                        AwsErrorDetails.builder().errorCode(HandlerErrorCode.AccessDenied.toString()).build()
+                ).build());
+
+        final DescribeDBClustersIterable describeDbClustersResponse = mock(DescribeDBClustersIterable.class);
+        when(describeDbClustersResponse.stream())
+                .thenReturn(Stream.<DescribeDbClustersResponse>builder()
+                        .add(DescribeDbClustersResponse.builder()
+                                .dbClusters(DBCluster.builder().dbClusterParameterGroup("group").build())
+                                .build())
+                        .build());
+
+        when(rds.describeDBClustersPaginator(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+
+        when(rds.listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        mockDescribeDbClusterParametersResponse("static", "dynamic", true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceState(RESOURCE_MODEL.toBuilder().tags(Collections.emptyList()).build())
+                .stackId(StackId)
+                .logicalResourceIdentifier("identifier")
+                .build();
+
+        final CreateHandler handler = new CreateHandler();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client(), times(1)).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client(), times(1)).modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client(), times(1)).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ThrottleOnDescribeDBClusters() {
+        when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenReturn(CreateDbClusterParameterGroupResponse.builder()
+                        .dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP)
+                        .build());
+        when(rds.modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class)))
+                .thenReturn(ModifyDbClusterParameterGroupResponse.builder().build());
+
+        when(rds.describeDBClustersPaginator(any(DescribeDbClustersRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(HandlerErrorCode.Throttling.toString())
+                                .build())
+                        .build());
+
+        mockDescribeDbClusterParametersResponse("static", "dynamic", true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceState(RESOURCE_MODEL.toBuilder().tags(Collections.emptyList()).build())
+                .stackId(StackId)
+                .logicalResourceIdentifier("identifier")
+                .build();
+
+        final CreateHandler handler = new CreateHandler();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.Throttling);
+
+        verify(proxyRdsClient.client(), times(1)).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client(), times(1)).modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client(), times(1)).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
     public void handleRequest_SimpleSuccessWithParameters() {
         final CreateHandler handler = new CreateHandler();
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse

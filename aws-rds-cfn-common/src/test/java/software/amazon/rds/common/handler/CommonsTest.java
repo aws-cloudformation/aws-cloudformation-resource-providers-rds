@@ -40,6 +40,18 @@ public class CommonsTest {
     }
 
     @Test
+    public void handle_AlreadyExistsException() {
+        final ErrorRuleSet errorRuleSet =  ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
+                .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists), RuntimeException.class)
+                .build();
+
+        final ProgressEvent<Void, Void> progress = new ProgressEvent<>();
+        final ProgressEvent<Void, Void> handledExceptionProgress = Commons.handleException(progress, new RuntimeException(), errorRuleSet);
+        assertThat(handledExceptionProgress.getResourceModel()).isNull();
+        assertThat(handledExceptionProgress.getCallbackContext()).isNull();
+    }
+
+    @Test
     public void handle_ThrottlingException() {
         final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(newAwsServiceException(ErrorCode.ThrottlingException));
         assertThat(status).isInstanceOf(HandlerErrorStatus.class);
@@ -78,7 +90,7 @@ public class CommonsTest {
     public void handleException_Ignore() {
         final ProgressEvent<Void, Void> event = new ProgressEvent<>();
         final Exception exception = new RuntimeException("test exception");
-        final ErrorRuleSet ruleSet = ErrorRuleSet.builder()
+        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
                 .withErrorClasses(ErrorStatus.ignore(), RuntimeException.class)
                 .build();
         final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
@@ -90,7 +102,7 @@ public class CommonsTest {
     public void handleException_HandlerError() {
         final ProgressEvent<Void, Void> event = new ProgressEvent<>();
         final Exception exception = new RuntimeException("test exception");
-        final ErrorRuleSet ruleSet = ErrorRuleSet.builder()
+        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
                 .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest), RuntimeException.class)
                 .build();
         final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
@@ -103,7 +115,7 @@ public class CommonsTest {
     public void handleException_UnknownError() {
         final ProgressEvent<Void, Void> event = new ProgressEvent<>();
         final Exception exception = new RuntimeException("test exception");
-        final ErrorRuleSet ruleSet = ErrorRuleSet.builder().build();
+        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
         final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();

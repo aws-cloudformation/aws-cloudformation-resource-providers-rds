@@ -6,6 +6,9 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+
 class ErrorCodeTest {
 
     @Test
@@ -24,6 +27,12 @@ class ErrorCodeTest {
     }
 
     @Test
+    void fromString_NullString() {
+        final ErrorCode nullCode = ErrorCode.fromString(null);
+        assertThat(nullCode).isNull();
+    }
+
+    @Test
     void testEquals() {
         for (final ErrorCode errorCode : ErrorCode.values()) {
             final String errorCodeStr = errorCode.toString();
@@ -36,5 +45,34 @@ class ErrorCodeTest {
     void testEquals_notEqual() {
         final ErrorCode errorCode = ErrorCode.values()[new Random().nextInt(ErrorCode.values().length)];
         assertThat(errorCode.equals("test-non-existing")).isFalse();
+    }
+
+    @Test
+    void fromException() {
+        final AwsServiceException exception = AwsServiceException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode(ErrorCode.InternalFailure.toString())
+                        .build())
+                .build();
+        final ErrorCode errorCode = ErrorCode.fromException(exception);
+        assertThat(errorCode).isEqualTo(ErrorCode.InternalFailure);
+    }
+
+    @Test
+    void fromException_EmptyDetails() {
+        final AwsServiceException exception = AwsServiceException.builder().build();
+        final ErrorCode errorCode = ErrorCode.fromException(exception);
+        assertThat(errorCode).isNull();
+    }
+
+    @Test
+    void fromException_UnknownErrorCode() {
+        final AwsServiceException exception = AwsServiceException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode("unknown-code")
+                        .build())
+                .build();
+        final ErrorCode errorCode = ErrorCode.fromException(exception);
+        assertThat(errorCode).isNull();
     }
 }

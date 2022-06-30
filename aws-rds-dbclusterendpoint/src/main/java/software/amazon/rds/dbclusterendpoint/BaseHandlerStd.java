@@ -38,7 +38,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .timeout(Duration.ofSeconds(180L))
             .delay(Duration.ofSeconds(15L))
             .build();
-    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET = ErrorRuleSet.builder()
+
+    protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterEndpointAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -51,8 +53,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidDbInstanceStateException.class,
                     InvalidDbClusterStateException.class,
                     InvalidDbClusterEndpointStateException.class)
-            .build()
-            .orElse(Commons.DEFAULT_ERROR_RULE_SET);
+            .build();
 
     protected final HandlerConfig config;
 
@@ -110,7 +111,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove).orElse(DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET)
+                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
             );
         }
         return progress;

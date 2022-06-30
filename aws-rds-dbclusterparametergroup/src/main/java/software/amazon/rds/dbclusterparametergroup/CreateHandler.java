@@ -1,12 +1,8 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import java.util.Collections;
-import java.util.HashSet;
-
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -49,12 +45,12 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
                 .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                            .stackTags(allTags.getStackTags())
-                            .resourceTags(allTags.getResourceTags())
-                            .build();
-                        return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
-                    }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
+                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                                    .stackTags(allTags.getStackTags())
+                                    .resourceTags(allTags.getResourceTags())
+                                    .build();
+                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
                 ))
                 .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
