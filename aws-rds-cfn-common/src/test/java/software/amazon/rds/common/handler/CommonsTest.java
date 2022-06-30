@@ -1,6 +1,5 @@
 package software.amazon.rds.common.handler;
 
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicReference;
