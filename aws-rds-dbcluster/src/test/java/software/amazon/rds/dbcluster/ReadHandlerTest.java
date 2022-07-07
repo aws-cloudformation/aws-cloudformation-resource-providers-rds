@@ -66,19 +66,4 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
-
-    @Test
-    public void handleRequest_RestoreOriginalIdentifier() {
-        final String dbClusterIdentifier = "TestDBClusterIdentifier";
-        final ProgressEvent<ResourceModel, CallbackContext> result = test_handleRequest_base(
-                new CallbackContext(),
-                () -> DBCLUSTER_ACTIVE.toBuilder().dbClusterIdentifier(dbClusterIdentifier.toLowerCase()).build(),
-                () -> RESOURCE_MODEL.toBuilder().dBClusterIdentifier(dbClusterIdentifier).build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
-
-        Assertions.assertThat(result.getResourceModel().getDBClusterIdentifier()).isEqualTo(dbClusterIdentifier);
-    }
 }

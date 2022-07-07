@@ -1012,30 +1012,4 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
-
-    @Test
-    public void handleRequest_modifyDbInstance_RestoreOriginalIdentifier() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenReturn(ModifyDbInstanceResponse.builder().build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setUpdated(false);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        final String dbInstanceIdentifier = "TestIdentifierInMixedCase";
-
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent = test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceIdentifier(dbInstanceIdentifier.toLowerCase(Locale.getDefault())).build(),
-                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
-                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-
-        Assertions.assertThat(progressEvent.getResourceModel().getDBInstanceIdentifier()).isEqualTo(dbInstanceIdentifier);
-    }
 }

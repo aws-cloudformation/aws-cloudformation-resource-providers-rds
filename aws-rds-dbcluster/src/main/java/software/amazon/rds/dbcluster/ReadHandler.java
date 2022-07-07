@@ -41,11 +41,8 @@ public class ReadHandler extends BaseHandlerStd {
                         DEFAULT_DB_CLUSTER_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
-                    final DBCluster dbCluster = describeResponse.dbClusters().stream().findFirst().get();
-                    return ProgressEvent.success(
-                            restoreIdentifier(Translator.translateDbClusterFromSdk(dbCluster), request.getDesiredResourceState()),
-                            context
-                    );
+                    final DBCluster dbCluster = describeResponse.dbClusters().get(0);
+                    return ProgressEvent.success(Translator.translateDbClusterFromSdk(dbCluster), context);
                 });
     }
 }
