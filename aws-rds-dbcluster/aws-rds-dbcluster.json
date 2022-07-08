@@ -386,8 +386,7 @@
         }
       },
       "required": [
-        "Key",
-        "Value"
+        "Key"
       ]
     }
   },

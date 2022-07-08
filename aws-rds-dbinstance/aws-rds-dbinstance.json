@@ -76,8 +76,7 @@
         }
       },
       "required": [
-        "Key",
-        "Value"
+        "Key"
       ]
     }
   },
