@@ -28,7 +28,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 
 The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -.
 
-_Required_: No
+_Required_: Yes
 
 _Type_: String
 
@@ -49,3 +49,4 @@ _Type_: String
 _Maximum_: <code>256</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
