@@ -138,23 +138,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Logger logger
     );
 
-    protected ResourceModel restoreIdentifier(final ResourceModel observed, final ResourceModel original) {
-        if (StringUtils.isBlank(original.getDBClusterIdentifier()) ||
-                StringUtils.equals(original.getDBClusterIdentifier(), observed.getDBClusterIdentifier())) {
-            return observed;
-        }
-        observed.setDBClusterIdentifier(original.getDBClusterIdentifier());
-        return observed;
-    }
-
-    protected DBCluster restoreIdentifier(final DBCluster dbCluster, final ResourceModel model) {
-        if (StringUtils.isBlank(dbCluster.dbClusterIdentifier()) ||
-                StringUtils.equals(model.getDBClusterIdentifier(), dbCluster.dbClusterIdentifier())) {
-            return dbCluster;
-        }
-        return dbCluster.toBuilder().dbClusterIdentifier(model.getDBClusterIdentifier()).build();
-    }
-
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
@@ -163,7 +146,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbClustersRequest(model),
                 proxyClient.client()::describeDBClusters
         );
-        return restoreIdentifier(response.dbClusters().stream().findFirst().get(), model);
+        return response.dbClusters().get(0);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {

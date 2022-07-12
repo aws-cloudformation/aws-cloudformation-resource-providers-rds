@@ -78,17 +78,4 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
-
-    @Test
-    public void handleRequest_RestoreOriginalIdentifier() {
-        final String dbInstanceIdentifier = "TestIdentifierInMixedCase";
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent = test_handleRequest_base(
-                new CallbackContext(),
-                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceIdentifier(dbInstanceIdentifier.toLowerCase(Locale.getDefault())).build(),
-                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
-                expectSuccess()
-        );
-
-        Assertions.assertThat(progressEvent.getResourceModel().getDBInstanceIdentifier()).isEqualTo(dbInstanceIdentifier);
-    }
 }

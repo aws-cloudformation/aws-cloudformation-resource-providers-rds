@@ -41,10 +41,8 @@ public class ReadHandler extends BaseHandlerStd {
                         DEFAULT_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
-                    final DBInstance dbInstance = describeResponse.dbInstances().stream().findFirst().get();
-                    return ProgressEvent.success(
-                            restoreIdentifier(Translator.translateDbInstanceFromSdk(dbInstance), request.getDesiredResourceState()),
-                            context);
+                    final DBInstance dbInstance = describeResponse.dbInstances().get(0);
+                    return ProgressEvent.success(Translator.translateDbInstanceFromSdk(dbInstance), context);
                 });
     }
 }
