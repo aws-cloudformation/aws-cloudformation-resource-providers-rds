@@ -51,14 +51,16 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbParametersRequest describeDbParametersRequest(final ResourceModel model) {
+    static DescribeDbParametersRequest describeDbParametersRequest(final ResourceModel model, final String marker) {
         return DescribeDbParametersRequest.builder()
+                .marker(marker)
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .build();
     }
 
-    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(ResourceModel model) {
+    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(final ResourceModel model, final String marker) {
         return DescribeEngineDefaultParametersRequest.builder()
+                .marker(marker)
                 .dbParameterGroupFamily(model.getFamily())
                 .build();
     }
