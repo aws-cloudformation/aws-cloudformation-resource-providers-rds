@@ -51,7 +51,7 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbParametersRequest describeDbParametersRequest(final ResourceModel model, final String marker) {
+    public static DescribeDbParametersRequest describeDbParametersRequest(final ResourceModel model, final String marker) {
         return DescribeDbParametersRequest.builder()
                 .marker(marker)
                 .dbParameterGroupName(model.getDBParameterGroupName())
