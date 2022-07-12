@@ -321,22 +321,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .done((describeDbParametersRequest, describeDbParametersResponse, proxyInvocation, resourceModel, context) -> {
-                    try {
-                        currentDBParameters.putAll(
-                                describeDbParametersResponse.parameters().stream()
-                                        .collect(Collectors.toMap(Parameter::parameterName, Function.identity())));
+                    currentDBParameters.putAll(
+                            describeDbParametersResponse.parameters().stream()
+                                    .collect(Collectors.toMap(Parameter::parameterName, Function.identity())));
 
-                        final String nextMarker = describeDbParametersResponse.marker();
-                        if (StringUtils.isNullOrEmpty(nextMarker)
-                        ) {
-                            return ProgressEvent.progress(resourceModel, context);
-                        }
-                        return ProgressEvent.progress(resourceModel, context)
-                                .then(p -> describeCurrentDBParameters(p, currentDBParameters, proxy, proxyClient, nextMarker, requestLogger));
-
-                    } catch (Exception exception) {
-                        return Commons.handleException(progress, exception, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+                    final String nextMarker = describeDbParametersResponse.marker();
+                    if (StringUtils.isNullOrEmpty(nextMarker)
+                    ) {
+                        return ProgressEvent.progress(resourceModel, context);
                     }
+                    return ProgressEvent.progress(resourceModel, context)
+                            .then(p -> describeCurrentDBParameters(p, currentDBParameters, proxy, proxyClient, nextMarker, requestLogger));
                 });
     }
 
@@ -356,24 +351,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
                         ))
                 .done((describeEngineDefaultParametersRequest, describeEngineDefaultParametersResponse, proxyInvocation, resourceModel, context) -> {
-                    try {
-                        defaultEngineParameters.putAll(
-                                describeEngineDefaultParametersResponse.engineDefaults().parameters().stream()
-                                        .collect(Collectors.toMap(Parameter::parameterName, Function.identity()))
-                        );
+                    defaultEngineParameters.putAll(
+                            describeEngineDefaultParametersResponse.engineDefaults().parameters().stream()
+                                    .collect(Collectors.toMap(Parameter::parameterName, Function.identity()))
+                    );
 
-                        final String nextMarker = describeEngineDefaultParametersResponse.engineDefaults().marker();
+                    final String nextMarker = describeEngineDefaultParametersResponse.engineDefaults().marker();
 
-                        if (StringUtils.isNullOrEmpty(nextMarker)) {
-                            return ProgressEvent.progress(resourceModel, context);
-                        }
-
-                        return ProgressEvent.progress(resourceModel, context)
-                                .then(p -> describeDefaultEngineParameters(p, defaultEngineParameters, proxy, proxyClient, nextMarker, requestLogger));
-
-                    } catch (Exception exception) {
-                        return Commons.handleException(progress, exception, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+                    if (StringUtils.isNullOrEmpty(nextMarker)) {
+                        return ProgressEvent.progress(resourceModel, context);
                     }
+
+                    return ProgressEvent.progress(resourceModel, context)
+                            .then(p -> describeDefaultEngineParameters(p, defaultEngineParameters, proxy, proxyClient, nextMarker, requestLogger));
                 });
 
     }
