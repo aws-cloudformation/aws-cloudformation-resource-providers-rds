@@ -29,9 +29,6 @@ import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParameters
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
 import software.amazon.awssdk.services.rds.model.EngineDefaults;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.awssdk.services.rds.paginators.DescribeDBParametersIterable;
-import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
-import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
@@ -159,7 +156,8 @@ public class AbstractTestBase {
                                           String firstParamApplyType,
                                           String secondParamApplyType,
                                           boolean isModifiable,
-                                          boolean mockDescribeParameters) {
+                                          boolean mockDescribeParameters,
+                                          boolean isPaginated) {
         Parameter param1 = Parameter.builder()
                 .parameterName("param1")
                 .parameterValue("system_value")
@@ -193,31 +191,42 @@ public class AbstractTestBase {
                 .build();
 
 
-        DescribeEngineDefaultParametersIterable describeEngineDefaultParametersResponses = mock(DescribeEngineDefaultParametersIterable.class);
         final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
                 .engineDefaults(EngineDefaults.builder()
                         .parameters(defaultParam1, param2, param4)
                         .build()
                 ).build();
-        when(describeEngineDefaultParametersResponses.stream())
-                .thenReturn(Stream.<DescribeEngineDefaultParametersResponse>builder().
-                        add(describeEngineDefaultParametersResponse)
-                        .build()
-                );
-        when(proxyClient.client().describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponses);
 
+        if (!isPaginated) {
+            when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponse);
+        } else {
+
+            final DescribeEngineDefaultParametersResponse firstPage = DescribeEngineDefaultParametersResponse.builder()
+                    .engineDefaults(EngineDefaults.builder()
+                            .parameters(defaultParam1, param2, param4)
+                            .marker("marker")
+                            .build()
+                    ).build();
+
+            when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
+                    .thenReturn(firstPage)
+                    .thenReturn(describeEngineDefaultParametersResponse);
+
+        }
         if (!mockDescribeParameters)
             return;
 
         final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
                 .parameters(param1, param2, param3).build();
+        if (!isPaginated) {
+            when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersResponse);
+        } else {
+            final DescribeDbParametersResponse firstPage = DescribeDbParametersResponse.builder().marker("marker")
+                    .parameters(param1, param2, param3).build();
 
-        final DescribeDBParametersIterable describeDbParametersIterable = mock(DescribeDBParametersIterable.class);
-        when(describeDbParametersIterable.stream())
-                .thenReturn(Stream.<DescribeDbParametersResponse>builder()
-                        .add(describeDbParametersResponse)
-                        .build()
-                );
-        when(proxyClient.client().describeDBParametersPaginator(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersIterable);
+            when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
+                    .thenReturn(firstPage)
+                    .thenReturn(describeDbParametersResponse);
+        }
     }
 }

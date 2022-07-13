@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -29,12 +30,12 @@ import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsEx
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
-import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -114,7 +115,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleSuccessWithApplyParameters() {
         mockCreateCall();
-        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false);
+        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, false);
 
         mockDescribeDBParameterGroup();
 
@@ -136,7 +137,34 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
+        verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessWithApplyParametersPagination() {
+        mockCreateCall();
+        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, true);
+
+        mockDescribeDBParameterGroup();
+
+        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
+        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .desiredResourceState(RESET_RESOURCE_MODEL)
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
+        verify(rdsClient, times(2)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
@@ -171,7 +199,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleUnmodifiableParameterFail() {
         mockCreateCall();
-        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", false, false);
+        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", false, false, true);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
@@ -189,8 +217,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
         mockCreateCall();
-        DescribeEngineDefaultParametersIterable describeDbParametersIterable = mock(DescribeEngineDefaultParametersIterable.class);
-        when(rdsClient.describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeDbParametersIterable);
+        when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
@@ -203,7 +230,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         }
 
         verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
+        verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
@@ -233,7 +260,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleThrottlingException() {
         mockCreateCall();
-        when(rdsClient.describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class)))
+        when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
                 .thenThrow(RdsException.builder()
                         .awsErrorDetails(AwsErrorDetails.builder().errorCode("ThrottlingException").build())
                         .build());
@@ -251,7 +278,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.Throttling);
         verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient).describeEngineDefaultParametersPaginator(any(DescribeEngineDefaultParametersRequest.class));
+        verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
