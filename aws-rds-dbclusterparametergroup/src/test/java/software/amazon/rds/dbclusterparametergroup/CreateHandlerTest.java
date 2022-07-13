@@ -48,7 +48,6 @@ import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRe
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.Tag;
-import software.amazon.awssdk.services.rds.paginators.DescribeDBClusterParametersIterable;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -370,7 +369,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
     }
 
-
     @Test
     public void handleRequest_SimpleInProgressFailedUnmodifiableParams() {
         final CreateHandler handler = new CreateHandler();
@@ -392,7 +390,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         }
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
-        verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
     }
 
     @Test
@@ -418,7 +416,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         }
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
-        verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
     }
 
     @Test
@@ -427,7 +425,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
-        when(proxyRdsClient.client().describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class)))
+        when(proxyRdsClient.client().describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
                 .thenThrow(RdsException.builder()
                         .awsErrorDetails(AwsErrorDetails.builder().errorCode("ThrottlingException").build())
                         .build());
@@ -447,7 +445,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.Throttling);
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
-        verify(proxyRdsClient.client()).describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
     }
 
     private void mockDescribeDbClusterParametersResponse(String firstParamApplyType,
@@ -469,15 +467,15 @@ public class CreateHandlerTest extends AbstractTestBase {
         if (!isModifiable)
             return;
 
-        final DescribeDbClusterParametersResponse describeDbClusterParametersResponse = DescribeDbClusterParametersResponse.builder().marker(null)
+        final DescribeDbClusterParametersResponse firstPage = DescribeDbClusterParametersResponse.builder()
+                .marker("marker")
                 .parameters(param1, param2).build();
 
-        final DescribeDBClusterParametersIterable describeDbClusterParametersIterable = mock(DescribeDBClusterParametersIterable.class);
-        when(describeDbClusterParametersIterable.stream())
-                .thenReturn(Stream.<DescribeDbClusterParametersResponse>builder()
-                        .add(describeDbClusterParametersResponse)
-                        .build()
-                );
-        when(proxyRdsClient.client().describeDBClusterParametersPaginator(any(DescribeDbClusterParametersRequest.class))).thenReturn(describeDbClusterParametersIterable);
+
+        final DescribeDbClusterParametersResponse lastPage = DescribeDbClusterParametersResponse.builder().build();
+
+        when(proxyRdsClient.client().describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
+                .thenReturn(firstPage)
+                .thenReturn(lastPage);
     }
 }
