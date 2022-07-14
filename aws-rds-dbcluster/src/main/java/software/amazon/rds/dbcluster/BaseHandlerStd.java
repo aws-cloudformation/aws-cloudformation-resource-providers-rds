@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
@@ -31,6 +32,7 @@ import software.amazon.awssdk.services.rds.model.InvalidGlobalClusterStateExcept
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
@@ -74,14 +76,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbClusterQuotaExceededException.class,
                     InsufficientStorageClusterCapacityException.class,
-                    StorageQuotaExceededException.class)
+                    StorageQuotaExceededException.class,
+                    SnapshotQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbClusterStateException.class,
                     InvalidDbInstanceStateException.class,
                     InvalidDbSubnetGroupStateException.class,
                     InvalidGlobalClusterStateException.class,
                     InvalidSubnetException.class,
-                    InvalidVpcNetworkStateException.class)
+                    InvalidVpcNetworkStateException.class,
+                    InvalidDbClusterSnapshotStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     KmsKeyNotAccessibleException.class)
