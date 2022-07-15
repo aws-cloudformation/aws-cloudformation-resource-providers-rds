@@ -9,6 +9,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -157,7 +158,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progressEvent -> describeCurrentDBClusterParameters(progressEvent, currentClusterParameters, proxy, proxyClient))
+                .then(progressEvent -> describeCurrentDBClusterParameters(progressEvent, currentClusterParameters, proxy, proxyClient, null))
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient))
                 .then(progressEvent -> waitForDbClustersStabilization(progressEvent, proxy, proxyClient));
@@ -212,27 +213,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBClusterParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                              final Map<String, Parameter> currentDBClusterParameters,
                                                                                              final AmazonWebServicesClientProxy proxy,
-                                                                                             ProxyClient<RdsClient> proxyClient) {
+                                                                                             final ProxyClient<RdsClient> proxyClient,
+                                                                                             final String marker) {
         return proxy.initiate("rds::describe-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::describeDbClusterParametersRequest)
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeIterableV2(request,
-                        proxyInvocation.client()::describeDBClusterParametersPaginator))
-                .handleError((describeDBParametersPaginatorRequest, exception, client, resourceModel, ctx) ->
+                .translateToServiceRequest(model -> Translator.describeDbClusterParametersRequest(model, marker))
+                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request,
+                        proxyInvocation.client()::describeDBClusterParameters))
+                .handleError((describeDBParametersRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
                                 DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET))
-                .done((describeDbClusterParameterGroupsRequest, describeDbClusterParameterGroupsResponse, proxyInvocation, resourceModel, context) -> {
-                    try {
+                .done((describeDbClusterParametersRequest, describeDbClusterParametersResponse, proxyInvocation, resourceModel, context) -> {
                         currentDBClusterParameters.putAll(
-                                describeDbClusterParameterGroupsResponse.stream()
-                                        .flatMap(describeDbClusterParametersResponse -> describeDbClusterParametersResponse.parameters().stream())
+                                describeDbClusterParametersResponse.parameters().stream()
                                         .collect(Collectors.toMap(Parameter::parameterName, Function.identity()))
                         );
+
+                        final String nextMarker = describeDbClusterParametersResponse.marker();
+                        if (!StringUtils.isNullOrEmpty(nextMarker)) {
+                            return ProgressEvent.progress(resourceModel, context)
+                                    .then(p -> describeCurrentDBClusterParameters(p, currentDBClusterParameters, proxy, proxyClient, nextMarker));
+                        }
                         return ProgressEvent.progress(resourceModel, context);
-                    } catch (Exception exception) {
-                        return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
-                    }
                 });
     }
 
