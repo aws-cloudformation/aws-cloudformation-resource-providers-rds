@@ -69,7 +69,7 @@ public class ReadHandlerTest extends AbstractTestBase {
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> OPTION_GROUP_ACTIVE,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectSuccess()
         );
 
@@ -85,7 +85,7 @@ public class ReadHandlerTest extends AbstractTestBase {
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
@@ -100,7 +100,7 @@ public class ReadHandlerTest extends AbstractTestBase {
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 

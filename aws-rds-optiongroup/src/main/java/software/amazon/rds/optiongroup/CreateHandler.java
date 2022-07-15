@@ -12,10 +12,8 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.util.IdentifierFactory;
-
 import software.amazon.rds.common.handler.Tagging;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -95,14 +93,17 @@ public class CreateHandler extends BaseHandlerStd {
 
     private ProgressEvent<ResourceModel, CallbackContext> setOptionGroupNameIfEmpty(final ResourceHandlerRequest<ResourceModel> request,
                                                                                       final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        final ResourceModel model = request.getDesiredResourceState();
-        if (StringUtils.isNullOrEmpty(model.getOptionGroupName())) {
-            model.setOptionGroupName(groupIdentifierFactory.newIdentifier()
+        final ResourceModel desiredModel = request.getDesiredResourceState();
+
+        if (StringUtils.isNullOrEmpty(desiredModel.getOptionGroupName())) {
+            desiredModel.setOptionGroupName(groupIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())
                     .withResourceId(request.getLogicalResourceIdentifier())
                     .withRequestToken(request.getClientRequestToken())
                     .toString());
+            return ProgressEvent.progress(desiredModel, progress.getCallbackContext());
         }
-        return ProgressEvent.progress(model, progress.getCallbackContext());
+        return ProgressEvent.failed(desiredModel, progress.getCallbackContext(), HandlerErrorCode.InvalidRequest,
+                "Encountered unsupported property OptionGroupName");
     }
 }

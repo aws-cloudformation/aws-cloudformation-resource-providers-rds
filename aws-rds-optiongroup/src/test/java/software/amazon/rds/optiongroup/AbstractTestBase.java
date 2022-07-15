@@ -39,7 +39,7 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
     protected static final LoggerProxy logger;
 
     protected static final ResourceModel RESOURCE_MODEL;
-    protected static final ResourceModel RESOURCE_MODEL_NO_OPTION_GROUP_NAME;
+    protected static final ResourceModel RESOURCE_MODEL_WITH_NAME;
     protected static final ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS;
     protected static final ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS;
     protected static final OptionGroup OPTION_GROUP_ACTIVE;
@@ -70,31 +70,24 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
                 )).build();
 
         RESOURCE_MODEL = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
+                .optionGroupName(null)
                 .optionGroupDescription("test option group description")
                 .engineName("testEngineVersion")
                 .majorEngineVersion("testMajorVersionName")
                 .build();
 
-        RESOURCE_MODEL_NO_OPTION_GROUP_NAME = ResourceModel.builder()
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
+        RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL
+                .toBuilder()
+                .optionGroupName("testOptionGroup")
                 .build();
 
-        RESOURCE_MODEL_WITH_RESOURCE_TAGS = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
+        RESOURCE_MODEL_WITH_RESOURCE_TAGS = RESOURCE_MODEL
+                .toBuilder()
                 .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                 .build();
 
-        RESOURCE_MODEL_WITH_CONFIGURATIONS = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
+        RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL
+                .toBuilder()
                 .optionConfigurations(ImmutableList.of(
                         OptionConfiguration.builder()
                                 .optionName("testOptionConfiguration")
@@ -103,10 +96,7 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
                 ))
                 .build();
 
-        OPTION_GROUP_ACTIVE = OptionGroup.builder()
-                .optionGroupArn("arn")
-                .optionGroupName("testOptionGroup")
-                .build();
+        OPTION_GROUP_ACTIVE = OptionGroup.builder().build();
     }
 
     static ProxyClient<RdsClient> MOCK_PROXY(
@@ -180,5 +170,9 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
             final CallbackContext context
     ) {
         return getHandler().handleRequest(getProxy(), request, context, getProxyClient(), logger);
+    }
+
+    protected void setupResourceModelsForTests() {
+        RESOURCE_MODEL.setOptionGroupName(null);
     }
 }

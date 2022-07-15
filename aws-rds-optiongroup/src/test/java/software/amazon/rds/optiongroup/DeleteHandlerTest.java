@@ -70,7 +70,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectSuccess()
         );
 
@@ -87,7 +87,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
@@ -102,7 +102,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 

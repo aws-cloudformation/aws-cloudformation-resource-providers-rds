@@ -188,8 +188,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .clientRequestToken(randomString(32, ALPHA))
                 .previousResourceTags(previousResourceTags)
                 .desiredResourceTags(desiredResourceTags)
-                .previousResourceState(RESOURCE_MODEL)
-                .desiredResourceState(RESOURCE_MODEL)
+                .previousResourceState(RESOURCE_MODEL_WITH_NAME)
+                .desiredResourceState(RESOURCE_MODEL_WITH_NAME)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
                 .build();
@@ -242,7 +242,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(randomString(32, ALPHA))
-                .previousResourceState(RESOURCE_MODEL)
+                .previousResourceState(RESOURCE_MODEL_WITH_NAME)
                 .desiredResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
@@ -262,13 +262,13 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_VersionDowngrade_Success() {
-        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("test-option-name").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("test-option-name").optionVersion("1.2.2.0").build()
                 ))
@@ -306,13 +306,13 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_VersionUpgrade_APEX_Success() {
-        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("2.3.4").build()
                 ))
@@ -350,7 +350,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_VersionDowngrade_APEX_Success() {
-        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.3.4").build()
                 ))
@@ -360,7 +360,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         // UpdateHandler should detect the downgrade and restore the previous
         // version. Effectively this resolves in no change at all, therefore
         // we expect to UpdateOptionGroup call at all.
-        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.2.0").build()
                 ))

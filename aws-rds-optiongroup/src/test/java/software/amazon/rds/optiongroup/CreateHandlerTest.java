@@ -15,7 +15,9 @@ import com.google.common.collect.Iterables;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -36,10 +38,10 @@ import software.amazon.awssdk.services.rds.model.ModifyOptionGroupResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
@@ -72,10 +74,15 @@ public class CreateHandlerTest extends AbstractTestBase {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         proxyClient = MOCK_PROXY(proxy, rdsClient);
+        setupResourceModelsForTests();
     }
 
     @AfterEach
-    public void tear_down() {
+    public void tear_down(TestInfo testInfo) {
+        if (testInfo.getTags().contains("IgnoreVerification") == true) {
+            return;
+        }
+
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
     }
@@ -112,40 +119,30 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
+    // This test Ignores verification since the tests returns progress.FAILURE before any invocation of proxy.initiateg
+    @Tag("IgnoreVerification")
     @Test
-    public void handleRequest_CreateSuccess_NoOptionGroupName() {
-        when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
-                .thenReturn(CreateOptionGroupResponse.builder().build());
-
-        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
-
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder().build());
-
-        final String clientRequestToken = randomString(32, ALPHA);
-        final String stackId = randomString(32, ALPHA);
-        final String logicalResourceIdentifier = randomString(32, ALPHA);
+    public void handleRequest_WithOptionGroupName_CreateFailure() {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(clientRequestToken)
-                .desiredResourceState(RESOURCE_MODEL_NO_OPTION_GROUP_NAME)
-                .stackId(stackId)
-                .logicalResourceIdentifier(logicalResourceIdentifier)
+                .clientRequestToken(randomString(32, ALPHA))
+                .desiredResourceState(RESOURCE_MODEL_WITH_NAME)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
+        assertThat(response.getMessage()).isEqualTo("Encountered unsupported property OptionGroupName");
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InvalidRequest);
 
-        verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
-        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(0)).createOptionGroup(any(CreateOptionGroupRequest.class));
+        verify(proxyClient.client(), times(0)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(0)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
+
 
     @Test
     public void handleRequest_CreateSuccess_RequiresModify() {
@@ -223,6 +220,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .logicalResourceIdentifier(randomString(32, ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
