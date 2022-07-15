@@ -27,8 +27,10 @@ import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterResponse;
+import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -184,6 +186,36 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SnapshotQuotaExceededException() {
+        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
+                .thenThrow(SnapshotQuotaExceededException.builder().message("Cannot create more than 100 manual snapshots").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier(null).build(),
+                expectFailed(HandlerErrorCode.ServiceLimitExceeded)
+        );
+
+        verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_InvalidDbClusterSnapshotStateException() {
+        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
+                .thenThrow(InvalidDbClusterSnapshotStateException.builder().message("invalid db cluster snapshot state").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier(null).build(),
+                expectFailed(HandlerErrorCode.ResourceConflict)
+        );
+
         verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
     }
 }
