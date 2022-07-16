@@ -14,6 +14,8 @@ import software.amazon.rds.common.error.IgnoreErrorStatus;
 
 public final class Commons {
 
+    public static final int MINIMAL_DELAY_IN_SECONDS = 1;
+
     public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
                     ErrorCode.ClientUnavailable,
@@ -82,5 +84,33 @@ public final class Commons {
             });
         }
         return progress;
+    }
+
+    public static <M, C> ProgressEvent<M, C> execOnceAndSaveContext(
+            final ProgressEvent<M, C> progress,
+            final ProgressEventLambda<M, C> func,
+            final Function<C, Boolean> conditionGetter,
+            final VoidBiFunction<C, Boolean> conditionSetter) {
+        if (!conditionGetter.apply(progress.getCallbackContext())) {
+            return func.enact().then(p -> {
+                conditionSetter.apply(p.getCallbackContext(), true);
+                p.setCallbackDelaySeconds(MINIMAL_DELAY_IN_SECONDS);
+                return p;
+            });
+        }
+        return progress;
+    }
+
+    public static <M, C> ProgressEvent<M, C> execAndSaveContextIfConditionIsNotMet(
+            final ProgressEvent<M, C> progress,
+            final ProgressEventLambda<M, C> func,
+            final Function<C, Boolean> exitCondition) {
+        if (exitCondition.apply(progress.getCallbackContext())) {
+            return progress;
+        }
+        return func.enact().then(p -> {
+            p.setCallbackDelaySeconds(MINIMAL_DELAY_IN_SECONDS);
+            return p;
+        });
     }
 }

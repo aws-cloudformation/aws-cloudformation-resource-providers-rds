@@ -17,9 +17,7 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.util.IdentifierFactory;
 
-
 public class CreateHandler extends BaseHandlerStd {
-
     private static final IdentifierFactory groupIdentifierFactory = new IdentifierFactory(
             STACK_NAME,
             RESOURCE_IDENTIFIER,
@@ -61,7 +59,13 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                      final Tagging.TagSet allTags,
                                                                                      final RequestLogger requestLogger) {
-        final HandlerMethod<ResourceModel, CallbackContext> createMethod = (pxy, pcl, prg, tgs) -> createDBParameterGroup(pxy, pcl, prg, tgs, requestLogger);
+        final HandlerMethod<ResourceModel, CallbackContext> createMethod = (pxy, pcl, prg, tgs) ->
+                Commons.execOnceAndSaveContext(
+                        prg,
+                        () -> createDBParameterGroup(pxy, pcl, prg, tgs, requestLogger),
+                        CallbackContext::isParameterGroupCreated,
+                        CallbackContext::setParameterGroupCreated);
+
         return Tagging.safeCreate(proxy, proxyClient, createMethod, progress, allTags)
                 .then(p -> Commons.execOnce(p, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()

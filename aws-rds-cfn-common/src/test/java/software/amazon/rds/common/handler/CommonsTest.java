@@ -41,7 +41,7 @@ public class CommonsTest {
 
     @Test
     public void handle_AlreadyExistsException() {
-        final ErrorRuleSet errorRuleSet =  ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
+        final ErrorRuleSet errorRuleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
                 .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists), RuntimeException.class)
                 .build();
 
@@ -159,6 +159,74 @@ public class CommonsTest {
                 (c, v) -> {
                 });
         assertThat(invokedOnce.get()).isFalse();
+    }
+
+    @Test
+    public void execOnceAndSaveContext_invoke() {
+        final AtomicReference<Boolean> invokedOnce = new AtomicReference<>(false);
+        final AtomicReference<Boolean> flag = new AtomicReference<>(false);
+
+        final ProgressEvent<Void, Void> progress = ProgressEvent.progress(null, null);
+        final ProgressEvent<Void, Void> execProgress = Commons.execOnceAndSaveContext(
+                progress,
+                () -> {
+                    invokedOnce.set(true);
+                    return progress;
+                },
+                c -> false,
+                (c, v) -> flag.set(true));
+        assertThat(execProgress.getCallbackDelaySeconds()).isNotZero();
+        assertThat(flag.get()).isTrue();
+        assertThat(invokedOnce.get()).isTrue();
+    }
+
+    @Test
+    public void execAndSaveContextIfConditionIsNotMet_invoke() {
+        final AtomicReference<Boolean> invokedOnce = new AtomicReference<>(false);
+        final ProgressEvent<Void, Void> progress = ProgressEvent.progress(null, null);
+        final ProgressEvent<Void, Void> execProgress = Commons.execAndSaveContextIfConditionIsNotMet(
+                progress,
+                () -> {
+                    invokedOnce.set(true);
+                    return progress;
+                },
+                c -> false);
+
+        assertThat(execProgress.getCallbackDelaySeconds()).isNotZero();
+        assertThat(invokedOnce.get()).isTrue();
+    }
+
+    @Test
+    public void execAndSaveContextIfConditionIsNotMet_skip() {
+        final AtomicReference<Boolean> invokedOnce = new AtomicReference<>(false);
+        final ProgressEvent<Void, Void> progress = ProgressEvent.progress(null, null);
+        final ProgressEvent<Void, Void> execProgress = Commons.execAndSaveContextIfConditionIsNotMet(
+                progress,
+                () -> {
+                    invokedOnce.set(true);
+                    return progress;
+                },
+                c -> true);
+
+        assertThat(execProgress.getCallbackDelaySeconds()).isZero();
+        assertThat(invokedOnce.get()).isFalse();
+    }
+
+    @Test
+    public void execOnceAndSaveContext_skip() {
+        final AtomicReference<Boolean> invokedOnce = new AtomicReference<>(false);
+        final ProgressEvent<Void, Void> progress = ProgressEvent.progress(null, null);
+        final ProgressEvent<Void, Void> execProgress = Commons.execOnceAndSaveContext(
+                progress,
+                () -> {
+                    invokedOnce.set(true);
+                    return progress;
+                },
+                c -> true,
+                (c, v) -> {
+                });
+        assertThat(invokedOnce.get()).isFalse();
+        assertThat(execProgress.getCallbackDelaySeconds()).isZero();
     }
 
     private AwsServiceException newAwsServiceException(final ErrorCode errorCode) {

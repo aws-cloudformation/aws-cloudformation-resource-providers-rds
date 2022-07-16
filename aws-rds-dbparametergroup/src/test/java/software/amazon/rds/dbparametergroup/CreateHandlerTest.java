@@ -1,10 +1,10 @@
 package software.amazon.rds.dbparametergroup;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -15,7 +15,9 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,7 +32,6 @@ import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsEx
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
@@ -46,7 +47,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
-
+    private final static String VALIDATION_ONLY = "validation-only";
     @Mock
     private AmazonWebServicesClientProxy proxy;
 
@@ -68,18 +69,22 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @AfterEach
-    public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+    public void tear_down(TestInfo testInfo) {
+        if (!testInfo.getTags().contains(VALIDATION_ONLY)) {
+            verify(rdsClient, atLeastOnce()).serviceName();
+        }
         verifyNoMoreInteractions(rdsClient);
+
     }
 
     @Test
     public void handleRequest_SimpleSuccessWithoutApplyParameters() {
-        mockCreateCall();
         mockDescribeDBParameterGroup();
 
-        CallbackContext callbackContext = new CallbackContext();
-        callbackContext.setParametersApplied(true);
+        CallbackContext context = new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setAddTagsComplete(true);
+        context.setParametersApplied(true);
 
         ResourceModel EMPTY_NAME_RESOURCE_MODEL = ResourceModel.builder()
                 .dBParameterGroupName("")
@@ -97,7 +102,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -106,22 +111,14 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
 
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithApplyParameters() {
+    public void handleRequest_CreateDbParameterGroupIfNotCreated() {
         mockCreateCall();
-        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, false);
-
-        mockDescribeDBParameterGroup();
-
-
-        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
-        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
@@ -131,30 +128,86 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackDelaySeconds()).isNotZero();
+
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
-
         verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithApplyParametersPagination() {
-        mockCreateCall();
-        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, true);
+    public void handleRequest_DescribeEngineDefaultParameters() {
+        final CallbackContext context = new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setAddTagsComplete(true);
 
-        mockDescribeDBParameterGroup();
-
-        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
-        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+        mockDescribeEngineDefaultParametersResponse(proxyClient, "static", "dynamic", true, false);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESET_RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackDelaySeconds()).isNotZero();
+
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+        assertThat(context.isDefaultParametersFetched()).isTrue();
+        assertThat(context.getDefaultParametersMarker()).isNullOrEmpty();
+        verify(proxyClient.client()).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_DescribeEngineDefaultParametersPaginated() {
+        final CallbackContext context = new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setAddTagsComplete(true);
+
+        mockDescribeEngineDefaultParametersResponse(proxyClient, "static", "dynamic", true, true);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .desiredResourceState(RESET_RESOURCE_MODEL)
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackDelaySeconds()).isNotZero();
+
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+        assertThat(context.isDefaultParametersFetched()).isFalse();
+        assertThat(context.getDefaultParametersMarker()).isEqualTo("marker");
+        verify(proxyClient.client()).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessWithApplyParameters() {
+        mockDescribeDBParameterGroup();
+
+        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
+        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setDefaultParametersFetched(true);
+        context.setDefaultParameters(createParameterMap("static", "dynamic", true, true));
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .desiredResourceState(RESET_RESOURCE_MODEL)
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
@@ -163,8 +216,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient, times(2)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+        verify(proxyClient.client()).modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class));
     }
 
     @Test
@@ -197,40 +249,39 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    @Tag(value = VALIDATION_ONLY)
     public void handleRequest_SimpleUnmodifiableParameterFail() {
-        mockCreateCall();
-        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", false, false, true);
+        final CallbackContext context = new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setDefaultParametersFetched(true);
+        context.setDefaultParameters(createParameterMap("static", "dynamic", false, true));
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        try {
-            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
-        } catch (CfnInvalidRequestException e) {
-            assertThat(e.getMessage()).isEqualTo("Invalid request provided: Unmodifiable DB Parameter: param1");
-        }
 
-        verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
+        final ProgressEvent<ResourceModel, CallbackContext> progress = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
+        assertThat(progress.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(progress.getMessage()).isEqualTo("Invalid / Unmodifiable / Unsupported DB Parameter: param1");
     }
 
     @Test
+    @Tag(value = VALIDATION_ONLY)
     public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
-        mockCreateCall();
-        when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
+        final CallbackContext context = new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setDefaultParametersFetched(true);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        try {
-            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
-        } catch (CfnInvalidRequestException e) {
-            assertThat(e.getMessage()).isEqualTo("Invalid request provided: Invalid / Unsupported DB Parameter: param1");
-        }
+        final ProgressEvent<ResourceModel, CallbackContext> progress = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
 
-        verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+        assertThat(progress.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(progress.getMessage()).isEqualTo("Invalid / Unmodifiable / Unsupported DB Parameter: param1");
+
     }
 
     @Test
@@ -259,7 +310,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleThrottlingException() {
-        mockCreateCall();
         when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
                 .thenThrow(RdsException.builder()
                         .awsErrorDetails(AwsErrorDetails.builder().errorCode("ThrottlingException").build())
@@ -270,14 +320,17 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final CallbackContext context =  new CallbackContext();
+        context.setParameterGroupCreated(true);
+        context.setAddTagsComplete(true);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, proxyClient, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.Throttling);
-        verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 

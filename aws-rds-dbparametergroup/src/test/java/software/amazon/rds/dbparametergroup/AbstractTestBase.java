@@ -12,8 +12,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableMap;
 import org.mockito.internal.util.collections.Sets;
 
 import software.amazon.awssdk.awscore.AwsRequest;
@@ -49,7 +49,6 @@ public class AbstractTestBase {
     protected static final Map<String, Object> PARAMS;
     protected static final Map<String, Object> RESET_PARAMS;
     protected static final RequestLogger EMPTY_REQUEST_LOGGER;
-
 
 
     static {
@@ -152,12 +151,46 @@ public class AbstractTestBase {
         };
     }
 
-    void mockDescribeDbParametersResponse(ProxyClient<RdsClient> proxyClient,
-                                          String firstParamApplyType,
-                                          String secondParamApplyType,
-                                          boolean isModifiable,
-                                          boolean mockDescribeParameters,
-                                          boolean isPaginated) {
+    protected Map<String, Parameter> createParameterMap(String firstParamApplyType,
+                                                        String secondParamApplyType,
+                                                        boolean isModifiable,
+                                                        boolean isFirstParameterDefault) {
+        Parameter param1 = Parameter.builder()
+                .parameterName("param1")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(firstParamApplyType)
+                .applyMethod("pending-reboot")
+                .build();
+        Parameter defaultParam1 = param1.toBuilder()
+                .parameterValue("default_value")
+                .applyMethod("")
+                .build();
+        Parameter param2 = Parameter.builder()
+                .parameterName("param2")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
+
+        Parameter param4 = Parameter.builder()
+                .parameterName("param4")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
+
+        return ImmutableMap.of(
+                param1.parameterName(), isFirstParameterDefault ? defaultParam1 : param1,
+                param2.parameterName(), param2,
+                param4.parameterName(), param4);
+    }
+
+    void mockDescribeEngineDefaultParametersResponse(ProxyClient<RdsClient> proxyClient,
+                                                     String firstParamApplyType,
+                                                     String secondParamApplyType,
+                                                     boolean isModifiable,
+                                                     boolean isPaginated) {
         Parameter param1 = Parameter.builder()
                 .parameterName("param1")
                 .parameterValue("system_value")
@@ -182,6 +215,7 @@ public class AbstractTestBase {
                 .isModifiable(isModifiable)
                 .applyType(secondParamApplyType)
                 .build();
+
         //Adding parameter to default parameters and not adding it to current. Expected behaviour is to ignore it
         Parameter param4 = Parameter.builder()
                 .parameterName("param4")
@@ -190,43 +224,52 @@ public class AbstractTestBase {
                 .applyType(secondParamApplyType)
                 .build();
 
-
         final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
                 .engineDefaults(EngineDefaults.builder()
                         .parameters(defaultParam1, param2, param4)
+                        .marker(isPaginated ? "marker" : null)
                         .build()
                 ).build();
 
-        if (!isPaginated) {
-            when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponse);
-        } else {
+        when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
+                .thenReturn(describeEngineDefaultParametersResponse);
 
-            final DescribeEngineDefaultParametersResponse firstPage = DescribeEngineDefaultParametersResponse.builder()
-                    .engineDefaults(EngineDefaults.builder()
-                            .parameters(defaultParam1, param2, param4)
-                            .marker("marker")
-                            .build()
-                    ).build();
+    }
 
-            when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
-                    .thenReturn(firstPage)
-                    .thenReturn(describeEngineDefaultParametersResponse);
+    protected void mockDescribeDbParametersResponse(ProxyClient<RdsClient> proxyClient,
+                                                    String firstParamApplyType,
+                                                    String secondParamApplyType,
+                                                    boolean isModifiable,
+                                                    boolean isPaginated) {
+        Parameter param1 = Parameter.builder()
+                .parameterName("param1")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(firstParamApplyType)
+                .applyMethod("pending-reboot")
+                .build();
+        Parameter defaultParam1 = param1.toBuilder()
+                .parameterValue("default_value")
+                .applyMethod("")
+                .build();
+        Parameter param2 = Parameter.builder()
+                .parameterName("param2")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
+        //Adding parameter to current parameters and not adding it to default. Expected behaviour is to ignore it
+        Parameter param3 = Parameter.builder()
+                .parameterName("param3")
+                .parameterValue("system_value")
+                .isModifiable(isModifiable)
+                .applyType(secondParamApplyType)
+                .build();
 
-        }
-        if (!mockDescribeParameters)
-            return;
-
-        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
-                .parameters(param1, param2, param3).build();
-        if (!isPaginated) {
-            when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersResponse);
-        } else {
-            final DescribeDbParametersResponse firstPage = DescribeDbParametersResponse.builder().marker("marker")
-                    .parameters(param1, param2, param3).build();
-
-            when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
-                    .thenReturn(firstPage)
-                    .thenReturn(describeDbParametersResponse);
-        }
+        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder()
+                .marker(isPaginated ? "marker" : null)
+                .parameters(param1, param2, param3)
+                .build();
+        when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersResponse);
     }
 }

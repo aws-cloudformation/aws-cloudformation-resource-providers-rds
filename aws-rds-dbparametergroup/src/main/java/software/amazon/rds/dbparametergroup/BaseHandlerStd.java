@@ -135,13 +135,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         if (callbackContext.isParametersApplied())
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
         //Maps will be populated in upcoming calls in progress chain.
-        final Map<String, Parameter> defaultEngineParameters = Maps.newHashMap();
-        final Map<String, Parameter> currentDBParameters = Maps.newHashMap();
+        final Map<String, Parameter> defaultEngineParameters = callbackContext.getDefaultParameters();
+        final Map<String, Parameter> currentDBParameters = callbackContext.getCurrentParameters();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progressEvent -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, null, requestLogger))
+                .then(progressEvent -> Commons.execAndSaveContextIfConditionIsNotMet(progressEvent,
+                        () -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, callbackContext.getDefaultParametersMarker(), requestLogger),
+                        CallbackContext::isDefaultParametersFetched))
                 .then(progressEvent -> validateModelParameters(progressEvent, defaultEngineParameters, requestLogger))
-                .then(progressEvent -> describeCurrentDBParameters(progressEvent, currentDBParameters, proxy, proxyClient, null, requestLogger))
+                .then(progressEvent -> Commons.execAndSaveContextIfConditionIsNotMet(progressEvent,
+                        () -> describeCurrentDBParameters(progressEvent, currentDBParameters, proxy, proxyClient, callbackContext.getCurrentParametersMarker(), requestLogger),
+                        CallbackContext::isCurrentParametersFetched))
                 .then(progressEvent -> resetParameters(progressEvent, defaultEngineParameters, currentDBParameters, proxy, proxyClient, requestLogger))
                 .then(progressEvent -> modifyParameters(progressEvent, currentDBParameters, proxy, proxyClient, requestLogger));
     }
@@ -157,10 +161,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         if (callbackContext.isParametersApplied())
             return ProgressEvent.defaultInProgressHandler(callbackContext, NO_CALLBACK_DELAY, model);
         //Map will be populated in upcoming calls in progress chain.
-        final Map<String, Parameter> defaultEngineParameters = Maps.newHashMap();
+        final Map<String, Parameter> defaultEngineParameters = callbackContext.getDefaultParameters();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progressEvent -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, null, requestLogger))
+                .then(progressEvent -> Commons.execAndSaveContextIfConditionIsNotMet(progressEvent,
+                                () -> describeDefaultEngineParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, callbackContext.getDefaultParametersMarker(), requestLogger),
+                                CallbackContext::isDefaultParametersFetched))
                 .then(progressEvent -> validateModelParameters(progressEvent, defaultEngineParameters, requestLogger))
                 .then(progressEvent -> modifyParameters(progressEvent, defaultEngineParameters, proxy, proxyClient, requestLogger));
     }
@@ -325,13 +331,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             describeDbParametersResponse.parameters().stream()
                                     .collect(Collectors.toMap(Parameter::parameterName, Function.identity())));
 
+                    context.setCurrentParameters(currentDBParameters);
+
                     final String nextMarker = describeDbParametersResponse.marker();
+                    context.setCurrentParametersMarker(nextMarker);
+
                     if (StringUtils.isNullOrEmpty(nextMarker)
                     ) {
-                        return ProgressEvent.progress(resourceModel, context);
+                        context.setCurrentParametersFetched(true);
                     }
-                    return ProgressEvent.progress(resourceModel, context)
-                            .then(p -> describeCurrentDBParameters(p, currentDBParameters, proxy, proxyClient, nextMarker, requestLogger));
+
+                    return ProgressEvent.progress(resourceModel, context);
                 });
     }
 
@@ -356,18 +366,34 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                     .collect(Collectors.toMap(Parameter::parameterName, Function.identity()))
                     );
 
+                    context.setDefaultParameters(defaultEngineParameters);
+
                     final String nextMarker = describeEngineDefaultParametersResponse.engineDefaults().marker();
+                    context.setDefaultParametersMarker(nextMarker);
 
                     if (StringUtils.isNullOrEmpty(nextMarker)) {
-                        return ProgressEvent.progress(resourceModel, context);
+                        context.setDefaultParametersFetched(true);
                     }
-
-                    return ProgressEvent.progress(resourceModel, context)
-                            .then(p -> describeDefaultEngineParameters(p, defaultEngineParameters, proxy, proxyClient, nextMarker, requestLogger));
+                    return ProgressEvent.progress(resourceModel, context);
                 });
 
     }
 
+    protected ProgressEvent<ResourceModel, CallbackContext> verifyDbParameterGroupExists(final AmazonWebServicesClientProxy proxy,
+                                                                                         final ProxyClient<RdsClient> proxyClient,
+                                                                                         final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        return proxy.initiate("rds::verify-parameter-group-exists", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest((resourceModel) -> Translator.describeDbParameterGroupsRequest(resourceModel))
+                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::describeDBParameterGroups))
+                .handleError((describeEngineDefaultParametersRequest, exception, client, resourceModel, ctx) ->
+                        Commons.handleException(
+                                ProgressEvent.progress(resourceModel, ctx),
+                                exception,
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                        ))
+                .progress();
+
+    }
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                                    final ResourceHandlerRequest<ResourceModel> request,
                                                                                    final CallbackContext callbackContext,
