@@ -79,7 +79,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @AfterEach
     public void tear_down(TestInfo testInfo) {
-        if (testInfo.getTags().contains("IgnoreVerification") == true) {
+        if (testInfo.getTags().contains(IGNORE_TEST_VERIFICATION) == true) {
             return;
         }
 
@@ -119,8 +119,8 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
-    // This test Ignores verification since the tests returns progress.FAILURE before any invocation of proxy.initiateg
-    @Tag("IgnoreVerification")
+    // This test Ignores verification since the tests returns progress.FAILURE before any invocation of proxy.initiate
+    @Tag(IGNORE_TEST_VERIFICATION)
     @Test
     public void handleRequest_WithOptionGroupName_CreateFailure() {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
@@ -138,9 +138,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         assertThat(response.getMessage()).isEqualTo("Encountered unsupported property OptionGroupName");
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InvalidRequest);
 
-        verify(proxyClient.client(), times(0)).createOptionGroup(any(CreateOptionGroupRequest.class));
-        verify(proxyClient.client(), times(0)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(0)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verifyNoMoreInteractions(rdsClient);
     }
 
 

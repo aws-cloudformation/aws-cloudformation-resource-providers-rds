@@ -31,6 +31,8 @@ import software.amazon.rds.common.handler.Tagging;
 
 public abstract class AbstractTestBase extends software.amazon.rds.common.test.AbstractTestBase<OptionGroup, ResourceModel, CallbackContext> {
 
+    protected final String IGNORE_TEST_VERIFICATION= "IgnoreTestVerification";
+
     protected static final String LOGICAL_RESOURCE_IDENTIFIER = "optiongroup";
 
     protected static final String MSG_NOT_FOUND_ERR = "OptionGroup not found";
