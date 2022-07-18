@@ -1270,25 +1270,4 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).createDBInstance(argument.capture());
         Assertions.assertThat(argument.getValue().port()).isNull();
     }
-
-    @Test
-    public void handleRequest_CreateDBInstance_RestoreOriginalIdentifier() {
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-        context.setUpdated(true);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        final String dbInstanceIdentifier = "TestIdentifierInMixedCase";
-
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent = test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceIdentifier(dbInstanceIdentifier.toLowerCase(Locale.getDefault())).build(),
-                () -> RESOURCE_MODEL_BLDR().dBInstanceIdentifier(dbInstanceIdentifier).build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
-        Assertions.assertThat(progressEvent.getResourceModel().getDBInstanceIdentifier()).isEqualTo(dbInstanceIdentifier);
-    }
 }

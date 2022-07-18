@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
+import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
@@ -31,6 +32,7 @@ import software.amazon.awssdk.services.rds.model.InvalidGlobalClusterStateExcept
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
@@ -74,14 +76,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbClusterQuotaExceededException.class,
                     InsufficientStorageClusterCapacityException.class,
-                    StorageQuotaExceededException.class)
+                    StorageQuotaExceededException.class,
+                    SnapshotQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbClusterStateException.class,
                     InvalidDbInstanceStateException.class,
                     InvalidDbSubnetGroupStateException.class,
                     InvalidGlobalClusterStateException.class,
                     InvalidSubnetException.class,
-                    InvalidVpcNetworkStateException.class)
+                    InvalidVpcNetworkStateException.class,
+                    InvalidDbClusterSnapshotStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     KmsKeyNotAccessibleException.class)
@@ -138,23 +142,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Logger logger
     );
 
-    protected ResourceModel restoreIdentifier(final ResourceModel observed, final ResourceModel original) {
-        if (StringUtils.isBlank(original.getDBClusterIdentifier()) ||
-                StringUtils.equals(original.getDBClusterIdentifier(), observed.getDBClusterIdentifier())) {
-            return observed;
-        }
-        observed.setDBClusterIdentifier(original.getDBClusterIdentifier());
-        return observed;
-    }
-
-    protected DBCluster restoreIdentifier(final DBCluster dbCluster, final ResourceModel model) {
-        if (StringUtils.isBlank(dbCluster.dbClusterIdentifier()) ||
-                StringUtils.equals(model.getDBClusterIdentifier(), dbCluster.dbClusterIdentifier())) {
-            return dbCluster;
-        }
-        return dbCluster.toBuilder().dbClusterIdentifier(model.getDBClusterIdentifier()).build();
-    }
-
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
@@ -163,7 +150,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbClustersRequest(model),
                 proxyClient.client()::describeDBClusters
         );
-        return restoreIdentifier(response.dbClusters().stream().findFirst().get(), model);
+        return response.dbClusters().get(0);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {

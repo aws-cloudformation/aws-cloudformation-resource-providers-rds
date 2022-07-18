@@ -36,9 +36,10 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model) {
+    static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model, final String marker) {
         return DescribeDbClusterParametersRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
+                .marker(marker)
                 .build();
     }
 
