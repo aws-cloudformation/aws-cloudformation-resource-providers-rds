@@ -12,7 +12,6 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
 
-
 public class CreateHandler extends BaseHandlerStd {
 
     private final static IdentifierFactory groupIdentifierFactory = new IdentifierFactory(
@@ -22,7 +21,7 @@ public class CreateHandler extends BaseHandlerStd {
     );
 
     public CreateHandler() {
-        this(HandlerConfig.builder().build());
+        this(DEFAULT_HANDLER_CONFIG);
     }
 
     public CreateHandler(final HandlerConfig config) {
@@ -45,14 +44,14 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
                 .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                                    .stackTags(allTags.getStackTags())
-                                    .resourceTags(allTags.getResourceTags())
-                                    .build();
-                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
-                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
-                ))
-                .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
+                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                            .stackTags(allTags.getStackTags())
+                            .resourceTags(allTags.getResourceTags())
+                            .build();
+                    return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+                .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()),
+                        CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 

@@ -16,7 +16,7 @@ import software.amazon.rds.common.handler.Tagging;
 public class ReadHandler extends BaseHandlerStd {
 
     public ReadHandler() {
-        this(HandlerConfig.builder().build());
+        this(DEFAULT_HANDLER_CONFIG);
     }
 
     public ReadHandler(final HandlerConfig config) {

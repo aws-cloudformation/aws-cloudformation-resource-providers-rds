@@ -6,13 +6,14 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
-        this(HandlerConfig.builder().build());
+        this(DEFAULT_HANDLER_CONFIG);
     }
 
     public UpdateHandler(final HandlerConfig config) {
@@ -42,7 +43,8 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> resetAllParameters(progress, proxy, proxyClient))
-                .then(progress -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()))
+                .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()),
+                        CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }
