@@ -36,6 +36,8 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
@@ -176,6 +178,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
                                 .build())
                         .build());
 
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rds.removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
         when(rds.listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
@@ -202,8 +208,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> handlerRequest = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
-                .previousResourceState(RESOURCE_MODEL.toBuilder().dBClusterParameterGroupName("group").parameters(PARAMS).tags(null).build())
-                .desiredResourceState(UPDATED_RESOURCE_MODEL.toBuilder().dBClusterParameterGroupName("group").parameters(UPDATED_PARAMS).tags(null).build())
+                .previousResourceState(RESOURCE_MODEL.toBuilder().dBClusterParameterGroupName("group").parameters(PARAMS).tags(TAG_SET).build())
+                .desiredResourceState(UPDATED_RESOURCE_MODEL.toBuilder().dBClusterParameterGroupName("group").parameters(UPDATED_PARAMS).tags(UPDATED_TAG_SET).build())
                 .logicalResourceIdentifier("logicalId")
                 .build();
 
@@ -223,5 +229,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client(), times(2)).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(proxyRdsClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 }
