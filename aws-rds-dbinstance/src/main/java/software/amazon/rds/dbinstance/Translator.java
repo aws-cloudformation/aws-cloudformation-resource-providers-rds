@@ -111,7 +111,6 @@ public class Translator {
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .optionGroupName(model.getOptionGroupName())
@@ -138,14 +137,12 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .optionGroupName(model.getOptionGroupName())
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
@@ -329,6 +326,9 @@ public class Translator {
                 builder.iops(desiredModel.getIops());
                 builder.engineVersion(desiredModel.getEngineVersion());
             }
+        } else {
+            builder.allocatedStorage(getAllocatedStorage(desiredModel));
+            builder.iops(desiredModel.getIops());
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
