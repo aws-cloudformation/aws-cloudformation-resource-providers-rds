@@ -449,8 +449,6 @@ _Required_: No
 
 _Type_: String
 
-_Allowed Values_: <code>bring-your-own-license</code> | <code>general-public-license</code> | <code>license-included</code> | <code>postgresql-license</code>
-
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### MasterUsername
@@ -496,8 +494,6 @@ The interval, in seconds, between points when Enhanced Monitoring metrics are co
 _Required_: No
 
 _Type_: Integer
-
-_Allowed Values_: <code>0</code> | <code>1</code> | <code>5</code> | <code>10</code> | <code>15</code> | <code>30</code> | <code>60</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
