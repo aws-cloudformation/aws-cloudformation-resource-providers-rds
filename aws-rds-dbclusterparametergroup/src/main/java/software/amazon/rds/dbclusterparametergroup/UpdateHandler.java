@@ -41,7 +41,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
+                .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags),
+                        CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> resetAllParameters(progress, proxy, proxyClient))
                 .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()),
                         CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
