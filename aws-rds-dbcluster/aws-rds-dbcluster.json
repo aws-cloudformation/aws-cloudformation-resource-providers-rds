@@ -36,14 +36,12 @@
     "BacktrackWindow": {
       "description": "The target backtrack window, in seconds. To disable backtracking, set this value to 0.",
       "default": 0,
-      "maximum": 259200,
       "minimum": 0,
       "type": "integer"
     },
     "BackupRetentionPeriod": {
       "description": "The number of days for which automated backups are retained.",
       "default": 1,
-      "maximum": 35,
       "minimum": 1,
       "type": "integer"
     },
@@ -104,25 +102,11 @@
     },
     "Engine": {
       "description": "The name of the database engine to be used for this DB cluster. Valid Values: aurora (for MySQL 5.6-compatible Aurora), aurora-mysql (for MySQL 5.7-compatible Aurora), and aurora-postgresql",
-      "type": "string",
-      "enum": [
-        "aurora",
-        "aurora-mysql",
-        "aurora-postgresql",
-        "mysql",
-        "postgres"
-      ]
+      "type": "string"
     },
     "EngineMode": {
       "description": "The DB engine mode of the DB cluster, either provisioned, serverless, parallelquery, global, or multimaster.",
-      "type": "string",
-      "enum": [
-        "provisioned",
-        "serverless",
-        "parallelquery",
-        "global",
-        "multimaster"
-      ]
+      "type": "string"
     },
     "EngineVersion": {
       "description": "The version number of the database engine to use.",
@@ -149,16 +133,7 @@
     "MonitoringInterval": {
       "description": "The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is 0.",
       "type": "integer",
-      "default": 0,
-      "enum": [
-        0,
-        1,
-        5,
-        10,
-        15,
-        30,
-        60
-      ]
+      "default": 0
     },
     "MonitoringRoleArn": {
       "description": "The Amazon Resource Name (ARN) for the IAM role that permits RDS to send Enhanced Monitoring metrics to Amazon CloudWatch Logs.",
@@ -178,8 +153,7 @@
     },
     "Port": {
       "description": "The port number on which the instances in the DB cluster accept connections. Default: 3306 if engine is set as aurora or 5432 if set to aurora-postgresql.",
-      "type": "integer",
-      "default": 3306
+      "type": "integer"
     },
     "PreferredBackupWindow": {
       "description": "The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter. The default is a 30-minute window selected at random from an 8-hour block of time for each AWS Region. To see the time blocks available, see Adjusting the Preferred DB Cluster Maintenance Window in the Amazon Aurora User Guide.",
@@ -200,10 +174,6 @@
     "RestoreType": {
       "description": "The type of restore to be performed. You can specify one of the following values:\nfull-copy - The new DB cluster is restored as a full copy of the source DB cluster.\ncopy-on-write - The new DB cluster is restored as a clone of the source DB cluster.",
       "type": "string",
-      "enum": [
-        "full-copy",
-        "copy-on-write"
-      ],
       "default": "full-copy"
     },
     "ScalingConfiguration": {
@@ -228,10 +198,7 @@
     },
     "StorageType": {
       "description": "Specifies the storage type to be associated with the DB cluster.",
-      "type": "string",
-      "enum": [
-        "io1"
-      ]
+      "type": "string"
     },
     "Tags": {
       "type": "array",
@@ -256,51 +223,6 @@
       "type": "array"
     }
   },
-  "allOf": [
-    {
-      "required": [
-        "Engine"
-      ]
-    },
-    {
-      "anyOf": [
-        {
-          "anyOf": [
-            {
-              "required": [
-                "MasterUserPassword"
-              ]
-            },
-            {
-              "required": [
-                "MasterUsername"
-              ]
-            }
-          ]
-        },
-        {
-          "required": [
-            "SnapshotIdentifier"
-          ]
-        },
-        {
-          "required": [
-            "SourceDBClusterIdentifier"
-          ]
-        },
-        {
-          "required": [
-            "GlobalClusterIdentifier"
-          ]
-        },
-        {
-          "required": [
-            "ReplicationSourceIdentifier"
-          ]
-        }
-      ]
-    }
-  ],
   "definitions": {
     "Endpoint": {
       "type": "object",
