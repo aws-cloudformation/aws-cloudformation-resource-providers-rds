@@ -103,8 +103,6 @@ public class CreateHandler extends BaseHandlerStd {
                     .toString());
             return ProgressEvent.progress(desiredModel, progress.getCallbackContext());
         }
-//        return ProgressEvent.progress(desiredModel, progress.getCallbackContext());
-
         return ProgressEvent.failed(desiredModel, progress.getCallbackContext(), HandlerErrorCode.InvalidRequest,
                 "Encountered unsupported property OptionGroupName");
     }
