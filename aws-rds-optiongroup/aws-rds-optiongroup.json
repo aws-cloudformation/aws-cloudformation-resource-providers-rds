@@ -129,8 +129,10 @@
     "MajorEngineVersion",
     "OptionGroupDescription"
   ],
+  "readOnlyProperties": [
+    "/properties/OptionGroupName"
+  ],
   "createOnlyProperties": [
-    "/properties/OptionGroupName",
     "/properties/EngineName",
     "/properties/MajorEngineVersion",
     "/properties/OptionGroupDescription"
