@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -161,6 +162,23 @@ class TranslatorTest extends AbstractHandlerTest {
         final CreateDbInstanceRequest request2 = Translator.createDbInstanceRequest(RESOURCE_MODEL_BLDR().build(), tagSet2);
 
         Assertions.assertEquals(request1.hashCode(), request2.hashCode());
+    }
+
+    @Test
+    public void test_createReadReplicaRequest_parameterGroupNotSet() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR().build();
+
+        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
+        Assertions.assertNull(request.dbParameterGroupName());
+    }
+
+
+    @Test
+    public void test_modifyReadReplicaRequest_parameterGroupNotSet() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR().build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(null, model, false);
+        Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
