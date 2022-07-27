@@ -37,7 +37,7 @@ public class CreateHandler extends BaseHandlerStd {
     );
 
     public CreateHandler() {
-        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
+        this(DB_INSTANCE_HANDLER_CONFIG_36H);
     }
 
     public CreateHandler(final HandlerConfig config) {
