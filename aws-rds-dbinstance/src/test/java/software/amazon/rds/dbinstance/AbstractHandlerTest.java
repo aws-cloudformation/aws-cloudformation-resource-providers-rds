@@ -167,7 +167,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final DBInstance DB_INSTANCE_EMPTY_PORT;
 
     protected static Constant TEST_BACKOFF_DELAY = Constant.of()
-            .delay(Duration.ofSeconds(1L))
+            .delay(Duration.ofMillis(1L))
             .timeout(Duration.ofSeconds(10L))
             .build();
 
@@ -457,7 +457,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .kmsKeyId(KMS_KEY_ID_EMPTY)
                 .licenseModel(LICENSE_MODEL_GENERAL_PUBLIC_LICENSE)
                 .iamDatabaseAuthenticationEnabled(ENABLE_IAM_DATABASE_AUTHENTICATION_YES)
-                .promotionTier(PROMOTION_TIER_DEFAULT)
                 .storageType(STORAGE_TYPE_STANDARD)
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .masterUsername(MASTER_USERNAME)

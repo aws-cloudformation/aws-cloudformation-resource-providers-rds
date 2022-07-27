@@ -1,6 +1,5 @@
 package software.amazon.rds.dbinstance;
 
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -12,7 +11,6 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -54,7 +52,6 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
