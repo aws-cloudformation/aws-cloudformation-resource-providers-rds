@@ -2,7 +2,6 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
-import java.time.Duration;
 import java.util.HashSet;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -15,7 +14,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
@@ -24,10 +22,7 @@ import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
-        this(HandlerConfig.builder()
-                .probingEnabled(true)
-                .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
-                .build());
+        this(DB_CLUSTER_HANDLER_CONFIG_36H);
     }
 
     public UpdateHandler(final HandlerConfig config) {
