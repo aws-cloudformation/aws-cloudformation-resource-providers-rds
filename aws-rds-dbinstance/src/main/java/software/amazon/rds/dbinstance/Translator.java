@@ -71,7 +71,6 @@ public class Translator {
                 .availabilityZone(model.getAvailabilityZone())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
-                .dbParameterGroupName(model.getDBParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
