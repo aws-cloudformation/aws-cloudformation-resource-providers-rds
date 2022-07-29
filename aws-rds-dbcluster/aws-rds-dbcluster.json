@@ -363,7 +363,8 @@
         "rds:ModifyDBCluster",
         "rds:RestoreDBClusterFromSnapshot",
         "rds:RestoreDBClusterToPointInTime"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "read": {
       "permissions": [
@@ -381,7 +382,8 @@
         "rds:RemoveFromGlobalCluster",
         "rds:RemoveRoleFromDBCluster",
         "rds:RemoveTagsFromResource"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "delete": {
       "permissions": [

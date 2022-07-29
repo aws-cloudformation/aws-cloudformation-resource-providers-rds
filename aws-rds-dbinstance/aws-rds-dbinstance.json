@@ -414,7 +414,8 @@
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",
         "rds:RestoreDBInstanceFromDBSnapshot"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "read": {
       "permissions": [
@@ -452,7 +453,8 @@
         "rds:ModifyDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "delete": {
       "permissions": [
