@@ -38,4 +38,16 @@ class ConfigurationTest {
 
         assertThat(tags).isNull();
     }
+
+    @Test
+    public void tagWithEmptyValue() {
+        final Configuration configuration = new Configuration();
+        final Map<String, String> tags = configuration.resourceDefinedTags(ResourceModel.builder()
+                        .tags(Arrays.asList(new Tag("tag-key", null)))
+                .build());
+
+        assertThat(tags).hasSize(1);
+        assertThat(tags).containsExactly(
+                Assertions.entry("tag-key", null));
+    }
 }
