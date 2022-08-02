@@ -124,6 +124,9 @@
     }
   },
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/OptionGroupName": "$lowercase(OptionGroupName)"
+  },
   "required": [
     "EngineName",
     "MajorEngineVersion",
