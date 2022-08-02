@@ -335,7 +335,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterUpdate(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -361,34 +361,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterUpdate(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_ERROR_RULE_SET
-                ))
-                .progress();
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> awaitDBInstanceAvailableStatus(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
-    ) {
-        return proxy.initiate(
-                        "rds::stabilize-db-instance-" + getClass().getSimpleName(),
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                )
-                .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall(NOOP_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterUpdate(proxyInvocation, model))
-                .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, context),
-                        exception,
-                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
                 ))
                 .progress();
     }
@@ -478,7 +455,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
-    protected boolean isDBInstanceStabilizedAfterCreate(
+    protected boolean isDBInstanceStabilizedAfterMutate(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
@@ -495,7 +472,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isPromotionTierUpdated(dbInstance, model);
     }
 
-    protected boolean isDBInstanceStabilizedAfterUpdate(
+    protected boolean isDBInstanceStabilizedAfterReboot(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
@@ -749,7 +726,30 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        return reboot(proxy, rdsProxyClient, progress).then(p -> awaitDBInstanceAvailableStatus(proxy, rdsProxyClient, p));
+        return reboot(proxy, rdsProxyClient, progress).then(p -> stabilizeDBInstanceAfterReboot(proxy, rdsProxyClient, p));
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> stabilizeDBInstanceAfterReboot(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate(
+                        "rds::stabilize-db-instance-after-reboot-" + getClass().getSimpleName(),
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                )
+                .translateToServiceRequest(Function.identity())
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall(NOOP_CALL)
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterReboot(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, context),
+                        exception,
+                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
+                ))
+                .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> ensureEngineSet(
