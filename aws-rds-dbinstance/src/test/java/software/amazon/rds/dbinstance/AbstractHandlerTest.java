@@ -460,6 +460,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .storageType(STORAGE_TYPE_STANDARD)
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .masterUsername(MASTER_USERNAME)
+                .promotionTier(PROMOTION_TIER_DEFAULT)
                 .build();
 
         DB_INSTANCE_DELETING = DB_INSTANCE_ACTIVE.toBuilder()

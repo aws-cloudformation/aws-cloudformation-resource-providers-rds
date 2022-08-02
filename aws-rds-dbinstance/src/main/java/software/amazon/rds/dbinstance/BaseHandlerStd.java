@@ -21,9 +21,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
-import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBInstance;
-import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAutomatedBackupQuotaExceededException;
@@ -48,12 +46,12 @@ import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException
 import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
-import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -337,7 +335,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDbInstanceStabilized(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterUpdate(proxyInvocation, model))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -363,7 +361,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDbInstanceStabilized(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterUpdate(proxyInvocation, model))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -386,7 +384,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> isDbInstanceStabilized(proxyInvocation, model))
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterUpdate(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
@@ -460,31 +458,63 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
+        DBInstance dbInstance;
         try {
-            fetchDBInstance(rdsProxyClient, model);
+            dbInstance = fetchDBInstance(rdsProxyClient, model);
         } catch (DbInstanceNotFoundException e) {
             // the instance is gone, exactly what we need
             return true;
         }
+
+        assertNoTerminalStatus(dbInstance);
+
         return false;
     }
 
-    protected boolean isDbInstanceStabilized(
+    private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
+        final DBInstanceStatus status = DBInstanceStatus.fromString(dbInstance.dbInstanceStatus());
+        if (status != null && status.isTerminal()) {
+            throw new CfnNotStabilizedException(new Exception("DB Instance is in state: " + status.toString()));
+        }
+    }
+
+    protected boolean isDBInstanceStabilizedAfterCreate(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-        return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus()) &&
+
+        assertNoTerminalStatus(dbInstance);
+
+        return isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&
-                isDBParameterGroupSyncComplete(dbInstance) &&
+                isDBParameterGroupNotApplying(dbInstance) &&
                 isNoPendingChanges(dbInstance) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isPromotionTierUpdated(dbInstance, model);
     }
 
+    protected boolean isDBInstanceStabilizedAfterUpdate(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+
+        assertNoTerminalStatus(dbInstance);
+
+        return isDBInstanceAvailable(dbInstance) &&
+                isDBParameterGroupInSync(dbInstance) &&
+                isOptionGroupInSync(dbInstance) &&
+                (!isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model));
+    }
+
+    boolean isDBInstanceAvailable(final DBInstance dbInstance) {
+        return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
+    }
+
     boolean isPromotionTierUpdated(final DBInstance dbInstance, final ResourceModel model) {
-        return dbInstance.promotionTier() == null || dbInstance.promotionTier().equals(model.getPromotionTier());
+        return model.getPromotionTier() == null || model.getPromotionTier().equals(dbInstance.promotionTier());
     }
 
     boolean isDomainMembershipsJoined(final DBInstance dbInstance) {
@@ -523,7 +553,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         );
     }
 
-    boolean isDBParameterGroupSyncComplete(final DBInstance dbInstance) {
+    boolean isDBParameterGroupNotApplying(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList())
                 .stream()
                 .noneMatch(group -> DB_PARAMETER_GROUP_STATUS_APPLYING.equals(group.parameterApplyStatus()));
@@ -540,42 +570,40 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-        final List<OptionGroupMembership> optionGroupMemberships = dbInstance.optionGroupMemberships();
-        if (CollectionUtils.isNullOrEmpty(optionGroupMemberships)) {
-            // no option group membership, the best we can do is to return true
-            return true;
-        }
-        return IN_SYNC_STATUS.equals(optionGroupMemberships.get(0).status());
+        return isOptionGroupInSync(fetchDBInstance(rdsProxyClient, model));
+    }
+
+    protected boolean isOptionGroupInSync(final DBInstance dbInstance) {
+        return Optional.ofNullable(dbInstance.optionGroupMemberships()).orElse(Collections.emptyList())
+                .stream()
+                .allMatch(optionGroup -> IN_SYNC_STATUS.equals(optionGroup.status()));
     }
 
     protected boolean isDBParameterGroupStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-        final List<DBParameterGroupStatus> dbParameterGroupStatuses = dbInstance.dbParameterGroups();
-        if (CollectionUtils.isNullOrEmpty(dbParameterGroupStatuses)) {
-            return true;
-        }
-        return IN_SYNC_STATUS.equals(dbParameterGroupStatuses.get(0).parameterApplyStatus());
+        return isDBParameterGroupInSync(fetchDBInstance(rdsProxyClient, model));
+    }
+
+    protected boolean isDBParameterGroupInSync(final DBInstance dbInstance) {
+        return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList())
+                .stream()
+                .allMatch(parameterGroup -> IN_SYNC_STATUS.equals(parameterGroup.parameterApplyStatus()));
     }
 
     protected boolean isDBClusterParameterGroupStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        final DBCluster dbCluster = fetchDBCluster(rdsProxyClient, model);
-        final List<DBClusterMember> dbClusterMembers = dbCluster.dbClusterMembers();
-        if (CollectionUtils.isNullOrEmpty(dbClusterMembers)) {
-            return true;
-        }
-        for (DBClusterMember member : dbClusterMembers) {
-            if (model.getDBInstanceIdentifier().equals(member.dbInstanceIdentifier())) {
-                return IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus());
-            }
-        }
-        return false;
+        return isDBClusterParameterGroupInSync(model, fetchDBCluster(rdsProxyClient, model));
+    }
+
+    protected boolean isDBClusterParameterGroupInSync(final ResourceModel model, final DBCluster dbCluster) {
+        return Optional.ofNullable(dbCluster.dbClusterMembers()).orElse(Collections.emptyList())
+                .stream()
+                .filter(member -> model.getDBInstanceIdentifier().equalsIgnoreCase(member.dbInstanceIdentifier()))
+                .anyMatch(member -> IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus()));
     }
 
     protected boolean isDBInstanceRoleStabilized(
