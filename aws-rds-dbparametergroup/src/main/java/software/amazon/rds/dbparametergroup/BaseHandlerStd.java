@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -173,7 +174,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                           final RequestLogger requestLogger) {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
-        Map<String, Parameter> parametersToReset = getParametersToReset(model, defaultEngineParameters, currentDBParameters);
+        TreeMap<String, Parameter> parametersToReset = getParametersToReset(model, defaultEngineParameters, currentDBParameters);
         for (List<Parameter> paramsPartition : Iterables.partition(parametersToReset.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
@@ -189,7 +190,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                            final RequestLogger requestLogger) {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
-        Map<String, Parameter> parametersToModify = getModifiableParameters(model, currentDBParameters);
+        TreeMap<String, Parameter> parametersToModify = getModifiableParameters(model, currentDBParameters);
         for (List<Parameter> paramsPartition : Iterables.partition(parametersToModify.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
@@ -234,12 +235,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .progress();
     }
 
-    private Map<String, Parameter> getModifiableParameters(final ResourceModel model,
+    private TreeMap<String, Parameter> getModifiableParameters(final ResourceModel model,
                                                            final Map<String, Parameter> currentDBParameters) {
         Map<String, Parameter> parametersToModify = Maps.newHashMap(currentDBParameters);
         Map<String, Object> modelParameters = Optional.ofNullable(model.getParameters()).orElse(Collections.emptyMap());
         parametersToModify.keySet().retainAll(modelParameters.keySet());
-        return parametersToModify.entrySet()
+        return new TreeMap<String, Parameter>(parametersToModify.entrySet()
                 .stream()
                 //filter to parameters want to modify and its value is different from already exist value
                 .filter(entry -> {
@@ -255,7 +256,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             Parameter defaultParameter = entry.getValue();
                             return Translator.buildParameterWithNewValue(newValue, defaultParameter);
                         })
-                );
+                ));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
@@ -286,12 +287,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext());
     }
 
-    private Map<String, Parameter> getParametersToReset(final ResourceModel model,
+    private TreeMap<String, Parameter> getParametersToReset(final ResourceModel model,
                                                         final Map<String, Parameter> defaultEngineParameters,
                                                         final Map<String, Parameter> currentParameters) {
         Map<String, Parameter> defaultParametersToReset = Maps.newLinkedHashMap(defaultEngineParameters);
         defaultParametersToReset.keySet().retainAll(currentParameters.keySet());
-        return defaultParametersToReset.entrySet()
+        return new TreeMap<String, Parameter>(defaultParametersToReset.entrySet()
                 .stream()
                 .filter(entry -> {
                     String parameterName = entry.getKey();
@@ -302,7 +303,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             && !currentParameterValue.equals(defaultParameterValue)
                             && !parametersToModify.containsKey(parameterName);
                 })
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue())));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,

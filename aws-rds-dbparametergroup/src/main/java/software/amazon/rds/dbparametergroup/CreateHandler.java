@@ -42,7 +42,6 @@ public class CreateHandler extends BaseHandlerStd {
             final RequestLogger requestLogger) {
 
         final ResourceModel desiredModel = request.getDesiredResourceState();
-
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
