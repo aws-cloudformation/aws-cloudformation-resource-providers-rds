@@ -1,7 +1,7 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -23,8 +23,10 @@ class Configuration extends BaseConfiguration {
             return null;
         }
 
-        return model.getTags()
-                .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
+        final Map<String, String> tagMap = new HashMap<>();
+        for (final Tag tag : model.getTags()) {
+            tagMap.put(tag.getKey(), tag.getValue());
+        }
+        return tagMap;
     }
 }
