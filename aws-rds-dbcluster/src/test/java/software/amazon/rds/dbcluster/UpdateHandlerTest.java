@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import lombok.Getter;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
@@ -55,9 +56,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;
+
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
+
+    @Mock
+    @Getter
+    private ProxyClient<Ec2Client> ec2Proxy;
+
     @Getter
     private UpdateHandler handler;
 

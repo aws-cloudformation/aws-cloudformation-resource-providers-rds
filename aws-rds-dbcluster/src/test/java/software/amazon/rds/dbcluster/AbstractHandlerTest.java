@@ -17,6 +17,7 @@ import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
@@ -319,12 +320,14 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
 
     protected abstract ProxyClient<RdsClient> getRdsProxy();
 
+    protected abstract ProxyClient<Ec2Client> getEc2Proxy();
+
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), logger);
+        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), logger);
     }
 
     @Override

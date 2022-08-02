@@ -9,8 +9,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.google.common.collect.Lists;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
+import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
@@ -22,6 +27,7 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
@@ -135,7 +141,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(ClientBuilder::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(RdsClientBuilder::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(Ec2ClientBuilder::getClient)),
                         logger
                 ));
     }
@@ -144,9 +151,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
-    );
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger);
 
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> proxyClient,
@@ -157,6 +164,33 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxyClient.client()::describeDBClusters
         );
         return response.dbClusters().get(0);
+    }
+
+    protected DBSubnetGroup fetchDBSubnetGroup(
+            final ProxyClient<RdsClient> proxyClient,
+            final String DbSubnetGroupName
+    ) {
+        final DescribeDbSubnetGroupsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbSubnetGroup(DbSubnetGroupName),
+                proxyClient.client()::describeDBSubnetGroups
+        );
+        return response.dbSubnetGroups().get(0);
+    }
+
+    protected SecurityGroup fetchSecurityGroup(
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final String vpcId,
+            final String groupName
+    ) {
+        final DescribeSecurityGroupsResponse response = ec2ProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeSecurityGroupsRequest(vpcId, groupName),
+                ec2ProxyClient.client()::describeSecurityGroups
+        );
+        return Optional.ofNullable(response.securityGroups())
+                .orElse(Collections.emptyList())
+                .stream()
+                .findFirst()
+                .orElse(null);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {
@@ -371,5 +405,30 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         DEFAULT_DB_CLUSTER_ERROR_RULE_SET
                 ))
                 .progress();
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcSecurityGroupIdsIfEmpty(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        if (resourceModel.getVpcSecurityGroupIds() == null || resourceModel.getVpcSecurityGroupIds().isEmpty()) {
+            SecurityGroup securityGroup;
+            try {
+                DBCluster cluster = fetchDBCluster(rdsProxyClient, resourceModel);
+                DBSubnetGroup subnetGroup = fetchDBSubnetGroup(rdsProxyClient, cluster.dbSubnetGroup());
+                securityGroup = fetchSecurityGroup(ec2ProxyClient, subnetGroup.vpcId(), "default");
+                resourceModel.setVpcSecurityGroupIds(Lists.newArrayList(securityGroup.groupId()));
+            } catch (Exception exception) {
+                return Commons.handleException(
+                        ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+            }
+
+        }
+        return progress;
     }
 }

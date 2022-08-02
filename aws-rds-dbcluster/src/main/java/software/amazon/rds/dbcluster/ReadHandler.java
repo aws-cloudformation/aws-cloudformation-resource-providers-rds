@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -25,10 +26,9 @@ public class ReadHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
-    ) {
-        return proxy.initiate("rds::describe-db-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
+        return proxy.initiate("rds::describe-db-cluster", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbClustersRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(

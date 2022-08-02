@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.time.Duration;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,10 +17,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import lombok.Getter;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +33,10 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
+
+    @Mock
+    @Getter
+    private ProxyClient<Ec2Client> ec2Proxy;
 
     @Mock
     RdsClient rdsClient;

@@ -14,7 +14,7 @@ public final class ImmutabilityHelper {
 
     static boolean isGlobalClusterMutable(final ResourceModel previous, final ResourceModel desired) {
         if (StringUtils.hasValue(previous.getGlobalClusterIdentifier()) &&
-            StringUtils.isNullOrEmpty(desired.getGlobalClusterIdentifier())) {
+                StringUtils.isNullOrEmpty(desired.getGlobalClusterIdentifier())) {
             // This would be handled by calling remove-from-global-cluster explicitly
             return true;
         }

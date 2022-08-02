@@ -7,6 +7,7 @@ import java.util.HashSet;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -33,9 +34,8 @@ public class UpdateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
-    ) {
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
@@ -64,20 +64,21 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(desiredResourceState, callbackContext)
                 .then(progress -> {
                     if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
-                        return removeFromGlobalCluster(proxy, proxyClient, progress, request.getPreviousResourceState().getGlobalClusterIdentifier());
+                        return removeFromGlobalCluster(proxy, rdsProxyClient, progress, request.getPreviousResourceState().getGlobalClusterIdentifier());
                     }
                     return progress;
                 })
+                .then(progress -> setDefaultVpcSecurityGroupIdsIfEmpty(proxy, rdsProxyClient, ec2ProxyClient, progress))
                 .then(progress -> Commons.execOnce(
                         progress,
-                        () -> modifyDBCluster(proxy, proxyClient, progress, previousResourceState, desiredResourceState, isRollback),
+                        () -> modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback),
                         CallbackContext::isModified,
                         CallbackContext::setModified)
                 )
-                .then(progress -> removeAssociatedRoles(proxy, proxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
-                .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
-                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> removeAssociatedRoles(proxy, rdsProxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
+                .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
+                .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> modifyDBCluster(

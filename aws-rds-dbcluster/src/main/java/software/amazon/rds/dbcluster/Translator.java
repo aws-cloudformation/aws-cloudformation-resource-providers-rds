@@ -9,14 +9,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
+import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
+import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
@@ -190,9 +194,7 @@ public class Translator {
                 .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
                 .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
-                .storageType(desiredModel.getStorageType())
-                .vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
-
+                .storageType(desiredModel.getStorageType());
         if (previousModel != null) {
             if (!Objects.equals(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword())) {
                 builder.masterUserPassword(desiredModel.getMasterUserPassword());
@@ -203,7 +205,18 @@ public class Translator {
                 builder.allowMajorVersionUpgrade(true);
             }
         }
-
+        //only include VPC SG ids if they are changed from previous.
+        Set<String> desiredVpcSgIds = streamOfOrEmpty(desiredModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
+        if (!desiredVpcSgIds.isEmpty()) {
+            if (previousModel != null) {
+                Set<String> previousVpcSgIds = streamOfOrEmpty(previousModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
+                if (desiredVpcSgIds.size() != previousVpcSgIds.size() || !desiredVpcSgIds.containsAll(previousVpcSgIds)) {
+                    builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
+                }
+            } else {
+                builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
+            }
+        }
         return builder.build();
     }
 
@@ -240,7 +253,8 @@ public class Translator {
         return builder.build();
     }
 
-    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final String globalClusterIdentifier, final String clusterArn) {
+    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final String globalClusterIdentifier,
+                                                                         final String clusterArn) {
         return RemoveFromGlobalClusterRequest.builder()
                 .dbClusterIdentifier(clusterArn)
                 .globalClusterIdentifier(globalClusterIdentifier)
@@ -393,5 +407,26 @@ public class Translator {
                                 .collect(Collectors.toList())
                 )
                 .build();
+    }
+
+    private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
+        return Optional.ofNullable(collection)
+                .map(Collection::stream)
+                .orElseGet(Stream::empty);
+    }
+
+    public static DescribeDbSubnetGroupsRequest describeDbSubnetGroup(final String DbSubnetGroupName) {
+        return DescribeDbSubnetGroupsRequest.builder()
+                .dbSubnetGroupName(DbSubnetGroupName)
+                .build();
+    }
+
+    public static DescribeSecurityGroupsRequest describeSecurityGroupsRequest(final String vpcId,
+                                                                              final String groupName) {
+        return DescribeSecurityGroupsRequest.builder()
+                .filters(
+                        Filter.builder().name("vpc-id").values(vpcId).build(),
+                        Filter.builder().name("group-name").values(groupName).build()
+                ).build();
     }
 }

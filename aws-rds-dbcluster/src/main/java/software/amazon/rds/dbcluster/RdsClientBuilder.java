@@ -3,10 +3,10 @@ package software.amazon.rds.dbcluster;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.LambdaWrapper;
 
-public class ClientBuilder {
+public class RdsClientBuilder {
     public static RdsClient getClient() {
         return RdsClient.builder()
-            .httpClient(LambdaWrapper.HTTP_CLIENT)
-            .build();
+                .httpClient(LambdaWrapper.HTTP_CLIENT)
+                .build();
     }
 }
