@@ -152,7 +152,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBInstance
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDbInstanceStabilized(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterCreate(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -179,7 +179,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBInstance
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDbInstanceStabilized(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterCreate(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -206,7 +206,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDbInstanceStabilized(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterCreate(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -233,7 +233,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDbInstanceStabilized(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterCreate(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -260,7 +260,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBInstanceReadReplica
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDbInstanceStabilized(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterCreate(proxyInvocation, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
