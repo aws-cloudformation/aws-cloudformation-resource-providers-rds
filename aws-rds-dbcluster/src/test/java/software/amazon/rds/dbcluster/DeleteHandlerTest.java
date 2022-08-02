@@ -51,9 +51,11 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
+
     @Mock
     @Getter
     private ProxyClient<Ec2Client> ec2Proxy;
+
     @Mock
     @Getter
     RdsClient rdsClient;

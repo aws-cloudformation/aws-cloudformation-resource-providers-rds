@@ -41,7 +41,8 @@ public class DeleteHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> Commons.execOnce(progress, () ->
                                 ensureDeletionProtectionDisabled(rdsProxyClient, progress),

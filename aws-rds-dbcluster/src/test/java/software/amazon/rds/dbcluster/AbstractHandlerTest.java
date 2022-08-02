@@ -3,20 +3,15 @@ package software.amazon.rds.dbcluster;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
-import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
@@ -61,6 +56,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final DBClusterRole ROLE_WITH_EMPTY_FEATURE;
 
     protected static final ResourceModel RESOURCE_MODEL;
+    protected static final ResourceModel RESOURCE_MODEL_EMPTY_VPC;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME;
     protected static final ResourceModel RESOURCE_MODEL_WITH_GLOBAL_CLUSTER;
@@ -74,6 +70,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_CREATING;
     protected static final GlobalCluster GLOBAL_CLUSTER;
     protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_FAILED;
+    protected static final List<String> VPC_SG_IDS;
+
 
     protected static final Set<Tag> TAG_LIST;
     protected static final Set<Tag> TAG_LIST_EMPTY;
@@ -105,8 +103,22 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         ROLE_FEATURE = "sampleFeature";
         ROLE = DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build();
         ROLE_WITH_EMPTY_FEATURE = DBClusterRole.builder().roleArn(ROLE_ARN).build();
+        VPC_SG_IDS = Arrays.asList("vpc-sg-id-1", "vpc-sg-id-2");
 
         RESOURCE_MODEL = ResourceModel.builder()
+                .associatedRoles(Lists.newArrayList(ROLE))
+                .backtrackWindow(BACKTRACK_WINDOW)
+                .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
+                .engine(ENGINE)
+                .backupRetentionPeriod(BACKUP_RETENTION_PERIOD)
+                .port(PORT)
+                .masterUsername(USER_NAME)
+                .masterUserPassword(USER_PASSWORD)
+                .vpcSecurityGroupIds(VPC_SG_IDS)
+                .build();
+
+        RESOURCE_MODEL_EMPTY_VPC = ResourceModel.builder()
                 .associatedRoles(Lists.newArrayList(ROLE))
                 .backtrackWindow(BACKTRACK_WINDOW)
                 .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
@@ -133,6 +145,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                                 .secondsUntilAutoPause(5)
                                 .build()
                 )
+                .vpcSecurityGroupIds(VPC_SG_IDS)
                 .build();
 
         RESOURCE_MODEL_ON_RESTORE_IN_TIME = ResourceModel.builder()
@@ -142,6 +155,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .engineMode(null)
                 .masterUsername(USER_NAME)
                 .masterUserPassword(USER_PASSWORD)
+                .vpcSecurityGroupIds(VPC_SG_IDS)
                 .build();
 
         RESOURCE_MODEL_WITH_GLOBAL_CLUSTER = ResourceModel.builder()
@@ -155,6 +169,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .masterUsername(USER_NAME)
                 .masterUserPassword(USER_PASSWORD)
                 .globalClusterIdentifier(DBGLOBALCLUSTER_IDENTIFIER)
+                .vpcSecurityGroupIds(VPC_SG_IDS)
                 .build();
 
         DBCLUSTER_ACTIVE = DBCluster.builder()
@@ -268,50 +283,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 )).build();
     }
 
-    static ProxyClient<RdsClient> MOCK_PROXY(
-            final AmazonWebServicesClientProxy proxy,
-            final RdsClient rdsClient
-    ) {
-        return new ProxyClient<RdsClient>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            ResponseT
-            injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-            CompletableFuture<ResponseT>
-            injectCredentialsAndInvokeV2Async(RequestT request,
-                                              Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
-            IterableT
-            injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
-                return proxy.injectCredentialsAndInvokeIterableV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse> ResponseInputStream<ResponseT>
-            injectCredentialsAndInvokeV2InputStream(RequestT requestT, Function<RequestT, ResponseInputStream<ResponseT>> function) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse> ResponseBytes<ResponseT>
-            injectCredentialsAndInvokeV2Bytes(RequestT requestT, Function<RequestT, ResponseBytes<ResponseT>> function) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public RdsClient client() {
-                return rdsClient;
-            }
-        };
+    static <ClientT> ProxyClient<ClientT> MOCK_PROXY(final AmazonWebServicesClientProxy proxy, final ClientT client) {
+        return new BaseProxyClient<>(proxy, client);
     }
 
     protected abstract BaseHandlerStd getHandler();

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -71,6 +73,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBClusterAlreadyExistsFault)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    ErrorCode.DefaultVpcDoesNotExist)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -153,7 +157,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger);
+            final Logger logger
+    );
 
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> proxyClient,
@@ -186,11 +191,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeSecurityGroupsRequest(vpcId, groupName),
                 ec2ProxyClient.client()::describeSecurityGroups
         );
-        return Optional.ofNullable(response.securityGroups())
-                .orElse(Collections.emptyList())
-                .stream()
-                .findFirst()
-                .orElse(null);
+        if (CollectionUtils.isEmpty(response.securityGroups())) {
+            return null;
+        }
+        return response.securityGroups().get(0);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {
@@ -407,28 +411,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .progress();
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcSecurityGroupIdsIfEmpty(
+    protected ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcSecurityGroupIds(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         final ResourceModel resourceModel = progress.getResourceModel();
-        if (resourceModel.getVpcSecurityGroupIds() == null || resourceModel.getVpcSecurityGroupIds().isEmpty()) {
-            SecurityGroup securityGroup;
-            try {
-                DBCluster cluster = fetchDBCluster(rdsProxyClient, resourceModel);
-                DBSubnetGroup subnetGroup = fetchDBSubnetGroup(rdsProxyClient, cluster.dbSubnetGroup());
-                securityGroup = fetchSecurityGroup(ec2ProxyClient, subnetGroup.vpcId(), "default");
+        SecurityGroup securityGroup;
+        try {
+            DBCluster cluster = fetchDBCluster(rdsProxyClient, resourceModel);
+            DBSubnetGroup subnetGroup = fetchDBSubnetGroup(rdsProxyClient, cluster.dbSubnetGroup());
+            securityGroup = fetchSecurityGroup(ec2ProxyClient, subnetGroup.vpcId(), "default");
+            if (securityGroup != null) {
                 resourceModel.setVpcSecurityGroupIds(Lists.newArrayList(securityGroup.groupId()));
-            } catch (Exception exception) {
-                return Commons.handleException(
-                        ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
-                        exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
             }
-
+            return progress;
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
+                    exception,
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
         }
-        return progress;
+    }
+
+    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        return CollectionUtils.isEmpty(resourceModel.getVpcSecurityGroupIds());
     }
 }

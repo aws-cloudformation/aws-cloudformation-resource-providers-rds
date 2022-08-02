@@ -206,11 +206,11 @@ public class Translator {
             }
         }
         //only include VPC SG ids if they are changed from previous.
-        Set<String> desiredVpcSgIds = streamOfOrEmpty(desiredModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
+        final Set<String> desiredVpcSgIds = streamOfOrEmpty(desiredModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
         if (!desiredVpcSgIds.isEmpty()) {
             if (previousModel != null) {
-                Set<String> previousVpcSgIds = streamOfOrEmpty(previousModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
-                if (desiredVpcSgIds.size() != previousVpcSgIds.size() || !desiredVpcSgIds.containsAll(previousVpcSgIds)) {
+                final Set<String> previousVpcSgIds = streamOfOrEmpty(previousModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
+                if (!desiredVpcSgIds.equals(previousVpcSgIds)) {
                     builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
                 }
             } else {

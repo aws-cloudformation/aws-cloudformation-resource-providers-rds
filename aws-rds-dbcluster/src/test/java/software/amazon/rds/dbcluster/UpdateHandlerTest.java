@@ -24,15 +24,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import lombok.Getter;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
+import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
@@ -53,6 +59,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Mock
     RdsClient rdsClient;
+    @Mock
+    Ec2Client ec2Client;
     @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;
@@ -82,8 +90,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .build()
         );
         rdsClient = mock(RdsClient.class);
+        ec2Client = mock(Ec2Client.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsProxy = MOCK_PROXY(proxy, rdsClient);
+        ec2Proxy = MOCK_PROXY(proxy, ec2Client);
         expectServiceInvocation = true;
     }
 
@@ -194,6 +204,54 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_SimpleSuccessWithEmptyVPC() {
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class)))
+                .thenReturn(DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DBSubnetGroup.builder().vpcId("vpcId").build()).build());
+        when(ec2Proxy.client().describeSecurityGroups(any(DescribeSecurityGroupsRequest.class)))
+                .thenReturn(DescribeSecurityGroupsResponse.builder().securityGroups(SecurityGroup.builder().groupId("group-id").build()).build());
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> resourceModel,
+                () -> resourceModel,
+                expectSuccess()
+        );
+
+        Assertions.assertFalse(resourceModel.getVpcSecurityGroupIds().isEmpty());
+
+        verify(rdsProxy.client(), times(6)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
     public void handleRequest_HandleAssociatedRoleWithEmptyFeature() {
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
@@ -217,7 +275,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder(),
+                ResourceHandlerRequest.builder(),
                 () -> {
                     if (transitions.size() > 0) {
                         return transitions.remove();

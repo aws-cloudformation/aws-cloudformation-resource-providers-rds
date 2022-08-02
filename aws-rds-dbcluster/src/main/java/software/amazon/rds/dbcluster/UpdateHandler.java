@@ -68,7 +68,12 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> setDefaultVpcSecurityGroupIdsIfEmpty(proxy, rdsProxyClient, ec2ProxyClient, progress))
+                .then(progress -> {
+                    if (shouldSetDefaultVpcSecurityGroupIds(progress)) {
+                        return setDefaultVpcSecurityGroupIds(proxy, rdsProxyClient, ec2ProxyClient, progress);
+                    }
+                    return progress;
+                })
                 .then(progress -> Commons.execOnce(
                         progress,
                         () -> modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback),

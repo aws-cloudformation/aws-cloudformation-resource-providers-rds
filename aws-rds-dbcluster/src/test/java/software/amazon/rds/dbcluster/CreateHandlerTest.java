@@ -57,15 +57,19 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     @Mock
     @Getter
     RdsClient rdsClient;
+
     @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;
+
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
+
     @Mock
     @Getter
     private ProxyClient<Ec2Client> ec2Proxy;
+
     @Getter
     private CreateHandler handler;
 
