@@ -340,6 +340,15 @@
     }
   },
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/DBClusterIdentifier": "$lowercase(DBClusterIdentifier)",
+    "/properties/DBInstanceIdentifier": "$lowercase(DBInstanceIdentifier)",
+    "/properties/DBParameterGroupName": "$lowercase(DBParameterGroupName)",
+    "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
+    "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
+    "/properties/OptionGroupName": "$lowercase(OptionGroupName)",
+    "/properties/SourceDBInstanceIdentifier": "$lowercase(SourceDBInstanceIdentifier)"
+  },
   "createOnlyProperties": [
     "/properties/AvailabilityZone",
     "/properties/CharacterSetName",

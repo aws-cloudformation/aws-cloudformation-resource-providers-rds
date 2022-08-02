@@ -313,6 +313,13 @@
     }
   },
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/DBClusterIdentifier": "$lowercase(DBClusterIdentifier)",
+    "/properties/DBClusterParameterGroupName": "$lowercase(DBClusterParameterGroupName)",
+    "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
+    "/properties/SnapshotIdentifier": "$lowercase(SnapshotIdentifier)",
+    "/properties/SourceDBClusterIdentifier": "$lowercase(SourceDBClusterIdentifier)"
+  },
   "readOnlyProperties": [
     "/properties/Endpoint",
     "/properties/Endpoint/Address",
