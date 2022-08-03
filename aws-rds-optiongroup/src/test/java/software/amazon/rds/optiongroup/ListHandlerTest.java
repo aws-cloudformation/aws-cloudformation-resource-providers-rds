@@ -56,7 +56,6 @@ public class ListHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_ListSuccess() {
-
         final String testOptionGroupName = "testOptionGroupName";
         final String testMarker = "testMarker";
 

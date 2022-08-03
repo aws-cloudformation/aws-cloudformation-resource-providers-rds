@@ -74,7 +74,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         proxyClient = MOCK_PROXY(proxy, rdsClient);
-        setupResourceModelsForTests();
     }
 
     @AfterEach
@@ -89,6 +88,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_CreateSuccess() {
+        ResourceModel RESOURCE_MODEL = RESOURCE_MODEL_BUILDER().build();
+
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
                 .thenReturn(CreateOptionGroupResponse.builder().build());
 
@@ -123,6 +124,8 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Tag(IGNORE_TEST_VERIFICATION)
     @Test
     public void handleRequest_WithOptionGroupName_CreateFailure() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(randomString(32, ALPHA))
                 .desiredResourceState(RESOURCE_MODEL_WITH_NAME)
@@ -144,6 +147,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_CreateSuccess_RequiresModify() {
+        ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL_WITH_CONFIGURATIONS_BUILDER().build();
+
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
                 .thenReturn(CreateOptionGroupResponse.builder().build());
 
@@ -180,6 +185,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SoftFailingTagging() {
+        ResourceModel RESOURCE_MODEL = RESOURCE_MODEL_BUILDER().build();
+
         final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
                 .systemTags(TAG_SET.getSystemTags())
                 .stackTags(TAG_SET.getStackTags())
@@ -252,6 +259,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_HardFailingTagging() {
+        ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS = RESOURCE_MODEL_WITH_RESOURCE_TAGS_BUILDER().build();
+
         final Tagging.TagSet desiredTags = Tagging.TagSet.builder()
                 .systemTags(TAG_SET.getSystemTags())
                 .resourceTags(TAG_SET.getResourceTags())
@@ -318,6 +327,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_AlreadyExists() {
+        ResourceModel RESOURCE_MODEL = RESOURCE_MODEL_BUILDER().build();
+
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
                 .thenThrow(OptionGroupAlreadyExistsException.class);
 
@@ -351,6 +362,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_RuntimeException() {
+        ResourceModel RESOURCE_MODEL = RESOURCE_MODEL_BUILDER().build();
+
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
                 .thenThrow(new RuntimeException("test exception"));
 

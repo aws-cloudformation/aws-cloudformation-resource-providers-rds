@@ -63,6 +63,8 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_ReadSuccess() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
@@ -79,6 +81,8 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_NotFound() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
                 .thenThrow(OptionGroupNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
 
@@ -94,6 +98,8 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_RuntimeException() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
                 .thenThrow(new RuntimeException("test exception"));
 
