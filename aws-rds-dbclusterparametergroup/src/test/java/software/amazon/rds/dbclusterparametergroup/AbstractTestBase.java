@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,9 +26,9 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.delay.Constant;
 
 public class AbstractTestBase {
-
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final org.slf4j.Logger delegate;
     protected static final LoggerProxy logger;
@@ -45,6 +46,10 @@ public class AbstractTestBase {
     protected static final Parameter PARAM_1, PARAM_2;
     protected static final DBClusterParameterGroup DB_CLUSTER_PARAMETER_GROUP;
 
+    protected static Constant TEST_BACKOFF_DELAY = Constant.of()
+            .delay(Duration.ofMillis(1L))
+            .timeout(Duration.ofSeconds(10L))
+            .build();
 
     static {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -154,5 +159,14 @@ public class AbstractTestBase {
                 return rdsClient;
             }
         };
+    }
+
+    protected List<Parameter> translateParamMapToCollection(final Map<String, Object> params) {
+        return params.entrySet().stream().map(entry -> Parameter.builder()
+                        .parameterName(entry.getKey())
+                        .parameterValue((String) entry.getValue())
+                        .applyType(ParameterType.Dynamic.toString())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

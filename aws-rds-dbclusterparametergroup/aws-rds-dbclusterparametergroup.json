@@ -54,6 +54,9 @@
     }
   },
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/DBClusterParameterGroupName": "$lowercase(DBClusterParameterGroupName)"
+  },
   "required": [
     "Description",
     "Family",

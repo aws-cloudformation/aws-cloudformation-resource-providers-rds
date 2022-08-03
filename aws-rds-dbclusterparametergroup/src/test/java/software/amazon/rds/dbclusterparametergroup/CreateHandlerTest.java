@@ -57,6 +57,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
 @ExtendWith(MockitoExtension.class)
@@ -78,16 +79,13 @@ public class CreateHandlerTest extends AbstractTestBase {
     private Map<String, Object> PARAMS;
     private final String StackId = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83";
 
-    @AfterEach
-    public void post_execute() {
-        verify(rds, atLeastOnce()).serviceName();
-        verifyNoMoreInteractions(proxyRdsClient.client());
-    }
-
     @BeforeEach
     public void setup() {
+        handler = new CreateHandler(HandlerConfig.builder()
+                .probingEnabled(false)
+                .backoff(TEST_BACKOFF_DELAY)
+                .build());
 
-        handler = new CreateHandler();
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         proxyRdsClient = MOCK_PROXY(proxy, rds);
@@ -107,8 +105,14 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .build();
     }
 
+    @AfterEach
+    public void post_execute() {
+        verify(rds, atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(proxyRdsClient.client());
+    }
+
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_Success() {
 
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
@@ -204,7 +208,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleFailWithAccessDenied() {
+    public void handleRequest_FailWithAccessDenied() {
         final String message = "AccessDenied on create request";
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
@@ -267,8 +271,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .logicalResourceIdentifier("identifier")
                 .build();
 
-        final CreateHandler handler = new CreateHandler();
-
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
@@ -307,8 +309,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .logicalResourceIdentifier("identifier")
                 .build();
 
-        final CreateHandler handler = new CreateHandler();
-
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
@@ -322,8 +322,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithParameters() {
-        final CreateHandler handler = new CreateHandler();
+    public void handleRequest_SuccessWithParameters() {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
@@ -370,8 +369,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleInProgressFailedUnmodifiableParams() {
-        final CreateHandler handler = new CreateHandler();
+    public void handleRequest_InProgressFailedUnmodifiableParams() {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
@@ -394,8 +392,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
-        final CreateHandler handler = new CreateHandler();
+    public void handleRequest_InProgressFailedUnsupportedParams() {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
@@ -420,8 +417,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleThrottlingFailure() {
-        final CreateHandler handler = new CreateHandler();
+    public void handleRequest_ThrottlingFailure() {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
         when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
@@ -448,9 +444,9 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
     }
 
-    private void mockDescribeDbClusterParametersResponse(String firstParamApplyType,
-                                                         String secondParamApplyType,
-                                                         boolean isModifiable) {
+    private void mockDescribeDbClusterParametersResponse(final String firstParamApplyType,
+                                                         final String secondParamApplyType,
+                                                         final boolean isModifiable) {
         Parameter param1 = Parameter.builder()
                 .parameterName("param")
                 .parameterValue("system_value")

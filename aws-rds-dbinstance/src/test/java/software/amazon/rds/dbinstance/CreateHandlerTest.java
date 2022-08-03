@@ -11,7 +11,6 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -53,7 +52,6 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
@@ -910,6 +908,34 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreFromSnapshot_ShouldUpdateAfterCreate_AllocatedStorage_Success() {
+        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+
+        final DBInstance dbInstance = DB_INSTANCE_BASE.toBuilder()
+                .allocatedStorage(100)
+                .iops(3000)
+                .build();
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(false);
+
+        test_handleRequest_base(
+                context,
+                () -> dbInstance,
+                () -> Translator.translateDbInstanceFromSdk(dbInstance).toBuilder().dBSnapshotIdentifier("snapshot").build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(100);
+        Assertions.assertThat(modifyCaptor.getValue().iops()).isEqualTo(3000);
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 

@@ -107,7 +107,6 @@
     "BackupRetentionPeriod": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 35,
       "default": 1,
       "description": "The number of days for which automated backups are retained. Setting this parameter to a positive number enables backups. Setting this parameter to 0 disables automated backups."
     },
@@ -218,12 +217,6 @@
     },
     "LicenseModel": {
       "type": "string",
-      "enum": [
-        "bring-your-own-license",
-        "general-public-license",
-        "license-included",
-        "postgresql-license"
-      ],
       "description": "License model information for this DB instance."
     },
     "MasterUsername": {
@@ -243,15 +236,6 @@
     },
     "MonitoringInterval": {
       "type": "integer",
-      "enum": [
-        0,
-        1,
-        5,
-        10,
-        15,
-        30,
-        60
-      ],
       "default": 0,
       "description": "The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0."
     },
@@ -273,8 +257,6 @@
     },
     "PerformanceInsightsRetentionPeriod": {
       "type": "integer",
-      "minimum": 7,
-      "maximum": 731,
       "description": "The amount of time, in days, to retain Performance Insights data. Valid values are 7 or 731 (2 years)."
     },
     "Port": {
@@ -300,7 +282,6 @@
     "PromotionTier": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 15,
       "default": 1,
       "description": "A value that specifies the order in which an Aurora Replica is promoted to the primary instance after a failure of the existing primary instance."
     },
@@ -359,24 +340,15 @@
     }
   },
   "additionalProperties": false,
-  "anyOf": [
-    {
-      "required": [
-        "DBInstanceClass",
-        "Engine"
-      ]
-    },
-    {
-      "required": [
-        "SourceDBInstanceIdentifier"
-      ]
-    },
-    {
-      "required": [
-        "DBSnapshotIdentifier"
-      ]
-    }
-  ],
+  "propertyTransform": {
+    "/properties/DBClusterIdentifier": "$lowercase(DBClusterIdentifier)",
+    "/properties/DBInstanceIdentifier": "$lowercase(DBInstanceIdentifier)",
+    "/properties/DBParameterGroupName": "$lowercase(DBParameterGroupName)",
+    "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
+    "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
+    "/properties/OptionGroupName": "$lowercase(OptionGroupName)",
+    "/properties/SourceDBInstanceIdentifier": "$lowercase(SourceDBInstanceIdentifier)"
+  },
   "createOnlyProperties": [
     "/properties/AvailabilityZone",
     "/properties/CharacterSetName",
@@ -451,7 +423,8 @@
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",
         "rds:RestoreDBInstanceFromDBSnapshot"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "read": {
       "permissions": [
@@ -489,7 +462,8 @@
         "rds:ModifyDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "delete": {
       "permissions": [

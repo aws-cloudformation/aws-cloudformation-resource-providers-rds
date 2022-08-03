@@ -11,7 +11,6 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -66,7 +65,6 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
@@ -563,12 +561,23 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_ShouldReboot_Success() {
-        final DBInstance dbInstancePendingReboot = DB_INSTANCE_ACTIVE.toBuilder().dbParameterGroups(
+        final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
+
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder().dbParameterGroups(
                 ImmutableList.of(DBParameterGroupStatus.builder()
                         .dbParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
                         .parameterApplyStatus(UpdateHandler.PENDING_REBOOT_STATUS)
                         .build())
-        ).build();
+        ).build());
+
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder().dbParameterGroups(
+                ImmutableList.of(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
+                        .parameterApplyStatus(UpdateHandler.IN_SYNC_STATUS)
+                        .build())
+        ).build());
+
+        transitions.add(DB_INSTANCE_ACTIVE);
 
         final RebootDbInstanceResponse rebootDbInstanceResponse = RebootDbInstanceResponse.builder().build();
         when(rdsProxy.client().rebootDBInstance(any(RebootDbInstanceRequest.class))).thenReturn(rebootDbInstanceResponse);
@@ -581,7 +590,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
-                () -> dbInstancePendingReboot,
+                transitions::remove,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_BLDR().build(),
                 expectSuccess()
@@ -888,6 +897,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .build())
                 .build());
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .dbParameterGroups(DBParameterGroupStatus.builder()
+                        .dbParameterGroupName("foo")
+                        .parameterApplyStatus("in-sync")
+                        .build())
+                .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
                 .optionGroupMemberships(OptionGroupMembership.builder()
                         .optionGroupName("test-option-group")
                         .status("applying")
@@ -936,8 +951,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(6)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(7)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
     }
 
@@ -1010,6 +1025,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
         verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 }

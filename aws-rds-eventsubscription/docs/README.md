@@ -112,8 +112,6 @@ _Required_: No
 
 _Type_: String
 
-_Allowed Values_: <code>custom-engine-version</code> | <code>db-cluster</code> | <code>db-cluster-snapshot</code> | <code>db-instance</code> | <code>db-proxy</code> | <code>db-parameter-group</code> | <code>db-security-group</code> | <code>db-snapshot</code>
-
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 ## Return Values
