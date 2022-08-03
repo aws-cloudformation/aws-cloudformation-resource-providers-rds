@@ -10,10 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
@@ -170,20 +167,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
-    private Parameter foo(int i) {
-        return (Parameter.builder()
-                .parameterName(String.format("param%d", i+1))
-                .parameterValue("default_value")
-                .isModifiable(true)
-                .applyType("dynamic")
-                .applyMethod("immediate")
-                .build());
-    }
-
     @Test
     public void handleRequest_SimpleSuccessWithManyApplyParameters() {
         final UpdateHandler handler = new UpdateHandler();
-        Map<String, Object > resetParameters = new HashMap<>();
+        Map<String, Object> resetParameters = new HashMap<>();
         resetParameters.put("tx_isolation", "value");
 
         CallbackContext callbackContext = new CallbackContext();

@@ -1,7 +1,6 @@
 package software.amazon.rds.dbparametergroup;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -50,19 +49,8 @@ public class AbstractTestBase {
     protected static final Map<String, Object> PARAMS;
     protected static final Map<String, Object> RESET_PARAMS;
     protected static final RequestLogger EMPTY_REQUEST_LOGGER;
-    protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
     protected static final List<Parameter> MANY_CURRENT_PARAMETERS_SORTED;
     protected static final List<Parameter> MANY_DEFAULT_PARAMETERS_SORTED;
-
-    private static Parameter simpleParameterBuilder(String parameterName, String parameterValue, String applyType, boolean isModifiable, String applyMethod) {
-        return Parameter.builder()
-                .parameterName(parameterName)
-                .parameterValue(parameterValue)
-                .applyType(applyType)
-                .isModifiable(isModifiable)
-                .applyMethod(applyMethod)
-                .build();
-    }
 
     private static List<Parameter> helpBuildManyParametersConstant(String parameterValue) {
         String[] sortedParameterNames = new String[] {
