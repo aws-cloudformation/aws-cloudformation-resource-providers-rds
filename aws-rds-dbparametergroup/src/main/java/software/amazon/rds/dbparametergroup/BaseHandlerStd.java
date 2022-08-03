@@ -1,6 +1,7 @@
 package software.amazon.rds.dbparametergroup;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -174,8 +175,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                           final RequestLogger requestLogger) {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
-        TreeMap<String, Parameter> parametersToReset = getParametersToReset(model, defaultEngineParameters, currentDBParameters);
-        for (List<Parameter> paramsPartition : Iterables.partition(parametersToReset.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
+        Map<String, Parameter> parametersToReset = new TreeMap<>(getParametersToReset(model, defaultEngineParameters, currentDBParameters));
+        for (List<Parameter> paramsPartition : Iterables.partition(parametersToReset.values(), MAX_PARAMETERS_PER_REQUEST)/*partitionsToReset*/) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
@@ -190,7 +191,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                            final RequestLogger requestLogger) {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
-        TreeMap<String, Parameter> parametersToModify = getModifiableParameters(model, currentDBParameters);
+        Map<String, Parameter> parametersToModify = new TreeMap<>(getModifiableParameters(model, currentDBParameters));
         for (List<Parameter> paramsPartition : Iterables.partition(parametersToModify.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
@@ -235,12 +236,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .progress();
     }
 
-    private TreeMap<String, Parameter> getModifiableParameters(final ResourceModel model,
+    private Map<String, Parameter> getModifiableParameters(final ResourceModel model,
                                                            final Map<String, Parameter> currentDBParameters) {
         Map<String, Parameter> parametersToModify = Maps.newHashMap(currentDBParameters);
         Map<String, Object> modelParameters = Optional.ofNullable(model.getParameters()).orElse(Collections.emptyMap());
         parametersToModify.keySet().retainAll(modelParameters.keySet());
-        return new TreeMap<String, Parameter>(parametersToModify.entrySet()
+        return parametersToModify.entrySet()
                 .stream()
                 //filter to parameters want to modify and its value is different from already exist value
                 .filter(entry -> {
@@ -256,7 +257,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             Parameter defaultParameter = entry.getValue();
                             return Translator.buildParameterWithNewValue(newValue, defaultParameter);
                         })
-                ));
+                );
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
@@ -287,12 +288,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext());
     }
 
-    private TreeMap<String, Parameter> getParametersToReset(final ResourceModel model,
+    private Map<String, Parameter> getParametersToReset(final ResourceModel model,
                                                         final Map<String, Parameter> defaultEngineParameters,
                                                         final Map<String, Parameter> currentParameters) {
         Map<String, Parameter> defaultParametersToReset = Maps.newLinkedHashMap(defaultEngineParameters);
         defaultParametersToReset.keySet().retainAll(currentParameters.keySet());
-        return new TreeMap<String, Parameter>(defaultParametersToReset.entrySet()
+
+        return defaultParametersToReset.entrySet()
                 .stream()
                 .filter(entry -> {
                     String parameterName = entry.getKey();
@@ -303,7 +305,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             && !currentParameterValue.equals(defaultParameterValue)
                             && !parametersToModify.containsKey(parameterName);
                 })
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue())));
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBParameters(final ProgressEvent<ResourceModel, CallbackContext> progress,
@@ -374,4 +377,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                    final CallbackContext callbackContext,
                                                                                    final ProxyClient<RdsClient> proxyClient,
                                                                                    final RequestLogger requestLogger);
+
+    static class ParameterComparator implements Comparator<Parameter> {
+
+        // Overriding compare()method of Comparator
+
+        public int compare(Parameter s1, Parameter s2) {
+            return s1.parameterName().compareTo(s2.parameterName());
+        }
+    }
 }

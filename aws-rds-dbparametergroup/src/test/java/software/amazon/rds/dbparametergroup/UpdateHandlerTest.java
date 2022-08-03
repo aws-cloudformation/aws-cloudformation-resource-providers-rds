@@ -10,6 +10,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,16 +28,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
-import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbParametersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
+import software.amazon.awssdk.services.rds.model.EngineDefaults;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupResponse;
+import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -162,6 +170,72 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
+    private Parameter foo(int i) {
+        return (Parameter.builder()
+                .parameterName(String.format("param%d", i+1))
+                .parameterValue("default_value")
+                .isModifiable(true)
+                .applyType("dynamic")
+                .applyMethod("immediate")
+                .build());
+    }
+
+    @Test
+    public void handleRequest_SimpleSuccessWithManyApplyParameters() {
+        final UpdateHandler handler = new UpdateHandler();
+        Map<String, Object > resetParameters = new HashMap<>();
+        resetParameters.put("tx_isolation", "value");
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
+                .dbParameterGroups(simpleDbParameterGroup).build();
+        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
+                .engineDefaults(EngineDefaults.builder()
+                                .parameters(MANY_DEFAULT_PARAMETERS_SORTED)
+                                .build()
+                ).build();
+        when(proxyRdsClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponse);
+
+        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
+                .parameters(MANY_CURRENT_PARAMETERS_SORTED).build();
+        when(proxyRdsClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersResponse);
+
+        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
+        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).
+                thenReturn(modifyDbParameterGroupResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .previousResourceState(previousResourceModel)
+                .desiredResourceState(RESET_RESOURCE_MODEL.toBuilder().parameters(resetParameters).build())
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCallbackContext()).isNotNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(rdsClient, times(1)).describeDBParameters(any(DescribeDbParametersRequest.class));
+        verify(rdsClient, times(1)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+        verify(rdsClient, times(1)).modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class));
+        verify(proxyRdsClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+        verify(rdsClient, times(2)).resetDBParameterGroup(captor.capture());
+
+        assertThat(captor.getAllValues().get(0).parameters().equals(MANY_DEFAULT_PARAMETERS_SORTED.subList(0, 20))).isTrue();
+        assertThat(captor.getAllValues().get(1).parameters().equals(MANY_DEFAULT_PARAMETERS_SORTED.subList(20, 25))).isTrue();
+    }
+
     @Test
     public void handleRequest_SimpleSuccessWithApplyParametersPaginated() {
         final UpdateHandler handler = new UpdateHandler();
@@ -200,7 +274,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(rdsClient, times(2)).describeDBParameters(any(DescribeDbParametersRequest.class));
         verify(rdsClient, times(2)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
-
 
     @Test
     public void handleRequest_SimpleSuccessSameParams() {

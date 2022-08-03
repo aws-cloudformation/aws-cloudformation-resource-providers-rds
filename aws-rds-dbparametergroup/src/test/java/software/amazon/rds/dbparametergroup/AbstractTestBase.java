@@ -4,15 +4,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.mockito.internal.util.collections.Sets;
 
@@ -49,6 +50,43 @@ public class AbstractTestBase {
     protected static final Map<String, Object> PARAMS;
     protected static final Map<String, Object> RESET_PARAMS;
     protected static final RequestLogger EMPTY_REQUEST_LOGGER;
+    protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
+    protected static final List<Parameter> MANY_CURRENT_PARAMETERS_SORTED;
+    protected static final List<Parameter> MANY_DEFAULT_PARAMETERS_SORTED;
+
+    private static Parameter simpleParameterBuilder(String parameterName, String parameterValue, String applyType, boolean isModifiable, String applyMethod) {
+        return Parameter.builder()
+                .parameterName(parameterName)
+                .parameterValue(parameterValue)
+                .applyType(applyType)
+                .isModifiable(isModifiable)
+                .applyMethod(applyMethod)
+                .build();
+    }
+
+    private static List<Parameter> helpBuildManyParametersConstant(String parameterValue) {
+        String[] sortedParameterNames = new String[] {
+                "binlog_format", "character_set_server", "collation_server", "event_scheduler",
+                "innodb_autoinc_lock_mode", "innodb_buffer_pool_instances", "innodb_lock_wait_timeout",
+                "innodb_log_file_size", "innodb_print_all_deadlocks", "innodb_read_io_threads", "innodb_write_io_threads",
+                "lock_wait_timeout", "log_bin_trust_function_creators", "lower_case_table_names" ,"max_allowed_packet",
+                "net_write_timeout", "performance_schema", "query_cache_size", "query_cache_type", "read_only",
+                "skip_name_resolve", "slave_parallel_type", "slow_query_log", "sql_mode", "time_zone", "tx_isolation"
+        };
+
+        List<Parameter> parameters =  new ArrayList<>();
+
+        for (String parameterName : sortedParameterNames) {
+            parameters.add(Parameter.builder()
+                .parameterName(parameterName)
+                .parameterValue(parameterValue)
+                .applyType("dynamic")
+                .isModifiable(true)
+                .applyMethod("immediate")
+                    .build());
+        }
+        return parameters;
+    }
 
 
 
@@ -57,6 +95,9 @@ public class AbstractTestBase {
         logger = new LoggerProxy();
         EMPTY_REQUEST_LOGGER = new RequestLogger(logger, ResourceHandlerRequest.builder().build(), null);
         LOGICAL_RESOURCE_IDENTIFIER = "db-parameter-group";
+
+        MANY_CURRENT_PARAMETERS_SORTED = helpBuildManyParametersConstant("current_value");
+        MANY_DEFAULT_PARAMETERS_SORTED = helpBuildManyParametersConstant("default_value");
 
         PARAMS = new HashMap<>();
         PARAMS.put("param1", "value");
