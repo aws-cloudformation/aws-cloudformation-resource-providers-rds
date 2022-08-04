@@ -64,13 +64,15 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_DeleteSuccess() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().deleteOptionGroup(any(DeleteOptionGroupRequest.class)))
                 .thenReturn(DeleteOptionGroupResponse.builder().build());
 
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectSuccess()
         );
 
@@ -81,13 +83,15 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_NotFound() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().deleteOptionGroup(any(DeleteOptionGroupRequest.class)))
                 .thenThrow(OptionGroupNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
 
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
@@ -96,13 +100,15 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_RuntimeException() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().deleteOptionGroup(any(DeleteOptionGroupRequest.class)))
                 .thenThrow(new RuntimeException("test exception"));
 
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 
