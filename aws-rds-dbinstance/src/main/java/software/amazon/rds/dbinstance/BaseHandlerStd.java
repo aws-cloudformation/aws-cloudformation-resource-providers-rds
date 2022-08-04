@@ -72,8 +72,8 @@ import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
-import software.amazon.rds.dbinstance.client.Ec2ClientBuilder;
-import software.amazon.rds.dbinstance.client.RdsClientBuilder;
+import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
+import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
@@ -310,10 +310,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         request,
                         context != null ? context : new CallbackContext(),
                         new VersionedProxyClient<RdsClient>()
-                                .register(ApiVersion.V12, new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientBuilder().getClient(API_VERSION_V12))))
-                                .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientBuilder()::getClient))),
+                                .register(ApiVersion.V12, new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForApiVersion(API_VERSION_V12))))
+                                .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient))),
                         new VersionedProxyClient<Ec2Client>()
-                                .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientBuilder()::getClient))),
+                                .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient))),
                         logger
                 ));
     }

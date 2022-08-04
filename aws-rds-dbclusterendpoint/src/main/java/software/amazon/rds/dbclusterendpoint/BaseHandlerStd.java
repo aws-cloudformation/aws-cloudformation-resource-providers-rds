@@ -72,7 +72,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxy,
                 request,
                 callbackContext != null ? callbackContext : new CallbackContext(),
-                proxy.newProxy(ClientBuilder::getClient),
+                proxy.newProxy(new ClientProvider()::getClient),
                 logger
         );
     }
