@@ -5,7 +5,7 @@ public enum DBClusterStatus {
     Creating("creating"),
     Deleted("deleted");
 
-    private String value;
+    private final String value;
 
     DBClusterStatus(String value) {
         this.value = value;

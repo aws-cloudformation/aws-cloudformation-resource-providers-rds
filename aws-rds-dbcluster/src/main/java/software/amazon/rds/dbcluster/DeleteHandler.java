@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -39,23 +40,23 @@ public class DeleteHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
-    ) {
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> Commons.execOnce(progress, () ->
-                                ensureDeletionProtectionDisabled(proxyClient, progress),
+                                ensureDeletionProtectionDisabled(rdsProxyClient, progress),
                         CallbackContext::isDeleting,
                         CallbackContext::setDeleting)
                 )
                 .then(progress -> {
                     final ResourceModel model = progress.getResourceModel();
                     if (isGlobalClusterMember(model)) {
-                        return removeFromGlobalCluster(proxy, proxyClient, progress, model.getGlobalClusterIdentifier());
+                        return removeFromGlobalCluster(proxy, rdsProxyClient, progress, model.getGlobalClusterIdentifier());
                     }
                     return progress;
                 })
-                .then(progress -> deleteDbCluster(proxy, request, proxyClient, progress));
+                .then(progress -> deleteDbCluster(proxy, request, rdsProxyClient, progress));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> ensureDeletionProtectionDisabled(

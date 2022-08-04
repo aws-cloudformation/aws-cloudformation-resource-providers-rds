@@ -2,6 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import java.util.stream.Collectors;
 
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -27,12 +28,11 @@ public class ListHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
-    ) {
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
         final DescribeDbClustersResponse describeDbClustersResponse = proxy.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersRequest(request.getNextToken()),
-                proxyClient.client()::describeDBClusters
+                rdsProxyClient.client()::describeDBClusters
         );
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()

@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -34,9 +35,8 @@ public class CreateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
-    ) {
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
         ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
         if (StringUtils.isNullOrEmpty(model.getDBClusterIdentifier())) {
             model.setDBClusterIdentifier(dbClusterIdentifierFactory.newIdentifier()
@@ -55,32 +55,32 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (isRestoreToPointInTime(model)) {
-                        return Tagging.safeCreate(proxy, proxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
+                        return Tagging.safeCreate(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
                     } else if (isRestoreFromSnapshot(model)) {
-                        return Tagging.safeCreate(proxy, proxyClient, this::restoreDbClusterFromSnapshot, progress, allTags);
+                        return Tagging.safeCreate(proxy, rdsProxyClient, this::restoreDbClusterFromSnapshot, progress, allTags);
                     }
-                    return Tagging.safeCreate(proxy, proxyClient, this::createDbCluster, progress, allTags);
+                    return Tagging.safeCreate(proxy, rdsProxyClient, this::createDbCluster, progress, allTags);
                 })
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())
                             .resourceTags(allTags.getResourceTags())
                             .build();
-                    return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                    return updateTags(proxy, rdsProxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(
                                 progress,
-                                () -> modifyDBCluster(proxy, proxyClient, progress),
+                                () -> modifyDBCluster(proxy, rdsProxyClient, progress),
                                 CallbackContext::isModified,
                                 CallbackContext::setModified
                         );
                     }
                     return progress;
                 })
-                .then(progress -> addAssociatedRoles(proxy, proxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbCluster(
