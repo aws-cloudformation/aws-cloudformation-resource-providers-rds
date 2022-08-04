@@ -318,8 +318,6 @@ _Required_: No
 
 _Type_: String
 
-_Allowed Values_: <code>aurora</code> | <code>aurora-mysql</code> | <code>aurora-postgresql</code> | <code>mysql</code> | <code>postgres</code>
-
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### EngineMode
@@ -329,8 +327,6 @@ The DB engine mode of the DB cluster, either provisioned, serverless, parallelqu
 _Required_: No
 
 _Type_: String
-
-_Allowed Values_: <code>provisioned</code> | <code>serverless</code> | <code>parallelquery</code> | <code>global</code> | <code>multimaster</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -395,8 +391,6 @@ The interval, in seconds, between points when Enhanced Monitoring metrics are co
 _Required_: No
 
 _Type_: Integer
-
-_Allowed Values_: <code>0</code> | <code>1</code> | <code>5</code> | <code>10</code> | <code>15</code> | <code>30</code> | <code>60</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -500,8 +494,6 @@ _Required_: No
 
 _Type_: String
 
-_Allowed Values_: <code>full-copy</code> | <code>copy-on-write</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### ScalingConfiguration
@@ -564,8 +556,6 @@ Specifies the storage type to be associated with the DB cluster.
 _Required_: No
 
 _Type_: String
-
-_Allowed Values_: <code>io1</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

@@ -12,7 +12,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 public class DeleteHandler extends BaseHandlerStd {
 
     public DeleteHandler() {
-        this(HandlerConfig.builder().build());
+        this(DEFAULT_HANDLER_CONFIG);
     }
 
     public DeleteHandler(final HandlerConfig config) {
