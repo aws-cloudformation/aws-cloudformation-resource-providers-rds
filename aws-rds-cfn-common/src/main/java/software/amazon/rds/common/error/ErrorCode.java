@@ -34,7 +34,8 @@ public enum ErrorCode {
     SnapshotQuotaExceeded("SnapshotQuotaExceeded"),
     StorageQuotaExceeded("StorageQuotaExceeded"),
     ThrottlingException("ThrottlingException"),
-    Throttling("Throttling");
+    Throttling("Throttling"),
+    DefaultVpcDoesNotExist("DefaultVpcDoesNotExist");
 
     private final String code;
 
