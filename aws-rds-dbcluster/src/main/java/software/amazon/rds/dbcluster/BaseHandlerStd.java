@@ -145,8 +145,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(RdsClientBuilder::getClient)),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(Ec2ClientBuilder::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient)),
                         logger
                 ));
     }
