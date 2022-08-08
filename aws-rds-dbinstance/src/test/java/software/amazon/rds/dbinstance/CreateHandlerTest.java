@@ -38,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
@@ -1295,5 +1296,32 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<CreateDbInstanceRequest> argument = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstance(argument.capture());
         Assertions.assertThat(argument.getValue().port()).isNull();
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_DbClusterNotFoundException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(DbClusterNotFoundException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorMessage("The source cluster could not be found")
+                                .build()
+                        ).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 }

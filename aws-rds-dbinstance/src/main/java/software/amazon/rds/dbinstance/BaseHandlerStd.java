@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAutomatedBackupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
@@ -153,6 +154,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBSnapshotNotFound,
                     ErrorCode.DBSubnetGroupNotFoundFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    DbClusterNotFoundException.class,
                     DbInstanceNotFoundException.class,
                     DbParameterGroupNotFoundException.class,
                     DbSecurityGroupNotFoundException.class,
