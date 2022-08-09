@@ -10,8 +10,8 @@ public class OptionVersion implements Comparable<OptionVersion> {
 
     @Override
     public int compareTo(OptionVersion other) {
-        // Customer doesn't use versioning or is only starting to version
-        if (version == null) {
+        // 1) Customer doesn't use versioning or 2) Is starting to version or 3) Is no longer versioning
+        if (version == null || other.version == null) {
             return 0;
         }
 
