@@ -10,6 +10,11 @@ public class OptionVersion implements Comparable<OptionVersion> {
 
     @Override
     public int compareTo(OptionVersion other) {
+        // Customer doesn't use versioning
+        if (version == null && other.version == null) {
+            return 0;
+        }
+
         //version string are dot connected with a ending like .v[0-9]+
         //eg:      5.1.2.v1      4.2.6.v1
         String[] vals1 = version.split("\\.");
