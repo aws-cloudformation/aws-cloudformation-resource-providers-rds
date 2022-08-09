@@ -106,7 +106,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_EmptyOptionVersion() {
+    public void handleRequest_EmptyPreviousOptionVersion() {
         final ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL_BUILDER()
                 .optionConfigurations(ImmutableList.of(
                         OptionConfiguration.builder()
@@ -118,10 +118,12 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .optionConfigurations(ImmutableList.of(
                         OptionConfiguration.builder()
                                 .optionName("APEX")
-                                .optionVersion(null)
+                                .optionVersion("1.2.3")
                                 .build()
                 )).build();
 
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenReturn(ModifyOptionGroupResponse.builder().build());
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
         final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
@@ -144,7 +146,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
-        verify(proxyClient.client(), times(0)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
         verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
