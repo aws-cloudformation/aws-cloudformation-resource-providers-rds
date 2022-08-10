@@ -162,8 +162,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSecurityGroupNotFoundException.class,
                     DbSnapshotNotFoundException.class,
                     DbSubnetGroupNotFoundException.class,
-                    OptionGroupNotFoundException.class,
-                    DomainNotFoundException.class)
+                    DomainNotFoundException.class,
+                    OptionGroupNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbInstanceAutomatedBackupQuotaExceededException.class,
                     InsufficientDbInstanceCapacityException.class,
