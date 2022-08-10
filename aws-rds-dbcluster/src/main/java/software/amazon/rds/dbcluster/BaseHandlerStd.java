@@ -84,7 +84,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceNotFoundException.class,
                     DbSubnetGroupNotFoundException.class,
                     DomainNotFoundException.class,
-                    GlobalClusterNotFoundException.class)
+                    GlobalClusterNotFoundException.class,
+                    DomainNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbClusterQuotaExceededException.class,
                     InsufficientStorageClusterCapacityException.class,
