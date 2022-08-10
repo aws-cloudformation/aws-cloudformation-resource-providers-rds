@@ -44,6 +44,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
@@ -1347,6 +1348,21 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> RESOURCE_MODEL_BAREBONE_BLDR()
                         .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                         .build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_DomainNotFoundException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
                 expectFailed(HandlerErrorCode.NotFound)
         );
 

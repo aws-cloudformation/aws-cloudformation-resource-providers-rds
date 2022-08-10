@@ -35,6 +35,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
@@ -464,5 +465,20 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_DomainNotFoundException() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 }

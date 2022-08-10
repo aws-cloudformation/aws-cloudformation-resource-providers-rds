@@ -38,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureExcep
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
@@ -161,6 +162,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSecurityGroupNotFoundException.class,
                     DbSnapshotNotFoundException.class,
                     DbSubnetGroupNotFoundException.class,
+                    DomainNotFoundException.class,
                     OptionGroupNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbInstanceAutomatedBackupQuotaExceededException.class,
