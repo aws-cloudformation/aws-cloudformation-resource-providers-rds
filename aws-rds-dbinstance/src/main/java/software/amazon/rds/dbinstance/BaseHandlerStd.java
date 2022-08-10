@@ -47,6 +47,7 @@ import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException
 import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
@@ -159,7 +160,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbParameterGroupNotFoundException.class,
                     DbSecurityGroupNotFoundException.class,
                     DbSnapshotNotFoundException.class,
-                    DbSubnetGroupNotFoundException.class)
+                    DbSubnetGroupNotFoundException.class,
+                    OptionGroupNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbInstanceAutomatedBackupQuotaExceededException.class,
                     InsufficientDbInstanceCapacityException.class,
