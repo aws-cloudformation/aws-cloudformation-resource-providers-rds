@@ -63,13 +63,15 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_ReadSuccess() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> OPTION_GROUP_ACTIVE,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectSuccess()
         );
 
@@ -79,13 +81,15 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_NotFound() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
                 .thenThrow(OptionGroupNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
 
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
@@ -94,13 +98,15 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_RuntimeException() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
                 .thenThrow(new RuntimeException("test exception"));
 
         test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL_WITH_NAME,
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 

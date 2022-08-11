@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance.client;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static software.amazon.rds.common.client.RdsUserAgentProvider.SDK_CLIENT_USER_AGENT_PREFIX;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -22,7 +23,7 @@ import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 
-class RdsClientBuilderTest {
+class RdsClientProviderTest {
 
     @BeforeEach
     public void setup() {
@@ -40,13 +41,13 @@ class RdsClientBuilderTest {
 
     @Test
     public void test_getClient() {
-        Assertions.assertThat(new RdsClientBuilder().getClient()).isNotNull();
+        Assertions.assertThat(new RdsClientProvider().getClient()).isNotNull();
     }
 
     @Test
     public void test_getClientWithApiVersion_null() {
         Assertions.assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
-            new RdsClientBuilder().getClient(null);
+            new RdsClientProvider().getClientForApiVersion(null);
         });
     }
 
@@ -77,8 +78,8 @@ class RdsClientBuilderTest {
         ArgumentCaptor<HttpExecuteRequest> requestArgumentCaptor = ArgumentCaptor.forClass(HttpExecuteRequest.class);
         when(sdkHttpClient.prepareRequest(requestArgumentCaptor.capture())).thenReturn(executableHttpRequest);
 
-        final String apiVersion = "2014-10-31";
-        final RdsClient client = new RdsClientBuilder(() -> sdkHttpClient).getClient(apiVersion);
+        final String apiVersion = "2012-10-31";
+        final RdsClient client = new RdsClientProvider(() -> sdkHttpClient).getClientForApiVersion(apiVersion);
         Assertions.assertThat(client).isNotNull();
 
         // The exact method doesn't matter.
@@ -91,5 +92,9 @@ class RdsClientBuilderTest {
 
         // Ensure the client encoded {@code apiVersion} into the request POST body.
         Assertions.assertThat(requestBody).contains("Version=" + apiVersion);
+
+        // Ensure UserAgent is modified to reflect the resource handler client signature.
+        final String userAgent = httpExecuteRequest.httpRequest().headers().get("User-Agent").get(0);
+        Assertions.assertThat(userAgent).startsWith(SDK_CLIENT_USER_AGENT_PREFIX);
     }
 }

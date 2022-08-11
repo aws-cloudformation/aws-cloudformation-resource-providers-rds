@@ -31,6 +31,8 @@ import software.amazon.rds.common.handler.Tagging;
 
 public abstract class AbstractTestBase extends software.amazon.rds.common.test.AbstractTestBase<OptionGroup, ResourceModel, CallbackContext> {
 
+    protected final String IGNORE_TEST_VERIFICATION= "IgnoreTestVerification";
+
     protected static final String LOGICAL_RESOURCE_IDENTIFIER = "optiongroup";
 
     protected static final String MSG_NOT_FOUND_ERR = "OptionGroup not found";
@@ -38,10 +40,6 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final LoggerProxy logger;
 
-    protected static final ResourceModel RESOURCE_MODEL;
-    protected static final ResourceModel RESOURCE_MODEL_NO_OPTION_GROUP_NAME;
-    protected static final ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS;
-    protected static final ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS;
     protected static final OptionGroup OPTION_GROUP_ACTIVE;
     protected static final Tagging.TagSet TAG_SET;
 
@@ -69,44 +67,34 @@ public abstract class AbstractTestBase extends software.amazon.rds.common.test.A
                         software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-3").value("resource-tag-value3").build()
                 )).build();
 
-        RESOURCE_MODEL = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
+        OPTION_GROUP_ACTIVE = OptionGroup.builder().build();
+    }
+
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_BUILDER() {
+        return ResourceModel.builder()
                 .optionGroupDescription("test option group description")
                 .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .build();
+                .majorEngineVersion("testMajorVersionName");
+    }
 
-        RESOURCE_MODEL_NO_OPTION_GROUP_NAME = ResourceModel.builder()
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .build();
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_WITH_NAME_BUILDER() {
+        return RESOURCE_MODEL_BUILDER().optionGroupName("OptionGroupName");
+    }
 
-        RESOURCE_MODEL_WITH_RESOURCE_TAGS = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
-                .build();
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_WITH_RESOURCE_TAGS_BUILDER() {
+        return RESOURCE_MODEL_BUILDER().tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()));
 
-        RESOURCE_MODEL_WITH_CONFIGURATIONS = ResourceModel.builder()
-                .optionGroupName("testOptionGroup")
-                .optionGroupDescription("test option group description")
-                .engineName("testEngineVersion")
-                .majorEngineVersion("testMajorVersionName")
-                .optionConfigurations(ImmutableList.of(
-                        OptionConfiguration.builder()
-                                .optionName("testOptionConfiguration")
-                                .optionVersion("1.2.3")
-                                .build()
-                ))
-                .build();
 
-        OPTION_GROUP_ACTIVE = OptionGroup.builder()
-                .optionGroupArn("arn")
-                .optionGroupName("testOptionGroup")
-                .build();
+    }
+
+    static ResourceModel.ResourceModelBuilder RESOURCE_MODEL_WITH_CONFIGURATIONS_BUILDER() {
+        return RESOURCE_MODEL_BUILDER().optionConfigurations(ImmutableList.of(
+                OptionConfiguration.builder()
+                        .optionName("testOptionConfiguration")
+                        .optionVersion("1.2.3")
+                        .build()
+        ));
+
     }
 
     static ProxyClient<RdsClient> MOCK_PROXY(

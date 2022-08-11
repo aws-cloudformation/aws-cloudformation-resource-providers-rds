@@ -1,8 +1,8 @@
 package software.amazon.rds.dbsubnetgroup;
 
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.amazonaws.util.CollectionUtils;
 
@@ -12,12 +12,14 @@ class Configuration extends BaseConfiguration {
         super("aws-rds-dbsubnetgroup.json");
     }
 
-    public Map<String, String> resourceDefinedTags(final ResourceModel resourceModel) {
-        if (CollectionUtils.isNullOrEmpty(resourceModel.getTags()))
+    public Map<String, String> resourceDefinedTags(final ResourceModel model) {
+        if (CollectionUtils.isNullOrEmpty(model.getTags()))
             return null;
 
-        return resourceModel.getTags()
-                .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue, (v1, v2) -> v2));
+        final Map<String, String> tagMap = new HashMap<>();
+        for (final Tag tag : model.getTags()) {
+            tagMap.put(tag.getKey(), tag.getValue());
+        }
+        return tagMap;
     }
 }

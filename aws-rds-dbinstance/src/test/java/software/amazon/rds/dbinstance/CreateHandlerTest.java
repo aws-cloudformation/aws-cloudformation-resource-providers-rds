@@ -38,13 +38,16 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
@@ -1295,5 +1298,74 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<CreateDbInstanceRequest> argument = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstance(argument.capture());
         Assertions.assertThat(argument.getValue().port()).isNull();
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_DbClusterNotFoundException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(DbClusterNotFoundException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorMessage("The source cluster could not be found")
+                                .build()
+                        ).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_OptionGroupNotFoundException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(OptionGroupNotFoundException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorMessage("Specified OptionGroupName not found")
+                                .build()
+                        ).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
+                        .build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_DomainNotFoundException() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 }

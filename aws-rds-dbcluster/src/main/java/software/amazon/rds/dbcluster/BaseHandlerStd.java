@@ -9,8 +9,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.commons.collections.CollectionUtils;
+
+import com.google.common.collect.Lists;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
+import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
@@ -22,6 +29,7 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
@@ -66,6 +74,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     ErrorCode.DBClusterAlreadyExistsFault)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    ErrorCode.DefaultVpcDoesNotExist)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -139,7 +149,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(ClientBuilder::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient)),
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient)),
                         logger
                 ));
     }
@@ -148,7 +159,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     );
 
@@ -161,6 +173,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxyClient.client()::describeDBClusters
         );
         return response.dbClusters().get(0);
+    }
+
+    protected DBSubnetGroup fetchDBSubnetGroup(
+            final ProxyClient<RdsClient> proxyClient,
+            final String DbSubnetGroupName
+    ) {
+        final DescribeDbSubnetGroupsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbSubnetGroup(DbSubnetGroupName),
+                proxyClient.client()::describeDBSubnetGroups
+        );
+        return response.dbSubnetGroups().get(0);
+    }
+
+    protected SecurityGroup fetchSecurityGroup(
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final String vpcId,
+            final String groupName
+    ) {
+        final DescribeSecurityGroupsResponse response = ec2ProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeSecurityGroupsRequest(vpcId, groupName),
+                ec2ProxyClient.client()::describeSecurityGroups
+        );
+        if (CollectionUtils.isEmpty(response.securityGroups())) {
+            return null;
+        }
+        return response.securityGroups().get(0);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {
@@ -375,5 +413,34 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         DEFAULT_DB_CLUSTER_ERROR_RULE_SET
                 ))
                 .progress();
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcSecurityGroupIds(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        SecurityGroup securityGroup;
+        try {
+            DBCluster cluster = fetchDBCluster(rdsProxyClient, resourceModel);
+            DBSubnetGroup subnetGroup = fetchDBSubnetGroup(rdsProxyClient, cluster.dbSubnetGroup());
+            securityGroup = fetchSecurityGroup(ec2ProxyClient, subnetGroup.vpcId(), "default");
+            if (securityGroup != null) {
+                resourceModel.setVpcSecurityGroupIds(Lists.newArrayList(securityGroup.groupId()));
+            }
+            return progress;
+        } catch (Exception exception) {
+            return Commons.handleException(
+                    ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
+                    exception,
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+        }
+    }
+
+    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        return CollectionUtils.isEmpty(resourceModel.getVpcSecurityGroupIds());
     }
 }

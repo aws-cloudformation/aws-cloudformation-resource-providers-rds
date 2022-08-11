@@ -67,12 +67,14 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_CoreUpdate_Success() {
-        final ImmutableList<OptionConfiguration> desiredOptionConfigurations = ImmutableList.of(
-                OptionConfiguration.builder()
-                        .optionName("testOptionConfiguration")
-                        .optionVersion("2.2.3")
-                        .build()
-        );
+        ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL_WITH_CONFIGURATIONS_BUILDER().build();
+        final ResourceModel RESOURCE_MODEL_WITH_UPDATED_CONFIGURATIONS = RESOURCE_MODEL_BUILDER()
+                .optionConfigurations(ImmutableList.of(
+                        OptionConfiguration.builder()
+                                .optionName("testOptionConfiguration")
+                                .optionVersion("2.2.3")
+                                .build()
+                )).build();
 
         when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
                 .thenReturn(ModifyOptionGroupResponse.builder().build());
@@ -85,10 +87,53 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(randomString(32, ALPHA))
                 .previousResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
-                .desiredResourceState(
-                        RESOURCE_MODEL_WITH_CONFIGURATIONS.toBuilder()
-                                .optionConfigurations(desiredOptionConfigurations).build()
-                )
+                .desiredResourceState(RESOURCE_MODEL_WITH_UPDATED_CONFIGURATIONS)
+                .stackId(randomString(32, ALPHA))
+                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyClient.client(), times(1)).modifyOptionGroup(any(ModifyOptionGroupRequest.class));
+        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_EmptyPreviousOptionVersion() {
+        final ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL_BUILDER()
+                .optionConfigurations(ImmutableList.of(
+                        OptionConfiguration.builder()
+                                .optionName("APEX")
+                                .optionVersion(null)
+                                .build()
+                )).build();
+        final ResourceModel RESOURCE_MODEL_WITH_UPDATED_CONFIGURATIONS = RESOURCE_MODEL_BUILDER()
+                .optionConfigurations(ImmutableList.of(
+                        OptionConfiguration.builder()
+                                .optionName("APEX")
+                                .optionVersion("1.2.3")
+                                .build()
+                )).build();
+
+        when(proxyClient.client().modifyOptionGroup(any(ModifyOptionGroupRequest.class)))
+                .thenReturn(ModifyOptionGroupResponse.builder().build());
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(randomString(32, ALPHA))
+                .previousResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
+                .desiredResourceState(RESOURCE_MODEL_WITH_UPDATED_CONFIGURATIONS)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
                 .build();
@@ -108,12 +153,14 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_TagUpdate_Success() {
-        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_RESOURCE_TAGS.toBuilder()
+        ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS = RESOURCE_MODEL_WITH_RESOURCE_TAGS_BUILDER().build();
+        ResourceModel RESOURCE_MODEL_WITH_UPDATED_RESOURCE_TAGS = RESOURCE_MODEL_BUILDER()
                 .tags(
-                        Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
-                                        ImmutableMap.of("desiredKey", "desiredValue")
-                                )
-                        )).build();
+                    Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
+                        ImmutableMap.of("desiredKey", "desiredValue")
+                    )
+                )).build();
+
 
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
@@ -129,7 +176,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(randomString(32, ALPHA))
                 .previousResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
-                .desiredResourceState(desiredModel)
+                .desiredResourceState(RESOURCE_MODEL_WITH_UPDATED_RESOURCE_TAGS)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
                 .build();
@@ -150,6 +197,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SoftFailingTaggingOnRemoveTags() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
         final Map<String, String> previousResourceTags = Translator.translateTagsToRequest(
                 Translator.translateTagsFromSdk(
                         ImmutableSet.of(
@@ -188,8 +237,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .clientRequestToken(randomString(32, ALPHA))
                 .previousResourceTags(previousResourceTags)
                 .desiredResourceTags(desiredResourceTags)
-                .previousResourceState(RESOURCE_MODEL)
-                .desiredResourceState(RESOURCE_MODEL)
+                .previousResourceState(RESOURCE_MODEL_WITH_NAME)
+                .desiredResourceState(RESOURCE_MODEL_WITH_NAME)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
                 .build();
@@ -209,6 +258,9 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_HardFailingTaggingOnAddTags() {
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+        ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS = RESOURCE_MODEL_WITH_RESOURCE_TAGS_BUILDER().build();
+
         final Map<String, String> previousResourceTags = Translator.translateTagsToRequest(
                 Translator.translateTagsFromSdk(
                         ImmutableSet.of(
@@ -242,7 +294,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(randomString(32, ALPHA))
-                .previousResourceState(RESOURCE_MODEL)
+                .previousResourceState(RESOURCE_MODEL_WITH_NAME)
                 .desiredResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
                 .stackId(randomString(32, ALPHA))
                 .logicalResourceIdentifier(randomString(32, ALPHA))
@@ -262,13 +314,15 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_VersionDowngrade_Success() {
-        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("test-option-name").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("test-option-name").optionVersion("1.2.2.0").build()
                 ))
@@ -306,13 +360,15 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_VersionUpgrade_APEX_Success() {
-        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.3.4").build()
                 ))
                 .build();
 
-        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("2.3.4").build()
                 ))
@@ -350,7 +406,9 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_VersionDowngrade_APEX_Success() {
-        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder()
+        ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.3.4").build()
                 ))
@@ -360,7 +418,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         // UpdateHandler should detect the downgrade and restore the previous
         // version. Effectively this resolves in no change at all, therefore
         // we expect to UpdateOptionGroup call at all.
-        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+        final ResourceModel desiredModel = RESOURCE_MODEL_WITH_NAME.toBuilder()
                 .optionConfigurations(Collections.singletonList(
                         OptionConfiguration.builder().optionName("APEX").optionVersion("1.2.2.0").build()
                 ))
@@ -396,7 +454,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_NotFound() {
-        final ResourceModel previousModel = RESOURCE_MODEL_WITH_CONFIGURATIONS.toBuilder()
+        ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL_WITH_CONFIGURATIONS_BUILDER().build();
+        final ResourceModel previousModel = RESOURCE_MODEL_BUILDER()
                 .optionConfigurations(Collections.emptyList())
                 .build();
 
@@ -424,6 +483,8 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_RuntimeException() {
+        ResourceModel RESOURCE_MODEL_WITH_CONFIGURATIONS = RESOURCE_MODEL_WITH_CONFIGURATIONS_BUILDER().build();
+
         final ResourceModel previousModel = RESOURCE_MODEL_WITH_CONFIGURATIONS.toBuilder()
                 .optionConfigurations(Collections.emptyList())
                 .build();

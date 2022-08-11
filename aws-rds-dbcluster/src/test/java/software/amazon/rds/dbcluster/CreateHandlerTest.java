@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
@@ -34,6 +35,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
@@ -56,12 +58,19 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     @Mock
     @Getter
     RdsClient rdsClient;
+
     @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;
+
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
+
+    @Mock
+    @Getter
+    private ProxyClient<Ec2Client> ec2Proxy;
+
     @Getter
     private CreateHandler handler;
 
@@ -456,5 +465,20 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_DomainNotFoundException() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 }

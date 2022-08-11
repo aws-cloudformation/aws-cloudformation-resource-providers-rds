@@ -63,10 +63,18 @@ class BaseHandlerStdTest {
     }
 
     @Test
-    void isPromotionTierUpdated_MismatchingPromotionTierReturnsFalse() {
+    void isPromotionTierUpdated_EmptyModelPromotionTierReturnsTrue() {
         Assertions.assertThat(handler.isPromotionTierUpdated(
                 DBInstance.builder().promotionTier(42).build(),
                 ResourceModel.builder().promotionTier(null).build()
+        )).isTrue();
+    }
+
+    @Test
+    void isPromotionTierUpdated_MismatchingPromotionTierReturnsFalse() {
+        Assertions.assertThat(handler.isPromotionTierUpdated(
+                DBInstance.builder().promotionTier(null).build(),
+                ResourceModel.builder().promotionTier(42).build()
         )).isFalse();
     }
 
@@ -373,21 +381,21 @@ class BaseHandlerStdTest {
 
     @Test
     void isDBParameterGroupSyncComplete_NullParameterGroupsReturnsTrue() {
-        Assertions.assertThat(handler.isDBParameterGroupSyncComplete(
+        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
                 DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isDBParameterGroupSyncComplete_EmptyParameterGroupsReturnsTrue() {
-        Assertions.assertThat(handler.isDBParameterGroupSyncComplete(
+        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
                 DBInstance.builder().dbParameterGroups(Collections.emptyList()).build()
         )).isTrue();
     }
 
     @Test
     void isDBParameterGroupSyncComplete_NonEmptyParameterGroupsInSyncReturnsTrue() {
-        Assertions.assertThat(handler.isDBParameterGroupSyncComplete(
+        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
                 DBInstance.builder()
                         .dbParameterGroups(
                                 DBParameterGroupStatus.builder().parameterApplyStatus("in-sync").build(),
@@ -399,7 +407,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isDBParameterGroupSyncComplete_NonEmptyParameterGroupsApplyingReturnsFalse() {
-        Assertions.assertThat(handler.isDBParameterGroupSyncComplete(
+        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
                 DBInstance.builder()
                         .dbParameterGroups(
                                 DBParameterGroupStatus.builder().parameterApplyStatus("in-sync").build(),

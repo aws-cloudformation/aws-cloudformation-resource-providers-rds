@@ -92,6 +92,10 @@
     }
   },
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/DBClusterIdentifier": "$lowercase(DBClusterIdentifier)",
+    "/properties/DBClusterEndpointIdentifier": "$lowercase(DBClusterEndpointIdentifier)"
+  },
   "required": [
     "DBClusterIdentifier",
     "EndpointType"
