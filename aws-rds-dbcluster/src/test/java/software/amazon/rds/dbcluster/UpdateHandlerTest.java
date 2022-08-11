@@ -9,13 +9,16 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.google.common.collect.ImmutableList;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -48,6 +51,7 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterResponse
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Delay;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -512,5 +516,31 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertEquals(argument.getValue().engineVersion(), engineVersion2);
         Assertions.assertTrue(argument.getValue().applyImmediately());
         Assertions.assertTrue(argument.getValue().allowMajorVersionUpgrade());
+    }
+
+    @Test
+    public void UpdateHandlerConfig_Delay_MatchesExpectedIntervals()
+    {
+        expectServiceInvocation = false;
+        final UpdateHandler handler = new UpdateHandler();
+        final Delay delay = handler.config.getBackoff();
+
+        final List<Duration> expectedIntervalsBetweenInvocations = ImmutableList.of(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(3),
+                Duration.ofSeconds(7),
+                Duration.ofSeconds(13),
+                Duration.ofSeconds(21),
+                Duration.ofSeconds(31),
+                Duration.ofSeconds(43),
+                Duration.ofSeconds(57),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(13)),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(31))
+        );
+
+        for (int i = 0; i < expectedIntervalsBetweenInvocations.size(); i++) {
+            org.assertj.core.api.Assertions.assertThat(delay.nextDelay(i+1)) // attempt number starts at 1
+                    .isEqualTo(expectedIntervalsBetweenInvocations.get(i));
+        }
     }
 }

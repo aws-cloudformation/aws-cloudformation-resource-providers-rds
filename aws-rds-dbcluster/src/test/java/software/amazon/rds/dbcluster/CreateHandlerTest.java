@@ -9,9 +9,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.google.common.collect.ImmutableList;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +46,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRes
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Delay;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -73,9 +76,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Getter
     private CreateHandler handler;
+    private Boolean expectServiceInvocation = true;
 
     @BeforeEach
     public void setup() {
+        expectServiceInvocation = true;
         handler = new CreateHandler(
                 HandlerConfig.builder()
                         .backoff(Constant.of()
@@ -91,7 +96,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @AfterEach
     public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+        if (expectServiceInvocation) {
+            verify(rdsClient, atLeastOnce()).serviceName();
+        }
         verifyNoMoreInteractions(rdsClient);
     }
 
@@ -480,5 +487,31 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+    }
+
+    @Test
+    public void CreateHandlerConfig_Delay_MatchesExpectedIntervals()
+    {
+        expectServiceInvocation = false;
+        final CreateHandler handler = new CreateHandler();
+        final Delay delay = handler.config.getBackoff();
+
+        final List<Duration> expectedIntervalsBetweenInvocations = ImmutableList.of(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(3),
+                Duration.ofSeconds(7),
+                Duration.ofSeconds(13),
+                Duration.ofSeconds(21),
+                Duration.ofSeconds(31),
+                Duration.ofSeconds(43),
+                Duration.ofSeconds(57),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(13)),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(31))
+        );
+
+        for (int i = 0; i < expectedIntervalsBetweenInvocations.size(); i++) {
+            Assertions.assertThat(delay.nextDelay(i+1)) // attempt number starts at 1
+                    .isEqualTo(expectedIntervalsBetweenInvocations.get(i));
+        }
     }
 }

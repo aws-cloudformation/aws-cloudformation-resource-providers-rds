@@ -11,9 +11,11 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.google.common.collect.ImmutableList;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +56,7 @@ import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Delay;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -1367,5 +1370,31 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void CreateHandlerConfig_Delay_MatchesExpectedIntervals()
+    {
+        expectServiceInvocation = false;
+        final CreateHandler handler = new CreateHandler();
+        final Delay delay = handler.config.getBackoff();
+
+        final List<Duration> expectedIntervalsBetweenInvocations = ImmutableList.of(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(3),
+                Duration.ofSeconds(7),
+                Duration.ofSeconds(13),
+                Duration.ofSeconds(21),
+                Duration.ofSeconds(31),
+                Duration.ofSeconds(43),
+                Duration.ofSeconds(57),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(13)),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(31))
+        );
+
+        for (int i = 0; i < expectedIntervalsBetweenInvocations.size(); i++) {
+            Assertions.assertThat(delay.nextDelay(i+1)) // attempt number starts at 1
+                    .isEqualTo(expectedIntervalsBetweenInvocations.get(i));
+        }
     }
 }

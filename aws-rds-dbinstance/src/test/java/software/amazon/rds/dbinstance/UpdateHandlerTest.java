@@ -11,6 +11,7 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -64,6 +65,7 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRespons
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Delay;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -100,6 +102,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Getter
     private UpdateHandler handler;
 
+    private Boolean expectServiceInvocation;
+
     @Override
     public ProxyClient<RdsClient> getRdsProxy(final String version) {
         switch (version) {
@@ -112,6 +116,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
+        expectServiceInvocation = true;
         handler = new UpdateHandler(HandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
@@ -128,7 +133,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @AfterEach
     public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+        if (expectServiceInvocation) {
+            verify(rdsClient, atLeastOnce()).serviceName();
+        }
         verifyNoMoreInteractions(rdsClient);
         verifyNoMoreInteractions(ec2Client);
     }
@@ -1026,5 +1033,31 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
         verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void UpdateHandlerConfig_Delay_MatchesExpectedIntervals()
+    {
+        expectServiceInvocation = false;
+        final UpdateHandler handler = new UpdateHandler();
+        final Delay delay = handler.config.getBackoff();
+
+        final List<Duration> expectedIntervalsBetweenInvocations = ImmutableList.of(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(3),
+                Duration.ofSeconds(7),
+                Duration.ofSeconds(13),
+                Duration.ofSeconds(21),
+                Duration.ofSeconds(31),
+                Duration.ofSeconds(43),
+                Duration.ofSeconds(57),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(13)),
+                Duration.ofMinutes(1).plus(Duration.ofSeconds(31))
+        );
+
+        for (int i = 0; i < expectedIntervalsBetweenInvocations.size(); i++) {
+            org.assertj.core.api.Assertions.assertThat(delay.nextDelay(i+1)) // attempt number starts at 1
+                    .isEqualTo(expectedIntervalsBetweenInvocations.get(i));
+        }
     }
 }
