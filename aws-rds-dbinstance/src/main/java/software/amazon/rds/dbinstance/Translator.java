@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
@@ -94,7 +95,7 @@ public class Translator {
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(model.getVPCSecurityGroups())
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
                 .build();
     }
 
@@ -146,7 +147,7 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(model.getVPCSecurityGroups())
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
                 .build();
     }
 
@@ -228,7 +229,7 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .timezone(model.getTimezone())
-                .vpcSecurityGroupIds(model.getVPCSecurityGroups())
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
                 .build();
     }
 
@@ -304,7 +305,7 @@ public class Translator {
                 .storageType(desiredModel.getStorageType())
                 .tdeCredentialArn(desiredModel.getTdeCredentialArn())
                 .tdeCredentialPassword(desiredModel.getTdeCredentialPassword())
-                .vpcSecurityGroupIds(desiredModel.getVPCSecurityGroups());
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(desiredModel.getVPCSecurityGroups()) ? desiredModel.getVPCSecurityGroups() : null);
 
         final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
                 Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),

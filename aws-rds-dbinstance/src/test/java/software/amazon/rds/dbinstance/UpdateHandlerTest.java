@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -1081,5 +1082,33 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
         verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_EmptyVpcSecurityGroupIdList() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(false);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        // A default vpc group won't be set for a db cluster member
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 }
