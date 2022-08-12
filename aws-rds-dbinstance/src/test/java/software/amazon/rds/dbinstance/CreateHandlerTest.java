@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
@@ -1367,5 +1368,89 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreFromSnapshot_EmptyVpcSecurityGroupIdList() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_EmptyVpcSecurityGroupIdList() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenReturn(CreateDbInstanceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<CreateDbInstanceRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstance(captor.capture());
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+    }
+
+    @Test
+    public void handleRequest_CreateReadReplica_EmptyVpcSecurityGroupIdList() {
+        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
+                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_READ_REPLICA.toBuilder()
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 }
