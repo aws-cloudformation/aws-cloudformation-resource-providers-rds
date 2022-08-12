@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
+import static software.amazon.rds.dbinstance.BaseHandlerStd.VPC_SECURITY_GROUP_STATUS_ACTIVE;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -27,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -63,6 +65,7 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
+import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -796,13 +799,20 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_NoDefaultVpcIdForClusterInstance() {
+    public void handleRequest_NoDefaultVpcId_UnsetSecurityGroups_ForClusterInstance() {
         final CallbackContext context = new CallbackContext();
-        context.setUpdated(true);
+        context.setUpdated(false);
 
         test_handleRequest_base(
                 context,
-                () -> DB_INSTANCE_ACTIVE,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .vpcSecurityGroups(ImmutableList.of(
+                                VpcSecurityGroupMembership.builder()
+                                        .vpcSecurityGroupId(DB_SECURITY_GROUP_VPC_ID)
+                                        .status(VPC_SECURITY_GROUP_STATUS_ACTIVE)
+                                        .build()
+                        )).build(),
                 () -> RESOURCE_MODEL_BLDR()
                         // A default vpc group won't be set for a db cluster member
                         .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
@@ -815,7 +825,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+        // The SDK request builder pre-initializes all collection fields with an instance of SdkAutoConstructList.
+        // Any attempt to override this attribute will cause the builder to replace it with an ArrayList which
+        // would be serialized and sent to the backend (if it is effectively empty as well).
+        // Transformer should not override this attribute for DBCluster member instances.
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 
     @Test

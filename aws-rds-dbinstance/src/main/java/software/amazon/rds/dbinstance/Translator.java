@@ -303,14 +303,18 @@ public class Translator {
                 .promotionTier(desiredModel.getPromotionTier())
                 .storageType(desiredModel.getStorageType())
                 .tdeCredentialArn(desiredModel.getTdeCredentialArn())
-                .tdeCredentialPassword(desiredModel.getTdeCredentialPassword())
-                .vpcSecurityGroupIds(desiredModel.getVPCSecurityGroups());
+                .tdeCredentialPassword(desiredModel.getTdeCredentialPassword());
 
         final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
                 Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),
                 desiredModel.getEnableCloudwatchLogsExports()
         );
         builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
+
+        // VPC security groups can not be assigned directly on an Aurora instance.
+        if (StringUtils.isBlank(desiredModel.getDBClusterIdentifier())) {
+            builder.vpcSecurityGroupIds(desiredModel.getVPCSecurityGroups());
+        }
 
         if (previousModel != null) {
             if (BooleanUtils.isTrue(isRollback)) {
