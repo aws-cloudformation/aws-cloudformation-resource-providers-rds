@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+import io.netty.util.internal.StringUtil;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 public final class ImmutabilityHelper {
@@ -40,7 +41,9 @@ public final class ImmutabilityHelper {
     }
 
     static boolean isPerformanceInsightsKMSKeyIdMutable(final ResourceModel previous, final ResourceModel desired) {
-        return Objects.equal(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId());
+
+        return StringUtil.isNullOrEmpty(previous.getPerformanceInsightsKMSKeyId()) ||
+                Objects.equal(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId());
     }
 
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
