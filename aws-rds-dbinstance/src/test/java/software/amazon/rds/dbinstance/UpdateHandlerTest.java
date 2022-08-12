@@ -101,6 +101,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Getter
     private UpdateHandler handler;
 
+    private Boolean expectServiceInvocation;
+
     @Override
     public ProxyClient<RdsClient> getRdsProxy(final String version) {
         switch (version) {
@@ -125,11 +127,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         rdsProxy = mockProxy(proxy, rdsClient);
         rdsProxyV12 = mockProxy(proxy, rdsClientV12);
         ec2Proxy = mockProxy(proxy, ec2Client);
+
+        expectServiceInvocation = true;
     }
 
     @AfterEach
     public void tear_down() {
-        verify(rdsClient, atLeastOnce()).serviceName();
+        if (expectServiceInvocation) {
+            verify(rdsClient, atLeastOnce()).serviceName();
+        }
         verifyNoMoreInteractions(rdsClient);
         verifyNoMoreInteractions(ec2Client);
     }
@@ -696,6 +702,55 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_PerformanceInsightsKMSId_UpdatedFromEmptyToValue() {
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .performanceInsightsKMSKeyId("performance_insights_kms_id")
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().performanceInsightsKMSKeyId()).isEqualTo("performance_insights_kms_id");
+    }
+
+    @Test
+    public void handleRequest_PerformanceInsightsKMSId_UpdatedToDifferentValue() {
+        expectServiceInvocation = false;
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .performanceInsightsKMSKeyId("performance_insights_kms_id")
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .performanceInsightsKMSKeyId("old-performance_insights_kms_id")
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                null,
+                () -> previousModel,
+                () -> desiredModel,
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
     }
 
     @Test
