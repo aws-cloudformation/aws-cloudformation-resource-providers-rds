@@ -83,7 +83,8 @@
   "properties": {
     "AllocatedStorage": {
       "type": "string",
-      "description": "The amount of storage (in gigabytes) to be initially allocated for the database instance."
+      "description": "The amount of storage (in gigabytes) to be initially allocated for the database instance.",
+      "pattern": "^[0-9]*$"
     },
     "AllowMajorVersionUpgrade": {
       "type": "boolean",
