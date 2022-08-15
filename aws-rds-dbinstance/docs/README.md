@@ -241,8 +241,6 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### DBInstanceClass
@@ -287,8 +285,6 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:[:-]?[a-zA-Z0-9\.]){0,254}$</code>
-
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### DBSecurityGroups
@@ -309,8 +305,6 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:[:-]?[a-zA-Z0-9]){0,254}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### DBSubnetGroupName
@@ -320,8 +314,6 @@ A DB subnet group to associate with the DB instance. If you update this value, t
 _Required_: No
 
 _Type_: String
-
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:[-:]?[a-zA-Z0-9_\.\s]){0,254}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
