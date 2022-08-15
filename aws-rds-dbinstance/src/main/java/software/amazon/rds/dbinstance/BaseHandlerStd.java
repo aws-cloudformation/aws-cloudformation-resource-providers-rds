@@ -78,8 +78,7 @@ import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-
-import static software.amazon.rds.dbinstance.util.ResourceModelHelper.isRestoreFromSnapshot;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -758,7 +757,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final ResourceModel model = progress.getResourceModel();
         if (StringUtils.isEmpty(model.getEngine())) {
-            if (isRestoreFromSnapshot(model)) {
+            if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
                 try {
                     final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
                     model.setEngine(dbInstance.engine());

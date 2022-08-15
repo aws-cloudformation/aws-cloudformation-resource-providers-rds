@@ -9,6 +9,7 @@ import java.util.Optional;
 
 public final class ResourceModelHelper {
     private final static String STORAGE_TYPE_IO1 = "io1";
+
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model)) &&
                 (
@@ -29,7 +30,6 @@ public final class ResourceModelHelper {
     private static boolean isCertificateAuthorityApplied(final ResourceModel model) {
         return StringUtils.hasValue(model.getCACertificateIdentifier());
     }
-
 
     public static boolean isReadReplica(final ResourceModel model) {
         return StringUtils.hasValue(model.getSourceDBInstanceIdentifier());
