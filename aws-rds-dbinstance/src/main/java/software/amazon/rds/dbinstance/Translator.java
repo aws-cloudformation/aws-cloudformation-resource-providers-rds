@@ -39,6 +39,9 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper;
 
 public class Translator {
+
+    private final static String STORAGE_TYPE_IO1 = "io1";
+
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -116,7 +119,7 @@ public class Translator {
                 .optionGroupName(model.getOptionGroupName())
                 .port(translatePortToSdk(model.getPort()));
 
-        if (UpdateAfterCreateHelper.shouldUpdateAfterCreate(model)) {
+        if (!Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && UpdateAfterCreateHelper.shouldUpdateAfterCreate(model)) {
             builder.storageType(model.getStorageType());
         }
         return builder.build();
@@ -153,7 +156,7 @@ public class Translator {
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (UpdateAfterCreateHelper.shouldUpdateAfterCreate(model)) {
+        if (!Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && UpdateAfterCreateHelper.shouldUpdateAfterCreate(model)) {
             builder.storageType(model.getStorageType());
         }
 

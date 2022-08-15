@@ -184,7 +184,7 @@ class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_restoreFromSnapshotRequest_storageTypeIO1() {
-        final ResourceModel model = ResourceModel.builder()
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("io1")
                 .build();
@@ -195,7 +195,7 @@ class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_restoreFromSnapshotRequestV12_storageTypeIO1() {
-        final ResourceModel model = ResourceModel.builder()
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("io1")
                 .build();
@@ -206,10 +206,9 @@ class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_restoreFromSnapshotRequest_storageTypeGp2() {
-        final ResourceModel model = ResourceModel.builder()
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp2")
-                .allocatedStorage("123")
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
@@ -218,9 +217,8 @@ class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_restoreFromSnapshotRequestV12_storageTypeGp2() {
-        final ResourceModel model = ResourceModel.builder()
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .allocatedStorage("123")
                 .storageType("gp2")
                 .build();
 
