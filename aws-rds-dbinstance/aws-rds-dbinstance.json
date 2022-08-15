@@ -125,8 +125,7 @@
     },
     "DBClusterIdentifier": {
       "type": "string",
-      "description": "The identifier of the DB cluster that the instance will belong to.",
-      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      "description": "The identifier of the DB cluster that the instance will belong to."
     },
     "DBInstanceClass": {
       "type": "string",
@@ -144,7 +143,6 @@
     },
     "DBParameterGroupName": {
       "type": "string",
-      "pattern": "^$|^[a-zA-Z]{1}(?:[:-]?[a-zA-Z0-9\\.]){0,254}$",
       "description": "The name of an existing DB parameter group or a reference to an AWS::RDS::DBParameterGroup resource created in the template."
     },
     "DBSecurityGroups": {
@@ -157,13 +155,11 @@
     },
     "DBSnapshotIdentifier": {
       "type": "string",
-      "description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance. If you're restoring from a shared manual DB snapshot, you must specify the ARN of the snapshot.",
-      "pattern": "^$|^[a-zA-Z]{1}(?:[:-]?[a-zA-Z0-9]){0,254}$"
+      "description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance. If you're restoring from a shared manual DB snapshot, you must specify the ARN of the snapshot."
     },
     "DBSubnetGroupName": {
       "type": "string",
-      "description": "A DB subnet group to associate with the DB instance. If you update this value, the new subnet group must be a subnet group in a new VPC.",
-      "pattern": "^$|^[a-zA-Z]{1}(?:[-:]?[a-zA-Z0-9_\\.\\s]){0,254}$"
+      "description": "A DB subnet group to associate with the DB instance. If you update this value, the new subnet group must be a subnet group in a new VPC."
     },
     "DeleteAutomatedBackups": {
       "type": "boolean",
