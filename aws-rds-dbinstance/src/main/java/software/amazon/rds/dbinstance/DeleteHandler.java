@@ -15,6 +15,7 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper;
 
 public class DeleteHandler extends BaseHandlerStd {
 
@@ -49,7 +50,7 @@ public class DeleteHandler extends BaseHandlerStd {
         // For AWS::RDS::DBInstance resources that don't specify the DBClusterIdentifier property, the default policy is Snapshot.
         // Final snapshots are not allowed for read replicas and cluster instances.
         if (BooleanUtils.isTrue(request.getSnapshotRequested()) &&
-                !isReadReplica(resourceModel) &&
+                !UpdateAfterCreateHelper.isReadReplica(resourceModel) &&
                 !isDBClusterMember(resourceModel)) {
             snapshotIdentifier = snapshotIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())

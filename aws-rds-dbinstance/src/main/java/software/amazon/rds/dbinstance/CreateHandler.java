@@ -2,7 +2,6 @@ package software.amazon.rds.dbinstance;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -10,7 +9,6 @@ import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
-import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -25,6 +23,7 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -75,11 +74,11 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (isReadReplica(progress.getResourceModel())) {
+                    if (UpdateAfterCreateHelper.isReadReplica(progress.getResourceModel())) {
                         // createDBInstanceReadReplica is not a versioned call, unlike the others.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    } else if (isRestoreFromSnapshot(progress.getResourceModel())) {
+                    } else if (UpdateAfterCreateHelper.isRestoreFromSnapshot(progress.getResourceModel())) {
                         if (model.getMultiAZ() == null) {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
@@ -108,7 +107,7 @@ public class CreateHandler extends BaseHandlerStd {
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
-                    if (shouldUpdateAfterCreate(progress.getResourceModel())) {
+                    if (UpdateAfterCreateHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(progress, () ->
                                                 versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                                                         ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
@@ -271,27 +270,6 @@ public class CreateHandler extends BaseHandlerStd {
 
     private boolean shouldReboot(final ResourceModel model) {
         return StringUtils.hasValue(model.getDBParameterGroupName());
-    }
-
-    private boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model)) &&
-                (
-                        !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
-                                StringUtils.hasValue(model.getAllocatedStorage()) ||
-                                StringUtils.hasValue(model.getCACertificateIdentifier()) ||
-                                StringUtils.hasValue(model.getDBParameterGroupName()) ||
-                                StringUtils.hasValue(model.getEngineVersion()) ||
-                                StringUtils.hasValue(model.getMasterUserPassword()) ||
-                                StringUtils.hasValue(model.getPreferredBackupWindow()) ||
-                                StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
-                                Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0
-                );
-    }
-
-    private boolean isCertificateAuthorityApplied(final ResourceModel model) {
-        return StringUtils.hasValue(model.getCACertificateIdentifier());
     }
 
     private Boolean getDefaultMultiAzForEngine(final String engine) {

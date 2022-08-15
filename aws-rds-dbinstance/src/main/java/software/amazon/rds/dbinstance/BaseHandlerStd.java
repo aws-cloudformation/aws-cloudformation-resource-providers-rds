@@ -79,6 +79,8 @@ import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
+import static software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper.isRestoreFromSnapshot;
+
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     public static final String RESOURCE_IDENTIFIER = "dbinstance";
@@ -374,14 +376,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         MODIFY_DB_INSTANCE_ERROR_RULE_SET
                 ))
                 .progress();
-    }
-
-    protected boolean isReadReplica(final ResourceModel model) {
-        return StringUtils.isNotBlank(model.getSourceDBInstanceIdentifier());
-    }
-
-    protected boolean isRestoreFromSnapshot(final ResourceModel model) {
-        return StringUtils.isNotBlank(model.getDBSnapshotIdentifier());
     }
 
     protected boolean isDBClusterMember(final ResourceModel model) {

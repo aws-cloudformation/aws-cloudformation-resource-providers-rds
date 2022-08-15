@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
@@ -179,6 +180,50 @@ class TranslatorTest extends AbstractHandlerTest {
 
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(null, model, false);
         Assertions.assertEquals("default", request.dbParameterGroupName());
+    }
+
+    @Test
+    public void test_restoreFromSnapshotRequest_storageTypeIO1() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("io1")
+                .build();
+
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isNull();
+    }
+
+    @Test
+    public void test_restoreFromSnapshotRequestV12_storageTypeIO1() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("io1")
+                .build();
+
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
+        assertThat(request.storageType()).isNull();
+    }
+
+    @Test
+    public void test_restoreFromSnapshotRequest_storageTypeGp2() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo("gp2");
+    }
+
+    @Test
+    public void test_restoreFromSnapshotRequestV12_storageTypeGp2() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
+        assertThat(request.storageType()).isEqualTo("gp2");
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

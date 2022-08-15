@@ -36,8 +36,11 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper;
 
 public class Translator {
+
+    private final static String STORAGE_TYPE_IO1 = "io1";
 
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
@@ -102,7 +105,7 @@ public class Translator {
     public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequestV12(
             final ResourceModel model
     ) {
-        return RestoreDbInstanceFromDbSnapshotRequest.builder()
+        final RestoreDbInstanceFromDbSnapshotRequest.Builder builder = RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .dbInstanceClass(model.getDBInstanceClass())
@@ -114,15 +117,19 @@ public class Translator {
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .optionGroupName(model.getOptionGroupName())
-                .port(translatePortToSdk(model.getPort()))
-                .build();
+                .port(translatePortToSdk(model.getPort()));
+
+        if (!Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && UpdateAfterCreateHelper.shouldUpdateAfterCreate(model)) {
+            builder.storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return RestoreDbInstanceFromDbSnapshotRequest.builder()
+        final RestoreDbInstanceFromDbSnapshotRequest.Builder builder = RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .dbInstanceClass(model.getDBInstanceClass())
@@ -147,8 +154,13 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        if (!Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && UpdateAfterCreateHelper.shouldUpdateAfterCreate(model)) {
+            builder.storageType(model.getStorageType());
+        }
+
+        return builder.build();
     }
 
     public static CreateDbInstanceRequest createDbInstanceRequestV12(
