@@ -79,7 +79,7 @@ import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
-import static software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper.isRestoreFromSnapshot;
+import static software.amazon.rds.dbinstance.util.ResourceModelHelper.isRestoreFromSnapshot;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 

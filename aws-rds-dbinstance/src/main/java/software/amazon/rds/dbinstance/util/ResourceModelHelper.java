@@ -4,9 +4,11 @@ import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 
+import java.util.Objects;
 import java.util.Optional;
 
-public final class UpdateAfterCreateHelper {
+public final class ResourceModelHelper {
+    private final static String STORAGE_TYPE_IO1 = "io1";
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model)) &&
                 (
@@ -30,10 +32,14 @@ public final class UpdateAfterCreateHelper {
 
 
     public static boolean isReadReplica(final ResourceModel model) {
-        return software.amazon.awssdk.utils.StringUtils.isNotBlank(model.getSourceDBInstanceIdentifier());
+        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier());
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
-        return software.amazon.awssdk.utils.StringUtils.isNotBlank(model.getDBSnapshotIdentifier());
+        return StringUtils.hasValue(model.getDBSnapshotIdentifier());
+    }
+
+    public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
+        return !Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && shouldUpdateAfterCreate(model);
     }
 }

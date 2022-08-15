@@ -23,7 +23,7 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.util.UpdateAfterCreateHelper;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -74,11 +74,11 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (UpdateAfterCreateHelper.isReadReplica(progress.getResourceModel())) {
+                    if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
                         // createDBInstanceReadReplica is not a versioned call, unlike the others.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    } else if (UpdateAfterCreateHelper.isRestoreFromSnapshot(progress.getResourceModel())) {
+                    } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel())) {
                         if (model.getMultiAZ() == null) {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
@@ -107,7 +107,7 @@ public class CreateHandler extends BaseHandlerStd {
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
-                    if (UpdateAfterCreateHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
+                    if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(progress, () ->
                                                 versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                                                         ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),

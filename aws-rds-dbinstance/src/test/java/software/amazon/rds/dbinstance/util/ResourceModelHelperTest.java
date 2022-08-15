@@ -1,0 +1,103 @@
+package software.amazon.rds.dbinstance.util;
+
+import org.junit.jupiter.api.Test;
+import software.amazon.rds.dbinstance.ResourceModel;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+public class ResourceModelHelperTest {
+
+    @Test
+    public void isReadReplica_whenSourceIdentifierIsSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("identifier")
+                .build();
+
+        assertThat(ResourceModelHelper.isReadReplica(model)).isTrue();
+    }
+
+    @Test
+    public void isReadReplica_whenSourceIdentifierIsEmpty() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("")
+                .build();
+
+        assertThat(ResourceModelHelper.isReadReplica(model)).isFalse();
+    }
+
+    @Test
+    public void isRestoreFromSnapshot_whenSnapshotIdentifierIsSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .build();
+
+        assertThat(ResourceModelHelper.isRestoreFromSnapshot(model)).isTrue();
+    }
+
+    @Test
+    public void isRestoreFromSnapshot_whenSnapshotIdentifierIsEmpty() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("")
+                .build();
+
+        assertThat(ResourceModelHelper.isRestoreFromSnapshot(model)).isFalse();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenModelIsEmpty() {
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndAllocatedStorage() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .allocatedStorage("100")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenReadReplicaAndAllocatedStorage() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("identifier")
+                .allocatedStorage("100")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenCertificateAuthorityAppliedAndAllocatedStorage() {
+        final ResourceModel model = ResourceModel.builder()
+                .cACertificateIdentifier("identifier")
+                .allocatedStorage("100")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageTypeIO1() {
+        final ResourceModel model = ResourceModel.builder()
+                .storageType("io1")
+                .allocatedStorage("100")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isFalse();
+    }
+
+    @Test
+    public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageTypeGP2() {
+        final ResourceModel model = ResourceModel.builder()
+                .storageType("gp2")
+                .allocatedStorage("100")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isFalse();
+    }
+}
