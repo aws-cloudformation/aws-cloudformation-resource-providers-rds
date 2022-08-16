@@ -1453,4 +1453,39 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_UpdateEngineVersion() {
+        final String snapshotEngineVersion = ENGINE_VERSION_MYSQL_56;
+        final String requestedEngineVersion = ENGINE_VERSION_MYSQL_80;
+
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .engineVersion(snapshotEngineVersion)
+                        .build(),
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .engineVersion(requestedEngineVersion)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+        Assertions.assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
+    }
 }
