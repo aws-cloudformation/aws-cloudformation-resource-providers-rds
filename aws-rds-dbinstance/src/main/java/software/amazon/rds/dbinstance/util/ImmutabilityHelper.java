@@ -49,7 +49,7 @@ public final class ImmutabilityHelper {
 
     static boolean isAvailabilityZoneChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return Objects.equal(previous.getAvailabilityZone(), desired.getAvailabilityZone()) ||
-                StringUtils.isNullOrEmpty(previous.getAvailabilityZone()) && desired.getMultiAZ();
+                (StringUtils.isNullOrEmpty(desired.getAvailabilityZone()) && desired.getMultiAZ());
     }
 
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
