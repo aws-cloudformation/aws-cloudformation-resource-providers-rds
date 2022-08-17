@@ -323,22 +323,18 @@ public class Translator {
         );
         builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
 
-        if (previousModel != null) {
-            if (BooleanUtils.isTrue(isRollback)) {
-                builder.allocatedStorage(
-                        canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
-                );
-                builder.iops(
-                        canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
-                );
-            } else {
-                builder.allocatedStorage(getAllocatedStorage(desiredModel));
-                builder.iops(desiredModel.getIops());
-                builder.engineVersion(desiredModel.getEngineVersion());
-            }
+
+        if (BooleanUtils.isTrue(isRollback)) {
+            builder.allocatedStorage(
+                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
+            );
+            builder.iops(
+                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
+            );
         } else {
             builder.allocatedStorage(getAllocatedStorage(desiredModel));
             builder.iops(desiredModel.getIops());
+            builder.engineVersion(desiredModel.getEngineVersion());
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
