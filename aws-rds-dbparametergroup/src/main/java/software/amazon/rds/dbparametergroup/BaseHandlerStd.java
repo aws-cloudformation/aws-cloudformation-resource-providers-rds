@@ -9,7 +9,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.amazonaws.util.StringUtils;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
@@ -33,6 +32,7 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.dbparametergroup.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -174,7 +174,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
         Map<String, Parameter> parametersToReset = getParametersToReset(model, defaultEngineParameters, currentDBParameters);
-        for (List<Parameter> paramsPartition : Iterables.partition(parametersToReset.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
+        for (List<Parameter> paramsPartition : ParameterGrouper.partition(parametersToReset, ParameterGrouper.getKnownDependantKeyGroups(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
@@ -190,7 +190,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
         Map<String, Parameter> parametersToModify = getModifiableParameters(model, currentDBParameters);
-        for (List<Parameter> paramsPartition : Iterables.partition(parametersToModify.values(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
+        for (List<Parameter> paramsPartition : ParameterGrouper.partition(parametersToModify, ParameterGrouper.getKnownDependantKeyGroups(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
