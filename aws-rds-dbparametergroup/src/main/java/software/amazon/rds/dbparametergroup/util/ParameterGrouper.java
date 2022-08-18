@@ -1,85 +1,120 @@
 package software.amazon.rds.dbparametergroup.util;
 
-import software.amazon.awssdk.services.rds.model.Parameter;
-
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
+
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
+import lombok.NonNull;
+import software.amazon.awssdk.services.rds.model.Parameter;
 
 public class ParameterGrouper {
-    protected static final String COLLATION_SERVER = "collation_server";
-    protected static final String CHARACTER_SET = "character_set";
-    protected static final String GTID_MODE = "gtid-mode";
-    protected static final String ENFORECE_GTID_CONSISTENCY = "enforce_gtid_consistency";
-
-    private static void fillPartitionWithIndependentParameters(Map<String, Parameter> parametersToUpdate, List<Parameter> partition, int partitionSize) {
-        Iterator<Map.Entry<String, Parameter>> iterator = parametersToUpdate.entrySet().iterator();
-        while (partition.size() < partitionSize && iterator.hasNext()) {
-            Map.Entry<String, Parameter> entry = iterator.next();
-            partition.add(entry.getValue());
-            iterator.remove();
+    private static Map<String, Set<String>> buildDependencyIndex(final List<Set<String>> dependencies) {
+        final Map<String, Set<String>> dependencyIndex = new HashMap<>();
+        for (final Set<String> group : dependencies) {
+            for (final String groupParamName : group) {
+                dependencyIndex.put(groupParamName, group);
+            }
         }
+
+        return dependencyIndex;
     }
 
-    private static void addNewPartitionWithDependantParameters(List<List<Parameter>> partitions, List<List<Parameter>> dependantParameters, int partitionSize) {
-        List<Parameter> newPartition = new ArrayList<>();
-        List<List<Parameter>> addToPartition;
-        int newPartitionSize = 0;
-        do {
-            addToPartition = new ArrayList<>();
-            for (List<Parameter> parameters : dependantParameters) {
-                if (newPartitionSize + parameters.size() <= partitionSize) {
-                    addToPartition.add(parameters);
-                    newPartitionSize += parameters.size();
+    private static void addAsDependantParamGroup(
+            final Map<String, Parameter> params,
+            final List<List<Parameter>> paramGroups,
+            final Set<String> added,
+            final Set<String> group
+    ) {
+        final List<Parameter> groupParams = new ArrayList<>();
+        for (final String groupParamName : group) {
+            if (params.containsKey(groupParamName)) {
+                assert (!added.contains(groupParamName));
+                groupParams.add(params.get(groupParamName));
+                added.add(groupParamName);
+            }
+        }
+        paramGroups.add(groupParams);
+    }
+
+    private static void addAsIndependentParam(
+                                               final Map<String, Parameter> params,
+                                               final List<List<Parameter>> paramGroups,
+                                               final Set<String> added,
+                                               final String paramName
+    ) {
+        paramGroups.get(0).add(params.get(paramName));
+        added.add(paramName);
+    }
+
+    private static List<List<Parameter>> partitionParamGroups(
+            final List<List<Parameter>> paramGroups,
+            final int partitionSize
+    ) {
+        final List<List<Parameter>> partitioned = new ArrayList<>();
+
+        final int paramsProvided = paramGroups.stream().reduce(0, (acc, group) -> acc + group.size(), Integer::sum);
+
+        PeekingIterator<List<Parameter>> paramGroupIterator = Iterators.peekingIterator(paramGroups.iterator());
+        final List<Parameter> independentParams = paramGroupIterator.next();
+        Iterator<Parameter> independentParamIterator = independentParams.iterator();
+
+        int paramsAdded = 0;
+
+        while (paramsAdded < paramsProvided) {
+            final List<Parameter> currentPartition = new ArrayList<>();
+            while (paramGroupIterator.hasNext()) {
+                final int nextParamGroupSize = paramGroupIterator.peek().size();
+                // Ensure a dependant group fits in a single partition.
+                assert (nextParamGroupSize <= partitionSize);
+                if (partitionSize - currentPartition.size() >= nextParamGroupSize) {
+                    currentPartition.addAll(paramGroupIterator.next());
+                    paramsAdded += nextParamGroupSize;
+                } else {
+                    break;
                 }
             }
+            while (currentPartition.size() < partitionSize && independentParamIterator.hasNext()) {
+                currentPartition.add(independentParamIterator.next());
+                paramsAdded++;
+            }
+            partitioned.add(currentPartition);
+        }
 
-            newPartition.addAll(
-                    addToPartition.stream()
-                            .flatMap(List::stream)
-                            .collect(Collectors.toList())
-            );
-            dependantParameters.removeAll(addToPartition);
-        } while (!addToPartition.isEmpty());
-        partitions.add(newPartition);
+        return partitioned;
     }
 
-    private static List<List<Parameter>> getDependantParameters(Map<String, Parameter> parametersToUpdate, List<String[]> dependantParameterKeyGroups) {
-        List<List<Parameter>> dependantParameters = new ArrayList<List<Parameter>>();
+    public static List<List<Parameter>> partition(
+            @NonNull final Map<String, Parameter> params,
+            final List<Set<String>> dependencies,
+            final int partitionSize
+    ) {
+        final Map<String, Set<String>> dependencyIndex = buildDependencyIndex(dependencies);
 
-        for (String[] group : dependantParameterKeyGroups) {
-            List<Parameter> subList = new ArrayList<>();
-            for (String parameterName : group) {
-                if (parametersToUpdate.get(parameterName) != null) {
-                    subList.add(parametersToUpdate.remove(parameterName));
-                }
+        final List<List<Parameter>> paramGroups = new ArrayList<>();
+
+        // The first group conventionally stores all independent parameters.
+        paramGroups.add(new ArrayList<>());
+
+        final Set<String> added = new HashSet<>();
+
+        for (Map.Entry<String, Parameter> entry : params.entrySet()) {
+            final String paramName = entry.getKey();
+            if (added.contains(paramName)) {
+                continue;
             }
-            if (subList.size() > 0) {
-                dependantParameters.add(subList);
+            if (dependencyIndex.containsKey(paramName)) {
+                addAsDependantParamGroup(params, paramGroups, added, dependencyIndex.get(paramName));
+            } else {
+                addAsIndependentParam(params, paramGroups, added, paramName);
             }
         }
-        return dependantParameters;
-    }
 
-    public static List<String[]> getKnownDependantKeyGroups() {
-        List<String[]> knownDependantKeyGroups = new ArrayList<>();
-        knownDependantKeyGroups.add(new String[] {COLLATION_SERVER, CHARACTER_SET});
-        knownDependantKeyGroups.add(new String[] {GTID_MODE, ENFORECE_GTID_CONSISTENCY});
-        return knownDependantKeyGroups;
-    }
-
-    public static List<List<Parameter>> partition(Map<String, Parameter> parametersToUpdate, List<String[]> dependantKeyGroups, int partitionSize) {
-        int numberOfParameterToPartition = parametersToUpdate.size();
-        List<List<Parameter>> dependantParameters = getDependantParameters(parametersToUpdate, dependantKeyGroups);
-        List<List<Parameter>> partitions = new ArrayList<>();
-
-        while (numberOfParameterToPartition > 0) {
-            addNewPartitionWithDependantParameters(partitions, dependantParameters, partitionSize);
-            fillPartitionWithIndependentParameters(parametersToUpdate, partitions.get(partitions.size()-1), partitionSize);
-            numberOfParameterToPartition -= partitions.get(partitions.size()-1).size();
-        }
-        return partitions;
+        return partitionParamGroups(paramGroups, partitionSize);
     }
 }

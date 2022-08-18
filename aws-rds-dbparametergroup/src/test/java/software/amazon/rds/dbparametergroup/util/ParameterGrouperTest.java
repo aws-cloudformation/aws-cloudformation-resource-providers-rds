@@ -1,5 +1,7 @@
 package software.amazon.rds.dbparametergroup.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import lombok.Builder;
 import software.amazon.awssdk.services.rds.model.Parameter;
@@ -64,14 +67,15 @@ class ParameterGrouperTest {
     public void test() {
         int partitionSize = 3;
         Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
-        List<String[]> dependantKeyGroups = new ArrayList<>();
-        dependantKeyGroups.add(new String[] {"A", "C", "L"});
-        dependantKeyGroups.add(new String[] {"E", "F"});
-        dependantKeyGroups.add(new String[] {"I"});
-        dependantKeyGroups.add(new String[] {"M"});
+        final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+                ImmutableSet.of("A", "C", "L"),
+                ImmutableSet.of("E", "F"),
+                ImmutableSet.of("I"),
+                ImmutableSet.of("M")
+        );
 
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependantKeyGroups, partitionSize);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"A", "C", "I", "E", "F", "B", "D", "G", "H", "J"}, partitionSize);
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"A", "C", "B", "E", "F", "I", "D", "G", "H", "J"}, partitionSize);
         assertThat(partitions.size()).isEqualTo(4);
         assertThat(partitions).isEqualTo(expectedPartitions);
     }

@@ -9,6 +9,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.amazonaws.util.StringUtils;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
@@ -35,6 +37,11 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.dbparametergroup.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
+    // TODO: should be moved to the invoking class
+    public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+            ImmutableSet.of("collation_server", "character_set"),
+            ImmutableSet.of("gtid-mode", "enforce_gtid_consistency")
+    );
 
     protected static final ErrorRuleSet DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -174,7 +181,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
         Map<String, Parameter> parametersToReset = getParametersToReset(model, defaultEngineParameters, currentDBParameters);
-        for (List<Parameter> paramsPartition : ParameterGrouper.partition(parametersToReset, ParameterGrouper.getKnownDependantKeyGroups(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
+        for (List<Parameter> paramsPartition : ParameterGrouper.partition(parametersToReset, DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = resetParameters(proxy, model, callbackContext, paramsPartition, proxyClient, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
@@ -190,7 +197,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         ResourceModel model = progress.getResourceModel();
         CallbackContext callbackContext = progress.getCallbackContext();
         Map<String, Parameter> parametersToModify = getModifiableParameters(model, currentDBParameters);
-        for (List<Parameter> paramsPartition : ParameterGrouper.partition(parametersToModify, ParameterGrouper.getKnownDependantKeyGroups(), MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
+        for (List<Parameter> paramsPartition : ParameterGrouper.partition(parametersToModify, DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {  //modify api call is limited to 20 parameter per request
             ProgressEvent<ResourceModel, CallbackContext> progressEvent = modifyParameters(proxyClient, proxy, callbackContext, paramsPartition, model, requestLogger);
             if (progressEvent.isFailed()) return progressEvent;
         }
