@@ -261,6 +261,10 @@ _Required_: No
 
 _Type_: String
 
+_Minimum_: <code>1</code>
+
+_Maximum_: <code>63</code>
+
 _Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
