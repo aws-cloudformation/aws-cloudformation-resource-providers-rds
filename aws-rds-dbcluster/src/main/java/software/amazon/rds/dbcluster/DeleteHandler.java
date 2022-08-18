@@ -84,7 +84,7 @@ public class DeleteHandler extends BaseHandlerStd {
     ) {
         String snapshotIdentifier = null;
 
-        if (BooleanUtils.isTrue(request.getSnapshotRequested())) {
+        if (BooleanUtils.isNotFalse(request.getSnapshotRequested())) {
             snapshotIdentifier = snapshotIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())
                     .withResourceId(StringUtils.prependIfMissing(request.getLogicalResourceIdentifier(), SNAPSHOT_PREFIX))

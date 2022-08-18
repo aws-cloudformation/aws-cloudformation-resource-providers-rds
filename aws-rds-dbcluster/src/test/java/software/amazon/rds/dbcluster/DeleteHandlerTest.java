@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterResponse;
@@ -222,5 +223,32 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RequestFinalSnapshotIfNotExplicitlyRequested() {
+        final DeleteDbClusterResponse deleteDbClusterResponse = DeleteDbClusterResponse.builder().build();
+        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class))).thenReturn(deleteDbClusterResponse);
+
+        final CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setDeleting(true);
+
+        test_handleRequest_base(
+                callbackContext,
+                ResourceHandlerRequest.<ResourceModel>builder().snapshotRequested(null),
+                () -> {
+                    throw DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build();
+                },
+                null,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbClusterRequest> argument = ArgumentCaptor.forClass(DeleteDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBCluster(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertFalse(argument.getValue().skipFinalSnapshot());
+        Assertions.assertNotNull(argument.getValue().finalDBSnapshotIdentifier());
     }
 }
