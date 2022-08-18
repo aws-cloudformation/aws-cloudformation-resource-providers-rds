@@ -49,7 +49,7 @@ public class DeleteHandler extends BaseHandlerStd {
         // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
         // For AWS::RDS::DBInstance resources that don't specify the DBClusterIdentifier property, the default policy is Snapshot.
         // Final snapshots are not allowed for read replicas and cluster instances.
-        if (BooleanUtils.isTrue(request.getSnapshotRequested()) &&
+        if (BooleanUtils.isNotFalse(request.getSnapshotRequested()) &&
                 !ResourceModelHelper.isReadReplica(resourceModel) &&
                 !isDBClusterMember(resourceModel)) {
             snapshotIdentifier = snapshotIdentifierFactory.newIdentifier()
