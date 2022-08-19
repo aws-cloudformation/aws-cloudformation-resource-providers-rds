@@ -80,17 +80,6 @@ class ParameterGrouperTest {
         assertThat(partitions).isEqualTo(expectedPartitions);
     }
 
-    private void printParitions(List<List<Parameter>> partitions) {
-        int i = 0;
-        for (List<Parameter> partition : partitions) {
-            System.out.println("partition: " + i);
-            for (Parameter parameter : partition) {
-                System.out.println(parameter.parameterName());
-            }
-            i++;
-        }
-    }
-
     @Test
     public void test_withOnlyDependent() {
         int partitionSize = 3;
