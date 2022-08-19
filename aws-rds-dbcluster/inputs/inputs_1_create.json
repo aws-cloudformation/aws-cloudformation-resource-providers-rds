@@ -1,5 +1,5 @@
 {
-  "Engine": "aurora",
+  "Engine": "aurora-mysql",
   "MasterUsername": "guest",
   "MasterUserPassword": "guest123",
   "DBClusterIdentifier": "dbcluster-contract-test"
