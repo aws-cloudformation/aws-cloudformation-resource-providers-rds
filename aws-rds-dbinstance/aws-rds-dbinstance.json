@@ -468,7 +468,8 @@
       "permissions": [
         "rds:DeleteDBInstance",
         "rds:DescribeDBInstances"
-      ]
+      ],
+      "timeoutInMinutes": 2160
     },
     "list": {
       "permissions": [
