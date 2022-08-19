@@ -9,6 +9,7 @@ public enum ErrorCode {
     AccessDeniedException("AccessDeniedException"),
     ClientUnavailable("ClientUnavailable"),
     DBClusterAlreadyExistsFault("DBClusterAlreadyExistsFault"),
+    DBClusterNotFoundFault("DBClusterNotFoundFault"),
     DBInstanceAlreadyExists("DBInstanceAlreadyExists"),
     DBInstanceNotFound("DBInstanceNotFound"),
     DBParameterGroupNotFound("DBParameterGroupNotFound"),

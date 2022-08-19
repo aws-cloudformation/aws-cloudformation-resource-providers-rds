@@ -152,6 +152,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.MissingParameter,
                     ErrorCode.ProvisionedIopsNotAvailableInAZFault)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    ErrorCode.DBClusterNotFoundFault,
                     ErrorCode.DBParameterGroupNotFound,
                     ErrorCode.DBSecurityGroupNotFound,
                     ErrorCode.DBSnapshotNotFound,
