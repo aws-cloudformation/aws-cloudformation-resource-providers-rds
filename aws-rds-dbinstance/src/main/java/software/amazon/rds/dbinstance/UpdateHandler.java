@@ -32,6 +32,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -46,7 +47,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
+            final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,

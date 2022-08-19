@@ -6,16 +6,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -78,6 +81,8 @@ import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.request.RequestValidationException;
+import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
@@ -120,7 +125,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     // upon a stack deletion: if an instance is being deleted out-of-bounds. This is a pretty corner (still common) case
     // where the CFN handler is trying to help the customer. A regular stack deletion will not be impacted.
     // Considered bounded-safe.
-    protected static final String IS_ALREADY_BEING_DELETED_ERROR_MSG = "is already being deleted";
+    protected static final String IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT = "is already being deleted";
+
+    protected static final String ILLEGAL_DELETION_POLICY_ERROR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
+
+    protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
     protected final HandlerConfig config;
 
@@ -281,7 +290,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         if (StringUtils.isBlank(message)) {
             return false;
         }
-        return message.contains(IS_ALREADY_BEING_DELETED_ERROR_MSG);
+        return message.contains(IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT);
     }
 
     private static boolean isDBInstanceBeingDeletedException(final Exception e) {
@@ -295,20 +304,54 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return apiVersionDispatcher;
     }
 
+    protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        validateSourceRegion(request);
+    }
+
+    protected void validateSourceRegion(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        final ResourceModel model = request.getDesiredResourceState();
+        final String sourceRegion = model.getSourceRegion();
+        if (StringUtils.isNotBlank(sourceRegion)) {
+            final Set<String> regionNames = Region.regions().stream().map(Region::toString).collect(Collectors.toSet());
+            if (!regionNames.contains(sourceRegion.toLowerCase(Locale.getDefault()))) {
+                throw new RequestValidationException(UNKNOWN_SOURCE_REGION_ERROR);
+            }
+        }
+    }
+
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ValidatedRequest<ResourceModel> request,
+            final CallbackContext context,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger
+    );
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger);
+            final Logger logger
+    ) {
+        try {
+            validateRequest(request);
+        } catch (RequestValidationException exception) {
+            return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
+        }
+
+        return handleRequest(proxy, new ValidatedRequest<ResourceModel>(request), context, rdsProxyClient, ec2ProxyClient, logger);
+    }
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context,
-            final Logger logger) {
+            final Logger logger
+    ) {
         return RequestLogger.handleRequest(
                 logger,
                 request,

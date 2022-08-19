@@ -91,7 +91,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
-                .sourceRegion(model.getSourceRegion())
+                .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
