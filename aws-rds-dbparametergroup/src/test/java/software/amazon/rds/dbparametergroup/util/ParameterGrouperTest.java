@@ -25,6 +25,7 @@ import software.amazon.rds.dbparametergroup.ResourceModel;
 
 class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestBase<DBParameterGroup, ResourceModel, CallbackContext> {
     protected final String NON_PRESENT_DEPENDANT_PARAMETER = "this parameter won't be found";
+    protected final int PARAMETER_NAME_LEN = 10;
 
     private Parameter constructSimpleParameter(String parameterName) {
         return Parameter.builder()
@@ -68,9 +69,9 @@ class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestB
         return expectation.toArray(new String[expectation.size()]);
     }
 
-    private List<Set<String>> buildMockDependencies(List<String> randomParameterKeys, List<List<Integer>> data) {
+    private List<Set<String>> buildMockDependencies(List<String> randomParameterKeys, List<List<Integer>> dependenciesAsIndexesOfParameters) {
         List<Set<String>> mockDependencies = new LinkedList<>();
-        for (List<Integer> dependencyIndexs : data) {
+        for (List<Integer> dependencyIndexs : dependenciesAsIndexesOfParameters) {
             Set<String> s = new LinkedHashSet<>();
             for (int index : dependencyIndexs) {
                 if (index >= 0) {
@@ -84,83 +85,75 @@ class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestB
         return mockDependencies;
     }
 
+    public void test_helper(int partitionSize, List<List<Integer>> dependenciesAsIndexesOfParameters, List<Integer> expectationOrder, List<Integer> expectationPartitions) {
+        int listLen = expectationOrder.size();
+        List<String>  randomParameterKeys = generateRandomStringList(listLen, PARAMETER_NAME_LEN, ALPHA);
+        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
+        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
+                dependenciesAsIndexesOfParameters
+        );
+
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+                expectationOrder
+        ), expectationPartitions);
+        assertThat(partitions.size()).isEqualTo(expectationPartitions.size()+1);
+        assertThat(partitions).isEqualTo(expectedPartitions);
+    }
+
     @Test
     public void test_withDependentAndIndependentParameters() {
         int partitionSize = 3;
-        List<String> randomParameterKeys = generateRandomStringList(10, 10, ALPHA);
-        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
-        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
+        test_helper(partitionSize,
                 ImmutableList.of(
                         ImmutableList.of(0, 2, -1),
                         ImmutableList.of(4, 5),
                         ImmutableList.of(8),
                         ImmutableList.of(-1)
-                )
-        );
-
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+                ),
                 ImmutableList.of(
-                    0,2,1,
-                    4,5,8,
-                    3,6,7,
-                    9
-                )
-        ), ImmutableList.of(3,6,9));
-        assertThat(partitions.size()).isEqualTo(4);
-        assertThat(partitions).isEqualTo(expectedPartitions);
+                        0,2,1,
+                        4,5,8,
+                        3,6,7,
+                        9
+                ), ImmutableList.of(3,6,9)
+        );
     }
 
     @Test
     public void test_withOnlyDependent() {
         int partitionSize = 3;
-        List<String> randomParameterKeys = generateRandomStringList(8, 10, ALPHA);
-        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
-        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
-                                                                    ImmutableList.of(
-                                                                             ImmutableList.of(1, 2, 6),
-                                                                             ImmutableList.of(3, 4),
-                                                                             ImmutableList.of(5, 7),
-                                                                             ImmutableList.of(0)
-                                                                    )
-        );
-
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+        test_helper(partitionSize,
+                ImmutableList.of(
+                        ImmutableList.of(1, 2, 6),
+                        ImmutableList.of(3, 4),
+                        ImmutableList.of(5, 7),
+                        ImmutableList.of(0)
+                ),
                 ImmutableList.of(
                         0,
                         1,2,6,
                         3,4,
                         5,7
-                )
-        ), ImmutableList.of(1,4,6));
-        assertThat(partitions).isEqualTo(expectedPartitions);
-        assertThat(partitions.size()).isEqualTo(4);
+                ), ImmutableList.of(1,4,6)
+        );
     }
 
     @Test
     public void test_withOnlyIndependentParameters() {
         int partitionSize = 3;
-        List<String>  randomParameterKeys = generateRandomStringList(4, 10, ALPHA);
-        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
-        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
+        test_helper(partitionSize,
                 ImmutableList.of(
                         ImmutableList.of(-1, -1, -1),
                         ImmutableList.of(-1, -1),
                         ImmutableList.of(-1, -1),
                         ImmutableList.of(-1)
-                )
-        );
-
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+                ),
                 ImmutableList.of(
                         0,1,2,
                         3
-                )
-        ), ImmutableList.of(3));
-        assertThat(partitions.size()).isEqualTo(2);
-        assertThat(partitions).isEqualTo(expectedPartitions);
+                ), ImmutableList.of(3)
+        );
     }
 
     @Override
