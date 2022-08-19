@@ -2,6 +2,7 @@ package software.amazon.rds.dbparametergroup.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,23 +49,22 @@ class ParameterGrouperTest {
         return parametersToUpdate;
     }
 
-    private List<List<Parameter>> setUpExpectedPartition(String [] parameterNames, int partitionSize) {
+    private List<List<Parameter>> setUpExpectedPartition(String [] parameterNames, Set<Integer> partitionBreak) {
         List<List<Parameter>> partitions = new ArrayList<>();
-        List<Parameter> partition = null;
+        List<Parameter> partition = new ArrayList<>();
         for (int i = 0; i < parameterNames.length ; i++) {
-            if (partition == null || i%partitionSize == 0) {
+            partition.add(constructSimpleParameter(parameterNames[i]));
+            if (partitionBreak.contains(i+1)) {
+                partitions.add(partition);
                 partition = new ArrayList<>();
             }
-            partition.add(constructSimpleParameter(parameterNames[i]));
-            if (partition.size() == partitionSize || i+1 == parameterNames.length) {
-                partitions.add(partition);
-            }
         }
+        partitions.add(partition);
         return partitions;
     }
 
     @Test
-    public void test() {
+    public void test_withDependentAndIndependentParameters() {
         int partitionSize = 3;
         Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
         final List<Set<String>> DEPENDENCIES = ImmutableList.of(
@@ -75,8 +75,55 @@ class ParameterGrouperTest {
         );
 
         List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"A", "C", "B", "E", "F", "I", "D", "G", "H", "J"}, partitionSize);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"A", "C", "B", "E", "F", "I", "D", "G", "H", "J"}, ImmutableSet.of(3,6,9));
         assertThat(partitions.size()).isEqualTo(4);
+        assertThat(partitions).isEqualTo(expectedPartitions);
+    }
+
+    private void printParitions(List<List<Parameter>> partitions) {
+        int i = 0;
+        for (List<Parameter> partition : partitions) {
+            System.out.println("partition: " + i);
+            for (Parameter parameter : partition) {
+                System.out.println(parameter.parameterName());
+            }
+            i++;
+        }
+    }
+
+    @Test
+    public void test_withOnlyDependent() {
+        int partitionSize = 3;
+        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"K", "A", "C", "E", "F", "I", "L", "M"});
+        final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+                ImmutableSet.of("A", "C", "L"),
+                ImmutableSet.of("E", "F"),
+                ImmutableSet.of("I", "M"),
+                ImmutableSet.of("K")
+        );
+
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
+        ImmutableSet<Integer> a = ImmutableSet.of(0);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"K", "A", "C", "L", "E", "F", "I", "M"}, ImmutableSet.of(1,4,6));
+        assertThat(partitions.size()).isEqualTo(4);
+        assertThat(partitions).isEqualTo(expectedPartitions);
+    }
+
+    @Test
+    public void test_withOnlyIndependentParameters() {
+        int partitionSize = 3;
+        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"N", "O", "P", "Q"});
+        final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+                ImmutableSet.of("A", "C", "L"),
+                ImmutableSet.of("E", "F"),
+                ImmutableSet.of("I", "M"),
+                ImmutableSet.of("K")
+        );
+
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
+        ImmutableSet<Integer> a = ImmutableSet.of(0);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"N", "O", "P", "Q"}, ImmutableSet.of(3));
+        assertThat(partitions.size()).isEqualTo(2);
         assertThat(partitions).isEqualTo(expectedPartitions);
     }
 }
