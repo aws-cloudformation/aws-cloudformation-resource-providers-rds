@@ -1,37 +1,30 @@
 package software.amazon.rds.dbparametergroup.util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import lombok.Builder;
+import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.dbparametergroup.CallbackContext;
 import software.amazon.rds.dbparametergroup.ResourceModel;
 
-class ParameterGrouperTest {
 
-    @Builder
-    private static class EngineTestCase {
-        public String previous;
-        public String desired;
-        public boolean expect;
-    }
-
-    @Builder
-    private static class ResourceModelTestCase {
-        public ResourceModel previous;
-        public ResourceModel desired;
-        public boolean expect;
-    }
-
+class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestBase<DBParameterGroup, ResourceModel, CallbackContext> {
+    protected final String NON_PRESENT_DEPENDANT_PARAMETER = "this parameter won't be found";
 
     private Parameter constructSimpleParameter(String parameterName) {
         return Parameter.builder()
@@ -40,7 +33,7 @@ class ParameterGrouperTest {
                 .build();
     }
 
-    private Map<String, Parameter> setUpParametersToUpdate(String [] parameterNames) {
+    private Map<String, Parameter> setUpParametersToUpdate(List<String> parameterNames) {
         Map<String, Parameter> parametersToUpdate = new LinkedHashMap<>();
         for (String parameterName : parameterNames) {
             parametersToUpdate.put(parameterName, constructSimpleParameter(parameterName));
@@ -49,7 +42,7 @@ class ParameterGrouperTest {
         return parametersToUpdate;
     }
 
-    private List<List<Parameter>> setUpExpectedPartition(String [] parameterNames, Set<Integer> partitionBreak) {
+    private List<List<Parameter>> setUpExpectedPartition(String [] parameterNames, List<Integer> partitionBreak) {
         List<List<Parameter>> partitions = new ArrayList<>();
         List<Parameter> partition = new ArrayList<>();
         for (int i = 0; i < parameterNames.length ; i++) {
@@ -63,19 +56,57 @@ class ParameterGrouperTest {
         return partitions;
     }
 
+    private List<String> generateRandomStringList(int listLen, int wordLen, String alphabet) {
+        return Stream.generate(() -> randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
+    }
+
+    private String[] buildMockExceptionArrayFromExceptionOrder(List<String> randomParameterKeys, List<Integer> expectationOrder) {
+        List<String> expectation = new ArrayList<>();
+        for (int index : expectationOrder) {
+            expectation.add(randomParameterKeys.get(index));
+        }
+        return expectation.toArray(new String[expectation.size()]);
+    }
+
+    private List<Set<String>> buildMockDependencies(List<String> randomParameterKeys, List<List<Integer>> data) {
+        List<Set<String>> mockDependencies = new LinkedList<>();
+        for (List<Integer> dependencyIndexs : data) {
+            Set<String> s = new LinkedHashSet<>();
+            for (int index : dependencyIndexs) {
+                if (index >= 0) {
+                    s.add(randomParameterKeys.get(index));
+                } else {
+                    s.add(NON_PRESENT_DEPENDANT_PARAMETER);
+                }
+            }
+            mockDependencies.add(s);
+        }
+        return mockDependencies;
+    }
+
     @Test
     public void test_withDependentAndIndependentParameters() {
         int partitionSize = 3;
-        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
-        final List<Set<String>> DEPENDENCIES = ImmutableList.of(
-                ImmutableSet.of("A", "C", "L"),
-                ImmutableSet.of("E", "F"),
-                ImmutableSet.of("I"),
-                ImmutableSet.of("M")
+        List<String> randomParameterKeys = generateRandomStringList(10, 10, ALPHA);
+        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
+        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
+                ImmutableList.of(
+                        ImmutableList.of(0, 2, -1),
+                        ImmutableList.of(4, 5),
+                        ImmutableList.of(8),
+                        ImmutableList.of(-1)
+                )
         );
 
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"A", "C", "B", "E", "F", "I", "D", "G", "H", "J"}, ImmutableSet.of(3,6,9));
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+                ImmutableList.of(
+                    0,2,1,
+                    4,5,8,
+                    3,6,7,
+                    9
+                )
+        ), ImmutableList.of(3,6,9));
         assertThat(partitions.size()).isEqualTo(4);
         assertThat(partitions).isEqualTo(expectedPartitions);
     }
@@ -83,36 +114,67 @@ class ParameterGrouperTest {
     @Test
     public void test_withOnlyDependent() {
         int partitionSize = 3;
-        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"K", "A", "C", "E", "F", "I", "L", "M"});
-        final List<Set<String>> DEPENDENCIES = ImmutableList.of(
-                ImmutableSet.of("A", "C", "L"),
-                ImmutableSet.of("E", "F"),
-                ImmutableSet.of("I", "M"),
-                ImmutableSet.of("K")
+        List<String> randomParameterKeys = generateRandomStringList(8, 10, ALPHA);
+        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
+        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
+                                                                    ImmutableList.of(
+                                                                             ImmutableList.of(1, 2, 6),
+                                                                             ImmutableList.of(3, 4),
+                                                                             ImmutableList.of(5, 7),
+                                                                             ImmutableList.of(0)
+                                                                    )
         );
 
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
-        ImmutableSet<Integer> a = ImmutableSet.of(0);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"K", "A", "C", "L", "E", "F", "I", "M"}, ImmutableSet.of(1,4,6));
-        assertThat(partitions.size()).isEqualTo(4);
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+                ImmutableList.of(
+                        0,
+                        1,2,6,
+                        3,4,
+                        5,7
+                )
+        ), ImmutableList.of(1,4,6));
         assertThat(partitions).isEqualTo(expectedPartitions);
+        assertThat(partitions.size()).isEqualTo(4);
     }
 
     @Test
     public void test_withOnlyIndependentParameters() {
         int partitionSize = 3;
-        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(new String[] {"N", "O", "P", "Q"});
-        final List<Set<String>> DEPENDENCIES = ImmutableList.of(
-                ImmutableSet.of("A", "C", "L"),
-                ImmutableSet.of("E", "F"),
-                ImmutableSet.of("I", "M"),
-                ImmutableSet.of("K")
+        List<String>  randomParameterKeys = generateRandomStringList(4, 10, ALPHA);
+        Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
+        final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
+                ImmutableList.of(
+                        ImmutableList.of(-1, -1, -1),
+                        ImmutableList.of(-1, -1),
+                        ImmutableList.of(-1, -1),
+                        ImmutableList.of(-1)
+                )
         );
 
-        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, DEPENDENCIES, partitionSize);
-        ImmutableSet<Integer> a = ImmutableSet.of(0);
-        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(new String[] {"N", "O", "P", "Q"}, ImmutableSet.of(3));
+        List<List<Parameter>> partitions = ParameterGrouper.partition(parametersToUpdate, dependencies, partitionSize);
+        List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
+                ImmutableList.of(
+                        0,1,2,
+                        3
+                )
+        ), ImmutableList.of(3));
         assertThat(partitions.size()).isEqualTo(2);
         assertThat(partitions).isEqualTo(expectedPartitions);
+    }
+
+    @Override
+    protected String getLogicalResourceIdentifier() {
+        return null;
+    }
+
+    @Override
+    protected void expectResourceSupply(Supplier<DBParameterGroup> supplier) {
+
+    }
+
+    @Override
+    protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(ResourceHandlerRequest<ResourceModel> request, CallbackContext context) {
+        return null;
     }
 }
