@@ -37,7 +37,6 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.dbparametergroup.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
-    // TODO: should be moved to the invoking class
     public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
             ImmutableSet.of("collation_server", "character_set"),
             ImmutableSet.of("gtid-mode", "enforce_gtid_consistency")
