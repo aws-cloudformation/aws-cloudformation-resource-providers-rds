@@ -29,7 +29,7 @@ public class DeleteHandler extends BaseHandlerStd {
     );
 
     public DeleteHandler() {
-        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
+        this(DB_INSTANCE_HANDLER_CONFIG_36H);
     }
 
     public DeleteHandler(final HandlerConfig config) {
