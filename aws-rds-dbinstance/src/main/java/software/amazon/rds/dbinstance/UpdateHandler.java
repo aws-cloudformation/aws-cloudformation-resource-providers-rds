@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -99,6 +100,12 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> {
                     if (shouldUnsetMaxAllocatedStorage(request)) {
                         return unsetMaxAllocatedStorage(rdsClient, request, progress);
+                    }
+                    return progress;
+                })
+                .then(progress -> {
+                    if (isAllocatedStorageUpdateForStorageFullInstance(request, rdsClient)) {
+                        return increaseAllocatedStorage(proxy, rdsClient, progress);
                     }
                     return progress;
                 })
@@ -212,6 +219,26 @@ public class UpdateHandler extends BaseHandlerStd {
         return progress;
     }
 
+    private ProgressEvent<ResourceModel, CallbackContext> increaseAllocatedStorage(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::increase-allocated-storage", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::updateAllocatedStorageRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                                modifyRequest,
+                                proxyInvocation.client()::modifyDBInstance))
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
     private ProgressEvent<ResourceModel, CallbackContext> setParameterGroupName(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
@@ -261,6 +288,22 @@ public class UpdateHandler extends BaseHandlerStd {
         return request.getPreviousResourceState() != null &&
                 request.getPreviousResourceState().getMaxAllocatedStorage() != null &&
                 request.getDesiredResourceState().getMaxAllocatedStorage() == null;
+    }
+
+
+    private boolean isAllocatedStorageUpdateForStorageFullInstance(
+                           final ResourceHandlerRequest<ResourceModel> request,
+                    final ProxyClient<RdsClient> rdsProxyClient
+                    ) {
+        final boolean hasAllocatedStorageIncreased = request.getPreviousResourceState() != null &&
+                Translator.getAllocatedStorage(request.getDesiredResourceState()) > Translator.getAllocatedStorage(request.getPreviousResourceState());
+
+        if (!hasAllocatedStorageIncreased) {
+            return false;
+        }
+
+        final DBInstance instance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
+        return Objects.equals(instance.dbInstanceStatus(), STORAGE_FULL_STATUS);
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcId(

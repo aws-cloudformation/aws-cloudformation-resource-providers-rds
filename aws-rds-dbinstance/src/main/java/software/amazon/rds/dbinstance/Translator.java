@@ -279,6 +279,12 @@ public class Translator {
         return builder.build();
     }
 
+    public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {
+        return ModifyDbInstanceRequest.builder()
+                .allocatedStorage(getAllocatedStorage(desiredModel))
+                .build();
+    }
+
     public static ModifyDbInstanceRequest modifyDbInstanceRequest(
             final ResourceModel previousModel,
             final ResourceModel desiredModel,
