@@ -11,7 +11,6 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -23,11 +22,11 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.request.RequestValidationException;
+import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class CreateHandler extends BaseHandlerStd {
-
-    public static final String ILLEGAL_DELETION_POLICY_ERR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
 
     private static final IdentifierFactory instanceIdentifierFactory = new IdentifierFactory(
             STACK_NAME,
@@ -43,9 +42,21 @@ public class CreateHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
+    protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        super.validateRequest(request);
+        validateDeletionPolicyForClusterInstance(request);
+    }
+
+    private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        if (isDBClusterMember(request.getDesiredResourceState()) && BooleanUtils.isTrue(request.getSnapshotRequested())) {
+            throw new RequestValidationException(ILLEGAL_DELETION_POLICY_ERROR);
+        }
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
+            final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
@@ -53,10 +64,6 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
-
-        if (BooleanUtils.isTrue(request.getSnapshotRequested()) && StringUtils.hasValue(model.getDBClusterIdentifier())) {
-            return ProgressEvent.failed(model, callbackContext, HandlerErrorCode.InvalidRequest, ILLEGAL_DELETION_POLICY_ERR);
-        }
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
             model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()

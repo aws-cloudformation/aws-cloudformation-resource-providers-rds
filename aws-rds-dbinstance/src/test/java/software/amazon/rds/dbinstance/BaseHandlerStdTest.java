@@ -3,10 +3,9 @@ package software.amazon.rds.dbinstance;
 import java.time.Instant;
 import java.util.Collections;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import org.assertj.core.api.Assertions;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -24,6 +23,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.request.RequestValidationException;
+import software.amazon.rds.dbinstance.request.ValidatedRequest;
 
 class BaseHandlerStdTest {
 
@@ -34,7 +35,14 @@ class BaseHandlerStdTest {
         }
 
         @Override
-        protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(AmazonWebServicesClientProxy proxy, ResourceHandlerRequest<ResourceModel> request, CallbackContext context, VersionedProxyClient<RdsClient> rdsProxyClient, VersionedProxyClient<Ec2Client> ec2ProxyClient, Logger logger) {
+        protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+                AmazonWebServicesClientProxy proxy,
+                ValidatedRequest<ResourceModel> request,
+                CallbackContext context,
+                VersionedProxyClient<RdsClient> rdsProxyClient,
+                VersionedProxyClient<Ec2Client> ec2ProxyClient,
+                Logger logger
+        ) {
             return null;
         }
     }
@@ -477,5 +485,27 @@ class BaseHandlerStdTest {
                         )
                         .build()
         )).isFalse();
+    }
+
+    @Test
+    void validateRequest_BlankRegionIsAccepted() {
+        final ResourceHandlerRequest<ResourceModel> request = new ResourceHandlerRequest<>();
+        request.setDesiredResourceState(ResourceModel.builder()
+                .sourceRegion("")
+                .build());
+        Assertions.assertThatNoException().isThrownBy(() -> {
+            handler.validateRequest(request);
+        });
+    }
+
+    @Test
+    void validateRequest_UnknownRegionIsRejected() {
+        final ResourceHandlerRequest<ResourceModel> request = new ResourceHandlerRequest<>();
+        request.setDesiredResourceState(ResourceModel.builder()
+                .sourceRegion("foo-bar-baz")
+                .build());
+        Assertions.assertThatExceptionOfType(RequestValidationException.class).isThrownBy(() -> {
+            handler.validateRequest(request);
+        });
     }
 }
