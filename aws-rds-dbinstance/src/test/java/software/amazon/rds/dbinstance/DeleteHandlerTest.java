@@ -85,7 +85,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_Success() {
         final DeleteDbInstanceResponse deleteDbInstanceResponse = DeleteDbInstanceResponse.builder().build();
         when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenReturn(deleteDbInstanceResponse);
 
@@ -259,6 +259,30 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
         assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
         assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RequestFinalSnapshotIfNotExplicitlyRequested() {
+        final DeleteDbInstanceResponse deleteDbInstanceResponse = DeleteDbInstanceResponse.builder().build();
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenReturn(deleteDbInstanceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().snapshotRequested(null),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().skipFinalSnapshot()).isFalse();
+        assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNotNull();
     }
 
     @Test

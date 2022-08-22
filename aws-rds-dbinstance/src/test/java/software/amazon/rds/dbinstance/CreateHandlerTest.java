@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -1356,7 +1357,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbCluster_DomainNotFoundException() {
+    public void handleRequest_CreateDBInstance_DomainNotFoundException() {
         when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
                 .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
 
@@ -1452,5 +1453,59 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_UpdateEngineVersion() {
+        final String snapshotEngineVersion = ENGINE_VERSION_MYSQL_56;
+        final String requestedEngineVersion = ENGINE_VERSION_MYSQL_80;
+
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .engineVersion(snapshotEngineVersion)
+                        .build(),
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .engineVersion(requestedEngineVersion)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+        Assertions.assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_DBClusterNotFoundFault() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.DBClusterNotFoundFault.toString())
+                                .build())
+                        .build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.NotFound)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 }

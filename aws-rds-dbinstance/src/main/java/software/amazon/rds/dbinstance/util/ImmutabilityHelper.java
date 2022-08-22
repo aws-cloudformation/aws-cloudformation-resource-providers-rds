@@ -2,10 +2,11 @@ package software.amazon.rds.dbinstance.util;
 
 import java.util.List;
 
+import com.amazonaws.util.StringUtils;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
-import io.netty.util.internal.StringUtil;
 import software.amazon.rds.dbinstance.ResourceModel;
+
 
 public final class ImmutabilityHelper {
 
@@ -42,12 +43,18 @@ public final class ImmutabilityHelper {
 
     static boolean isPerformanceInsightsKMSKeyIdMutable(final ResourceModel previous, final ResourceModel desired) {
 
-        return StringUtil.isNullOrEmpty(previous.getPerformanceInsightsKMSKeyId()) ||
+        return StringUtils.isNullOrEmpty(previous.getPerformanceInsightsKMSKeyId()) ||
                 Objects.equal(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId());
+    }
+
+    static boolean isAvailabilityZoneChangeMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getAvailabilityZone(), desired.getAvailabilityZone()) ||
+                (StringUtils.isNullOrEmpty(desired.getAvailabilityZone()) && desired.getMultiAZ());
     }
 
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return isEngineMutable(previous, desired) &&
-                isPerformanceInsightsKMSKeyIdMutable(previous, desired);
+                isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
+                isAvailabilityZoneChangeMutable(previous, desired);
     }
 }

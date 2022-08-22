@@ -125,4 +125,32 @@ class ImmutabilityHelperTest {
             assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
         }
     }
+
+    @Test
+    public void test_isAvailabilityZoneChangeMutable() {
+        final List<ResourceModelTestCase> tests = Arrays.asList(
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().availabilityZone("old").build())
+                        .desired(ResourceModel.builder().availabilityZone("old").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().availabilityZone("old").build())
+                        .desired(ResourceModel.builder().availabilityZone("new").build())
+                        .expect(false)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().availabilityZone("old").build())
+                        .desired(ResourceModel.builder().availabilityZone(null).multiAZ(true).build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().multiAZ(true).build())
+                        .desired(ResourceModel.builder().multiAZ(false).build())
+                        .expect(true)
+                        .build());
+        for (final ResourceModelTestCase test : tests) {
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+        }
+    }
 }
