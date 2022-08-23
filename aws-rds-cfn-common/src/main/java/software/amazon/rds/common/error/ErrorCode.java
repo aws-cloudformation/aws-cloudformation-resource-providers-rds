@@ -16,6 +16,7 @@ public enum ErrorCode {
     DBSecurityGroupNotFound("DBSecurityGroupNotFound"),
     DBSnapshotAlreadyExists("DBSnapshotAlreadyExists"),
     DBSnapshotNotFound("DBSnapshotNotFound"),
+    DBSubnetGroupNotAllowedFault("DBSubnetGroupNotAllowedFault"),
     DBSubnetGroupNotFoundFault("DBSubnetGroupNotFoundFault"),
     InstanceQuotaExceeded("InstanceQuotaExceeded"),
     InsufficientDBInstanceCapacity("InsufficientDBInstanceCapacity"),
