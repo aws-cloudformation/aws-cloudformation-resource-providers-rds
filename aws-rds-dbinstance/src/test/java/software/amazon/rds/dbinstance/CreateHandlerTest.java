@@ -1508,4 +1508,23 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
+
+    @Test
+    public void handleRequest_CreateDBInstance_StorageTypeNotSupportedFault() {
+        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(ErrorCode.StorageTypeNotSupportedFault.toString())
+                                .build())
+                        .build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
 }

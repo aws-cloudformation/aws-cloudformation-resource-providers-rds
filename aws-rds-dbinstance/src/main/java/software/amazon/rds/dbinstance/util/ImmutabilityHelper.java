@@ -42,7 +42,6 @@ public final class ImmutabilityHelper {
     }
 
     static boolean isPerformanceInsightsKMSKeyIdMutable(final ResourceModel previous, final ResourceModel desired) {
-
         return StringUtils.isNullOrEmpty(previous.getPerformanceInsightsKMSKeyId()) ||
                 Objects.equal(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId());
     }

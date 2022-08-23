@@ -159,7 +159,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.InvalidVPCNetworkStateFault,
                     ErrorCode.KMSKeyNotAccessibleFault,
                     ErrorCode.MissingParameter,
-                    ErrorCode.ProvisionedIopsNotAvailableInAZFault)
+                    ErrorCode.ProvisionedIopsNotAvailableInAZFault,
+                    ErrorCode.StorageTypeNotSupportedFault)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DBClusterNotFoundFault,
                     ErrorCode.DBParameterGroupNotFound,

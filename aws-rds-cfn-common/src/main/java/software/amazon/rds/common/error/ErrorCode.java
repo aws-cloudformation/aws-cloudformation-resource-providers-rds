@@ -34,6 +34,7 @@ public enum ErrorCode {
     ProvisionedIopsNotAvailableInAZFault("ProvisionedIopsNotAvailableInAZFault"),
     SnapshotQuotaExceeded("SnapshotQuotaExceeded"),
     StorageQuotaExceeded("StorageQuotaExceeded"),
+    StorageTypeNotSupportedFault("StorageTypeNotSupportedFault"),
     ThrottlingException("ThrottlingException"),
     Throttling("Throttling"),
     DefaultVpcDoesNotExist("DefaultVpcDoesNotExist");
