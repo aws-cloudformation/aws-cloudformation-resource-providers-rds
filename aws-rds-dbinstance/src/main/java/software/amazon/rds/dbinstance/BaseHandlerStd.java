@@ -132,6 +132,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
+    protected static final String INSTANCE_IS_IN_STORAGE_FULL_STATE_ERROR_MSG = "Instance is in storage-full state. Please increase Allocated size and try the update again";
+
     protected final HandlerConfig config;
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;

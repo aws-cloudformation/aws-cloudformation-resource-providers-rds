@@ -157,6 +157,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(false);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -188,6 +189,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(false);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -222,6 +224,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(false);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -253,6 +256,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(true);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -278,6 +282,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(true);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -320,6 +325,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
         context.setRebooted(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -383,6 +389,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
         context.setRebooted(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -405,6 +412,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
         context.setRebooted(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -432,6 +440,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(true);
         context.setRebooted(true);
         context.setUpdatedRoles(false);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -476,6 +485,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
         context.setRebooted(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -522,6 +532,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdated(true);
         context.setRebooted(false);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -551,6 +562,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setRebooted(true);
         context.setUpdatedRoles(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -591,6 +603,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -620,6 +633,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -701,6 +715,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -729,6 +744,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageFullHandled(true);
+
 
         // Altering the db parameter group name attribute invokes setParameterGroupName
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
@@ -763,6 +780,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -784,6 +802,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_NoDefaultVpcIdForClusterInstance() {
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -1017,6 +1036,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_EmptyVpcSecurityGroupIdList() {
         final CallbackContext context = new CallbackContext();
         context.setUpdated(false);
+        context.setStorageFullHandled(true);
 
         test_handleRequest_base(
                 context,
@@ -1061,8 +1081,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
             final Object requestException,
             final HandlerErrorCode expectResponseCode
     ) {
+        final CallbackContext context = new CallbackContext();
+        context.setStorageFullHandled(true);
+
         test_handleRequest_error(
-                new CallbackContext(),
+                context,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_ALTER,
                 ModifyDbInstanceRequest.class,
@@ -1070,5 +1093,79 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 requestException,
                 expectResponseCode
         );
+    }
+
+    @Test
+    public void handleRequest_StorageFull() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>();
+
+        transitions.add(DB_INSTANCE_STORAGE_FULL);
+        transitions.add(DB_INSTANCE_ACTIVE);
+        transitions.add(DB_INSTANCE_ACTIVE); // one extra for the read handler
+
+        test_handleRequest_base(
+                context,
+                transitions::remove,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().
+                        allocatedStorage(ALLOCATED_STORAGE_INCR.toString()).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client()).modifyDBInstance(captor.capture());
+
+        final ModifyDbInstanceRequest expected = ModifyDbInstanceRequest.builder()
+                .dbInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR)
+                .applyImmediately(true)
+                .build();
+
+        Assertions.assertThat(captor.getValue().equalsBySdkFields(expected)).isTrue();
+    }
+
+    @Test
+    public void handleRequest_StorageIsNotFull() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().
+                        allocatedStorage(ALLOCATED_STORAGE_INCR.toString()).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_StorageFullRequestDoesNotAlterStorage() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_STORAGE_FULL,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 }

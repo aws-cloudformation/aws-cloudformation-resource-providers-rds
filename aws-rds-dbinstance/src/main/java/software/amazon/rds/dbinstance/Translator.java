@@ -281,7 +281,9 @@ public class Translator {
 
     public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {
         return ModifyDbInstanceRequest.builder()
+                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .allocatedStorage(getAllocatedStorage(desiredModel))
+                .applyImmediately(Boolean.TRUE)
                 .build();
     }
 

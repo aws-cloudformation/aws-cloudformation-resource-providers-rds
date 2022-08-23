@@ -103,12 +103,20 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> {
-                    if (isAllocatedStorageUpdateForStorageFullInstance(request, rdsClient)) {
-                        return increaseAllocatedStorage(proxy, rdsClient, progress);
+                .then(progress -> Commons.execOnce(progress, () -> {
+                    if (isInstanceInStorageFullState(request, rdsClient, progress)) {
+                        if (isAllocatedStorageIncrease(request)) {
+                            return increaseAllocatedStorage(proxy, rdsClient, progress);
+                        }
+                        return ProgressEvent.failed(
+                                request.getDesiredResourceState(),
+                                callbackContext,
+                                HandlerErrorCode.InvalidRequest,
+                                INSTANCE_IS_IN_STORAGE_FULL_STATE_ERROR_MSG
+                        );
                     }
                     return progress;
-                })
+                }, CallbackContext::isStorageFullHandled, CallbackContext::setStorageFullHandled))
                 .then(progress -> Commons.execOnce(progress, () ->
                                 versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                                         /*
@@ -224,6 +232,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        progress.getCallbackContext().setStorageFullInProgress(true);
         return proxy.initiate("rds::increase-allocated-storage", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::updateAllocatedStorageRequest)
                 .backoffDelay(config.getBackoff())
@@ -291,19 +300,30 @@ public class UpdateHandler extends BaseHandlerStd {
     }
 
 
-    private boolean isAllocatedStorageUpdateForStorageFullInstance(
-                           final ResourceHandlerRequest<ResourceModel> request,
-                    final ProxyClient<RdsClient> rdsProxyClient
-                    ) {
-        final boolean hasAllocatedStorageIncreased = request.getPreviousResourceState() != null &&
+    private boolean isAllocatedStorageIncrease(
+            final ResourceHandlerRequest<ResourceModel> request
+    ) {
+        return BooleanUtils.isNotTrue(request.getRollback()) &&
+                request.getPreviousResourceState() != null &&
                 Translator.getAllocatedStorage(request.getDesiredResourceState()) > Translator.getAllocatedStorage(request.getPreviousResourceState());
+    }
 
-        if (!hasAllocatedStorageIncreased) {
-            return false;
+    private boolean isInstanceInStorageFullState(
+            final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        // need to store this in the context to prevent premature exit from storage-full-handle
+        if (progress.getCallbackContext().isStorageFullInProgress()) {
+            return true;
         }
 
-        final DBInstance instance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
-        return Objects.equals(instance.dbInstanceStatus(), STORAGE_FULL_STATUS);
+        try {
+            final DBInstance instance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
+            return Objects.equals(instance.dbInstanceStatus(), STORAGE_FULL_STATUS);
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcId(
