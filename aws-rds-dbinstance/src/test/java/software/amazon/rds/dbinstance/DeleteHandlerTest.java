@@ -35,7 +35,6 @@ import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
-import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -147,7 +146,6 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
-
 
 
     @Test
@@ -272,6 +270,30 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
         assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
         assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
+    }
+
+    @Test
+    public void handleRequest_DeleteAutomatedBackups() {
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class)))
+                .thenReturn(DeleteDbInstanceResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .deleteAutomatedBackups(true)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().deleteAutomatedBackups()).isTrue();
     }
 
     static class DeleteDBInstanceExceptionArgumentProvider implements ArgumentsProvider {
