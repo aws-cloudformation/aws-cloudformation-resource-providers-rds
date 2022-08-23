@@ -1,18 +1,25 @@
 package software.amazon.rds.dbinstance;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
@@ -21,11 +28,13 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.Endpoint;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
 import software.amazon.rds.dbinstance.client.ApiVersion;
@@ -154,6 +163,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String MSG_ALREADY_EXISTS_ERR = "DBInstance already exists";
     protected static final String MSG_NOT_FOUND_ERR = "DBInstance not found";
     protected static final String MSG_RUNTIME_ERR = "Runtime error";
+    protected static final String MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR = "Requested domain some_domain does not exist";
 
     protected static final ResourceModel RESOURCE_MODEL_NO_IDENTIFIER;
     protected static final ResourceModel RESOURCE_MODEL_ALTER;
@@ -636,5 +646,62 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
         }
 
         return result;
+    }
+
+    protected static AwsServiceException newAwsServiceException(final ErrorCode errorCode) {
+        return AwsServiceException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode(errorCode.toString())
+                        .build())
+                .build();
+    }
+
+    protected void test_handleRequest_error(
+            final CallbackContext context,
+            final Supplier<ResourceModel> desiredStateSupplier,
+            final Class<?> requestClass,
+            final String methodHandle,
+            final Object requestException,
+            final HandlerErrorCode errorCode
+    ) {
+        test_handleRequest_error(
+                context,
+                null,
+                desiredStateSupplier,
+                requestClass,
+                methodHandle,
+                requestException,
+                errorCode
+        );
+    }
+
+    protected void test_handleRequest_error(
+            final CallbackContext context,
+            final Supplier<ResourceModel> previousStateSupplier,
+            final Supplier<ResourceModel> desiredStateSupplier,
+            final Class<?> requestClass,
+            final String methodHandle,
+            final Object requestException,
+            final HandlerErrorCode expectErrorCode
+    ) {
+        final Exception exception = requestException instanceof ErrorCode ? newAwsServiceException((ErrorCode) requestException) : (Exception) requestException;
+
+        try {
+            Method invokeMethod = RdsClient.class.getMethod(methodHandle, requestClass);
+
+            when(invokeMethod.invoke(getRdsProxy().client(), any(requestClass)))
+                    .thenThrow(exception);
+
+            test_handleRequest_base(
+                    context,
+                    null,
+                    previousStateSupplier,
+                    desiredStateSupplier,
+                    expectFailed(expectErrorCode)
+            );
+            invokeMethod.invoke(verify(getRdsProxy().client(), times(1)), any(requestClass));
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            Assertions.fail("Unexpected reflect level exception: " + e.getMessage());
+        }
     }
 }

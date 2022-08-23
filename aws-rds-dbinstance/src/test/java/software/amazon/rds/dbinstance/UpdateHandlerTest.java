@@ -13,12 +13,18 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,7 +32,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
-import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
@@ -57,7 +62,6 @@ import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRespon
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
-import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
@@ -238,81 +242,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(argument.getValue().maxAllocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
 
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-    }
-
-    @Test
-    public void handleRequest_InitiatesModifyRequest_InvalidDBInstanceState() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenThrow(RdsException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.InvalidDBInstanceState.toString())
-                                .build())
-                        .build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setUpdated(false);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_ALTER,
-                expectFailed(HandlerErrorCode.ResourceConflict)
-        );
-
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_InitiatesModifyRequest_InvalidParameterCombination() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenThrow(RdsException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.InvalidParameterCombination.toString())
-                                .build())
-                        .build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setUpdated(false);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_ALTER,
-                expectFailed(HandlerErrorCode.ResourceConflict)
-        );
-
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_InitiatesModifyRequest_InvalidDBSecurityGroupState() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenThrow(RdsException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.InvalidDBSecurityGroupState.toString())
-                                .build())
-                        .build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setUpdated(false);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_ALTER,
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
     }
 
     @Test
@@ -1110,5 +1039,36 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+    }
+
+    static class ModifyDBInstanceExceptionArgumentProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    Arguments.of(ErrorCode.InvalidDBInstanceState, HandlerErrorCode.ResourceConflict),
+                    Arguments.of(ErrorCode.InvalidDBSecurityGroupState, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.InvalidParameterCombination, HandlerErrorCode.ResourceConflict)
+                    // Put exception classes below
+                    // <empty>
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ModifyDBInstanceExceptionArgumentProvider.class)
+    public void handleRequest_ModifyDBInstance_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
+                new CallbackContext(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_ALTER,
+                ModifyDbInstanceRequest.class,
+                "modifyDBInstance",
+                requestException,
+                expectResponseCode
+        );
     }
 }

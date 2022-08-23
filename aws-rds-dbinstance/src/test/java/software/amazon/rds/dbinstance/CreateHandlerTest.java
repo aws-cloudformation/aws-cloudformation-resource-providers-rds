@@ -13,12 +13,18 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,7 +32,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -308,85 +313,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(argument.getValue().multiAZ()).isNull();
     }
 
-    @Test
-    public void handleRequest_RestoreDBInstanceFromSnapshot_AlreadyExists() {
-        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
-                .thenThrow(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
-                expectFailed(HandlerErrorCode.AlreadyExists)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
-    }
-
-    @Test
-    public void handleRequest_RestoreDBInstanceFromSnapshot_RuntimeException() {
-        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
-                .thenThrow(new RuntimeException(MSG_RUNTIME_ERR));
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
-    }
-
-    @Test
-    public void handleRequest_RestoreDBInstanceFromSnapshot_InvalidDBSnapshotState() {
-        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.InvalidDBSnapshotState.toString())
-                                        .build()
-                                ).build());
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
-    }
-
-    @Test
-    public void handleRequest_RestoreDBInstanceFromSnapshot_InvalidRestoreFault() {
-        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.InvalidRestoreFault.toString())
-                                        .build()
-                                ).build());
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
-    }
 
     @Test
     public void handleRequest_CreateReadReplica_Create_Success() {
@@ -538,122 +464,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateReadReplica_AlreadyExists() {
-        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
-                .thenThrow(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_READ_REPLICA,
-                expectFailed(HandlerErrorCode.AlreadyExists)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateReadReplica_RuntimeException() {
-        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
-                .thenThrow(new RuntimeException(MSG_RUNTIME_ERR));
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_READ_REPLICA,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateNewInstance_AlreadyExists() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.AlreadyExists)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateNewInstance_RuntimeException() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(new RuntimeException(MSG_RUNTIME_ERR));
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateNewInstance_InvalidParameterCombinationException() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.InvalidParameterCombination.toString())
-                                        .build()
-                                ).build());
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateNewInstance_ThrottlingException() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.ThrottlingException.toString())
-                                        .build()
-                                ).build());
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.Throttling)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 
     @Test
@@ -1357,21 +1167,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDBInstance_DomainNotFoundException() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.NotFound)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
-    }
-
-    @Test
     public void handleRequest_RestoreFromSnapshot_EmptyVpcSecurityGroupIdList() {
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
@@ -1490,41 +1285,96 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
     }
 
-    @Test
-    public void handleRequest_CreateDBInstance_DBClusterNotFoundFault() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(AwsServiceException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.DBClusterNotFoundFault.toString())
-                                .build())
-                        .build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.NotFound)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    static class CreateDBInstanceExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    Arguments.of(ErrorCode.DBClusterNotFoundFault, HandlerErrorCode.NotFound),
+                    Arguments.of(ErrorCode.DBSubnetGroupNotAllowedFault, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.InvalidParameterCombination, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.ThrottlingException, HandlerErrorCode.Throttling),
+                    // Put exception classes below
+                    Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(DomainNotFoundException.builder().message(MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR).build(), HandlerErrorCode.NotFound),
+                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+            );
+        }
     }
 
-    @Test
-    public void handleRequest_CreateDBInstance_StorageTypeNotSupportedFault() {
-        when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenThrow(AwsServiceException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.StorageTypeNotSupportedFault.toString())
-                                .build())
-                        .build());
-
-        test_handleRequest_base(
+    @ParameterizedTest
+    @ArgumentsSource(CreateDBInstanceExceptionArgumentsProvider.class)
+    public void handleRequest_CreateDBInstance_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
                 new CallbackContext(),
-                null,
                 () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InvalidRequest)
+                CreateDbInstanceRequest.class,
+                "createDBInstance",
+                requestException,
+                expectResponseCode
         );
+    }
 
-        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    static class CreateDBInstanceReadReplicaExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    // <empty>
+                    // Put exception classes below
+                    Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(CreateDBInstanceReadReplicaExceptionArgumentsProvider.class)
+    public void handleRequest_CreateDBInstanceReadReplica_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
+                new CallbackContext(),
+                () -> RESOURCE_MODEL_READ_REPLICA,
+                CreateDbInstanceReadReplicaRequest.class,
+                "createDBInstanceReadReplica",
+                requestException,
+                expectResponseCode
+        );
+    }
+
+    static class RestoreDBInstanceFromSnapshotExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    Arguments.of(ErrorCode.InvalidDBSnapshotState, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.InvalidRestoreFault, HandlerErrorCode.InvalidRequest),
+                    // Put exception classes below
+                    Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(RestoreDBInstanceFromSnapshotExceptionArgumentsProvider.class)
+    public void handleRequest_RestoreDBInstanceFromSnapshot_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
+                new CallbackContext(),
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
+                RestoreDbInstanceFromDbSnapshotRequest.class,
+                "restoreDBInstanceFromDBSnapshot",
+                requestException,
+                expectResponseCode
+        );
     }
 }

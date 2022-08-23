@@ -67,7 +67,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_Success() {
         final DescribeDbInstancesResponse describeDbInstanceResponse = DescribeDbInstancesResponse.builder()
                 .dbInstances(Collections.singletonList(
                         DBInstance.builder()
