@@ -403,7 +403,8 @@ public class Translator {
             final String finalDBSnapshotIdentifier
     ) {
         final DeleteDbInstanceRequest.Builder builder = DeleteDbInstanceRequest.builder()
-                .dbInstanceIdentifier(model.getDBInstanceIdentifier());
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .deleteAutomatedBackups(model.getDeleteAutomatedBackups());
         if (StringUtils.isEmpty(finalDBSnapshotIdentifier)) {
             builder.skipFinalSnapshot(true);
         } else {
