@@ -96,6 +96,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     static final String IN_SYNC_STATUS = "in-sync";
     static final String PENDING_REBOOT_STATUS = "pending-reboot";
     static final String READ_REPLICA_STATUS = "read replication";
+    static final String STORAGE_FULL_STATUS = "storage-full";
     static final String READ_REPLICA_STATUS_REPLICATING = "replicating";
     static final String VPC_SECURITY_GROUP_STATUS_ACTIVE = "active";
     static final String DOMAIN_MEMBERSHIP_JOINED = "joined";
