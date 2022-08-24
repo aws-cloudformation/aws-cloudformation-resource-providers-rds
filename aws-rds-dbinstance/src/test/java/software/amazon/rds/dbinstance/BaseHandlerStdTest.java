@@ -493,9 +493,9 @@ class BaseHandlerStdTest {
         request.setDesiredResourceState(ResourceModel.builder()
                 .sourceRegion("")
                 .build());
-        Assertions.assertThatNoException().isThrownBy(() -> {
+        Assertions.assertThatCode(() -> {
             handler.validateRequest(request);
-        });
+        }).doesNotThrowAnyException();
     }
 
     @Test

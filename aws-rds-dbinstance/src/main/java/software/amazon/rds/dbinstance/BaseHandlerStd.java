@@ -154,6 +154,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.SnapshotQuotaExceeded,
                     ErrorCode.StorageQuotaExceeded)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    ErrorCode.DBSubnetGroupNotAllowedFault,
                     ErrorCode.InvalidParameterCombination,
                     ErrorCode.InvalidParameterValue,
                     ErrorCode.InvalidVPCNetworkStateFault,

@@ -11,11 +11,17 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,7 +35,6 @@ import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
-import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -142,76 +147,6 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
-    @Test
-    public void handleRequest_InvalidDBInstanceState() {
-        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenThrow(
-                RdsException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.InvalidDBInstanceState.toString())
-                                .build()
-                        ).build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.ResourceConflict)
-        );
-
-        verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_InvalidParameterValue() {
-        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenThrow(
-                RdsException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.InvalidParameterValue.toString())
-                                .build()
-                        ).build());
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_DBSnapshotAlreadyExists() {
-        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenThrow(
-                RdsException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.DBSnapshotAlreadyExists.toString())
-                                .build()
-                        ).build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
-    }
-
-    @Test
-    public void handleRequest_RuntimeException() {
-        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenThrow(new RuntimeException(MSG_RUNTIME_ERR));
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).deleteDBInstance(any(DeleteDbInstanceRequest.class));
-    }
 
     @Test
     public void handleRequest_IsDeleting_Stabilize() {
@@ -335,5 +270,59 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
         assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
         assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
+    }
+
+    @Test
+    public void handleRequest_DeleteAutomatedBackups() {
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class)))
+                .thenReturn(DeleteDbInstanceResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .deleteAutomatedBackups(true)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().deleteAutomatedBackups()).isTrue();
+    }
+
+    static class DeleteDBInstanceExceptionArgumentProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    Arguments.of(ErrorCode.DBSnapshotAlreadyExists, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.InvalidDBInstanceState, HandlerErrorCode.ResourceConflict),
+                    Arguments.of(ErrorCode.InvalidParameterValue, HandlerErrorCode.InvalidRequest),
+                    // Put exception classes below
+                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(DeleteDBInstanceExceptionArgumentProvider.class)
+    public void handleRequest_DeleteDBInstance_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
+                new CallbackContext(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                DeleteDbInstanceRequest.class,
+                "deleteDBInstance",
+                requestException,
+                expectResponseCode
+        );
     }
 }

@@ -123,5 +123,4 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
 
         return response;
     }
-
 }
