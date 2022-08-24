@@ -49,6 +49,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
+import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceRoleAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbInstanceRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
@@ -1151,7 +1152,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_StorageFullRequestDoesNotAlterStorage() {
+    public void handleRequest_StorageFullRequestFetchingInstanceFails() {
         expectServiceInvocation = false;
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true);
@@ -1160,10 +1161,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                () -> DB_INSTANCE_STORAGE_FULL,
+                () -> { throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build(); },
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_BLDR().build(),
-                expectFailed(HandlerErrorCode.InvalidRequest)
+                expectFailed(HandlerErrorCode.NotFound)
         );
 
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));

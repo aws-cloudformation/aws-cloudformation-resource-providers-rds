@@ -104,18 +104,16 @@ public class UpdateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (shouldAllocateStorage(request, rdsClient, progress)) {
-                        if (isAllocatedStorageIncrease(request)) {
-                            return allocateStorage(proxy, rdsClient, progress);
+                    try {
+                        if (shouldAllocateStorage(request, rdsClient, progress)) {
+                            if (isAllocatedStorageIncrease(request)) {
+                                return allocateStorage(proxy, rdsClient, progress);
+                            }
                         }
-                        return ProgressEvent.failed(
-                                request.getDesiredResourceState(),
-                                callbackContext,
-                                HandlerErrorCode.InvalidRequest,
-                                INSTANCE_IS_IN_STORAGE_FULL_STATE_ERROR_MSG
-                        );
+                        return progress;
+                    } catch (Exception ex) {
+                        return Commons.handleException(progress, ex, MODIFY_DB_INSTANCE_ERROR_RULE_SET);
                     }
-                    return progress;
                 }, CallbackContext::isStorageAllocated, CallbackContext::setStorageAllocated))
                 .then(progress -> Commons.execOnce(progress, () ->
                                 versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
@@ -317,12 +315,8 @@ public class UpdateHandler extends BaseHandlerStd {
         if (progress.getCallbackContext().isAllocatingStorage()) {
             return true;
         }
-        try {
-            final DBInstance instance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
-            return Objects.equals(instance.dbInstanceStatus(), STORAGE_FULL_STATUS);
-        } catch (Exception ex) {
-            return false;
-        }
+        final DBInstance instance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
+        return Objects.equals(instance.dbInstanceStatus(), STORAGE_FULL_STATUS);
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcId(
