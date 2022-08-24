@@ -27,15 +27,15 @@ public class ListHandler extends BaseHandlerStd {
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger requestLogger) {
-        DescribeDbParameterGroupsResponse describeDBParameterGroupsResponse;
-        DescribeDbParameterGroupsRequest describeDbParameterGroupsRequest = Translator.describeDbParameterGroupsRequest(request.getNextToken());
+            final RequestLogger logger
+    ) {
+        final DescribeDbParameterGroupsRequest describeRequest = Translator.describeDbParameterGroupsRequest(request.getNextToken());
+        final DescribeDbParameterGroupsResponse describeResponse;
         try {
-            describeDBParameterGroupsResponse = proxy.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest,
-                    proxyClient.client()::describeDBParameterGroups);
+            describeResponse = proxy.injectCredentialsAndInvokeV2(describeRequest, proxyClient.client()::describeDBParameterGroups);
         } catch (Exception exception) {
             return Commons.handleException(
                     ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
@@ -46,15 +46,14 @@ public class ListHandler extends BaseHandlerStd {
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                 .resourceModels(
-                        describeDBParameterGroupsResponse.dbParameterGroups()
+                        describeResponse.dbParameterGroups()
                                 .stream()
                                 .map(dBParameterGroup -> ResourceModel.builder()
                                         .dBParameterGroupName(dBParameterGroup.dbParameterGroupName())
                                         .build()
                                 ).collect(Collectors.toList())
-                ).nextToken(describeDBParameterGroupsResponse.marker())
+                ).nextToken(describeResponse.marker())
                 .status(OperationStatus.SUCCESS)
                 .build();
     }
-
 }

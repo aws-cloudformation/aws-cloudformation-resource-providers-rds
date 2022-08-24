@@ -1,6 +1,7 @@
 package software.amazon.rds.dbparametergroup;
 
 import java.util.HashSet;
+import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -23,9 +24,9 @@ public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
             final RequestLogger requestLogger
     ) {
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
@@ -40,9 +41,12 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
+        final Map<String, Object> previousParams = request.getPreviousResourceState().getParameters();
+        final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
+
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags, requestLogger))
-                .then(progress -> applyParametersWithReset(proxy, proxyClient, progress, requestLogger))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
+                .then(progress -> applyParametersWithReset(proxy, proxyClient, progress, previousParams, desiredParams, requestLogger))
+                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, requestLogger));
     }
 }
