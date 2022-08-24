@@ -65,9 +65,10 @@
         }
       ],
       "DBSecurityGroupMemberships": [
-        "default"
       ],
-      "VpcSecurityGroupMemberships": []
+      "VpcSecurityGroupMemberships": [
+        "{{VPCSecurityGroupID1}}"
+      ]
     }
   ],
   "Tags": [
