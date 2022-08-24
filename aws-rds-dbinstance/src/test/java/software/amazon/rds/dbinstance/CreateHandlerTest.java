@@ -47,6 +47,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
@@ -1297,6 +1298,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.ThrottlingException, HandlerErrorCode.Throttling),
                     // Put exception classes below
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(DbSubnetGroupDoesNotCoverEnoughAZsException.builder().message(MSG_RUNTIME_ERR).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(DomainNotFoundException.builder().message(MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR).build(), HandlerErrorCode.NotFound),
                     Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
             );
