@@ -381,7 +381,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Test
     public void handleRequest_UpdateRoles_InternalExceptionOnAdd() {
         when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class))).then(res -> {
-            throw new RuntimeException(MSG_RUNTIME_ERR);
+            throw new RuntimeException(MSG_GENERIC_ERR);
         });
 
         final RemoveRoleFromDbInstanceResponse removeRoleFromDBInstanceResponse = RemoveRoleFromDbInstanceResponse.builder().build();
@@ -407,7 +407,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Test
     public void handleRequest_UpdateRolesInternalExceptionOnRemove() {
         when(rdsProxy.client().removeRoleFromDBInstance(any(RemoveRoleFromDbInstanceRequest.class))).then(res -> {
-            throw new RuntimeException(MSG_RUNTIME_ERR);
+            throw new RuntimeException(MSG_GENERIC_ERR);
         });
 
         final CallbackContext context = new CallbackContext();
@@ -449,7 +449,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     if (!transitions.isEmpty()) {
                         return transitions.remove();
                     }
-                    throw new RuntimeException(MSG_RUNTIME_ERR);
+                    throw new RuntimeException(MSG_GENERIC_ERR);
                 },
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_ALTER,
