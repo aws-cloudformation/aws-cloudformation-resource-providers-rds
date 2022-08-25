@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
@@ -192,6 +193,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbUpgradeDependencyFailureException.class,
                     InvalidDbSecurityGroupStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    AuthorizationNotFoundException.class,
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     InvalidVpcNetworkStateException.class,
                     KmsKeyNotAccessibleException.class,
