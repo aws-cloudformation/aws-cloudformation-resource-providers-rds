@@ -53,6 +53,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
@@ -1298,9 +1299,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.ThrottlingException, HandlerErrorCode.Throttling),
                     // Put exception classes below
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
-                    Arguments.of(DbSubnetGroupDoesNotCoverEnoughAZsException.builder().message(MSG_RUNTIME_ERR).build(), HandlerErrorCode.InvalidRequest),
-                    Arguments.of(DomainNotFoundException.builder().message(MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR).build(), HandlerErrorCode.NotFound),
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(DbSubnetGroupDoesNotCoverEnoughAZsException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
+                    Arguments.of(DomainNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
+                    Arguments.of(InvalidSubnetException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.GeneralServiceException),
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
     }
@@ -1329,7 +1331,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     // <empty>
                     // Put exception classes below
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
     }
@@ -1359,7 +1361,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.InvalidRestoreFault, HandlerErrorCode.InvalidRequest),
                     // Put exception classes below
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
     }

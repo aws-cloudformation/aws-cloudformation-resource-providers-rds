@@ -50,6 +50,7 @@ import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException
 import software.amazon.awssdk.services.rds.model.InvalidDbSecurityGroupStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
+import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
@@ -197,6 +198,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ProvisionedIopsNotAvailableInAzException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.GeneralServiceException),
+                    InvalidSubnetException.class)
             .build();
 
     public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet

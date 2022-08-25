@@ -163,8 +163,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     protected static final String MSG_ALREADY_EXISTS_ERR = "DBInstance already exists";
     protected static final String MSG_NOT_FOUND_ERR = "DBInstance not found";
-    protected static final String MSG_RUNTIME_ERR = "Runtime error";
-    protected static final String MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR = "Requested domain some_domain does not exist";
+    protected static final String MSG_GENERIC_ERR = "Error";
 
     protected static final ResourceModel RESOURCE_MODEL_NO_IDENTIFIER;
     protected static final ResourceModel RESOURCE_MODEL_ALTER;
