@@ -384,6 +384,7 @@
         "rds:AddRoleToDBCluster",
         "rds:AddTagsToResource",
         "rds:DescribeDBClusters",
+        "rds:DescribeDBSubnetGroups",
         "rds:ModifyDBCluster",
         "rds:ModifyDBInstance",
         "rds:RemoveFromGlobalCluster",

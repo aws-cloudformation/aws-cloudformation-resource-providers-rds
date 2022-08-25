@@ -31,6 +31,7 @@ Resources:
                 - "rds:DeleteDBCluster"
                 - "rds:DeleteDBInstance"
                 - "rds:DescribeDBClusters"
+                - "rds:DescribeDBSubnetGroups"
                 - "rds:ModifyDBCluster"
                 - "rds:ModifyDBInstance"
                 - "rds:RemoveFromGlobalCluster"
