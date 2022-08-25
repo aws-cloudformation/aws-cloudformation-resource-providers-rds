@@ -36,6 +36,7 @@ import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundExcepti
 import software.amazon.awssdk.services.rds.model.DbSecurityGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
@@ -190,6 +191,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbUpgradeDependencyFailureException.class,
                     InvalidDbSecurityGroupStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     InvalidVpcNetworkStateException.class,
                     KmsKeyNotAccessibleException.class,
                     ProvisionedIopsNotAvailableInAzException.class)
