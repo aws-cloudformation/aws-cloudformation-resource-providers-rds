@@ -23,6 +23,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "ec2:DescribeSecurityGroups"
                 - "iam:PassRole"
                 - "rds:AddRoleToDBCluster"
                 - "rds:AddTagsToResource"
