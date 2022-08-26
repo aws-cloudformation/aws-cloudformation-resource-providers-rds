@@ -380,6 +380,7 @@
     },
     "update": {
       "permissions": [
+        "ec2:DescribeSecurityGroups",
         "iam:PassRole",
         "rds:AddRoleToDBCluster",
         "rds:AddTagsToResource",
