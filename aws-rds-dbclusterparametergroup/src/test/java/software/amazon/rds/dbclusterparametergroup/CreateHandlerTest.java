@@ -17,7 +17,6 @@ import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -77,10 +76,10 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler(HandlerConfig.builder()
+        handler = new CreateHandler(DefaultHandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
-                .stabilizationInSeconds(0)
+                .stabilizationDelay(Duration.ZERO)
                 .build());
 
         rds = mock(RdsClient.class);
@@ -306,7 +305,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class));
-//        verify(proxyRdsClient.client()).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
     }
 
     @Test

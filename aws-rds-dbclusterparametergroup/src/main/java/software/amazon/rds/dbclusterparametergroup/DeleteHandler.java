@@ -15,7 +15,7 @@ public class DeleteHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public DeleteHandler(final HandlerConfig config) {
+    public DeleteHandler(final DefaultHandlerConfig config) {
         super(config);
     }
 

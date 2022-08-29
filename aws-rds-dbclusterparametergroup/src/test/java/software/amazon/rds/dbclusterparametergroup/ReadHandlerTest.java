@@ -48,9 +48,10 @@ public class ReadHandlerTest extends AbstractTestBase {
     @BeforeEach
     public void setup() {
 
-        handler = new ReadHandler(HandlerConfig.builder()
+        handler = new ReadHandler(DefaultHandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
+                .stabilizationDelay(Duration.ZERO)
                 .build());
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());

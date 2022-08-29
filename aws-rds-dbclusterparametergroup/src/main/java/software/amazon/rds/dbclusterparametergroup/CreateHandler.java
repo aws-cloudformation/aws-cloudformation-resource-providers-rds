@@ -24,7 +24,7 @@ public class CreateHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public CreateHandler(final HandlerConfig config) {
+    public CreateHandler(final DefaultHandlerConfig config) {
         super(config);
     }
 

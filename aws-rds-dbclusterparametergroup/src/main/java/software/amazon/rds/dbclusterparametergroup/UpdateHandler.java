@@ -16,7 +16,7 @@ public class UpdateHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public UpdateHandler(final HandlerConfig config) {
+    public UpdateHandler(final DefaultHandlerConfig config) {
         super(config);
     }
 

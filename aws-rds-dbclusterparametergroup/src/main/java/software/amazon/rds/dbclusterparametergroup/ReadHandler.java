@@ -19,7 +19,7 @@ public class ReadHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public ReadHandler(final HandlerConfig config) {
+    public ReadHandler(final DefaultHandlerConfig config) {
         super(config);
     }
 

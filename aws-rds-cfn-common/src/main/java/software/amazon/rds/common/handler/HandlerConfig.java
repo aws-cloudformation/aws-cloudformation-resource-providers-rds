@@ -2,11 +2,14 @@ package software.amazon.rds.common.handler;
 
 import java.time.Duration;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
-@Builder
+@SuperBuilder
 public class HandlerConfig {
 
     @Getter
@@ -19,8 +22,4 @@ public class HandlerConfig {
             .delay(Duration.ofSeconds(30))
             .timeout(Duration.ofMinutes(90))
             .build();
-
-    @Getter
-    @Builder.Default
-    final private int stabilizationInSeconds = 60;
 }

@@ -19,7 +19,7 @@ public class ListHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public ListHandler(final HandlerConfig config) {
+    public ListHandler(final DefaultHandlerConfig config) {
         super(config);
     }
 

@@ -42,9 +42,10 @@ public class ListHandlerTest extends AbstractTestBase {
 
     @BeforeEach
     public void setup() {
-        handler = new ListHandler(HandlerConfig.builder()
+        handler = new ListHandler(DefaultHandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
+                .stabilizationDelay(Duration.ZERO)
                 .build());
 
         rds = mock(RdsClient.class);

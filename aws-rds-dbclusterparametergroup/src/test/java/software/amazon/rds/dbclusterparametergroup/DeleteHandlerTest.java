@@ -54,9 +54,10 @@ public class DeleteHandlerTest extends AbstractTestBase {
     @BeforeEach
     public void setup() {
 
-        handler = new DeleteHandler(HandlerConfig.builder()
+        handler = new DeleteHandler(DefaultHandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
+                .stabilizationDelay(Duration.ZERO)
                 .build());
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());

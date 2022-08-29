@@ -21,7 +21,8 @@ public final class Commons {
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException,
-                    ErrorCode.NotAuthorized)
+                    ErrorCode.NotAuthorized,
+                    ErrorCode.UnauthorizedOperation)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.Throttling),
                     ErrorCode.ThrottlingException,
                     ErrorCode.Throttling)
@@ -76,9 +77,10 @@ public final class Commons {
             final VoidBiFunction<C, Boolean> conditionSetter
     ) {
         if (!conditionGetter.apply(progress.getCallbackContext())) {
-            ProgressEvent<M, C> progressEvent = func.enact();
-            conditionSetter.apply(progressEvent.getCallbackContext(), true);
-            return progressEvent;
+            return func.enact().then(p -> {
+                conditionSetter.apply(p.getCallbackContext(), true);
+                return p;
+            });
         }
         return progress;
     }

@@ -37,7 +37,6 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -50,7 +49,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     // 5 min for waiting propagation according to https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBClusterParameterGroup.html
-    protected static final int STABILIZATION_DELAY_SECONDS = 5 * 60;
+    protected static final Duration STABILIZATION_DELAY = Duration.ofMinutes(5);
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
@@ -75,15 +74,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
-    protected final static HandlerConfig DEFAULT_HANDLER_CONFIG = HandlerConfig.builder()
-            .probingEnabled(true)
+    protected final static DefaultHandlerConfig DEFAULT_HANDLER_CONFIG = DefaultHandlerConfig.builder()
+            .probingEnabled(false)
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
-            .stabilizationInSeconds(STABILIZATION_DELAY_SECONDS)
+            .stabilizationDelay(STABILIZATION_DELAY)
             .build();
 
-    protected HandlerConfig config;
+    protected DefaultHandlerConfig config;
 
-    public BaseHandlerStd(final HandlerConfig config) {
+    public BaseHandlerStd(final DefaultHandlerConfig config) {
         super();
         this.config = config;
     }
@@ -157,8 +156,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
                         CallbackContext::isParametersModified, CallbackContext::setParametersModified))
-                .then(progressEvent -> Commons.execOnce(progressEvent, () -> waitForStabilization(progressEvent),
-                        CallbackContext::isParameterGroupStabilized, CallbackContext::setParameterGroupStabilized));
+                .then(progressEvent -> waitForStabilization(progressEvent));
     }
 
     protected Completed<DescribeDbClusterParameterGroupsRequest,
@@ -296,7 +294,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> waitForStabilization(final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return ProgressEvent.defaultInProgressHandler(progress.getCallbackContext(), config.getStabilizationInSeconds(), progress.getResourceModel());
+
+        CallbackContext callbackContext = progress.getCallbackContext();
+        if (!callbackContext.isParameterGroupStabilized()) {
+            callbackContext.setParameterGroupStabilized(true);
+            return ProgressEvent.defaultInProgressHandler(progress.getCallbackContext(), Math.toIntExact(config.getStabilizationDelay().getSeconds()), progress.getResourceModel());
+        }
+        return progress;
     }
 
 }
