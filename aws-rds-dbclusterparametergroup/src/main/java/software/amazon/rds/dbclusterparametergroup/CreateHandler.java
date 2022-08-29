@@ -39,7 +39,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
-
+        logger.log("Here create");
+        logger.log(callbackContext.toString());
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
                 .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))

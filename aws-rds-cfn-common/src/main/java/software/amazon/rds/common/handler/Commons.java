@@ -76,10 +76,9 @@ public final class Commons {
             final VoidBiFunction<C, Boolean> conditionSetter
     ) {
         if (!conditionGetter.apply(progress.getCallbackContext())) {
-            return func.enact().then(p -> {
-                conditionSetter.apply(p.getCallbackContext(), true);
-                return p;
-            });
+            ProgressEvent<M, C> progressEvent = func.enact();
+            conditionSetter.apply(progressEvent.getCallbackContext(), true);
+            return progressEvent;
         }
         return progress;
     }

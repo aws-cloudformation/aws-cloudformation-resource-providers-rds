@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -51,7 +50,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     // 5 min for waiting propagation according to https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBClusterParameterGroup.html
-    protected static final int NO_CALLBACK_DELAY = 0;
+    protected static final int STABILIZATION_DELAY_SECONDS = 5 * 60;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
@@ -67,16 +66,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbParameterGroupNotFoundException.class)
             .build();
 
-    protected static final ErrorRuleSet DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET = ErrorRuleSet
-            .extend(Commons.DEFAULT_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.ignore(),
-                    ErrorCode.AccessDeniedException,
-                    ErrorCode.AccessDenied,
-                    ErrorCode.NotAuthorized)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotStabilized),
-                    Exception.class)
-            .build();
-
     protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
@@ -89,6 +78,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected final static HandlerConfig DEFAULT_HANDLER_CONFIG = HandlerConfig.builder()
             .probingEnabled(true)
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
+            .stabilizationInSeconds(STABILIZATION_DELAY_SECONDS)
             .build();
 
     protected HandlerConfig config;
@@ -167,7 +157,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
                         CallbackContext::isParametersModified, CallbackContext::setParametersModified))
-                .then(progressEvent -> waitForDbClustersStabilization(progressEvent, proxy, proxyClient));
+                .then(progressEvent -> Commons.execOnce(progressEvent, () -> waitForStabilization(progressEvent),
+                        CallbackContext::isParameterGroupStabilized, CallbackContext::setParameterGroupStabilized));
     }
 
     protected Completed<DescribeDbClusterParameterGroupsRequest,
@@ -304,53 +295,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(model, context);
     }
 
-    protected boolean isDBClustersAvailable(final ProxyClient<RdsClient> proxyClient, final ResourceModel model) {
-        return proxyClient
-                .injectCredentialsAndInvokeIterableV2(Translator.describeDbClustersRequest(), proxyClient.client()::describeDBClustersPaginator)
-                .stream()
-                .flatMap(describeDbClustersResponse -> describeDbClustersResponse.dbClusters().stream())
-                .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equalsIgnoreCase(model.getDBClusterParameterGroupName()))
-                .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE));
+    protected ProgressEvent<ResourceModel, CallbackContext> waitForStabilization(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        return ProgressEvent.defaultInProgressHandler(progress.getCallbackContext(), config.getStabilizationInSeconds(), progress.getResourceModel());
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> waitForDbClustersStabilization(final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                           final AmazonWebServicesClientProxy proxy,
-                                                                                           final ProxyClient<RdsClient> proxyClient) {
-        return proxy.initiate("rds::stabilize-db-cluster-parameter-group-db-clusters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Function.identity())
-                .makeServiceCall(EMPTY_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> withProbing(
-                        context,
-                        "db-cluster-parameter-group-db-clusters-available",
-                        3,
-                        () -> isDBClustersAvailable(proxyInvocation, model)))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET))
-                .progress();
-    }
-
-    protected boolean withProbing(
-            final CallbackContext context,
-            final String probeName,
-            final int nProbes,
-            final Supplier<Boolean> checker
-    ) {
-        final boolean check = checker.get();
-        if (!config.isProbingEnabled()) {
-            return check;
-        }
-        if (!check) {
-            context.flushProbes(probeName);
-            return false;
-        }
-        context.incProbes(probeName);
-        if (context.getProbes(probeName) >= nProbes) {
-            context.flushProbes(probeName);
-            return true;
-        }
-        return false;
-    }
 }

@@ -19,4 +19,8 @@ public class HandlerConfig {
             .delay(Duration.ofSeconds(30))
             .timeout(Duration.ofMinutes(90))
             .build();
+
+    @Getter
+    @Builder.Default
+    final private int stabilizationInSeconds = 60;
 }
