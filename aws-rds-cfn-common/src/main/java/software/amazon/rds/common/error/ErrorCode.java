@@ -18,6 +18,7 @@ public enum ErrorCode {
     DBSnapshotNotFound("DBSnapshotNotFound"),
     DBSubnetGroupNotAllowedFault("DBSubnetGroupNotAllowedFault"),
     DBSubnetGroupNotFoundFault("DBSubnetGroupNotFoundFault"),
+    DefaultVpcDoesNotExist("DefaultVpcDoesNotExist"),
     InstanceQuotaExceeded("InstanceQuotaExceeded"),
     InsufficientDBInstanceCapacity("InsufficientDBInstanceCapacity"),
     InternalFailure("InternalFailure"),
@@ -36,9 +37,9 @@ public enum ErrorCode {
     SnapshotQuotaExceeded("SnapshotQuotaExceeded"),
     StorageQuotaExceeded("StorageQuotaExceeded"),
     StorageTypeNotSupportedFault("StorageTypeNotSupportedFault"),
-    ThrottlingException("ThrottlingException"),
     Throttling("Throttling"),
-    DefaultVpcDoesNotExist("DefaultVpcDoesNotExist");
+    ThrottlingException("ThrottlingException"),
+    UnauthorizedOperation("UnauthorizedOperation");
 
     private final String code;
 
