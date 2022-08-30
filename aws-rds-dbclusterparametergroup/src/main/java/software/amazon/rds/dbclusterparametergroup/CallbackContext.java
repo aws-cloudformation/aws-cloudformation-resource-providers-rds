@@ -16,8 +16,10 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private String dbClusterParameterGroupArn;
 
     private boolean parametersApplied;
-    private boolean clusterStabilized;
     private boolean parametersModified;
+
+    private boolean stabilized;
+
     private Map<String, Integer> probes;
 
     private TaggingContext taggingContext;
