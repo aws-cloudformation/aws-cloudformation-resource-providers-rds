@@ -156,7 +156,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
                         CallbackContext::isParametersModified, CallbackContext::setParametersModified))
-                .then(progressEvent -> waitForStabilization(progressEvent));
+                .then(progressEvent -> sleep(progressEvent, config.getStabilizationDelay()));
     }
 
     protected Completed<DescribeDbClusterParameterGroupsRequest,
@@ -293,12 +293,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(model, context);
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> waitForStabilization(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+    protected ProgressEvent<ResourceModel, CallbackContext> sleep(final ProgressEvent<ResourceModel, CallbackContext> progress, final Duration delay) {
 
         CallbackContext callbackContext = progress.getCallbackContext();
-        if (!callbackContext.isParameterGroupStabilized()) {
-            callbackContext.setParameterGroupStabilized(true);
-            return ProgressEvent.defaultInProgressHandler(progress.getCallbackContext(), Math.toIntExact(config.getStabilizationDelay().getSeconds()), progress.getResourceModel());
+        if (!callbackContext.isStabilized()) {
+            callbackContext.setStabilized(true);
+            return Commons.sleep(progress, delay);
         }
         return progress;
     }

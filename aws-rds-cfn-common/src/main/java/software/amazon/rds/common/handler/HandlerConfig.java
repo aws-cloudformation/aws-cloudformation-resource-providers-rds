@@ -2,10 +2,8 @@ package software.amazon.rds.common.handler;
 
 import java.time.Duration;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
