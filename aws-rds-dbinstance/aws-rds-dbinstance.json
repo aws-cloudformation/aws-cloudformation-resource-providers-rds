@@ -370,7 +370,6 @@
     "/properties/BackupRetentionPeriod",
     "/properties/DBParameterGroupName",
     "/properties/Engine",
-    "/properties/EngineVersion",
     "/properties/MonitoringInterval",
     "/properties/MultiAZ",
     "/properties/PerformanceInsightsKMSKeyId",
