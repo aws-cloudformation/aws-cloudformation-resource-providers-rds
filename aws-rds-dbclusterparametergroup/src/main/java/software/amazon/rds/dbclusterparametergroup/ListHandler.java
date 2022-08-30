@@ -11,7 +11,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ListHandler extends BaseHandlerStd {
 
@@ -19,7 +18,7 @@ public class ListHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public ListHandler(final DefaultHandlerConfig config) {
+    public ListHandler(final LocalHandlerConfig config) {
         super(config);
     }
 

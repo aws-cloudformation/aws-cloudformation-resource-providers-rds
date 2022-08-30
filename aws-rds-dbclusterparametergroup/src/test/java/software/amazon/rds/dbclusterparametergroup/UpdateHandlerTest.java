@@ -67,7 +67,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @BeforeEach
     public void setup() {
-        handler = new UpdateHandler(DefaultHandlerConfig.builder()
+        handler = new UpdateHandler(LocalHandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
                 .stabilizationDelay(Duration.ZERO)

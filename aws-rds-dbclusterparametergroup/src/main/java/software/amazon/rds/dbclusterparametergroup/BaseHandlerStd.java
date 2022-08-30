@@ -74,15 +74,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
-    protected final static DefaultHandlerConfig DEFAULT_HANDLER_CONFIG = DefaultHandlerConfig.builder()
+    protected final static LocalHandlerConfig DEFAULT_HANDLER_CONFIG = LocalHandlerConfig.builder()
             .probingEnabled(false)
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
             .stabilizationDelay(STABILIZATION_DELAY)
             .build();
 
-    protected DefaultHandlerConfig config;
+    protected LocalHandlerConfig config;
 
-    public BaseHandlerStd(final DefaultHandlerConfig config) {
+    public BaseHandlerStd(final LocalHandlerConfig config) {
         super();
         this.config = config;
     }

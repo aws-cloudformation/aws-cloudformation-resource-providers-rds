@@ -52,7 +52,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,7 +75,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler(DefaultHandlerConfig.builder()
+        handler = new CreateHandler(LocalHandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
                 .stabilizationDelay(Duration.ZERO)
