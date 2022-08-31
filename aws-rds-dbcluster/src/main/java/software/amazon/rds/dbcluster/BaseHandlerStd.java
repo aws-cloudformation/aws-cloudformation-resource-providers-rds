@@ -43,6 +43,7 @@ import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
@@ -75,6 +76,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBClusterAlreadyExistsFault)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DefaultVpcDoesNotExist)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    ErrorCode.StorageTypeNotSupportedFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
@@ -100,7 +103,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidDbClusterSnapshotStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
-                    KmsKeyNotAccessibleException.class)
+                    KmsKeyNotAccessibleException.class,
+                    StorageTypeNotSupportedException.class)
             .build();
 
     protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet
