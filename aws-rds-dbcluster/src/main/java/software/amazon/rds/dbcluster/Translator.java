@@ -363,6 +363,7 @@ public class Translator {
                 .dBClusterIdentifier(dbCluster.dbClusterIdentifier())
                 .dBClusterInstanceClass(dbCluster.dbClusterInstanceClass())
                 .dBClusterParameterGroupName(dbCluster.dbClusterParameterGroup())
+                .dBClusterResourceId(dbCluster.dbClusterResourceId())
                 .dBSubnetGroupName(dbCluster.dbSubnetGroup())
                 .deletionProtection(dbCluster.deletionProtection())
                 .enableCloudwatchLogsExports(dbCluster.enabledCloudwatchLogsExports())
