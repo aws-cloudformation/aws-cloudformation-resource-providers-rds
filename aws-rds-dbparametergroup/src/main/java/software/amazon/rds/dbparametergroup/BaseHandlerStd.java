@@ -38,8 +38,10 @@ import software.amazon.rds.dbparametergroup.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
-            ImmutableSet.of("collation_server", "character_set"),
-            ImmutableSet.of("gtid-mode", "enforce_gtid_consistency")
+            ImmutableSet.of("collation_server", "character_set_server"),
+            ImmutableSet.of("gtid-mode", "enforce_gtid_consistency"),
+            ImmutableSet.of("password_encryption", "rds.accepted_password_auth_method"),
+            ImmutableSet.of("ssl_max_protocol_version", "ssl_min_protocol_version")
     );
 
     protected static final ErrorRuleSet DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
