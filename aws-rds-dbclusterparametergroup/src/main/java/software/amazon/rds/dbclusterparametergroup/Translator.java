@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRe
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
@@ -25,6 +26,7 @@ public class Translator {
 
     public static final String RDS = "rds";
     public static final String RESOURCE_PREFIX = "cluster-pg:";
+    public static final String FILTER_PARAMETER_NAME = "parameter-name";
 
     static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(final ResourceModel model,
                                                                                      final Tagging.TagSet tags) {
@@ -39,6 +41,10 @@ public class Translator {
     static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model, final String marker) {
         return DescribeDbClusterParametersRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
+                .filters(Filter.builder()
+                        .name(FILTER_PARAMETER_NAME)
+                        .values(model.getParameters().keySet())
+                        .build())
                 .marker(marker)
                 .build();
     }
