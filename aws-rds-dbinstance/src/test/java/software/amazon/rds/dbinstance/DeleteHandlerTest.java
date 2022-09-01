@@ -305,7 +305,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.InvalidDBInstanceState, HandlerErrorCode.ResourceConflict),
                     Arguments.of(ErrorCode.InvalidParameterValue, HandlerErrorCode.InvalidRequest),
                     // Put exception classes below
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
     }

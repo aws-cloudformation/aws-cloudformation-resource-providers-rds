@@ -8,7 +8,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
 
@@ -24,7 +23,7 @@ public class CreateHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public CreateHandler(final HandlerConfig config) {
+    public CreateHandler(final LocalHandlerConfig config) {
         super(config);
     }
 

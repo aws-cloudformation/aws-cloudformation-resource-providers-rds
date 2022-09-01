@@ -13,6 +13,8 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean updatedRoles;
     private boolean updated;
     private boolean rebooted;
+    private boolean storageAllocated;
+    private boolean allocatingStorage;
 
     private TaggingContext taggingContext;
 

@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
@@ -36,6 +37,7 @@ import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundExcepti
 import software.amazon.awssdk.services.rds.model.DbSecurityGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
@@ -49,6 +51,7 @@ import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException
 import software.amazon.awssdk.services.rds.model.InvalidDbSecurityGroupStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
+import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
@@ -56,6 +59,7 @@ import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -96,6 +100,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     static final String IN_SYNC_STATUS = "in-sync";
     static final String PENDING_REBOOT_STATUS = "pending-reboot";
     static final String READ_REPLICA_STATUS = "read replication";
+    static final String STORAGE_FULL_STATUS = "storage-full";
     static final String READ_REPLICA_STATUS_REPLICATING = "replicating";
     static final String VPC_SECURITY_GROUP_STATUS_ACTIVE = "active";
     static final String DOMAIN_MEMBERSHIP_JOINED = "joined";
@@ -189,11 +194,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbUpgradeDependencyFailureException.class,
                     InvalidDbSecurityGroupStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    AuthorizationNotFoundException.class,
+                    DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     InvalidVpcNetworkStateException.class,
                     KmsKeyNotAccessibleException.class,
-                    ProvisionedIopsNotAvailableInAzException.class)
+                    ProvisionedIopsNotAvailableInAzException.class,
+                    StorageTypeNotSupportedException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.GeneralServiceException),
+                    InvalidSubnetException.class)
             .build();
 
     public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet

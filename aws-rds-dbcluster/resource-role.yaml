@@ -23,6 +23,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "ec2:DescribeSecurityGroups"
                 - "iam:PassRole"
                 - "rds:AddRoleToDBCluster"
                 - "rds:AddTagsToResource"
@@ -31,6 +32,7 @@ Resources:
                 - "rds:DeleteDBCluster"
                 - "rds:DeleteDBInstance"
                 - "rds:DescribeDBClusters"
+                - "rds:DescribeDBSubnetGroups"
                 - "rds:ModifyDBCluster"
                 - "rds:ModifyDBInstance"
                 - "rds:RemoveFromGlobalCluster"

@@ -7,7 +7,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -16,7 +15,7 @@ public class UpdateHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public UpdateHandler(final HandlerConfig config) {
+    public UpdateHandler(final LocalHandlerConfig config) {
         super(config);
     }
 

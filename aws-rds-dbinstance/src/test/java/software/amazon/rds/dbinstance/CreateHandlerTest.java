@@ -39,6 +39,7 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
@@ -47,11 +48,13 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
@@ -60,6 +63,7 @@ import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -1296,9 +1300,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
                     Arguments.of(ErrorCode.ThrottlingException, HandlerErrorCode.Throttling),
                     // Put exception classes below
+                    Arguments.of(AuthorizationNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
-                    Arguments.of(DomainNotFoundException.builder().message(MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR).build(), HandlerErrorCode.NotFound),
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(DbSubnetGroupDoesNotCoverEnoughAZsException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
+                    Arguments.of(DomainNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
+                    Arguments.of(InvalidSubnetException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.GeneralServiceException),
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure),
+                    Arguments.of(StorageTypeNotSupportedException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest)
             );
         }
     }
@@ -1327,7 +1335,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     // <empty>
                     // Put exception classes below
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
     }
@@ -1357,7 +1365,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.InvalidRestoreFault, HandlerErrorCode.InvalidRequest),
                     // Put exception classes below
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
-                    Arguments.of(new RuntimeException(MSG_RUNTIME_ERR), HandlerErrorCode.InternalFailure)
+                    Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
     }

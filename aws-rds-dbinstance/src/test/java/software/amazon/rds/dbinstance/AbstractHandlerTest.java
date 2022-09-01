@@ -81,6 +81,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String DB_INSTANCE_STATUS_DELETING = "deleting";
     protected static final String DB_INSTANCE_STATUS_MODIFYING = "modifying";
     protected static final String DB_INSTANCE_STATUS_FAILED = "failed";
+    protected static final String DB_INSTANCE_STATUS_STORAGE_FULL = "storage-full";
     protected static final String DB_NAME = "db-instance-db-name";
     protected static final String DB_PARAMETER_GROUP_NAME_DEFAULT = "default";
     protected static final String DB_PARAMETER_GROUP_NAME_ALTER = "alternative-parameter-group";
@@ -162,8 +163,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     protected static final String MSG_ALREADY_EXISTS_ERR = "DBInstance already exists";
     protected static final String MSG_NOT_FOUND_ERR = "DBInstance not found";
-    protected static final String MSG_RUNTIME_ERR = "Runtime error";
-    protected static final String MSG_REQUESTED_DOMAIN_DOES_NOT_EXIST_ERR = "Requested domain some_domain does not exist";
+    protected static final String MSG_GENERIC_ERR = "Error";
 
     protected static final ResourceModel RESOURCE_MODEL_NO_IDENTIFIER;
     protected static final ResourceModel RESOURCE_MODEL_ALTER;
@@ -175,6 +175,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final DBInstance DB_INSTANCE_DELETING;
     protected static final DBInstance DB_INSTANCE_MODIFYING;
     protected static final DBInstance DB_INSTANCE_EMPTY_PORT;
+    protected static final DBInstance DB_INSTANCE_STORAGE_FULL;
 
     protected static Constant TEST_BACKOFF_DELAY = Constant.of()
             .delay(Duration.ofMillis(1L))
@@ -488,6 +489,10 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                                 .port(PORT_DEFAULT_INT)
                                 .build()
                 )
+                .build();
+
+        DB_INSTANCE_STORAGE_FULL = DB_INSTANCE_ACTIVE.toBuilder()
+                .dbInstanceStatus(DB_INSTANCE_STATUS_STORAGE_FULL)
                 .build();
     }
 

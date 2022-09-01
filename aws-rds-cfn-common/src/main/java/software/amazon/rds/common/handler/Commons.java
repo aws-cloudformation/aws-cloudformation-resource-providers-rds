@@ -1,5 +1,6 @@
 package software.amazon.rds.common.handler;
 
+import java.time.Duration;
 import java.util.function.Function;
 
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -21,7 +22,8 @@ public final class Commons {
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException,
-                    ErrorCode.NotAuthorized)
+                    ErrorCode.NotAuthorized,
+                    ErrorCode.UnauthorizedOperation)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.Throttling),
                     ErrorCode.ThrottlingException,
                     ErrorCode.Throttling)
@@ -82,5 +84,12 @@ public final class Commons {
             });
         }
         return progress;
+    }
+
+    public static <M, C> ProgressEvent<M, C> sleep(
+            final ProgressEvent<M, C> progress,
+            final Duration delay
+    ) {
+        return ProgressEvent.defaultInProgressHandler(progress.getCallbackContext(), Math.toIntExact(delay.getSeconds()), progress.getResourceModel());
     }
 }
