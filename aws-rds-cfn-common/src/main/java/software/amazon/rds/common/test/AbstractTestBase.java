@@ -7,12 +7,17 @@ import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
 
+import software.amazon.awssdk.awscore.AwsRequest;
+import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorCode;
 
-public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
+public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
 
     final private static SecureRandom random = new SecureRandom();
     final public static String ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -22,7 +27,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
 
     protected abstract void expectResourceSupply(final Supplier<ResourceT> supplier);
 
-    protected abstract ProgressEvent<ModelT, CallbackT> invokeHandleRequest(ResourceHandlerRequest<ModelT> request, CallbackT context);
+    protected abstract ProgressEvent<ModelT, ContextT> invokeHandleRequest(ResourceHandlerRequest<ModelT> request, ContextT context);
 
     protected String newClientRequestToken() {
         return UUID.randomUUID().toString();
@@ -40,7 +45,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         return builder.toString();
     }
 
-    protected Consumer<ProgressEvent<ModelT, CallbackT>> expectInProgress(int pause) {
+    protected Consumer<ProgressEvent<ModelT, ContextT>> expectInProgress(int pause) {
         return (response) -> {
             Assertions.assertThat(response).isNotNull();
             Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
@@ -51,7 +56,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         };
     }
 
-    protected Consumer<ProgressEvent<ModelT, CallbackT>> expectSuccess() {
+    protected Consumer<ProgressEvent<ModelT, ContextT>> expectSuccess() {
         return (response) -> {
             Assertions.assertThat(response).isNotNull();
             Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -61,7 +66,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         };
     }
 
-    protected Consumer<ProgressEvent<ModelT, CallbackT>> expectFailed(final HandlerErrorCode errorCode) {
+    protected Consumer<ProgressEvent<ModelT, ContextT>> expectFailed(final HandlerErrorCode errorCode) {
         return (response) -> {
             Assertions.assertThat(response).isNotNull();
             Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -72,21 +77,21 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         };
     }
 
-    protected ProgressEvent<ModelT, CallbackT> test_handleRequest_base(
-            final CallbackT context,
+    protected ProgressEvent<ModelT, ContextT> test_handleRequest_base(
+            final ContextT context,
             final Supplier<ResourceT> resourceSupplier,
             final Supplier<ModelT> desiredStateSupplier,
-            final Consumer<ProgressEvent<ModelT, CallbackT>> expect
+            final Consumer<ProgressEvent<ModelT, ContextT>> expect
     ) {
         return test_handleRequest_base(context, resourceSupplier, null, desiredStateSupplier, expect);
     }
 
-    protected ProgressEvent<ModelT, CallbackT> test_handleRequest_base(
-            final CallbackT context,
+    protected ProgressEvent<ModelT, ContextT> test_handleRequest_base(
+            final ContextT context,
             final Supplier<ResourceT> resourceSupplier,
             final Supplier<ModelT> previousStateSupplier,
             final Supplier<ModelT> desiredStateSupplier,
-            final Consumer<ProgressEvent<ModelT, CallbackT>> expect
+            final Consumer<ProgressEvent<ModelT, ContextT>> expect
     ) {
         return test_handleRequest_base(
                 context,
@@ -98,13 +103,13 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         );
     }
 
-    protected ProgressEvent<ModelT, CallbackT> test_handleRequest_base(
-            final CallbackT context,
+    protected ProgressEvent<ModelT, ContextT> test_handleRequest_base(
+            final ContextT context,
             final ResourceHandlerRequest.ResourceHandlerRequestBuilder<ModelT> builder,
             final Supplier<ResourceT> resourceSupplier,
             final Supplier<ModelT> previousStateSupplier,
             final Supplier<ModelT> desiredStateSupplier,
-            final Consumer<ProgressEvent<ModelT, CallbackT>> expect
+            final Consumer<ProgressEvent<ModelT, ContextT>> expect
     ) {
         if (resourceSupplier != null) {
             expectResourceSupply(resourceSupplier);
@@ -118,9 +123,60 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         builder.clientRequestToken(newClientRequestToken());
         builder.stackId(newStackId());
 
-        final ProgressEvent<ModelT, CallbackT> response = invokeHandleRequest(builder.build(), context);
+        final ProgressEvent<ModelT, ContextT> response = invokeHandleRequest(builder.build(), context);
         expect.accept(response);
 
         return response;
+    }
+
+    protected static AwsServiceException newAwsServiceException(final ErrorCode errorCode) {
+        return AwsServiceException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode(errorCode.toString())
+                        .build())
+                .build();
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    protected <RequestT extends AwsRequest, ResponseT extends AwsResponse> void test_handleRequest_error(
+            final MethodCallExpectation<RequestT, ResponseT> expectation,
+            final ContextT context,
+            final Supplier<ModelT> desiredStateSupplier,
+            final Object requestException,
+            final HandlerErrorCode errorCode
+    ) {
+        test_handleRequest_error(
+                expectation,
+                context,
+                null,
+                desiredStateSupplier,
+                requestException,
+                errorCode
+        );
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    protected <RequestT extends AwsRequest, ResponseT extends AwsResponse> void test_handleRequest_error(
+            final MethodCallExpectation<RequestT, ResponseT> expectation,
+            final ContextT context,
+            final Supplier<ModelT> previousStateSupplier,
+            final Supplier<ModelT> desiredStateSupplier,
+            final Object requestException,
+            final HandlerErrorCode expectErrorCode
+    ) {
+        final Exception exception = requestException instanceof ErrorCode ? newAwsServiceException((ErrorCode) requestException) : (Exception) requestException;
+
+        expectation.setup()
+                .thenThrow(exception);
+
+        test_handleRequest_base(
+                context,
+                null,
+                previousStateSupplier,
+                desiredStateSupplier,
+                expectFailed(expectErrorCode)
+        );
+
+        expectation.verify();
     }
 }
