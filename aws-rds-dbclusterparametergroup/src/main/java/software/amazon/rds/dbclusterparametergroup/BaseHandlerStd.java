@@ -8,8 +8,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
@@ -37,19 +40,28 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.common.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
+    public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+            ImmutableSet.of("collation_server", "character_set_server"),
+            ImmutableSet.of("gtid-mode", "enforce_gtid_consistency"),
+            ImmutableSet.of("password_encryption", "rds.accepted_password_auth_method"),
+            ImmutableSet.of("ssl_max_protocol_version", "ssl_min_protocol_version"),
+            ImmutableSet.of("rds.change_data_capture_streaming", "binlog_format")
+    );
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
     protected static final String AVAILABLE = "available";
     protected static final String RESOURCE_IDENTIFIER = "dbclusterparametergroup";
     protected static final String STACK_NAME = "rds";
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     // 5 min for waiting propagation according to https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBClusterParameterGroup.html
-    protected static final Duration STABILIZATION_DELAY = Duration.ofMinutes(5);
+    protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
@@ -65,6 +77,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbParameterGroupNotFoundException.class)
             .build();
 
+    protected static final ErrorRuleSet DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
+            .withErrorCodes(ErrorStatus.ignore(),
+                    ErrorCode.AccessDeniedException,
+                    ErrorCode.AccessDenied,
+                    ErrorCode.NotAuthorized)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotStabilized),
+                    Exception.class)
+            .build();
+
     protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
@@ -74,15 +96,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
-    protected final static LocalHandlerConfig DEFAULT_HANDLER_CONFIG = LocalHandlerConfig.builder()
-            .probingEnabled(false)
+    protected final static HandlerConfig DEFAULT_HANDLER_CONFIG = HandlerConfig.builder()
+            .probingEnabled(true)
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
-            .stabilizationDelay(STABILIZATION_DELAY)
             .build();
 
-    protected LocalHandlerConfig config;
+    protected HandlerConfig config;
 
-    public BaseHandlerStd(final LocalHandlerConfig config) {
+    public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
     }
@@ -156,7 +177,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
                         CallbackContext::isParametersModified, CallbackContext::setParametersModified))
-                .then(progressEvent -> sleep(progressEvent, config.getStabilizationDelay()));
+                .then(progressEvent -> waitForDbClustersStabilization(progressEvent, proxy, proxyClient));
     }
 
     protected Completed<DescribeDbClusterParameterGroupsRequest,
@@ -278,7 +299,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final Map<String, Parameter> parametersToModify = getParametersToModify(model.getParameters(), currentDBParameters);
 
         try {
-            for (final List<Parameter> partition : Iterables.partition(parametersToModify.values(), MAX_PARAMETERS_PER_REQUEST)) {
+            for (final List<Parameter> partition : ParameterGrouper.partition(parametersToModify, DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {
                 proxyClient.injectCredentialsAndInvokeV2(
                         Translator.modifyDbClusterParameterGroupRequest(model, partition),
                         proxyClient.client()::modifyDBClusterParameterGroup
@@ -293,14 +314,53 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(model, context);
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> sleep(final ProgressEvent<ResourceModel, CallbackContext> progress, final Duration delay) {
-
-        CallbackContext callbackContext = progress.getCallbackContext();
-        if (!callbackContext.isStabilized()) {
-            callbackContext.setStabilized(true);
-            return Commons.sleep(progress, delay);
-        }
-        return progress;
+    protected boolean isDBClustersAvailable(final ProxyClient<RdsClient> proxyClient, final ResourceModel model) {
+        return proxyClient
+                .injectCredentialsAndInvokeIterableV2(Translator.describeDbClustersRequest(), proxyClient.client()::describeDBClustersPaginator)
+                .stream()
+                .flatMap(describeDbClustersResponse -> describeDbClustersResponse.dbClusters().stream())
+                .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equalsIgnoreCase(model.getDBClusterParameterGroupName()))
+                .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE));
     }
 
+    protected ProgressEvent<ResourceModel, CallbackContext> waitForDbClustersStabilization(final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                                           final AmazonWebServicesClientProxy proxy,
+                                                                                           final ProxyClient<RdsClient> proxyClient) {
+        return proxy.initiate("rds::stabilize-db-cluster-parameter-group-db-clusters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Function.identity())
+                .makeServiceCall(EMPTY_CALL)
+                .stabilize((request, response, proxyInvocation, model, context) -> withProbing(
+                        context,
+                        "db-cluster-parameter-group-db-clusters-available",
+                        3,
+                        () -> isDBClustersAvailable(proxyInvocation, model)))
+                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
+                        Commons.handleException(
+                                ProgressEvent.progress(resourceModel, ctx),
+                                exception,
+                                DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET))
+                .progress();
+    }
+
+    protected boolean withProbing(
+            final CallbackContext context,
+            final String probeName,
+            final int nProbes,
+            final Supplier<Boolean> checker
+    ) {
+        final boolean check = checker.get();
+        if (!config.isProbingEnabled()) {
+            return check;
+        }
+        if (!check) {
+            context.flushProbes(probeName);
+            return false;
+        }
+        context.incProbes(probeName);
+        if (context.getProbes(probeName) >= nProbes) {
+            context.flushProbes(probeName);
+            return true;
+        }
+        return false;
+    }
 }

@@ -4,10 +4,9 @@ import java.time.Duration;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.experimental.SuperBuilder;
 import software.amazon.cloudformation.proxy.delay.Constant;
 
-@SuperBuilder
+@Builder
 public class HandlerConfig {
 
     @Getter

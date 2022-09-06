@@ -1,4 +1,4 @@
-package software.amazon.rds.dbparametergroup.util;
+package software.amazon.rds.common.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
