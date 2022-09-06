@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -25,22 +26,27 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupResponse;
+import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
@@ -67,10 +73,9 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     @BeforeEach
     public void setup() {
-        handler = new UpdateHandler(LocalHandlerConfig.builder()
+        handler = new UpdateHandler(HandlerConfig.builder()
                 .probingEnabled(false)
                 .backoff(TEST_BACKOFF_DELAY)
-                .stabilizationDelay(Duration.ZERO)
                 .build());
 
         rds = mock(RdsClient.class);
@@ -156,7 +161,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_stabilized() {
+    public void handleRequest_StabilizeDBClusters() {
         when(rds.resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class)))
                 .thenReturn(ResetDbClusterParameterGroupResponse.builder().build());
 
@@ -180,6 +185,27 @@ public class UpdateHandlerTest extends AbstractTestBase {
         when(rds.listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
+        final DBCluster dbCluster = DBCluster.builder()
+                .dbClusterIdentifier("db-cluster-identifier")
+                .dbClusterParameterGroup("group")
+                .build();
+
+        final DescribeDBClustersIterable describeDbClustersResponseModifying = mock(DescribeDBClustersIterable.class);
+        when(describeDbClustersResponseModifying.stream())
+                .thenReturn(Stream.<DescribeDbClustersResponse>builder().add(DescribeDbClustersResponse.builder()
+                        .dbClusters(dbCluster.toBuilder().status("modifying").build())
+                        .build()).build());
+
+        final DescribeDBClustersIterable describeDbClustersResponseAvailable = mock(DescribeDBClustersIterable.class);
+        when(describeDbClustersResponseAvailable.stream())
+                .thenReturn(Stream.<DescribeDbClustersResponse>builder().add(DescribeDbClustersResponse.builder()
+                        .dbClusters(dbCluster.toBuilder().status("available").build())
+                        .build()).build());
+
+        when(rds.describeDBClustersPaginator(any(DescribeDbClustersRequest.class)))
+                .thenReturn(describeDbClustersResponseModifying)
+                .thenReturn(describeDbClustersResponseAvailable);
+
         final ResourceHandlerRequest<ResourceModel> handlerRequest = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken("token")
                 .previousResourceState(RESOURCE_MODEL.toBuilder().dBClusterParameterGroupName("group").parameters(PARAMS).tags(TAG_SET).build())
@@ -197,9 +223,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(handlerResponse.getResourceModels()).isNull();
         assertThat(handlerResponse.getMessage()).isNull();
         assertThat(handlerResponse.getErrorCode()).isNull();
-        assertThat(handlerResponse.getCallbackContext().isStabilized()).isTrue();
 
         verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(proxyRdsClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
