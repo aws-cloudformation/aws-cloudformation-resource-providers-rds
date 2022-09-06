@@ -10,6 +10,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
@@ -41,8 +43,16 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.dbclusterparametergroup.util.ClusterParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
+    public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+            ImmutableSet.of("collation_server", "character_set_server"),
+            ImmutableSet.of("gtid-mode", "enforce_gtid_consistency"),
+            ImmutableSet.of("password_encryption", "rds.accepted_password_auth_method"),
+            ImmutableSet.of("ssl_max_protocol_version", "ssl_min_protocol_version")
+    );
+
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
     protected static final String AVAILABLE = "available";
     protected static final String RESOURCE_IDENTIFIER = "dbclusterparametergroup";
@@ -278,7 +288,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final Map<String, Parameter> parametersToModify = getParametersToModify(model.getParameters(), currentDBParameters);
 
         try {
-            for (final List<Parameter> partition : Iterables.partition(parametersToModify.values(), MAX_PARAMETERS_PER_REQUEST)) {
+            for (final List<Parameter> partition : ClusterParameterGrouper.partition(parametersToModify, DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {
                 proxyClient.injectCredentialsAndInvokeV2(
                         Translator.modifyDbClusterParameterGroupRequest(model, partition),
                         proxyClient.client()::modifyDBClusterParameterGroup
