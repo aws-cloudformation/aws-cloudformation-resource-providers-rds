@@ -7,6 +7,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class DeleteHandler extends BaseHandlerStd {
 
@@ -14,7 +15,7 @@ public class DeleteHandler extends BaseHandlerStd {
         this(DEFAULT_HANDLER_CONFIG);
     }
 
-    public DeleteHandler(final LocalHandlerConfig config) {
+    public DeleteHandler(final HandlerConfig config) {
         super(config);
     }
 
