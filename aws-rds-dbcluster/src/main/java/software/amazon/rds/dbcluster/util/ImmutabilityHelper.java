@@ -8,7 +8,6 @@ public final class ImmutabilityHelper {
 
     private static final String AURORA = "aurora";
     private static final String AURORA_MYSQL = "aurora-mysql";
-    private static final String SERVERLESS = "serverless";
 
     private ImmutabilityHelper() {
     }
@@ -25,16 +24,6 @@ public final class ImmutabilityHelper {
     static boolean isEngineMutable(final ResourceModel previous, final ResourceModel desired) {
         return (AURORA.equals(previous.getEngine()) && AURORA_MYSQL.equals(desired.getEngine())) ||
                 Objects.equal(previous.getEngine(), desired.getEngine());
-    }
-
-    static boolean isServerlessChangeMutable(final ResourceModel previous, final ResourceModel desired) {
-        if (!SERVERLESS.equals(desired.getEngineMode())) {
-            return true;
-        }
-
-        return Objects.equal(previous.getEnableIAMDatabaseAuthentication(), desired.getEnableIAMDatabaseAuthentication()) &&
-                Objects.equal(previous.getPreferredBackupWindow(), desired.getPreferredBackupWindow()) &&
-                Objects.equal(previous.getPreferredMaintenanceWindow(), desired.getPreferredMaintenanceWindow());
     }
 
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {

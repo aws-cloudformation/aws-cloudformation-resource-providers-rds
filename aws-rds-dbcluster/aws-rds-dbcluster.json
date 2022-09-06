@@ -345,10 +345,7 @@
   "conditionalCreateOnlyProperties": [
     "/properties/Engine",
     "/properties/GlobalClusterIdentifier",
-    "/properties/MasterUsername",
-    "/properties/PreferredBackupWindow",
-    "/properties/PreferredMaintenanceWindow",
-    "/properties/EnableIAMDatabaseAuthentication"
+    "/properties/MasterUsername"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterIdentifier"
