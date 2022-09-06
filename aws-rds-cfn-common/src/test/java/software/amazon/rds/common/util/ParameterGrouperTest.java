@@ -1,8 +1,9 @@
-package software.amazon.rds.dbparametergroup.util;
+package software.amazon.rds.common.util;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
+import static software.amazon.rds.common.test.AbstractTestBase.ALPHA;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,13 +18,9 @@ import java.util.stream.Stream;
 
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.dbparametergroup.CallbackContext;
-import software.amazon.rds.dbparametergroup.ResourceModel;
+import software.amazon.rds.common.test.AbstractTestBase;
 
-
-class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestBase<DBParameterGroup, ResourceModel, CallbackContext> {
+class ParameterGrouperTest {
     protected final String NON_PRESENT_DEPENDANT_PARAMETER = "this parameter won't be found";
     protected final int PARAMETER_NAME_LEN = 10;
 
@@ -58,7 +55,7 @@ class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestB
     }
 
     private List<String> generateRandomStringList(int listLen, int wordLen, String alphabet) {
-        return Stream.generate(() -> randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
+        return Stream.generate(() -> AbstractTestBase.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
     }
 
     private String[] buildMockExceptionArrayFromExceptionOrder(List<String> randomParameterKeys, List<Integer> expectationOrder) {
@@ -154,20 +151,5 @@ class ParameterGrouperTest extends software.amazon.rds.common.test.AbstractTestB
                         3
                 ), ImmutableList.of(3)
         );
-    }
-
-    @Override
-    protected String getLogicalResourceIdentifier() {
-        return null;
-    }
-
-    @Override
-    protected void expectResourceSupply(Supplier<DBParameterGroup> supplier) {
-
-    }
-
-    @Override
-    protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(ResourceHandlerRequest<ResourceModel> request, CallbackContext context) {
-        return null;
     }
 }

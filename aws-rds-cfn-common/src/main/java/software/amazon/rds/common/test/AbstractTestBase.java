@@ -32,7 +32,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, CallbackT> {
         return UUID.randomUUID().toString();
     }
 
-    protected String randomString(final int length, final String alphabet) {
+    public static String randomString(final int length, final String alphabet) {
         StringBuilder builder = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             builder.append(alphabet.charAt(random.nextInt(alphabet.length())));
