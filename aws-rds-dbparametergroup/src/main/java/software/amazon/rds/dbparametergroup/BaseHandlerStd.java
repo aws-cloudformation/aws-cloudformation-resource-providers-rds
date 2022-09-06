@@ -34,7 +34,7 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
-import software.amazon.rds.dbparametergroup.util.ParameterGrouper;
+import software.amazon.rds.common.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
