@@ -183,7 +183,6 @@ public class Translator {
                 .dbClusterParameterGroupName(desiredModel.getDBClusterParameterGroupName())
                 .deletionProtection(desiredModel.getDeletionProtection())
                 .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
-                .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .monitoringInterval(desiredModel.getMonitoringInterval())
@@ -191,8 +190,6 @@ public class Translator {
                 .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKmsKeyId())
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
                 .port(desiredModel.getPort())
-                .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
                 .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
                 .storageType(desiredModel.getStorageType());
         if (previousModel != null) {
@@ -203,6 +200,15 @@ public class Translator {
                 builder.applyImmediately(true);
                 builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
+            }
+            if (!Objects.equals(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow())) {
+                builder.preferredBackupWindow(desiredModel.getPreferredBackupWindow());
+            }
+            if (!Objects.equals(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow())) {
+                builder.preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow());
+            }
+            if (!Objects.equals(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication())) {
+                builder.enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication());
             }
         }
         //only include VPC SG ids if they are changed from previous.
