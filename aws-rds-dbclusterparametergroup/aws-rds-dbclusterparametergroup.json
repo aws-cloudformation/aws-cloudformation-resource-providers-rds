@@ -82,7 +82,8 @@
         "rds:DescribeDBClusterParameters",
         "rds:DescribeEngineDefaultClusterParameters",
         "rds:ModifyDBClusterParameterGroup"
-      ]
+      ],
+      "timeoutInMinutes": 180
     },
     "read": {
       "permissions": [
@@ -100,7 +101,8 @@
         "rds:RemoveTagsFromResource",
         "rds:ResetDBClusterParameterGroup",
         "rds:ModifyDBClusterParameterGroup"
-      ]
+      ],
+      "timeoutInMinutes": 180
     },
     "delete": {
       "permissions": [
