@@ -328,6 +328,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                            final ProxyClient<RdsClient> proxyClient) {
         return proxy.initiate("rds::stabilize-db-cluster-parameter-group-db-clusters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Function.identity())
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall(EMPTY_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> withProbing(
                         context,
