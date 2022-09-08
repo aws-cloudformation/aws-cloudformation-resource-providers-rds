@@ -9,10 +9,13 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableList;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -45,6 +48,11 @@ import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
+import software.amazon.awssdk.services.rds.model.GlobalCluster;
+import software.amazon.awssdk.services.rds.model.GlobalClusterMember;
+import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
@@ -140,6 +148,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenThrow(DbClusterRoleNotFoundException.builder().message("not found").build());
+        when(rdsProxy.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class)))
+                .thenThrow(GlobalClusterNotFoundException.class);
 
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
@@ -154,6 +164,37 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RemoveFromGlobalClusterStabilization() {
+        when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
+                .thenReturn(RemoveFromGlobalClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenThrow(DbClusterRoleNotFoundException.builder().message("not found").build());
+
+        final Queue<GlobalCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(GlobalCluster.builder().globalClusterMembers(GlobalClusterMember.builder().dbClusterArn(DBCLUSTER_ACTIVE.dbClusterArn()).build()).build());
+        transitions.add(GlobalCluster.builder().build());
+        when(rdsProxy.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class)))
+                .then(res -> DescribeGlobalClustersResponse.builder().globalClusters(transitions.remove()).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("global-cluster-identifier").build(),
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(5)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
+        verify(rdsProxy.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
 
     @Test

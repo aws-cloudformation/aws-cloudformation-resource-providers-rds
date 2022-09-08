@@ -30,7 +30,10 @@ import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnough
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
@@ -222,6 +225,28 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
+    protected boolean isDBClusterStabilizedAfterRemoveFromGlobalCluster(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model,
+            final String previousGlobalClusterIdentifier
+    ) {
+        final DBCluster cluster = fetchDBCluster(proxyClient, model);
+
+        if (!DBClusterStatus.Available.equalsString(cluster.status()))
+            return false;
+
+        try {
+            final DescribeGlobalClustersResponse globalClustersResponse = proxyClient.injectCredentialsAndInvokeV2(
+                    Translator.describeGlobalClustersRequest(previousGlobalClusterIdentifier),
+                    proxyClient.client()::describeGlobalClusters
+            );
+            final GlobalCluster globalCluster = globalClustersResponse.globalClusters().get(0);
+            return globalCluster.globalClusterMembers().stream().noneMatch(m -> m.dbClusterArn().equals(cluster.dbClusterArn()));
+        } catch (GlobalClusterNotFoundException ex) {
+            return true;
+        }
+    }
+
     protected boolean isDBClusterDeleted(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
@@ -404,10 +429,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         removeRequest,
                         proxyInvocation.client()::removeFromGlobalCluster
                 ))
-                .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) -> isDBClusterStabilized(
+                .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) -> isDBClusterStabilizedAfterRemoveFromGlobalCluster(
                         proxyInvocation,
                         model,
-                        DBClusterStatus.Available
+                        globalClusterIdentifier
                 ))
                 .handleError((removeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),

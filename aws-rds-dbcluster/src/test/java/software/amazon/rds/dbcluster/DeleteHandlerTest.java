@@ -35,6 +35,8 @@ import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
+import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
@@ -179,6 +181,8 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveFromGlobalClusterResponse.builder().globalCluster(GLOBAL_CLUSTER).build());
         when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
                 .thenReturn(DeleteDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class)))
+                .thenThrow(GlobalClusterNotFoundException.builder().build());
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_INPROGRESS);
         transitions.add(DBCLUSTER_INPROGRESS);

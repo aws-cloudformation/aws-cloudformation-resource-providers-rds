@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
@@ -413,6 +414,10 @@ public class Translator {
                                 .collect(Collectors.toList())
                 )
                 .build();
+    }
+
+    public static DescribeGlobalClustersRequest describeGlobalClustersRequest(String globalClusterIdentifier) {
+        return DescribeGlobalClustersRequest.builder().globalClusterIdentifier(globalClusterIdentifier).build();
     }
 
     private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
