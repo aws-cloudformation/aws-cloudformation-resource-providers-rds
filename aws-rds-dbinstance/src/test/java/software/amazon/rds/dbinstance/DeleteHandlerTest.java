@@ -317,10 +317,9 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
             final HandlerErrorCode expectResponseCode
     ) {
         test_handleRequest_error(
+                expectDeleteDBInstanceCall(),
                 new CallbackContext(),
                 () -> RESOURCE_MODEL_BLDR().build(),
-                DeleteDbInstanceRequest.class,
-                "deleteDBInstance",
                 requestException,
                 expectResponseCode
         );

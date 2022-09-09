@@ -1318,10 +1318,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
             final HandlerErrorCode expectResponseCode
     ) {
         test_handleRequest_error(
+                expectCreateDBInstanceCall(),
                 new CallbackContext(),
                 () -> RESOURCE_MODEL_BLDR().build(),
-                CreateDbInstanceRequest.class,
-                "createDBInstance",
                 requestException,
                 expectResponseCode
         );
@@ -1347,10 +1346,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
             final HandlerErrorCode expectResponseCode
     ) {
         test_handleRequest_error(
+                expectCreateDBInstanceReadReplicaCall(),
                 new CallbackContext(),
                 () -> RESOURCE_MODEL_READ_REPLICA,
-                CreateDbInstanceReadReplicaRequest.class,
-                "createDBInstanceReadReplica",
                 requestException,
                 expectResponseCode
         );
@@ -1377,10 +1375,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
             final HandlerErrorCode expectResponseCode
     ) {
         test_handleRequest_error(
+                expectRestoreDBInstanceFromDBSnapshotCall(),
                 new CallbackContext(),
                 () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
-                RestoreDbInstanceFromDbSnapshotRequest.class,
-                "restoreDBInstanceFromDBSnapshot",
                 requestException,
                 expectResponseCode
         );

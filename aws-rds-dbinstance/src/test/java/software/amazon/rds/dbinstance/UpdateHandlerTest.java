@@ -1086,11 +1086,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setStorageAllocated(true);
 
         test_handleRequest_error(
+                expectModifyDBInstanceCall(),
                 context,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_ALTER,
-                ModifyDbInstanceRequest.class,
-                "modifyDBInstance",
                 requestException,
                 expectResponseCode
         );
