@@ -2,41 +2,47 @@ package software.amazon.rds.dbinstance;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.junit.jupiter.api.Assertions;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.mockito.stubbing.OngoingStubbing;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResponse;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.Endpoint;
+import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
-import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.common.test.MethodCallExpectation;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
@@ -600,13 +606,10 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     @Override
     protected void expectResourceSupply(final Supplier<DBInstance> supplier) {
-        when(getRdsProxy()
-                .client()
-                .describeDBInstances(any(DescribeDbInstancesRequest.class))
-        ).then(res -> DescribeDbInstancesResponse.builder()
-                .dbInstances(supplier.get())
-                .build()
-        );
+        expectDescribeDBInstancesCall().setup()
+                .then(res -> DescribeDbInstancesResponse.builder()
+                        .dbInstances(supplier.get())
+                        .build());
     }
 
     // This helper method computes DBInstance state transitions upon an assigned roles update.
@@ -653,60 +656,99 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
         return result;
     }
 
-    protected static AwsServiceException newAwsServiceException(final ErrorCode errorCode) {
-        return AwsServiceException.builder()
-                .awsErrorDetails(AwsErrorDetails.builder()
-                        .errorCode(errorCode.toString())
-                        .build())
-                .build();
+    protected MethodCallExpectation<DescribeDbInstancesRequest, DescribeDbInstancesResponse> expectDescribeDBInstancesCall() {
+        return new MethodCallExpectation<DescribeDbInstancesRequest, DescribeDbInstancesResponse>() {
+            @Override
+            public OngoingStubbing<DescribeDbInstancesResponse> setup() {
+                return when(getRdsProxy().client().describeDBInstances(any(DescribeDbInstancesRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<DescribeDbInstancesRequest> verify() {
+                final ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).describeDBInstances(captor.capture());
+                return captor;
+            }
+        };
     }
 
-    protected void test_handleRequest_error(
-            final CallbackContext context,
-            final Supplier<ResourceModel> desiredStateSupplier,
-            final Class<?> requestClass,
-            final String methodHandle,
-            final Object requestException,
-            final HandlerErrorCode errorCode
-    ) {
-        test_handleRequest_error(
-                context,
-                null,
-                desiredStateSupplier,
-                requestClass,
-                methodHandle,
-                requestException,
-                errorCode
-        );
+    protected MethodCallExpectation<CreateDbInstanceRequest, CreateDbInstanceResponse> expectCreateDBInstanceCall() {
+        return new MethodCallExpectation<CreateDbInstanceRequest, CreateDbInstanceResponse>() {
+            @Override
+            public OngoingStubbing<CreateDbInstanceResponse> setup() {
+                return when(getRdsProxy().client().createDBInstance(any(CreateDbInstanceRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<CreateDbInstanceRequest> verify() {
+                final ArgumentCaptor<CreateDbInstanceRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).createDBInstance(captor.capture());
+                return captor;
+            }
+        };
     }
 
-    protected void test_handleRequest_error(
-            final CallbackContext context,
-            final Supplier<ResourceModel> previousStateSupplier,
-            final Supplier<ResourceModel> desiredStateSupplier,
-            final Class<?> requestClass,
-            final String methodHandle,
-            final Object requestException,
-            final HandlerErrorCode expectErrorCode
-    ) {
-        final Exception exception = requestException instanceof ErrorCode ? newAwsServiceException((ErrorCode) requestException) : (Exception) requestException;
+    protected MethodCallExpectation<CreateDbInstanceReadReplicaRequest, CreateDbInstanceReadReplicaResponse> expectCreateDBInstanceReadReplicaCall() {
+        return new MethodCallExpectation<CreateDbInstanceReadReplicaRequest, CreateDbInstanceReadReplicaResponse>() {
+            @Override
+            public OngoingStubbing<CreateDbInstanceReadReplicaResponse> setup() {
+                return when(getRdsProxy().client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)));
+            }
 
-        try {
-            Method invokeMethod = RdsClient.class.getMethod(methodHandle, requestClass);
+            @Override
+            public ArgumentCaptor<CreateDbInstanceReadReplicaRequest> verify() {
+                final ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).createDBInstanceReadReplica(captor.capture());
+                return captor;
+            }
+        };
+    }
 
-            when(invokeMethod.invoke(getRdsProxy().client(), any(requestClass)))
-                    .thenThrow(exception);
+    protected MethodCallExpectation<RestoreDbInstanceFromDbSnapshotRequest, RestoreDbInstanceFromDbSnapshotResponse> expectRestoreDBInstanceFromDBSnapshotCall() {
+        return new MethodCallExpectation<RestoreDbInstanceFromDbSnapshotRequest, RestoreDbInstanceFromDbSnapshotResponse>() {
+            @Override
+            public OngoingStubbing<RestoreDbInstanceFromDbSnapshotResponse> setup() {
+                return when(getRdsProxy().client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)));
+            }
 
-            test_handleRequest_base(
-                    context,
-                    null,
-                    previousStateSupplier,
-                    desiredStateSupplier,
-                    expectFailed(expectErrorCode)
-            );
-            invokeMethod.invoke(verify(getRdsProxy().client(), times(1)), any(requestClass));
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            Assertions.fail("Unexpected reflect level exception: " + e.getMessage());
-        }
+            @Override
+            public ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> verify() {
+                final ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<ModifyDbInstanceRequest, ModifyDbInstanceResponse> expectModifyDBInstanceCall() {
+        return new MethodCallExpectation<ModifyDbInstanceRequest, ModifyDbInstanceResponse>() {
+            @Override
+            public OngoingStubbing<ModifyDbInstanceResponse> setup() {
+                return when(getRdsProxy().client().modifyDBInstance(any(ModifyDbInstanceRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<ModifyDbInstanceRequest> verify() {
+                final ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).modifyDBInstance(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<DeleteDbInstanceRequest, DeleteDbInstanceResponse> expectDeleteDBInstanceCall() {
+        return new MethodCallExpectation<DeleteDbInstanceRequest, DeleteDbInstanceResponse>() {
+            @Override
+            public OngoingStubbing<DeleteDbInstanceResponse> setup() {
+                return when(getRdsProxy().client().deleteDBInstance(any(DeleteDbInstanceRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<DeleteDbInstanceRequest> verify() {
+                final ArgumentCaptor<DeleteDbInstanceRequest> captor = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).deleteDBInstance(captor.capture());
+                return captor;
+            }
+        };
     }
 }

@@ -11,12 +11,18 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,6 +35,7 @@ import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterResponse;
@@ -195,35 +202,6 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
     }
 
-    @Test
-    public void handleRequest_SnapshotQuotaExceededException() {
-        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
-                .thenThrow(SnapshotQuotaExceededException.builder().message("Cannot create more than 100 manual snapshots").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> DBCLUSTER_ACTIVE,
-                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier(null).build(),
-                expectFailed(HandlerErrorCode.ServiceLimitExceeded)
-        );
-
-        verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
-    }
-
-    @Test
-    public void handleRequest_InvalidDbClusterSnapshotStateException() {
-        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
-                .thenThrow(InvalidDbClusterSnapshotStateException.builder().message("invalid db cluster snapshot state").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> DBCLUSTER_ACTIVE,
-                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier(null).build(),
-                expectFailed(HandlerErrorCode.ResourceConflict)
-        );
-
-        verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
-    }
 
     @Test
     public void handleRequest_RequestFinalSnapshotIfNotExplicitlyRequested() {
@@ -250,5 +228,53 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
         Assertions.assertFalse(argument.getValue().skipFinalSnapshot());
         Assertions.assertNotNull(argument.getValue().finalDBSnapshotIdentifier());
+    }
+
+    @Test
+    public void handleRequest_InvalidDbClusterSnapshotStateException() {
+        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
+                .thenThrow(InvalidDbClusterSnapshotStateException.builder().message("invalid db cluster snapshot state").build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier(null).build(),
+                expectFailed(HandlerErrorCode.ResourceConflict)
+        );
+
+        verify(rdsProxy.client(), times(1)).deleteDBCluster(any(DeleteDbClusterRequest.class));
+    }
+
+    static class DeleteDBClusterExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    // Put exception classes below
+                    Arguments.of(SnapshotQuotaExceededException.builder().message(ERROR_MSG).build(), HandlerErrorCode.ServiceLimitExceeded),
+                    Arguments.of(InvalidDbClusterSnapshotStateException.builder().message(ERROR_MSG).build(), HandlerErrorCode.ResourceConflict)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(DeleteDBClusterExceptionArgumentsProvider.class)
+    public void handleRequest_ModifyDBCluster_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        expectDescribeDBClustersCall().setup().thenReturn(DescribeDbClustersResponse.builder()
+                .dbClusters(DBCLUSTER_ACTIVE)
+                .build());
+
+        test_handleRequest_error(
+                expectDeleteDBClusterCall(),
+                new CallbackContext(),
+                () -> RESOURCE_MODEL,
+                requestException,
+                expectResponseCode
+        );
+
+        expectDescribeDBClustersCall().verify();
     }
 }
