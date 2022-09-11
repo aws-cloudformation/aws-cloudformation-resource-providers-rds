@@ -1,6 +1,7 @@
 package software.amazon.rds.dbcluster;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -8,17 +9,30 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.mockito.stubbing.OngoingStubbing;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
@@ -28,6 +42,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.common.test.MethodCallExpectation;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
 
@@ -72,6 +87,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final DBClusterSnapshot DBCLUSTER_SNAPSHOT_FAILED;
     protected static final List<String> VPC_SG_IDS;
 
+    protected static final String ERROR_MSG = "error";
 
     protected static final Set<Tag> TAG_LIST;
     protected static final Set<Tag> TAG_LIST_EMPTY;
@@ -310,12 +326,105 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
 
     @Override
     protected void expectResourceSupply(final Supplier<DBCluster> supplier) {
-        when(getRdsProxy()
-                .client()
-                .describeDBClusters(any(DescribeDbClustersRequest.class))
-        ).then(res -> DescribeDbClustersResponse.builder()
+        expectDescribeDBClustersCall().setup().then(res -> DescribeDbClustersResponse.builder()
                 .dbClusters(supplier.get())
-                .build()
-        );
+                .build());
+    }
+
+    protected MethodCallExpectation<DescribeDbClustersRequest, DescribeDbClustersResponse> expectDescribeDBClustersCall() {
+        return new MethodCallExpectation<DescribeDbClustersRequest, DescribeDbClustersResponse>() {
+            @Override
+            public OngoingStubbing<DescribeDbClustersResponse> setup() {
+                return when(getRdsProxy().client().describeDBClusters(any(DescribeDbClustersRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<DescribeDbClustersRequest> verify() {
+                ArgumentCaptor<DescribeDbClustersRequest> captor = ArgumentCaptor.forClass(DescribeDbClustersRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).describeDBClusters(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<CreateDbClusterRequest, CreateDbClusterResponse> expectCreateDBClusterCall() {
+        return new MethodCallExpectation<CreateDbClusterRequest, CreateDbClusterResponse>() {
+
+            @Override
+            public OngoingStubbing<CreateDbClusterResponse> setup() {
+                return when(getRdsProxy().client().createDBCluster(any(CreateDbClusterRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<CreateDbClusterRequest> verify() {
+                ArgumentCaptor<CreateDbClusterRequest> captor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).createDBCluster(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<RestoreDbClusterFromSnapshotRequest, RestoreDbClusterFromSnapshotResponse> expectRestoreDBClusterFromSnapshotCall() {
+        return new MethodCallExpectation<RestoreDbClusterFromSnapshotRequest, RestoreDbClusterFromSnapshotResponse>() {
+            @Override
+            public OngoingStubbing<RestoreDbClusterFromSnapshotResponse> setup() {
+                return when(getRdsProxy().client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> verify() {
+                ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).restoreDBClusterFromSnapshot(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<RestoreDbClusterToPointInTimeRequest, RestoreDbClusterToPointInTimeResponse> expectRestoreDBClusterToPointInTimeCall() {
+        return new MethodCallExpectation<RestoreDbClusterToPointInTimeRequest, RestoreDbClusterToPointInTimeResponse>() {
+            @Override
+            public OngoingStubbing<RestoreDbClusterToPointInTimeResponse> setup() {
+                return when(getRdsProxy().client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> verify() {
+                ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<ModifyDbClusterRequest, ModifyDbClusterResponse> expectModifyDBClusterCall() {
+        return new MethodCallExpectation<ModifyDbClusterRequest, ModifyDbClusterResponse>() {
+            @Override
+            public OngoingStubbing<ModifyDbClusterResponse> setup() {
+                return when(getRdsProxy().client().modifyDBCluster(any(ModifyDbClusterRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<ModifyDbClusterRequest> verify() {
+                ArgumentCaptor<ModifyDbClusterRequest> captor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).modifyDBCluster(captor.capture());
+                return captor;
+            }
+        };
+    }
+
+    protected MethodCallExpectation<DeleteDbClusterRequest, DeleteDbClusterResponse> expectDeleteDBClusterCall() {
+        return new MethodCallExpectation<DeleteDbClusterRequest, DeleteDbClusterResponse>() {
+            @Override
+            public OngoingStubbing<DeleteDbClusterResponse> setup() {
+                return when(getRdsProxy().client().deleteDBCluster(any(DeleteDbClusterRequest.class)));
+            }
+
+            @Override
+            public ArgumentCaptor<DeleteDbClusterRequest> verify() {
+                ArgumentCaptor<DeleteDbClusterRequest> captor = ArgumentCaptor.forClass(DeleteDbClusterRequest.class);
+                Mockito.verify(getRdsProxy().client(), times(1)).deleteDBCluster(captor.capture());
+                return captor;
+            }
+        };
     }
 }
