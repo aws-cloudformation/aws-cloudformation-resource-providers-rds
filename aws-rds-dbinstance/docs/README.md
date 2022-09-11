@@ -21,6 +21,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>" : <i>String</i>,
         "<a href="#charactersetname" title="CharacterSetName">CharacterSetName</a>" : <i>String</i>,
         "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
+        "<a href="#customiaminstanceprofile" title="CustomIAMInstanceProfile">CustomIAMInstanceProfile</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbinstanceclass" title="DBInstanceClass">DBInstanceClass</a>" : <i>String</i>,
         "<a href="#dbinstanceidentifier" title="DBInstanceIdentifier">DBInstanceIdentifier</a>" : <i>String</i>,
@@ -86,6 +87,7 @@ Properties:
     <a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>: <i>String</i>
     <a href="#charactersetname" title="CharacterSetName">CharacterSetName</a>: <i>String</i>
     <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
+    <a href="#customiaminstanceprofile" title="CustomIAMInstanceProfile">CustomIAMInstanceProfile</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
     <a href="#dbinstanceclass" title="DBInstanceClass">DBInstanceClass</a>: <i>String</i>
     <a href="#dbinstanceidentifier" title="DBInstanceIdentifier">DBInstanceIdentifier</a>: <i>String</i>
@@ -230,6 +232,22 @@ A value that indicates whether to copy tags from the DB instance to snapshots of
 _Required_: No
 
 _Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### CustomIAMInstanceProfile
+
+The instance profile associated with the underlying Amazon EC2 instance of an RDS Custom DB instance. The instance profile must meet the following requirements:
+ * The profile must exist in your account.
+ * The profile must have an IAM role that Amazon EC2 has permissions to assume.
+ * The instance profile name and the associated IAM role name must start with the prefix AWSRDSCustom .
+For the list of permissions required for the IAM role, see Configure IAM and your VPC in the Amazon RDS User Guide .
+
+This setting is required for RDS Custom.
+
+_Required_: No
+
+_Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
