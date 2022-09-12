@@ -41,10 +41,10 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.common.test.TestCommon;
 import software.amazon.rds.common.test.MethodCallExpectation;
 
-public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
+public abstract class HandlerTest extends TestCommon<DBCluster, ResourceModel, CallbackContext> {
 
     protected static final String LOGICAL_RESOURCE_IDENTIFIER = "dbcluster";
 

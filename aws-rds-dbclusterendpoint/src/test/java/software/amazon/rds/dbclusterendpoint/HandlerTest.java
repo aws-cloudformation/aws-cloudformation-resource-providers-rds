@@ -18,7 +18,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.common.test.TestCommon;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndpoint, ResourceModel, CallbackContext> {
+public abstract class HandlerTest extends TestCommon<DBClusterEndpoint, ResourceModel, CallbackContext> {
     protected static final LoggerProxy logger;
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final String MSG_NOT_FOUND = "Cluster Endpoint not found";

@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class ReadHandlerTest extends AbstractHandlerTest {
+public class ReadHandlerTest extends HandlerTest {
     @Mock
     @Getter
     private AmazonWebServicesClientProxy proxy;

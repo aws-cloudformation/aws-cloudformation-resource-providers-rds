@@ -9,7 +9,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TranslatorTest extends AbstractHandlerTest {
+public class TranslatorTest extends HandlerTest {
 
     @Test
     public void modifyDbClusterRequest_omitPreferredMaintenanceWindowIfUnchanged() {

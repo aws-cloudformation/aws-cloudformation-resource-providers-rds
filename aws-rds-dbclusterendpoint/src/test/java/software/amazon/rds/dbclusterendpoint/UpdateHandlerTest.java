@@ -40,7 +40,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class UpdateHandlerTest extends AbstractHandlerTest {
+public class UpdateHandlerTest extends HandlerTest {
 
     @Mock
     @Getter

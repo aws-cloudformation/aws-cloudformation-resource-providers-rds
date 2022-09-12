@@ -28,7 +28,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
-public class ListHandlerTest extends AbstractTestBase {
+public class ListHandlerTest extends TestCommon {
 
     @Mock
     @Getter

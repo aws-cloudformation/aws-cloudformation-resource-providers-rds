@@ -30,7 +30,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
-public class DeleteHandlerTest extends AbstractTestBase {
+public class DeleteHandlerTest extends TestCommon {
 
     @Mock
     @Getter

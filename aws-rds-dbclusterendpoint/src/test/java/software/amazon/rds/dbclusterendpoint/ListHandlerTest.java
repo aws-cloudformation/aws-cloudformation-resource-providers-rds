@@ -28,7 +28,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class ListHandlerTest extends AbstractHandlerTest {
+public class ListHandlerTest extends HandlerTest {
     final String DB_CLUSTER_ENDPOINT_IDENTIFIER = "test-db-cluster-endpoint-identifier";
     final String DB_CLUSTER_IDENTIFIER = "test-db-cluster-identifier";
     final String ENDPOINT_TYPE = "ANY";

@@ -59,10 +59,10 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.test.TestUtils;
+import software.amazon.rds.common.test.TestHelper;
 
 @ExtendWith(MockitoExtension.class)
-public class UpdateHandlerTest extends AbstractHandlerTest {
+public class UpdateHandlerTest extends HandlerTest {
 
     @Mock
     RdsClient rdsClient;
@@ -326,7 +326,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_NoMasterUserUpdateIfMatch() {
-        final String masterUserPassword = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String masterUserPassword = TestHelper.randomString(16, TestHelper.ALPHANUM);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -360,8 +360,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_UpdateMasterUserPasswordIfMismatch() {
-        final String masterUserPassword1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
-        final String masterUserPassword2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String masterUserPassword1 = TestHelper.randomString(16, TestHelper.ALPHANUM);
+        final String masterUserPassword2 = TestHelper.randomString(16, TestHelper.ALPHANUM);
 
         Assertions.assertNotEquals(masterUserPassword1, masterUserPassword2);
 
@@ -397,7 +397,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_NoEngineVersionUpdateIfMatch() {
-        final String engineVersion = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String engineVersion = TestHelper.randomString(16, TestHelper.ALPHANUM);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -431,8 +431,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_NoEngineVersionUpdateIfRollback() {
-        final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
-        final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String engineVersion1 = TestHelper.randomString(16, TestHelper.ALPHANUM);
+        final String engineVersion2 = TestHelper.randomString(16, TestHelper.ALPHANUM);
 
         Assertions.assertNotEquals(engineVersion1, engineVersion2);
 
@@ -469,8 +469,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_EngineVersionUpdateIfMismatch() {
-        final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
-        final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String engineVersion1 = TestHelper.randomString(16, TestHelper.ALPHANUM);
+        final String engineVersion2 = TestHelper.randomString(16, TestHelper.ALPHANUM);
 
         Assertions.assertNotEquals(engineVersion1, engineVersion2);
 

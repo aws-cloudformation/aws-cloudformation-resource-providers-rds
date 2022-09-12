@@ -15,7 +15,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
 
-class TranslatorTest extends AbstractHandlerTest {
+class TranslatorTest extends HandlerTest {
 
     @Test
     public void test_modifyDbInstanceRequest_IncreaseAllocatedStorage() {

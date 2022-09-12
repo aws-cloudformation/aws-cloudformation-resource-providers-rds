@@ -3,7 +3,7 @@ package software.amazon.rds.common.util;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
-import static software.amazon.rds.common.test.TestUtils.ALPHA;
+import static software.amazon.rds.common.test.TestHelper.ALPHA;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.rds.common.test.TestUtils;
+import software.amazon.rds.common.test.TestHelper;
 
 class ParameterGrouperTest {
     protected final String NON_PRESENT_DEPENDANT_PARAMETER = "this parameter won't be found";
@@ -53,7 +53,7 @@ class ParameterGrouperTest {
     }
 
     private List<String> generateRandomStringList(int listLen, int wordLen, String alphabet) {
-        return Stream.generate(() -> TestUtils.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
+        return Stream.generate(() -> TestHelper.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
     }
 
     private String[] buildMockExceptionArrayFromExceptionOrder(List<String> randomParameterKeys, List<Integer> expectationOrder) {

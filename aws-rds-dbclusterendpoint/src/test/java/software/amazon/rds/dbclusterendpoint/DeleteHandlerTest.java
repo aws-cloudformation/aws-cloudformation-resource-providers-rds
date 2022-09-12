@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class DeleteHandlerTest extends AbstractHandlerTest {
+public class DeleteHandlerTest extends HandlerTest {
 
     @Mock
     @Getter

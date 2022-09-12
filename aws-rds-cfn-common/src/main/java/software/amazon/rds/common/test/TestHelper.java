@@ -7,7 +7,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import java.security.SecureRandom;
 import java.util.UUID;
 
-public final class TestUtils {
+public final class TestHelper {
     public final static SecureRandom random = new SecureRandom();
     final public static String ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     final public static String ALPHANUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

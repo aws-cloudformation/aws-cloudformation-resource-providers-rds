@@ -41,12 +41,12 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.common.test.TestCommon;
 import software.amazon.rds.common.test.MethodCallExpectation;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
-public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, ResourceModel, CallbackContext> {
+public abstract class HandlerTest extends TestCommon<DBInstance, ResourceModel, CallbackContext> {
 
     protected static final String LOGICAL_RESOURCE_IDENTIFIER = "dbinstance";
 

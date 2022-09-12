@@ -58,10 +58,10 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.test.TestUtils;
+import software.amazon.rds.common.test.TestHelper;
 
 @ExtendWith(MockitoExtension.class)
-public class CreateHandlerTest extends AbstractHandlerTest {
+public class CreateHandlerTest extends HandlerTest {
 
     @Mock
     @Getter
@@ -298,7 +298,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
 
-        final String kmsKeyId = TestUtils.randomString(32, TestUtils.ALPHA);
+        final String kmsKeyId = TestHelper.randomString(32, TestHelper.ALPHA);
 
         test_handleRequest_base(
                 context,

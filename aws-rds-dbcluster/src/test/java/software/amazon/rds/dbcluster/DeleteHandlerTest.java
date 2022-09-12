@@ -48,7 +48,7 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
-public class DeleteHandlerTest extends AbstractHandlerTest {
+public class DeleteHandlerTest extends HandlerTest {
 
     private static final String MSG_NOT_FOUND = "not found";
 

@@ -29,7 +29,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
-public class ReadHandlerTest extends AbstractTestBase {
+public class ReadHandlerTest extends TestCommon {
 
     @Mock
     @Getter

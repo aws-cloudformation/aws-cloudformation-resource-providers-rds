@@ -20,9 +20,9 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 @ExtendWith(MockitoExtension.class)
-class AbstractTestBaseTest {
+class TestCommonTest {
 
-    static class TestAbstractTestBase extends AbstractTestBase<Void, Void, Void> {
+    static class TestTestCommon extends TestCommon<Void, Void, Void> {
 
         @Override
         protected String getLogicalResourceIdentifier() {
@@ -41,19 +41,19 @@ class AbstractTestBaseTest {
 
     @Test
     void newClientRequestToken() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
-        assertThat(TestUtils.newClientRequestToken()).isNotNull();
+        final TestTestCommon testBase = new TestTestCommon();
+        assertThat(TestHelper.newClientRequestToken()).isNotNull();
     }
 
     @Test
     void newStackId() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
-        assertThat(TestUtils.newStackId()).isNotNull();
+        final TestTestCommon testBase = new TestTestCommon();
+        assertThat(TestHelper.newStackId()).isNotNull();
     }
 
     @Test
     void expectInProgress_Success() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         final int pause = 10;
         final Consumer<ProgressEvent<Void, Void>> expectInProgress = testBase.expectInProgress(pause);
         final ProgressEvent<Void, Void> response = ProgressEvent.defaultInProgressHandler(null, pause, null);
@@ -62,7 +62,7 @@ class AbstractTestBaseTest {
 
     @Test
     void expectInProgress_Fail() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         final int pause = 10;
         final Consumer<ProgressEvent<Void, Void>> expectInProgress = testBase.expectInProgress(pause);
         final ProgressEvent<Void, Void> response = ProgressEvent.defaultSuccessHandler(null);
@@ -71,7 +71,7 @@ class AbstractTestBaseTest {
 
     @Test
     void expectSuccess_Success() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         final Consumer<ProgressEvent<Void, Void>> expectSuccess = testBase.expectSuccess();
         final ProgressEvent<Void, Void> response = ProgressEvent.defaultSuccessHandler(null);
         expectSuccess.accept(response); // should not throw
@@ -79,7 +79,7 @@ class AbstractTestBaseTest {
 
     @Test
     void expectSuccess_Fail() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         final Consumer<ProgressEvent<Void, Void>> expectSuccess = testBase.expectSuccess();
         final ProgressEvent<Void, Void> response = ProgressEvent.defaultInProgressHandler(null, 0, null);
         assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> expectSuccess.accept(response));
@@ -87,7 +87,7 @@ class AbstractTestBaseTest {
 
     @Test
     void expectFailed_Success() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         final Consumer<ProgressEvent<Void, Void>> expectFailed = testBase.expectFailed(HandlerErrorCode.InvalidRequest);
         final ProgressEvent<Void, Void> response = ProgressEvent.defaultFailureHandler(new Exception("test exception"), HandlerErrorCode.InvalidRequest);
         expectFailed.accept(response); // should not throw
@@ -95,7 +95,7 @@ class AbstractTestBaseTest {
 
     @Test
     void expectFailed_Fail() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         final Consumer<ProgressEvent<Void, Void>> expectFailed = testBase.expectFailed(HandlerErrorCode.InvalidRequest);
         final ProgressEvent<Void, Void> response = ProgressEvent.defaultSuccessHandler(null);
         assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> expectFailed.accept(response));
@@ -106,7 +106,7 @@ class AbstractTestBaseTest {
 
     @Test
     void test_handleRequest_base_ExpectResourceStateInvocation() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         when(builder.desiredResourceState(any())).thenReturn(null);
         when(builder.previousResourceState(any())).thenReturn(null);
 
@@ -126,7 +126,7 @@ class AbstractTestBaseTest {
 
     @Test
     void test_handleRequest_base_ExpectNoPreviousStateInvocation() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         when(builder.desiredResourceState(any())).thenReturn(null);
 
         testBase.test_handleRequest_base(
@@ -144,7 +144,7 @@ class AbstractTestBaseTest {
 
     @Test
     void test_handleRequest_base_NoSupplyExpect() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
+        final TestTestCommon testBase = new TestTestCommon();
         when(builder.desiredResourceState(any())).thenReturn(null);
 
         testBase.test_handleRequest_base(

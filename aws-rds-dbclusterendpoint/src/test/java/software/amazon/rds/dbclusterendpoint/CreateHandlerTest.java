@@ -17,7 +17,6 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointResponse;
-import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
@@ -45,7 +44,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class CreateHandlerTest extends AbstractHandlerTest {
+public class CreateHandlerTest extends HandlerTest {
 
     @Mock
     @Getter

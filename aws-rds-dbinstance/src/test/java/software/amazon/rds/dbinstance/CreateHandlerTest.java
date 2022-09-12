@@ -73,7 +73,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
 @ExtendWith(MockitoExtension.class)
-public class CreateHandlerTest extends AbstractHandlerTest {
+public class CreateHandlerTest extends HandlerTest {
 
     @Mock
     @Getter

@@ -31,10 +31,10 @@ import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.*;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.test.TestUtils;
+import software.amazon.rds.common.test.TestHelper;
 
 @ExtendWith(MockitoExtension.class)
-public class UpdateHandlerTest extends AbstractTestBase {
+public class UpdateHandlerTest extends TestCommon {
 
     @Mock
     @Getter
@@ -86,11 +86,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
                 .desiredResourceState(RESOURCE_MODEL_WITH_UPDATED_CONFIGURATIONS)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -132,11 +132,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
                 .desiredResourceState(RESOURCE_MODEL_WITH_UPDATED_CONFIGURATIONS)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -175,11 +175,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
                 .desiredResourceState(RESOURCE_MODEL_WITH_UPDATED_RESOURCE_TAGS)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -235,13 +235,13 @@ public class UpdateHandlerTest extends AbstractTestBase {
                                 ).build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceTags(previousResourceTags)
                 .desiredResourceTags(desiredResourceTags)
                 .previousResourceState(RESOURCE_MODEL_WITH_NAME)
                 .desiredResourceState(RESOURCE_MODEL_WITH_NAME)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -294,11 +294,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                                 ).build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(RESOURCE_MODEL_WITH_NAME)
                 .desiredResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -339,11 +339,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenReturn(describeDbClusterParameterGroupsResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(previousModel)
                 .desiredResourceState(desiredModel)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -385,11 +385,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenReturn(describeDbClusterParameterGroupsResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(previousModel)
                 .desiredResourceState(desiredModel)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -433,11 +433,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenReturn(describeDbClusterParameterGroupsResponse);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(previousModel)
                 .desiredResourceState(desiredModel)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -464,11 +464,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenThrow(OptionGroupNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(previousModel)
                 .desiredResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -494,11 +494,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .thenThrow(new RuntimeException("test exception"));
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .clientRequestToken(TestHelper.randomString(32, TestHelper.ALPHA))
                 .previousResourceState(previousModel)
                 .desiredResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .stackId(TestHelper.randomString(32, TestHelper.ALPHA))
+                .logicalResourceIdentifier(TestHelper.randomString(32, TestHelper.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 

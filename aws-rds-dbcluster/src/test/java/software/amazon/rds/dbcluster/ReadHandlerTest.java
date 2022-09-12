@@ -24,7 +24,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 
 @ExtendWith(MockitoExtension.class)
-public class ReadHandlerTest extends AbstractHandlerTest {
+public class ReadHandlerTest extends HandlerTest {
 
     @Mock
     @Getter

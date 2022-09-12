@@ -29,7 +29,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
 
-public abstract class AbstractTestBase extends software.amazon.rds.common.test.AbstractTestBase<OptionGroup, ResourceModel, CallbackContext> {
+public abstract class TestCommon extends software.amazon.rds.common.test.TestCommon<OptionGroup, ResourceModel, CallbackContext> {
 
     protected final String IGNORE_TEST_VERIFICATION= "IgnoreTestVerification";
 

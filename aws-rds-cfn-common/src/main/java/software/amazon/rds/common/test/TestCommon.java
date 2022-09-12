@@ -13,7 +13,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 
-public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
+public abstract class TestCommon<ResourceT, ModelT, ContextT> {
 
     protected abstract String getLogicalResourceIdentifier();
 
@@ -96,8 +96,8 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
             builder.previousResourceState(previousStateSupplier.get());
         }
         builder.logicalResourceIdentifier(getLogicalResourceIdentifier());
-        builder.clientRequestToken(TestUtils.newClientRequestToken());
-        builder.stackId(TestUtils.newStackId());
+        builder.clientRequestToken(TestHelper.newClientRequestToken());
+        builder.stackId(TestHelper.newStackId());
 
         final ProgressEvent<ModelT, ContextT> response = invokeHandleRequest(builder.build(), context);
         expect.accept(response);
@@ -132,7 +132,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
             final Object requestException,
             final HandlerErrorCode expectErrorCode
     ) {
-        final Exception exception = requestException instanceof ErrorCode ? TestUtils.newAwsServiceException((ErrorCode) requestException) : (Exception) requestException;
+        final Exception exception = requestException instanceof ErrorCode ? TestHelper.newAwsServiceException((ErrorCode) requestException) : (Exception) requestException;
 
         expectation.setup()
                 .thenThrow(exception);

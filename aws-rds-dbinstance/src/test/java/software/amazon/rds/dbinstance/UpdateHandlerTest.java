@@ -77,7 +77,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 @ExtendWith(MockitoExtension.class)
-public class UpdateHandlerTest extends AbstractHandlerTest {
+public class UpdateHandlerTest extends HandlerTest {
 
     @Mock
     @Getter
