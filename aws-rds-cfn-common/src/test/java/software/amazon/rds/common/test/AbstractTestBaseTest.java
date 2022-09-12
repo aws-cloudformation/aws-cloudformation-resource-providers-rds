@@ -162,11 +162,10 @@ class AbstractTestBaseTest {
 
     @Test
     public void test_randomString() {
-        final TestAbstractTestBase testBase = new TestAbstractTestBase();
         final int length = 16;
         final String alphabet = "abc";
 
-        final String randStr = testBase.randomString(length, alphabet);
+        final String randStr = AbstractTestBase.randomString(length, alphabet);
         assertThat(randStr.length()).isEqualTo(length);
 
         final String resultAlphabet = randStr.chars()
