@@ -11,12 +11,18 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,7 +30,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -98,7 +103,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbCluster_SimpleSuccess() {
+    public void handleRequest_CreateDbCluster_Success() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -192,36 +197,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateDbCluster_AlreadyExists() {
-        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
-                .thenThrow(DbClusterAlreadyExistsException.builder().message("already exists").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.AlreadyExists)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateDbCluster_RuntimeException() {
-        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
-                .thenThrow(new RuntimeException("test exception"));
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 
     @Test
@@ -339,42 +314,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RestoreDbClusterFromSnapshot_AlreadyExists() {
-        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
-                .thenThrow(DbClusterAlreadyExistsException.builder().message("already exists").build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setModified(true);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_ON_RESTORE,
-                expectFailed(HandlerErrorCode.AlreadyExists)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
-    }
-
-    @Test
-    public void handleRequest_RestoreDbClusterFromSnapshot_RuntimeException() {
-        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
-                .thenThrow(new RuntimeException("test exception"));
-
-        final CallbackContext context = new CallbackContext();
-        context.setModified(true);
-
-        test_handleRequest_base(
-                context,
-                null,
-                () -> RESOURCE_MODEL_ON_RESTORE,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
-    }
-
-    @Test
     public void handleRequest_RestoreDbClusterToPointInTime_Success() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
@@ -439,83 +378,33 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
     }
 
-    @Test
-    public void handleRequest_RestoreDbClusterToPointInTime_AlreadyExists() {
-        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
-                .thenThrow(DbClusterAlreadyExistsException.builder().message("already exists").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME,
-                expectFailed(HandlerErrorCode.AlreadyExists)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+    static class CreateDBClusterExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
+                    // Put exception classes below
+                    Arguments.of(DbClusterAlreadyExistsException.builder().message(ERROR_MSG).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(StorageTypeNotSupportedException.builder().message(ERROR_MSG).build(), HandlerErrorCode.InvalidRequest),
+                    Arguments.of(DomainNotFoundException.builder().message(ERROR_MSG).build(), HandlerErrorCode.NotFound),
+                    Arguments.of(new RuntimeException(ERROR_MSG), HandlerErrorCode.InternalFailure)
+            );
+        }
     }
 
-    @Test
-    public void handleRequest_RestoreDbClusterToPointInTime_RuntimeException() {
-        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
-                .thenThrow(new RuntimeException("test exception"));
-
-        test_handleRequest_base(
+    @ParameterizedTest
+    @ArgumentsSource(CreateDBClusterExceptionArgumentsProvider.class)
+    public void handleRequest_CreateDBCluster_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
+                expectCreateDBClusterCall(),
                 new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateDbCluster_DomainNotFoundException() {
-        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
-                .thenThrow(DomainNotFoundException.builder().message("Requested domain some_domain does not exist").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
                 () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.NotFound)
+                requestException,
+                expectResponseCode
         );
-
-        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateDbCluster_StorageTypeNotSupportedException() {
-        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
-                .thenThrow(StorageTypeNotSupportedException.builder().message("error").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateDbCluster_StorageTypeNotSupportedFault() {
-        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
-                .thenThrow(AwsServiceException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorMessage("error")
-                                .errorCode(ErrorCode.StorageTypeNotSupportedFault.toString())
-                                .build()
-                        ).build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.InvalidRequest)
-        );
-
-        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 }

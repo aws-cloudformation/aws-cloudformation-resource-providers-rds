@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +19,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -106,7 +112,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessRoleNotFound() {
+    public void handleRequest_SuccessRoleNotFound() {
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
@@ -163,7 +169,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_Success() {
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -204,7 +210,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithEmptyVPC() {
+    public void handleRequest_SuccessWithEmptyVPC() {
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -292,21 +298,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
     }
 
-    @Test
-    public void handleRequest_DbClusterNotFound() {
-        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
-                .thenThrow(DbClusterNotFoundException.builder().message("not found").build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.NotFound)
-        );
-
-        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-    }
 
     @Test
     public void handleRequest_ImmutableUpdate_GlobalCluster() {
@@ -512,5 +503,32 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertEquals(argument.getValue().engineVersion(), engineVersion2);
         Assertions.assertTrue(argument.getValue().applyImmediately());
         Assertions.assertTrue(argument.getValue().allowMajorVersionUpgrade());
+    }
+
+    static class ModifyDBClusterExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                    // Put error codes below
+                    // Put exception classes below
+                    Arguments.of(DbClusterNotFoundException.builder().message(ERROR_MSG).build(), HandlerErrorCode.NotFound)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ModifyDBClusterExceptionArgumentsProvider.class)
+    public void handleRequest_ModifyDBCluster_HandleException(
+            final Object requestException,
+            final HandlerErrorCode expectResponseCode
+    ) {
+        test_handleRequest_error(
+                expectModifyDBClusterCall(),
+                new CallbackContext(),
+                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL,
+                requestException,
+                expectResponseCode
+        );
     }
 }

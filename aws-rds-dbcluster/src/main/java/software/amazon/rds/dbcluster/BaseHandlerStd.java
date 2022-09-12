@@ -78,6 +78,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DefaultVpcDoesNotExist)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.StorageTypeNotSupportedFault)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    ErrorCode.InvalidDBSecurityGroupState)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
