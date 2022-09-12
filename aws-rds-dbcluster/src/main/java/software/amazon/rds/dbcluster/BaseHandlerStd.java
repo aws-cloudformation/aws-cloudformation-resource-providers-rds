@@ -30,7 +30,9 @@ import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnough
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
@@ -177,6 +179,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return response.dbClusters().get(0);
     }
 
+    protected GlobalCluster fetchGlobalCluster(
+            final ProxyClient<RdsClient> proxyClient,
+            final String globalClusterIdentifier
+    ) {
+        final DescribeGlobalClustersResponse globalClustersResponse = proxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeGlobalClustersRequest(globalClusterIdentifier),
+                proxyClient.client()::describeGlobalClusters
+        );
+        return globalClustersResponse.globalClusters().get(0);
+    }
+
     protected DBSubnetGroup fetchDBSubnetGroup(
             final ProxyClient<RdsClient> proxyClient,
             final String DbSubnetGroupName
@@ -212,13 +225,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model,
             final DBClusterStatus expectedStatus
     ) {
+        final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+        return expectedStatus.equalsString(dbCluster.status());
+    }
+
+    protected boolean isClusterRemovedFromGlobalCluster(
+            final ProxyClient<RdsClient> proxyClient,
+            final String previousGlobalClusterIdentifier,
+            final ResourceModel model
+    ) {
         try {
+            final GlobalCluster globalCluster = fetchGlobalCluster(proxyClient, previousGlobalClusterIdentifier);
             final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
-            return expectedStatus.equalsString(dbCluster.status());
-        } catch (DbClusterNotFoundException e) {
-            throw new CfnNotFoundException(ResourceModel.TYPE_NAME, e.getMessage());
-        } catch (Exception e) {
-            throw new CfnNotStabilizedException(DB_CLUSTER_FAILED_TO_STABILIZE, model.getDBClusterIdentifier(), e);
+            return globalCluster.globalClusterMembers().stream().noneMatch(m -> m.dbClusterArn().equals(dbCluster.dbClusterArn()));
+        } catch (GlobalClusterNotFoundException ex) {
+            return true;
         }
     }
 
@@ -396,19 +417,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
         final String clusterArn = cluster.dbClusterArn();
         return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
-                .translateToServiceRequest(model -> {
-                    return Translator.removeFromGlobalClusterRequest(globalClusterIdentifier, clusterArn);
-                })
+                .translateToServiceRequest(model -> Translator.removeFromGlobalClusterRequest(globalClusterIdentifier, clusterArn))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((removeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         removeRequest,
                         proxyInvocation.client()::removeFromGlobalCluster
                 ))
-                .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) -> isDBClusterStabilized(
-                        proxyInvocation,
-                        model,
-                        DBClusterStatus.Available
-                ))
+                .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) ->
+                        isDBClusterStabilized(proxyClient, resourceModel, DBClusterStatus.Available) &&
+                        isClusterRemovedFromGlobalCluster(proxyClient, globalClusterIdentifier, resourceModel))
                 .handleError((removeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
