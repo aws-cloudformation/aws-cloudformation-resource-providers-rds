@@ -42,13 +42,13 @@ class AbstractTestBaseTest {
     @Test
     void newClientRequestToken() {
         final TestAbstractTestBase testBase = new TestAbstractTestBase();
-        assertThat(testBase.newClientRequestToken()).isNotNull();
+        assertThat(TestUtils.newClientRequestToken()).isNotNull();
     }
 
     @Test
     void newStackId() {
         final TestAbstractTestBase testBase = new TestAbstractTestBase();
-        assertThat(testBase.newStackId()).isNotNull();
+        assertThat(TestUtils.newStackId()).isNotNull();
     }
 
     @Test
@@ -158,21 +158,5 @@ class AbstractTestBaseTest {
         );
 
         verify(builder, times(1)).desiredResourceState(any());
-    }
-
-    @Test
-    public void test_randomString() {
-        final int length = 16;
-        final String alphabet = "abc";
-
-        final String randStr = AbstractTestBase.randomString(length, alphabet);
-        assertThat(randStr.length()).isEqualTo(length);
-
-        final String resultAlphabet = randStr.chars()
-                .distinct()
-                .sorted()
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
-        assertThat(alphabet.contains(resultAlphabet)).isTrue();
     }
 }

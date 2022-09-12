@@ -3,7 +3,7 @@ package software.amazon.rds.common.util;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
-import static software.amazon.rds.common.test.AbstractTestBase.ALPHA;
+import static software.amazon.rds.common.test.TestUtils.ALPHA;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,13 +12,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.common.test.TestUtils;
 
 class ParameterGrouperTest {
     protected final String NON_PRESENT_DEPENDANT_PARAMETER = "this parameter won't be found";
@@ -55,7 +53,7 @@ class ParameterGrouperTest {
     }
 
     private List<String> generateRandomStringList(int listLen, int wordLen, String alphabet) {
-        return Stream.generate(() -> AbstractTestBase.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
+        return Stream.generate(() -> TestUtils.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
     }
 
     private String[] buildMockExceptionArrayFromExceptionOrder(List<String> randomParameterKeys, List<Integer> expectationOrder) {
