@@ -246,6 +246,10 @@
       "type": "boolean",
       "description": "Specifies whether the database instance is a multiple Availability Zone deployment."
     },
+    "NcharCharacterSetName": {
+      "type": "string",
+      "description": "The name of the NCHAR character set for the Oracle DB instance. This parameter doesn't apply to RDS Custom."
+    },
     "OptionGroupName": {
       "type": "string",
       "description": "Indicates that the DB instance should be associated with the specified option group."
@@ -357,6 +361,7 @@
     "/properties/DBSubnetGroupName",
     "/properties/KmsKeyId",
     "/properties/MasterUsername",
+    "/properties/NcharCharacterSetName",
     "/properties/Port",
     "/properties/PubliclyAccessible",
     "/properties/SourceDBInstanceIdentifier",

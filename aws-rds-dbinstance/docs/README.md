@@ -48,6 +48,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>" : <i>Integer</i>,
         "<a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>" : <i>String</i>,
         "<a href="#multiaz" title="MultiAZ">MultiAZ</a>" : <i>Boolean</i>,
+        "<a href="#ncharcharactersetname" title="NcharCharacterSetName">NcharCharacterSetName</a>" : <i>String</i>,
         "<a href="#optiongroupname" title="OptionGroupName">OptionGroupName</a>" : <i>String</i>,
         "<a href="#performanceinsightskmskeyid" title="PerformanceInsightsKMSKeyId">PerformanceInsightsKMSKeyId</a>" : <i>String</i>,
         "<a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>" : <i>Integer</i>,
@@ -115,6 +116,7 @@ Properties:
     <a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>: <i>Integer</i>
     <a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>: <i>String</i>
     <a href="#multiaz" title="MultiAZ">MultiAZ</a>: <i>Boolean</i>
+    <a href="#ncharcharactersetname" title="NcharCharacterSetName">NcharCharacterSetName</a>: <i>String</i>
     <a href="#optiongroupname" title="OptionGroupName">OptionGroupName</a>: <i>String</i>
     <a href="#performanceinsightskmskeyid" title="PerformanceInsightsKMSKeyId">PerformanceInsightsKMSKeyId</a>: <i>String</i>
     <a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>: <i>Integer</i>
@@ -512,6 +514,16 @@ Specifies whether the database instance is a multiple Availability Zone deployme
 _Required_: No
 
 _Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### NcharCharacterSetName
+
+The name of the NCHAR character set for the Oracle DB instance. This parameter doesn't apply to RDS Custom.
+
+_Required_: No
+
+_Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
