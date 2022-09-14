@@ -109,6 +109,7 @@ public class Translator {
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
