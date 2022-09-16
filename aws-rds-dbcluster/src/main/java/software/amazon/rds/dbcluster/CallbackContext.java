@@ -12,7 +12,7 @@ import java.util.Map;
 @lombok.EqualsAndHashCode(callSuper = true)
 public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider {
     private boolean modified;
-    private boolean isRebooted;
+    private boolean rebooted;
     private boolean deleting;
 
     private TaggingContext taggingContext;

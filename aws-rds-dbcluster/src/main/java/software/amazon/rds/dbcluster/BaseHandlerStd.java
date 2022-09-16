@@ -474,9 +474,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState, final ResourceModel desiredState) {
         if (previousState != null) {
             final List<String> previousVpcIds = CollectionUtils.isEmpty(previousState.getVpcSecurityGroupIds()) ?
-                    ImmutableList.of() : previousState.getVpcSecurityGroupIds();
+                    Collections.emptyList() : previousState.getVpcSecurityGroupIds();
             final List<String> desiredVpcIds = CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds()) ?
-                    ImmutableList.of() : desiredState.getVpcSecurityGroupIds();
+                    Collections.emptyList() : desiredState.getVpcSecurityGroupIds();
 
             if (CollectionUtils.isEqualCollection(previousVpcIds, desiredVpcIds)) {
                 return false;
