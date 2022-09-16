@@ -204,6 +204,9 @@ public class Translator {
                 builder.applyImmediately(true);
                 builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
+                if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
+                    builder.dbInstanceParameterGroupName(desiredModel.getDBInstanceParameterGroupName());
+                }
             }
             if (!Objects.equals(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow())) {
                 builder.preferredBackupWindow(desiredModel.getPreferredBackupWindow());
@@ -213,9 +216,6 @@ public class Translator {
             }
             if (!Objects.equals(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication())) {
                 builder.enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication());
-            }
-            if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
-                builder.dbInstanceParameterGroupName(desiredModel.getDBInstanceParameterGroupName());
             }
         }
         //only include VPC SG ids if they are changed from previous.

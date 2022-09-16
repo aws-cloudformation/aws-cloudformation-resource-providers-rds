@@ -153,34 +153,30 @@ public class UpdateHandler extends BaseHandlerStd {
             return Commons.handleException(progress, ex, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
         }
 
-        ProgressEvent<ResourceModel, CallbackContext> result = progress;
+        ProgressEvent<ResourceModel, CallbackContext> currentProgress = progress;
 
-        for (final DBClusterMember dbClusterMember: cluster.dbClusterMembers()) {
-            final ProgressEvent<ResourceModel, CallbackContext> p = proxy.initiate("rds::reboot-dbcluster-member-" + dbClusterMember.dbInstanceIdentifier(),
-                            proxyClient,
-                            progress.getResourceModel(),
-                            progress.getCallbackContext())
-                    .translateToServiceRequest(model -> Translator.rebootDbInstanceRequest(dbClusterMember.dbInstanceIdentifier()))
-                    .backoffDelay(config.getBackoff())
-                    .makeServiceCall((rebootDbInstanceRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                            rebootDbInstanceRequest,
-                            proxyInvocation.client()::rebootDBInstance
-                    ))
-                    .stabilize((rebootDbInstanceRequest, rebootDbInstanceResponse, proxyInvocation, model, context) ->
-                            isDBInstanceStabilized(proxyClient, dbClusterMember.dbInstanceIdentifier(), model))
-                    .handleError((createRequest, exception, client, model, callbackCtx) -> Commons.handleException(
-                            ProgressEvent.progress(model, callbackCtx),
-                            exception,
-                            DEFAULT_DB_CLUSTER_ERROR_RULE_SET
-                    ))
-                    .progress();
-
-            if (p.isFailed() || p.isInProgressCallbackDelay()) {
-                return p;
-            }
-            result = p;
+        for (final DBClusterMember dbClusterMember : cluster.dbClusterMembers()) {
+            currentProgress = currentProgress.then(p ->
+                    proxy.initiate("rds::reboot-dbcluster-member-" + dbClusterMember.dbInstanceIdentifier(),
+                                    proxyClient,
+                                    p.getResourceModel(),
+                                    p.getCallbackContext())
+                            .translateToServiceRequest(model -> Translator.rebootDbInstanceRequest(dbClusterMember.dbInstanceIdentifier()))
+                            .backoffDelay(config.getBackoff())
+                            .makeServiceCall((rebootDbInstanceRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                                    rebootDbInstanceRequest,
+                                    proxyInvocation.client()::rebootDBInstance
+                            ))
+                            .stabilize((rebootDbInstanceRequest, rebootDbInstanceResponse, proxyInvocation, model, context) ->
+                                    isDBInstanceStabilized(proxyClient, dbClusterMember.dbInstanceIdentifier(), model))
+                            .handleError((createRequest, exception, client, model, callbackCtx) -> Commons.handleException(
+                                    ProgressEvent.progress(model, callbackCtx),
+                                    exception,
+                                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                            ))
+                            .progress());
         }
-        return result;
+        return currentProgress;
     }
 
     private boolean shouldRebootCluster(final ResourceModel previousResourceState, final ResourceModel desiredResourceState, final boolean isRollback) {
