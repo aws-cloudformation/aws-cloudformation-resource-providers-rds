@@ -61,6 +61,10 @@
       "description": "The AWS Region-unique, immutable identifier for the DB cluster.",
       "type": "string"
     },
+    "DBInstanceParameterGroupName": {
+      "description": "The name of the DB parameter group to apply to all instances of the DB cluster.",
+      "type": "string"
+    },
     "GlobalClusterIdentifier": {
       "description": "If you are configuring an Aurora global database cluster and want your Aurora DB cluster to be a secondary member in the global database cluster, specify the global cluster ID of the global database cluster. To define the primary database cluster of the global cluster, use the AWS::RDS::GlobalCluster resource.\n\nIf you aren't configuring a global database cluster, don't specify this property.",
       "type": "string",

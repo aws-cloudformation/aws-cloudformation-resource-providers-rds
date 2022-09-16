@@ -2,13 +2,20 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterMember;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -69,7 +76,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> {
-                    if (shouldSetDefaultVpcSecurityGroupIds(progress)) {
+                    if (shouldSetDefaultVpcSecurityGroupIds(previousResourceState, desiredResourceState)) {
                         return setDefaultVpcSecurityGroupIds(proxy, rdsProxyClient, ec2ProxyClient, progress);
                     }
                     return progress;
@@ -78,8 +85,18 @@ public class UpdateHandler extends BaseHandlerStd {
                         progress,
                         () -> modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback),
                         CallbackContext::isModified,
-                        CallbackContext::setModified)
-                )
+                        CallbackContext::setModified))
+                .then(progress -> Commons.execOnce(
+                        progress,
+                        () -> {
+                            if (shouldRebootCluster(previousResourceState, desiredResourceState, isRollback)) {
+                                return rebootCluster(proxy, rdsProxyClient, progress, desiredResourceState);
+                            }
+                            return progress;
+                        },
+                        CallbackContext::isRebooted,
+                        CallbackContext::setRebooted
+                ))
                 .then(progress -> removeAssociatedRoles(proxy, rdsProxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
                 .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
@@ -101,9 +118,12 @@ public class UpdateHandler extends BaseHandlerStd {
                         dbClusterModifyRequest,
                         proxyInvocation.client()::modifyDBCluster
                 ))
-                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
-                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
-                })
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) ->
+                        withProbing(context,
+                                "db-cluster-stabilized",
+                                3,
+                                () -> isDBClusterStabilized(proxyClient, desiredResourceState))
+                )
                 .handleError((createRequest, exception, client, resourceModel, callbackCtx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtx),
                         exception,
@@ -118,5 +138,96 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return StringUtils.hasValue(previousResourceState.getGlobalClusterIdentifier()) &&
                 StringUtils.isNullOrEmpty(desiredResourceState.getGlobalClusterIdentifier());
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> rebootCluster(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final ResourceModel resourceModel
+    ) {
+        DBCluster cluster;
+        try {
+            cluster = fetchDBCluster(proxyClient, resourceModel);
+        } catch (Exception ex) {
+            return Commons.handleException(progress, ex, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+        }
+
+        ProgressEvent<ResourceModel, CallbackContext> result = progress;
+
+        for (final DBClusterMember dbClusterMember: cluster.dbClusterMembers()) {
+            final ProgressEvent<ResourceModel, CallbackContext> p = proxy.initiate("rds::reboot-dbcluster-member-" + dbClusterMember.dbInstanceIdentifier(),
+                            proxyClient,
+                            progress.getResourceModel(),
+                            progress.getCallbackContext())
+                    .translateToServiceRequest(model -> Translator.rebootDbInstanceRequest(dbClusterMember.dbInstanceIdentifier()))
+                    .backoffDelay(config.getBackoff())
+                    .makeServiceCall((rebootDbInstanceRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                            rebootDbInstanceRequest,
+                            proxyInvocation.client()::rebootDBInstance
+                    ))
+                    .stabilize((rebootDbInstanceRequest, rebootDbInstanceResponse, proxyInvocation, model, context) ->
+                            isDBInstanceStabilized(proxyClient, dbClusterMember.dbInstanceIdentifier(), model))
+                    .handleError((createRequest, exception, client, model, callbackCtx) -> Commons.handleException(
+                            ProgressEvent.progress(model, callbackCtx),
+                            exception,
+                            DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                    ))
+                    .progress();
+
+            if (p.isFailed() || p.isInProgressCallbackDelay()) {
+                return p;
+            }
+            result = p;
+        }
+        return result;
+    }
+
+    private boolean shouldRebootCluster(final ResourceModel previousResourceState, final ResourceModel desiredResourceState, boolean isRollback) {
+        return !isRollback &&
+                !Objects.equals(previousResourceState.getEngineVersion(), desiredResourceState.getEngineVersion()) &&
+                !Objects.equals(previousResourceState.getDBInstanceParameterGroupName(), desiredResourceState.getDBInstanceParameterGroupName());
+    }
+
+    private boolean isDBInstanceStabilized(final ProxyClient<RdsClient> client, final String dbInstanceIdentifier, final ResourceModel resourceModel) {
+        final DBInstance dbInstance = fetchDBInstance(client, dbInstanceIdentifier);
+        final DBCluster dbCluster = fetchDBCluster(client, resourceModel);
+
+        return "available".equals(dbInstance.dbInstanceStatus()) &&
+                isParameterGroupApplied(dbInstance) &&
+                isClusterParameterGroupApplied(dbCluster, dbInstance);
+    }
+    private boolean isParameterGroupApplied(final DBInstance dbInstance) {
+        return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList()).stream()
+                .allMatch(pg -> IN_SYNC_STATUS.equals(pg.parameterApplyStatus()));
+    }
+
+    private boolean isClusterParameterGroupApplied(final DBCluster dbCluster, final DBInstance dbInstance) {
+        final DBClusterMember member = dbCluster.dbClusterMembers().stream()
+                .filter(m -> dbInstance.dbInstanceIdentifier().equalsIgnoreCase(m.dbInstanceIdentifier()))
+                .findFirst().get();
+        return IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus());
+    }
+
+    protected boolean withProbing(
+            final CallbackContext context,
+            final String probeName,
+            final int nProbes,
+            final Supplier<Boolean> checker
+    ) {
+        final boolean check = checker.get();
+        if (!config.isProbingEnabled()) {
+            return check;
+        }
+        if (!check) {
+            context.flushProbes(probeName);
+            return false;
+        }
+        context.incProbes(probeName);
+        if (context.getProbes(probeName) >= nProbes) {
+            context.flushProbes(probeName);
+            return true;
+        }
+        return false;
     }
 }

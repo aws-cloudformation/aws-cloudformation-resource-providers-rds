@@ -22,6 +22,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
         "<a href="#databasename" title="DatabaseName">DatabaseName</a>" : <i>String</i>,
         "<a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>" : <i>String</i>,
+        "<a href="#dbinstanceparametergroupname" title="DBInstanceParameterGroupName">DBInstanceParameterGroupName</a>" : <i>String</i>,
         "<a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>" : <i>String</i>,
@@ -78,6 +79,7 @@ Properties:
     <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
     <a href="#databasename" title="DatabaseName">DatabaseName</a>: <i>String</i>
     <a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>: <i>String</i>
+    <a href="#dbinstanceparametergroupname" title="DBInstanceParameterGroupName">DBInstanceParameterGroupName</a>: <i>String</i>
     <a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>: <i>String</i>
@@ -211,6 +213,16 @@ _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/l
 #### DBClusterInstanceClass
 
 The compute and memory capacity of each DB instance in the Multi-AZ DB cluster, for example db.m6g.xlarge.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### DBInstanceParameterGroupName
+
+The name of the DB parameter group to apply to all instances of the DB cluster.
 
 _Required_: No
 
