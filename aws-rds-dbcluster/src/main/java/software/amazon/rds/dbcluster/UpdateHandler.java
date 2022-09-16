@@ -183,7 +183,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return result;
     }
 
-    private boolean shouldRebootCluster(final ResourceModel previousResourceState, final ResourceModel desiredResourceState, boolean isRollback) {
+    private boolean shouldRebootCluster(final ResourceModel previousResourceState, final ResourceModel desiredResourceState, final boolean isRollback) {
         return !isRollback &&
                 !Objects.equals(previousResourceState.getEngineVersion(), desiredResourceState.getEngineVersion()) &&
                 !Objects.equals(previousResourceState.getDBInstanceParameterGroupName(), desiredResourceState.getDBInstanceParameterGroupName());
