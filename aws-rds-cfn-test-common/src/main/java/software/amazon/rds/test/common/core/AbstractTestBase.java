@@ -1,6 +1,5 @@
-package software.amazon.rds.common.test;
+package software.amazon.rds.test.common.core;
 
-import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -15,13 +14,9 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.test.common.annotations.ExcludeFromJacocoGeneratedReport;
 
 public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
-
-    final private static SecureRandom random = new SecureRandom();
-    final public static String ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    final public static String ALPHANUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     protected abstract String getLogicalResourceIdentifier();
 
@@ -35,14 +30,6 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
 
     protected String newStackId() {
         return UUID.randomUUID().toString();
-    }
-
-    public static String randomString(final int length, final String alphabet) {
-        StringBuilder builder = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            builder.append(alphabet.charAt(random.nextInt(alphabet.length())));
-        }
-        return builder.toString();
     }
 
     protected Consumer<ProgressEvent<ModelT, ContextT>> expectInProgress(int pause) {
@@ -129,7 +116,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
         return response;
     }
 
-    protected static AwsServiceException newAwsServiceException(final ErrorCode errorCode) {
+    protected static AwsServiceException newAwsServiceException(final Object errorCode) {
         return AwsServiceException.builder()
                 .awsErrorDetails(AwsErrorDetails.builder()
                         .errorCode(errorCode.toString())
@@ -164,7 +151,7 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
             final Object requestException,
             final HandlerErrorCode expectErrorCode
     ) {
-        final Exception exception = requestException instanceof ErrorCode ? newAwsServiceException((ErrorCode) requestException) : (Exception) requestException;
+        final Exception exception = requestException instanceof Exception ? (Exception) requestException : newAwsServiceException(requestException);
 
         expectation.setup()
                 .thenThrow(exception);

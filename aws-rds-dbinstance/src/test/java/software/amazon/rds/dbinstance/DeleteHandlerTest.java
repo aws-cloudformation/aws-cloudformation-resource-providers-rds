@@ -42,6 +42,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.TestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class DeleteHandlerTest extends AbstractHandlerTest {
@@ -225,7 +226,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         final DeleteDbInstanceResponse deleteDbInstanceResponse = DeleteDbInstanceResponse.builder().build();
         when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenReturn(deleteDbInstanceResponse);
 
-        final String dbClusterIdentifier = randomString(64, ALPHA);
+        final String dbClusterIdentifier = TestUtils.randomString(64, TestUtils.ALPHA);
 
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),
@@ -251,7 +252,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         final DeleteDbInstanceResponse deleteDbInstanceResponse = DeleteDbInstanceResponse.builder().build();
         when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class))).thenReturn(deleteDbInstanceResponse);
 
-        final String sourceDBInstanceIdentifier = randomString(64, ALPHA);
+        final String sourceDBInstanceIdentifier = TestUtils.randomString(64, TestUtils.ALPHA);
 
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),

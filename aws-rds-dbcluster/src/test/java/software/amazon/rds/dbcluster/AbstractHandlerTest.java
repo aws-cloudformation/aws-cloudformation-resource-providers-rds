@@ -41,8 +41,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.test.AbstractTestBase;
-import software.amazon.rds.common.test.MethodCallExpectation;
+import software.amazon.rds.test.common.core.AbstractTestBase;
+import software.amazon.rds.test.common.core.MethodCallExpectation;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
 

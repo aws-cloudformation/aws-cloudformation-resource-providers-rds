@@ -43,10 +43,10 @@ public class ParameterGrouper {
     }
 
     private static void addAsIndependentParam(
-                                               final Map<String, Parameter> params,
-                                               final List<List<Parameter>> paramGroups,
-                                               final Set<String> added,
-                                               final String paramName
+            final Map<String, Parameter> params,
+            final List<List<Parameter>> paramGroups,
+            final Set<String> added,
+            final String paramName
     ) {
         paramGroups.get(0).add(params.get(paramName));
         added.add(paramName);

@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import com.amazonaws.util.StringUtils;
-import software.amazon.rds.common.test.ExcludeFromJacocoGeneratedReport;
+import software.amazon.rds.common.annotations.ExcludeFromJacocoGeneratedReport;
 
 public final class RdsUserAgentProvider {
 

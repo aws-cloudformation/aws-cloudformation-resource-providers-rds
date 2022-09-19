@@ -1,4 +1,4 @@
-package software.amazon.rds.common.test;
+package software.amazon.rds.test.common.core;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.OngoingStubbing;
