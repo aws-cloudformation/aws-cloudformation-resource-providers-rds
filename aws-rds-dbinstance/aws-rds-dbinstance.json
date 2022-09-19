@@ -358,6 +358,7 @@
   },
   "createOnlyProperties": [
     "/properties/CharacterSetName",
+    "/properties/CustomIAMInstanceProfile",
     "/properties/DBClusterIdentifier",
     "/properties/DBInstanceIdentifier",
     "/properties/DBName",
