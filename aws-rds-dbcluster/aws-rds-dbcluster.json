@@ -391,6 +391,7 @@
         "rds:AddTagsToResource",
         "rds:DescribeDBClusters",
         "rds:DescribeDBSubnetGroups",
+        "rds:DescribeGlobalClusters",
         "rds:ModifyDBCluster",
         "rds:ModifyDBInstance",
         "rds:RemoveFromGlobalCluster",
@@ -404,6 +405,7 @@
         "rds:DeleteDBCluster",
         "rds:DeleteDBInstance",
         "rds:DescribeDBClusters",
+        "rds:DescribeGlobalClusters",
         "rds:RemoveFromGlobalCluster"
       ]
     },
