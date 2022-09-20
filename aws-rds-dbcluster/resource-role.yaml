@@ -37,7 +37,6 @@ Resources:
                 - "rds:DescribeGlobalClusters"
                 - "rds:ModifyDBCluster"
                 - "rds:ModifyDBInstance"
-                - "rds:RebootDBInstance"
                 - "rds:RemoveFromGlobalCluster"
                 - "rds:RemoveRoleFromDBCluster"
                 - "rds:RemoveTagsFromResource"
