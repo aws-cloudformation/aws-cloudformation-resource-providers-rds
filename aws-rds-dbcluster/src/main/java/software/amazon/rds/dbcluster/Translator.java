@@ -395,6 +395,7 @@ public class Translator {
                 .masterUsername(dbCluster.masterUsername())
                 .monitoringInterval(dbCluster.monitoringInterval())
                 .monitoringRoleArn(dbCluster.monitoringRoleArn())
+                .networkType(dbCluster.networkType())
                 .performanceInsightsEnabled(dbCluster.performanceInsightsEnabled())
                 .performanceInsightsKmsKeyId(dbCluster.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbCluster.performanceInsightsRetentionPeriod())
