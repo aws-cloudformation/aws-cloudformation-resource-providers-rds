@@ -35,24 +35,5 @@ public class ProbingContext {
         this.probes.remove(sampleName);
     }
 
-    public boolean withProbing(
-            final String probeName,
-            final int nProbes,
-            final Supplier<Boolean> checker
-    ) {
-        final boolean check = checker.get();
-        if (!this.isProbingEnabled()) {
-            return check;
-        }
-        if (!check) {
-            this.flushProbes(probeName);
-            return false;
-        }
-        this.incProbes(probeName);
-        if (this.getProbes(probeName) >= nProbes) {
-            this.flushProbes(probeName);
-            return true;
-        }
-        return false;
-    }
+
 }

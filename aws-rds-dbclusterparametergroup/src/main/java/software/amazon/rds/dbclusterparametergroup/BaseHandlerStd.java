@@ -41,6 +41,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -330,7 +331,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(EMPTY_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> context.getProbingContext().withProbing(
+                .stabilize((request, response, proxyInvocation, model, context) -> Probing.withProbing(context.getProbingContext(),
                         "db-cluster-parameter-group-db-clusters-available",
                         3,
                         () -> isDBClustersAvailable(proxyInvocation, model)))

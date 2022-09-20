@@ -3,7 +3,6 @@ package software.amazon.rds.dbcluster;
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
 import java.util.HashSet;
-import java.util.function.Supplier;
 
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -18,6 +17,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
 
@@ -102,7 +102,8 @@ public class UpdateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::modifyDBCluster
                 ))
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) ->
-                        context.getProbingContext().withProbing(
+                        Probing.withProbing(
+                                context.getProbingContext(),
                                 "db-cluster-stabilized",
                                 3,
                                 () -> isDBClusterStabilized(proxyClient, desiredResourceState))
