@@ -1,9 +1,6 @@
 package software.amazon.rds.common.util;
 
-import com.google.common.collect.ImmutableList;
-import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
-import static software.amazon.rds.common.test.AbstractTestBase.ALPHA;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,13 +9,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import software.amazon.awssdk.services.rds.model.DBParameterGroup;
+import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.rds.model.Parameter;
-import software.amazon.rds.common.test.AbstractTestBase;
+import software.amazon.rds.test.common.core.TestUtils;
 
 class ParameterGrouperTest {
     protected final String NON_PRESENT_DEPENDANT_PARAMETER = "this parameter won't be found";
@@ -40,12 +38,12 @@ class ParameterGrouperTest {
         return parametersToUpdate;
     }
 
-    private List<List<Parameter>> setUpExpectedPartition(String [] parameterNames, List<Integer> partitionBreak) {
+    private List<List<Parameter>> setUpExpectedPartition(String[] parameterNames, List<Integer> partitionBreak) {
         List<List<Parameter>> partitions = new ArrayList<>();
         List<Parameter> partition = new ArrayList<>();
-        for (int i = 0; i < parameterNames.length ; i++) {
+        for (int i = 0; i < parameterNames.length; i++) {
             partition.add(constructSimpleParameter(parameterNames[i]));
-            if (partitionBreak.contains(i+1)) {
+            if (partitionBreak.contains(i + 1)) {
                 partitions.add(partition);
                 partition = new ArrayList<>();
             }
@@ -55,7 +53,7 @@ class ParameterGrouperTest {
     }
 
     private List<String> generateRandomStringList(int listLen, int wordLen, String alphabet) {
-        return Stream.generate(() -> AbstractTestBase.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
+        return Stream.generate(() -> TestUtils.randomString(wordLen, alphabet)).limit(listLen).collect(Collectors.toList());
     }
 
     private String[] buildMockExceptionArrayFromExceptionOrder(List<String> randomParameterKeys, List<Integer> expectationOrder) {
@@ -84,7 +82,7 @@ class ParameterGrouperTest {
 
     public void test_helper(int partitionSize, List<List<Integer>> dependenciesAsIndexesOfParameters, List<Integer> expectationOrder, List<Integer> expectationPartitions) {
         int listLen = expectationOrder.size();
-        List<String>  randomParameterKeys = generateRandomStringList(listLen, PARAMETER_NAME_LEN, ALPHA);
+        List<String> randomParameterKeys = generateRandomStringList(listLen, PARAMETER_NAME_LEN, TestUtils.ALPHA);
         Map<String, Parameter> parametersToUpdate = setUpParametersToUpdate(randomParameterKeys);
         final List<Set<String>> dependencies = buildMockDependencies(randomParameterKeys,
                 dependenciesAsIndexesOfParameters
@@ -94,7 +92,7 @@ class ParameterGrouperTest {
         List<List<Parameter>> expectedPartitions = setUpExpectedPartition(buildMockExceptionArrayFromExceptionOrder(randomParameterKeys,
                 expectationOrder
         ), expectationPartitions);
-        assertThat(partitions.size()).isEqualTo(expectationPartitions.size()+1);
+        assertThat(partitions.size()).isEqualTo(expectationPartitions.size() + 1);
         assertThat(partitions).isEqualTo(expectedPartitions);
     }
 
@@ -109,11 +107,11 @@ class ParameterGrouperTest {
                         ImmutableList.of(-1)
                 ),
                 ImmutableList.of(
-                        0,2,1,
-                        4,5,8,
-                        3,6,7,
+                        0, 2, 1,
+                        4, 5, 8,
+                        3, 6, 7,
                         9
-                ), ImmutableList.of(3,6,9)
+                ), ImmutableList.of(3, 6, 9)
         );
     }
 
@@ -129,10 +127,10 @@ class ParameterGrouperTest {
                 ),
                 ImmutableList.of(
                         0,
-                        1,2,6,
-                        3,4,
-                        5,7
-                ), ImmutableList.of(1,4,6)
+                        1, 2, 6,
+                        3, 4,
+                        5, 7
+                ), ImmutableList.of(1, 4, 6)
         );
     }
 
@@ -147,7 +145,7 @@ class ParameterGrouperTest {
                         ImmutableList.of(-1)
                 ),
                 ImmutableList.of(
-                        0,1,2,
+                        0, 1, 2,
                         3
                 ), ImmutableList.of(3)
         );

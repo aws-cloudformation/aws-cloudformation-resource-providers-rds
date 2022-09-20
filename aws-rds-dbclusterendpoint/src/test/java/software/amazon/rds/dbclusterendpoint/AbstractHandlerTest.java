@@ -1,5 +1,16 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
@@ -18,18 +29,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.test.AbstractTestBase;
-
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import software.amazon.rds.test.common.core.AbstractTestBase;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndpoint, ResourceModel, CallbackContext> {
     protected static final LoggerProxy logger;
@@ -81,6 +81,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
                         software.amazon.awssdk.services.rds.model.Tag.builder().key("resource-tag-3").value("resource-tag-value3").build()
                 )).build();
     }
+
     protected static final ResourceModel RESOURCE_MODEL;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_AVAILABLE;
     protected static final DBClusterEndpoint DB_CLUSTER_ENDPOINT_CREATING;
