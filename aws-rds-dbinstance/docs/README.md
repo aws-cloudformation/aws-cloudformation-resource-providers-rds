@@ -50,6 +50,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>" : <i>String</i>,
         "<a href="#multiaz" title="MultiAZ">MultiAZ</a>" : <i>Boolean</i>,
         "<a href="#ncharcharactersetname" title="NcharCharacterSetName">NcharCharacterSetName</a>" : <i>String</i>,
+        "<a href="#networktype" title="NetworkType">NetworkType</a>" : <i>String</i>,
         "<a href="#optiongroupname" title="OptionGroupName">OptionGroupName</a>" : <i>String</i>,
         "<a href="#performanceinsightskmskeyid" title="PerformanceInsightsKMSKeyId">PerformanceInsightsKMSKeyId</a>" : <i>String</i>,
         "<a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>" : <i>Integer</i>,
@@ -119,6 +120,7 @@ Properties:
     <a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>: <i>String</i>
     <a href="#multiaz" title="MultiAZ">MultiAZ</a>: <i>Boolean</i>
     <a href="#ncharcharactersetname" title="NcharCharacterSetName">NcharCharacterSetName</a>: <i>String</i>
+    <a href="#networktype" title="NetworkType">NetworkType</a>: <i>String</i>
     <a href="#optiongroupname" title="OptionGroupName">OptionGroupName</a>: <i>String</i>
     <a href="#performanceinsightskmskeyid" title="PerformanceInsightsKMSKeyId">PerformanceInsightsKMSKeyId</a>: <i>String</i>
     <a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>: <i>Integer</i>
@@ -543,6 +545,16 @@ _Required_: No
 
 _Type_: String
 
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### NetworkType
+
+The network type of the DB cluster.
+
+_Required_: No
+
+_Type_: String
+
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### OptionGroupName
@@ -760,3 +772,4 @@ Returns the <code>Port</code> value.
 #### HostedZoneId
 
 Returns the <code>HostedZoneId</code> value.
+

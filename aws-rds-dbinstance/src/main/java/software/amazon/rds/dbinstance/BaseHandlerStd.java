@@ -54,6 +54,7 @@ import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
@@ -198,6 +199,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     InvalidVpcNetworkStateException.class,
                     KmsKeyNotAccessibleException.class,
+                    NetworkTypeNotSupportedException.class,
                     ProvisionedIopsNotAvailableInAzException.class,
                     StorageTypeNotSupportedException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),

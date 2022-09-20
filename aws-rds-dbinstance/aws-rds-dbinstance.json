@@ -254,6 +254,10 @@
       "type": "string",
       "description": "The name of the NCHAR character set for the Oracle DB instance. This parameter doesn't apply to RDS Custom."
     },
+    "NetworkType": {
+      "description": "The network type of the DB cluster.",
+      "type": "string"
+    },
     "OptionGroupName": {
       "type": "string",
       "description": "Indicates that the DB instance should be associated with the specified option group."
