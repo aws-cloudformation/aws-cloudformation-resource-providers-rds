@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.collections.CollectionUtils;
 
 import com.google.common.collect.Lists;
@@ -18,7 +17,6 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
-import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
@@ -31,8 +29,6 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
@@ -217,17 +213,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return null;
         }
         return response.securityGroups().get(0);
-    }
-
-    protected DBInstance fetchDBInstance(
-            final ProxyClient<RdsClient> proxyClient,
-            final String dbInstanceIdentifier
-    ) {
-        final DescribeDbInstancesResponse response = proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbInstancesRequest(dbInstanceIdentifier),
-                proxyClient.client()::describeDBInstances
-        );
-        return response.dbInstances().get(0);
     }
 
     protected boolean isGlobalClusterMember(final ResourceModel model) {

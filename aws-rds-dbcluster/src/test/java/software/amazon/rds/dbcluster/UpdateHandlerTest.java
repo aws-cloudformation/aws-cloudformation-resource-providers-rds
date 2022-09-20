@@ -68,7 +68,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.handler.TaggingContext;
 import software.amazon.rds.test.common.core.TestUtils;
 
 @ExtendWith(MockitoExtension.class)

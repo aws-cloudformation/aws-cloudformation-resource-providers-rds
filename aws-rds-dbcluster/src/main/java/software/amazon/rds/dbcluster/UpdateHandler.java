@@ -2,10 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -13,9 +10,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBCluster;
-import software.amazon.awssdk.services.rds.model.DBClusterMember;
-import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
