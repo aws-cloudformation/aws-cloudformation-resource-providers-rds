@@ -3,6 +3,8 @@ package software.amazon.rds.eventsubscription;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.json.JSONObject;
+
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -13,14 +15,28 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
-public class AbstractTestBase {
+public abstract class AbstractTestBase {
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final LoggerProxy logger;
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
         logger = new LoggerProxy();
+    }
+
+    public abstract HandlerName getHandlerName();
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJSONObject();
+
+    public void verifyAccessPermissions(final Object mock) {
+        new AccessPermissionVerificationMode()
+                .withDefaultPermissions()
+                .withSchemaPermissions(resourceSchema, getHandlerName())
+                .verify(TestUtils.getVerificationData(mock));
     }
 
     static ProxyClient<RdsClient> MOCK_PROXY(

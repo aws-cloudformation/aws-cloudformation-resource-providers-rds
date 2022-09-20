@@ -27,6 +27,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,6 +57,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     @Getter
     private UpdateHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.UPDATE;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new UpdateHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
@@ -69,6 +75,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void tear_down() {
         verify(rdsProxy.client(), atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

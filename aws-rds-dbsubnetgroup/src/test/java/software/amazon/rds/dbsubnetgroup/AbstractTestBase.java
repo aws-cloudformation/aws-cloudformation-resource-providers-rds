@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.mockito.internal.util.collections.Sets;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +25,11 @@ import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
-public class AbstractTestBase {
+public abstract class AbstractTestBase {
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final org.slf4j.Logger delegate;
     protected static final LoggerProxy logger;
@@ -67,6 +71,17 @@ public class AbstractTestBase {
         DB_SUBNET_GROUP_ACTIVE = DBSubnetGroup.builder()
                 .subnetGroupStatus("Complete").build();
         TAG_SET = Sets.newSet(Tag.builder().key("key").value("value").build());
+    }
+
+    public abstract HandlerName getHandlerName();
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJSONObject();
+
+    public void verifyAccessPermissions(final Object mock) {
+        new AccessPermissionVerificationMode()
+                .withDefaultPermissions()
+                .withSchemaPermissions(resourceSchema, getHandlerName())
+                .verify(TestUtils.getVerificationData(mock));
     }
 
     static Map<String, String> translateTagsToMap(final Set<Tag> tags) {

@@ -2,6 +2,10 @@ package software.amazon.rds.test.common.core;
 
 import java.security.SecureRandom;
 
+import org.mockito.internal.util.MockUtil;
+import org.mockito.internal.verification.VerificationDataImpl;
+import org.mockito.internal.verification.api.VerificationData;
+
 public final class TestUtils {
     final private static SecureRandom random = new SecureRandom();
 
@@ -16,5 +20,9 @@ public final class TestUtils {
             builder.append(alphabet.charAt(random.nextInt(alphabet.length())));
         }
         return builder.toString();
+    }
+
+    public static VerificationData getVerificationData(final Object mock) {
+        return new VerificationDataImpl(MockUtil.getInvocationContainer(mock), null);
     }
 }

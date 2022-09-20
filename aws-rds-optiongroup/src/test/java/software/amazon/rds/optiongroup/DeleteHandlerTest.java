@@ -28,6 +28,7 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class DeleteHandlerTest extends AbstractTestBase {
@@ -46,6 +47,11 @@ public class DeleteHandlerTest extends AbstractTestBase {
     @Getter
     private DeleteHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.DELETE;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new DeleteHandler(HandlerConfig.builder()
@@ -60,6 +66,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

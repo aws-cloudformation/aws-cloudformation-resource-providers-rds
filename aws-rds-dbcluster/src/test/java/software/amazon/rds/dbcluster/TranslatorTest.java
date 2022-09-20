@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.test.common.core.HandlerName;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -81,4 +82,8 @@ public class TranslatorTest extends AbstractHandlerTest {
     @Override
     protected ProxyClient<Ec2Client> getEc2Proxy() { return null; }
 
+    @Override
+    public HandlerName getHandlerName() {
+        return null;
+    }
 }

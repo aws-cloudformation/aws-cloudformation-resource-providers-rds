@@ -43,6 +43,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -59,6 +60,11 @@ public class CreateHandlerTest extends AbstractTestBase {
     private CreateHandler handler;
     private CreateDbParameterGroupResponse createDbParameterGroupResponse;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.CREATE;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new CreateHandler();
@@ -71,6 +77,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test
