@@ -330,8 +330,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(EMPTY_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> withProbing(
-                        context,
+                .stabilize((request, response, proxyInvocation, model, context) -> context.getProbingContext().withProbing(
                         "db-cluster-parameter-group-db-clusters-available",
                         3,
                         () -> isDBClustersAvailable(proxyInvocation, model)))
@@ -343,25 +342,4 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .progress();
     }
 
-    protected boolean withProbing(
-            final CallbackContext context,
-            final String probeName,
-            final int nProbes,
-            final Supplier<Boolean> checker
-    ) {
-        final boolean check = checker.get();
-        if (!config.isProbingEnabled()) {
-            return check;
-        }
-        if (!check) {
-            context.flushProbes(probeName);
-            return false;
-        }
-        context.incProbes(probeName);
-        if (context.getProbes(probeName) >= nProbes) {
-            context.flushProbes(probeName);
-            return true;
-        }
-        return false;
-    }
 }

@@ -102,7 +102,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::modifyDBCluster
                 ))
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) ->
-                        withProbing(context,
+                        context.getProbingContext().withProbing(
                                 "db-cluster-stabilized",
                                 3,
                                 () -> isDBClusterStabilized(proxyClient, desiredResourceState))
@@ -121,27 +121,5 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return StringUtils.hasValue(previousResourceState.getGlobalClusterIdentifier()) &&
                 StringUtils.isNullOrEmpty(desiredResourceState.getGlobalClusterIdentifier());
-    }
-
-    protected boolean withProbing(
-            final CallbackContext context,
-            final String probeName,
-            final int nProbes,
-            final Supplier<Boolean> checker
-    ) {
-        final boolean check = checker.get();
-        if (!config.isProbingEnabled()) {
-            return check;
-        }
-        if (!check) {
-            context.flushProbes(probeName);
-            return false;
-        }
-        context.incProbes(probeName);
-        if (context.getProbes(probeName) >= nProbes) {
-            context.flushProbes(probeName);
-            return true;
-        }
-        return false;
     }
 }
