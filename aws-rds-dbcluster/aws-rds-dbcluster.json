@@ -360,6 +360,7 @@
     "/properties/DBClusterIdentifier"
   ],
   "writeOnlyProperties": [
+    "/properties/DBInstanceParameterGroupName",
     "/properties/MasterUserPassword",
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
