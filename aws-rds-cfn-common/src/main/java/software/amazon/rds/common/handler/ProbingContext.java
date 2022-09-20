@@ -23,15 +23,15 @@ public class ProbingContext {
         probes = new HashMap<>();
     }
 
-    public int getProbes(final String sampleName) {
+    protected int getProbes(final String sampleName) {
         return this.probes.getOrDefault(sampleName, 0);
     }
 
-    public int incProbes(final String sampleName) {
+    protected int incProbes(final String sampleName) {
         return this.probes.merge(sampleName, 1, Integer::sum);
     }
 
-    public void flushProbes(final String sampleName) {
+    protected void flushProbes(final String sampleName) {
         this.probes.remove(sampleName);
     }
 

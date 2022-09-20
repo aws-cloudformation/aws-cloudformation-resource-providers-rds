@@ -23,6 +23,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     public CallbackContext() {
         super();
         this.taggingContext = new TaggingContext();
+        this.probingContext = new ProbingContext();
     }
 
     @Override
