@@ -19,6 +19,7 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,6 +50,11 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     @Getter
     private DeleteHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.DELETE;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new DeleteHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
@@ -61,6 +67,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

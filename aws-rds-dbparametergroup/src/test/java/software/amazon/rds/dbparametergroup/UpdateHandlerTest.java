@@ -23,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
-import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
@@ -39,23 +38,33 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
 
     @Mock
     RdsClient rdsClient;
+
     @Captor
     ArgumentCaptor<ResetDbParameterGroupRequest> captor;
+
     @Mock
     private AmazonWebServicesClientProxy proxy;
+
     @Mock
     private ProxyClient<RdsClient> proxyRdsClient;
+
     private DBParameterGroup simpleDbParameterGroup;
     private ResourceModel previousResourceModel;
 
     private ResourceHandlerRequest<ResourceModel> sameParamsRequest;
     private ResourceHandlerRequest<ResourceModel> updateParamsRequest;
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.UPDATE;
+    }
 
     @BeforeEach
     public void setup() {
@@ -91,6 +100,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

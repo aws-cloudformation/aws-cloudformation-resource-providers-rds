@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractHandlerTest {
@@ -48,6 +49,11 @@ public class ListHandlerTest extends AbstractHandlerTest {
     @Getter
     private ListHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.LIST;
+    }
+
     private boolean expectServiceInvocation;
 
     @BeforeEach
@@ -65,6 +71,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
             verify(rdsClient, atLeastOnce()).serviceName();
         }
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test
