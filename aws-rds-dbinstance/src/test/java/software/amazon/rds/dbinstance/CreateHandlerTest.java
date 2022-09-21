@@ -71,6 +71,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractHandlerTest {
@@ -103,6 +104,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     private CreateHandler handler;
 
     private boolean expectServiceInvocation;
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.CREATE;
+    }
 
     @Override
     public ProxyClient<RdsClient> getRdsProxy(final String version) {
@@ -138,6 +144,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         }
         verifyNoMoreInteractions(rdsClient);
         verifyNoMoreInteractions(ec2Client);
+        verifyAccessPermissions(rdsClient);
+        verifyAccessPermissions(rdsClientV12);
+        verifyAccessPermissions(ec2Client);
     }
 
     @Test

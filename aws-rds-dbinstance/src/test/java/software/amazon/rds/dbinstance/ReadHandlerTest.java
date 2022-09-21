@@ -8,9 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.time.Duration;
-import java.util.Locale;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,8 +21,8 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class ReadHandlerTest extends AbstractHandlerTest {
@@ -50,6 +48,11 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     @Getter
     private ReadHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.READ;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new ReadHandler();
@@ -65,6 +68,8 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
         verifyNoMoreInteractions(ec2Client);
+        verifyAccessPermissions(rdsClient);
+        verifyAccessPermissions(ec2Client);
     }
 
     @Test

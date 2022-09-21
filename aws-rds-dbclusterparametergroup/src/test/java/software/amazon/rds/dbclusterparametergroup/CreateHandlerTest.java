@@ -59,6 +59,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -78,6 +79,11 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     private Map<String, Object> PARAMS;
     private final String StackId = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83";
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.CREATE;
+    }
 
     @BeforeEach
     public void setup() {
@@ -109,6 +115,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     public void post_execute() {
         verify(rds, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(proxyRdsClient.client());
+        verifyAccessPermissions(proxyRdsClient.client());
     }
 
     @Test

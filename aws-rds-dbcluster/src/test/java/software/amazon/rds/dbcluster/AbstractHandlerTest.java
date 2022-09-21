@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.json.JSONObject;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
@@ -42,7 +43,10 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.AbstractTestBase;
+import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.MethodCallExpectation;
+import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
 
@@ -310,6 +314,17 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected abstract ProxyClient<RdsClient> getRdsProxy();
 
     protected abstract ProxyClient<Ec2Client> getEc2Proxy();
+
+    public abstract HandlerName getHandlerName();
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+
+    public void verifyAccessPermissions(final Object mock) {
+        new AccessPermissionVerificationMode()
+                .withDefaultPermissions()
+                .withSchemaPermissions(resourceSchema, getHandlerName())
+                .verify(TestUtils.getVerificationData(mock));
+    }
 
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> invokeHandleRequest(

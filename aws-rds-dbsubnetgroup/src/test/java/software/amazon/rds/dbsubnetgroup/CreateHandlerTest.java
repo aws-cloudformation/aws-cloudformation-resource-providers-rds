@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -24,10 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
-import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
-import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupResponse;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
@@ -44,17 +39,26 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
 
     @Mock
     RdsClient rds;
+
     @Mock
     private AmazonWebServicesClientProxy proxy;
+
     @Mock
     private ProxyClient<RdsClient> proxyRdsClient;
+
     private CreateHandler handler;
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.CREATE;
+    }
 
     @BeforeEach
     public void setup() {
@@ -72,6 +76,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     public void post_execute() {
         verify(rds, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(proxyRdsClient.client());
+        verifyAccessPermissions(proxyRdsClient.client());
     }
 
     @Test

@@ -25,6 +25,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractTestBase {
@@ -39,6 +40,11 @@ public class ListHandlerTest extends AbstractTestBase {
     RdsClient rds;
 
     private ListHandler handler;
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.LIST;
+    }
 
     @BeforeEach
     public void setup() {
@@ -55,6 +61,7 @@ public class ListHandlerTest extends AbstractTestBase {
     @AfterEach
     public void post_execute() {
         verifyNoMoreInteractions(proxyRdsClient.client());
+        verifyAccessPermissions(proxyRdsClient.client());
     }
 
     @Test
