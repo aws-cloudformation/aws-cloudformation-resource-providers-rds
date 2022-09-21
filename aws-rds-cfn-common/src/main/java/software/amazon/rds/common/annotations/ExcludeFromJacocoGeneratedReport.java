@@ -1,4 +1,4 @@
-package software.amazon.rds.common.test;
+package software.amazon.rds.common.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

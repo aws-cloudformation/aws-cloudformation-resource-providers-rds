@@ -66,6 +66,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.TestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractHandlerTest {
@@ -387,7 +388,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_NoMasterUserUpdateIfMatch() {
-        final String masterUserPassword = randomString(16, ALPHANUM);
+        final String masterUserPassword = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -421,8 +422,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_UpdateMasterUserPasswordIfMismatch() {
-        final String masterUserPassword1 = randomString(16, ALPHANUM);
-        final String masterUserPassword2 = randomString(16, ALPHANUM);
+        final String masterUserPassword1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String masterUserPassword2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Assertions.assertNotEquals(masterUserPassword1, masterUserPassword2);
 
@@ -458,7 +459,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_NoEngineVersionUpdateIfMatch() {
-        final String engineVersion = randomString(16, ALPHANUM);
+        final String engineVersion = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -492,8 +493,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_NoEngineVersionUpdateIfRollback() {
-        final String engineVersion1 = randomString(16, ALPHANUM);
-        final String engineVersion2 = randomString(16, ALPHANUM);
+        final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Assertions.assertNotEquals(engineVersion1, engineVersion2);
 
@@ -530,8 +531,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_EngineVersionUpdateIfMismatch() {
-        final String engineVersion1 = randomString(16, ALPHANUM);
-        final String engineVersion2 = randomString(16, ALPHANUM);
+        final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
+        final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Assertions.assertNotEquals(engineVersion1, engineVersion2);
 

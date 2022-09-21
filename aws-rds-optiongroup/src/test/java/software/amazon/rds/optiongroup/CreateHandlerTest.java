@@ -46,6 +46,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.TestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -101,10 +102,10 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .desiredResourceState(RESOURCE_MODEL)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -127,10 +128,10 @@ public class CreateHandlerTest extends AbstractTestBase {
         ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .desiredResourceState(RESOURCE_MODEL_WITH_NAME)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -163,10 +164,10 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .desiredResourceState(RESOURCE_MODEL_WITH_CONFIGURATIONS)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -217,12 +218,12 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(desiredTags.getSystemTags())))
                 .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(desiredTags.getStackTags())))
                 .desiredResourceState(RESOURCE_MODEL)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -288,11 +289,11 @@ public class CreateHandlerTest extends AbstractTestBase {
                                 ).build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                 .desiredResourceState(RESOURCE_MODEL_WITH_RESOURCE_TAGS)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -340,11 +341,11 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                 .desiredResourceState(RESOURCE_MODEL)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
@@ -368,11 +369,11 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .thenThrow(new RuntimeException("test exception"));
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(randomString(32, ALPHA))
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
                 .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                 .desiredResourceState(RESOURCE_MODEL)
-                .stackId(randomString(32, ALPHA))
-                .logicalResourceIdentifier(randomString(32, ALPHA))
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
