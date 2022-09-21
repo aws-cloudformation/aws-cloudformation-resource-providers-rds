@@ -17,7 +17,6 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointResponse;
-import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
@@ -31,6 +30,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.HandlerName;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,6 +61,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     @Getter
     private CreateHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.CREATE;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new CreateHandler(HandlerConfig.builder().backoff(TEST_BACKOFF_DELAY).build());
@@ -73,6 +78,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

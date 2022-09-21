@@ -8,6 +8,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.json.JSONObject;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -28,6 +30,9 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
 public abstract class AbstractTestBase extends software.amazon.rds.test.common.core.AbstractTestBase<OptionGroup, ResourceModel, CallbackContext> {
 
@@ -145,6 +150,17 @@ public abstract class AbstractTestBase extends software.amazon.rds.test.common.c
     protected abstract AmazonWebServicesClientProxy getProxy();
 
     protected abstract ProxyClient<RdsClient> getProxyClient();
+
+    public abstract HandlerName getHandlerName();
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+
+    public void verifyAccessPermissions(final Object mock) {
+        new AccessPermissionVerificationMode()
+                .withDefaultPermissions()
+                .withSchemaPermissions(resourceSchema, getHandlerName())
+                .verify(TestUtils.getVerificationData(mock));
+    }
 
     @Override
     protected String getLogicalResourceIdentifier() {

@@ -46,6 +46,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,6 +65,11 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Getter
     private CreateHandler handler;
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.CREATE;
+    }
 
     @BeforeEach
     public void setup() {
@@ -85,6 +91,7 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

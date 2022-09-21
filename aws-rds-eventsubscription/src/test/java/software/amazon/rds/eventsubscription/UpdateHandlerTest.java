@@ -25,7 +25,6 @@ import software.amazon.awssdk.services.rds.model.AddSourceIdentifierToSubscripti
 import software.amazon.awssdk.services.rds.model.AddSourceIdentifierToSubscriptionResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
-import software.amazon.awssdk.services.rds.model.CreateEventSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventSubscriptionsResponse;
 import software.amazon.awssdk.services.rds.model.EventSubscription;
@@ -36,14 +35,13 @@ import software.amazon.awssdk.services.rds.model.ModifyEventSubscriptionResponse
 import software.amazon.awssdk.services.rds.model.RemoveSourceIdentifierFromSubscriptionRequest;
 import software.amazon.awssdk.services.rds.model.RemoveSourceIdentifierFromSubscriptionResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
-import software.amazon.awssdk.services.rds.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
@@ -57,6 +55,11 @@ public class UpdateHandlerTest extends AbstractTestBase {
     @Mock
     RdsClient rds;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.UPDATE;
+    }
+
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
@@ -68,6 +71,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     public void post_execute() {
         verify(rds, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rds);
+        verifyAccessPermissions(rds);
     }
 
     @Test

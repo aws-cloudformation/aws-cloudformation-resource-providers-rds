@@ -27,6 +27,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class ReadHandlerTest extends AbstractTestBase {
@@ -45,6 +46,11 @@ public class ReadHandlerTest extends AbstractTestBase {
     @Getter
     private ReadHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.READ;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new ReadHandler(HandlerConfig.builder()
@@ -59,6 +65,7 @@ public class ReadHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

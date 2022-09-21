@@ -472,6 +472,7 @@
         "rds:DescribeDBInstances",
         "rds:DescribeDBParameterGroups",
         "rds:ModifyDBInstance",
+        "rds:RebootDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource"
       ],
