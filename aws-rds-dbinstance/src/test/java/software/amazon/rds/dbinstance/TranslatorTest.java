@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.test.common.core.HandlerName;
 
 class TranslatorTest extends AbstractHandlerTest {
 
@@ -263,6 +264,11 @@ class TranslatorTest extends AbstractHandlerTest {
 
     @Override
     protected ProxyClient<Ec2Client> getEc2Proxy() {
+        return null;
+    }
+
+    @Override
+    public HandlerName getHandlerName() {
         return null;
     }
 }

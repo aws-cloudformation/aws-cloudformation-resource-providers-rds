@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Collections;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractTestBase {
@@ -44,6 +46,11 @@ public class ListHandlerTest extends AbstractTestBase {
     @Getter
     private ListHandler handler;
 
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.LIST;
+    }
+
     @BeforeEach
     public void setup() {
         handler = new ListHandler(HandlerConfig.builder()
@@ -52,6 +59,11 @@ public class ListHandlerTest extends AbstractTestBase {
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         proxyClient = MOCK_PROXY(proxy, rdsClient);
+    }
+
+    @AfterEach
+    public void tear_down() {
+        verifyAccessPermissions(rdsClient);
     }
 
     @Test

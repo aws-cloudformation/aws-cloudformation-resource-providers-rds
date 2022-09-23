@@ -1,7 +1,6 @@
 package software.amazon.rds.dbparametergroup;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -12,8 +11,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import org.json.JSONObject;
 import org.mockito.internal.util.collections.Sets;
 
 import software.amazon.awssdk.awscore.AwsRequest;
@@ -35,8 +34,11 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
-public class AbstractTestBase {
+public abstract class AbstractTestBase {
     protected static final Credentials MOCK_CREDENTIALS;
     protected static final LoggerProxy logger;
 
@@ -49,8 +51,6 @@ public class AbstractTestBase {
     protected static final Map<String, Object> PARAMS;
     protected static final Map<String, Object> RESET_PARAMS;
     protected static final RequestLogger EMPTY_REQUEST_LOGGER;
-
-
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
@@ -97,6 +97,17 @@ public class AbstractTestBase {
                 .build();
 
         TAG_SET = Sets.newSet(Tag.builder().key("key").value("value").build());
+    }
+
+    public abstract HandlerName getHandlerName();
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+
+    public void verifyAccessPermissions(final Object mock) {
+        new AccessPermissionVerificationMode()
+                .withDefaultPermissions()
+                .withSchemaPermissions(resourceSchema, getHandlerName())
+                .verify(TestUtils.getVerificationData(mock));
     }
 
     static Map<String, String> translateTagsToMap(final Set<Tag> tags) {

@@ -11,6 +11,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.json.JSONObject;
+
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
@@ -30,6 +32,9 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.AbstractTestBase;
+import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndpoint, ResourceModel, CallbackContext> {
     protected static final LoggerProxy logger;
@@ -94,6 +99,17 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
     protected abstract AmazonWebServicesClientProxy getProxy();
 
     protected abstract ProxyClient<RdsClient> getRdsProxy();
+
+    public abstract HandlerName getHandlerName();
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJSONObject();
+
+    public void verifyAccessPermissions(final Object mock) {
+        new AccessPermissionVerificationMode()
+                .withDefaultPermissions()
+                .withSchemaPermissions(resourceSchema, getHandlerName())
+                .verify(TestUtils.getVerificationData(mock));
+    }
 
     static {
         RESOURCE_MODEL = RESOURCE_MODEL_BUILDER()

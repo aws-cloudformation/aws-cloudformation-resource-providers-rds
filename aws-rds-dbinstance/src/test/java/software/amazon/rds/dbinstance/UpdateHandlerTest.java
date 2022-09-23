@@ -75,6 +75,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractHandlerTest {
@@ -107,6 +108,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     private UpdateHandler handler;
 
     private Boolean expectServiceInvocation;
+
+    @Override
+    public HandlerName getHandlerName() {
+        return HandlerName.UPDATE;
+    }
 
     @Override
     public ProxyClient<RdsClient> getRdsProxy(final String version) {
@@ -143,6 +149,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         }
         verifyNoMoreInteractions(rdsClient);
         verifyNoMoreInteractions(ec2Client);
+        verifyAccessPermissions(rdsClient);
+        verifyAccessPermissions(rdsClientV12);
+        verifyAccessPermissions(ec2Client);
     }
 
     @Test
@@ -1160,7 +1169,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                () -> { throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build(); },
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_BLDR().build(),
                 expectFailed(HandlerErrorCode.NotFound)
