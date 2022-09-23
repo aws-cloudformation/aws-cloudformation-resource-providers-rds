@@ -29,6 +29,6 @@ public class ClientBuilder extends BaseSdkClientProvider<RdsClientBuilder, RdsCl
 
     @Override
     public RdsClient getClient() {
-        return setHttpClient(setUserAgentAndRetryPolicy(RdsClient.builder())).build();
+        return setEndpointOverride(setHttpClient(setUserAgentAndRetryPolicy(RdsClient.builder()))).build();
     }
 }

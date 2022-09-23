@@ -10,6 +10,6 @@ public class RdsClientProvider extends BaseSdkClientProvider<RdsClientBuilder, R
     @ExcludeFromJacocoGeneratedReport
     @Override
     public RdsClient getClient() {
-        return setHttpClient(setUserAgent(RdsClient.builder())).build();
+        return setEndpointOverride(setHttpClient(setUserAgent(RdsClient.builder()))).build();
     }
 }

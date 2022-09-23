@@ -48,10 +48,10 @@ public class RdsClientProvider extends BaseSdkClientProvider<RdsClientBuilder, R
 
     @Override
     public RdsClient getClient() {
-        return setUserAgent(setHttpClient(RdsClient.builder())).build();
+        return setEndpointOverride(setUserAgent(setHttpClient(RdsClient.builder()))).build();
     }
 
     public RdsClient getClientForApiVersion(@NonNull final String apiVersion) {
-        return setUserAgentAndApiVersion(setHttpClient(RdsClient.builder()), apiVersion).build();
+        return setEndpointOverride(setUserAgentAndApiVersion(setHttpClient(RdsClient.builder()), apiVersion)).build();
     }
 }

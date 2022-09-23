@@ -1,11 +1,15 @@
 package software.amazon.rds.common.client;
 
 
+import java.net.URI;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperties;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -49,6 +53,28 @@ class BaseSdkClientProviderTest {
 
         provider.setUserAgent(builderMock);
         Mockito.verify(builderMock).overrideConfiguration(Mockito.any(Consumer.class));
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named="rds.endpoint.override", matches = "^$")
+     public void test_BaseSdkClientProvider_setEndpointOverride_byDefault() {
+        final TestBaseSdkClientProvider provider = new TestBaseSdkClientProvider();
+
+        RdsClientBuilder builderMock = Mockito.mock(RdsClientBuilder.class);
+
+        provider.setEndpointOverride(builderMock);
+        Mockito.verifyNoMoreInteractions(builderMock);
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named="rds.endpoint.override", matches = ".+")
+    public void test_BaseSdkClientProvider_setEndpointOverride() {
+        final TestBaseSdkClientProvider provider = new TestBaseSdkClientProvider();
+
+        RdsClientBuilder builderMock = Mockito.mock(RdsClientBuilder.class);
+
+        provider.setEndpointOverride(builderMock);
+        Mockito.verify(builderMock).endpointOverride(Mockito.any(URI.class));
     }
 
     static class TestBaseSdkClientProvider extends BaseSdkClientProvider<RdsClientBuilder, RdsClient> {

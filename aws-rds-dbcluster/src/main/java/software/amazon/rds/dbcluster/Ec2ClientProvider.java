@@ -10,6 +10,6 @@ public class Ec2ClientProvider extends BaseSdkClientProvider<Ec2ClientBuilder, E
     @ExcludeFromJacocoGeneratedReport
     @Override
     public Ec2Client getClient() {
-        return setHttpClient(setUserAgent(Ec2Client.builder())).build();
+        return setEndpointOverride(setHttpClient(setUserAgent(Ec2Client.builder()))).build();
     }
 }

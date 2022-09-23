@@ -37,5 +37,12 @@ public abstract class BaseSdkClientProvider<B extends AwsClientBuilder<B, C> & A
         });
     }
 
+    protected B setEndpointOverride(final B builder) {
+        if (!RdsEndpointOverrideProvider.getEndpointOverride().isPresent()) {
+            return builder;
+        }
+        return builder.endpointOverride(RdsEndpointOverrideProvider.getEndpointOverride().get());
+    }
+
     public abstract C getClient();
 }
