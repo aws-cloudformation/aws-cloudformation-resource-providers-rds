@@ -13,6 +13,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
+import com.amazonaws.util.CollectionUtils;
+import com.google.common.collect.ImmutableList;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -291,45 +293,54 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SuccessWithEmptyVPC() {
-        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
-                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+    public void handleRequest_WithUpdateToDefaultVPC() {
         when(rdsProxy.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class)))
                 .thenReturn(DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DBSubnetGroup.builder().vpcId("vpcId").build()).build());
         when(ec2Proxy.client().describeSecurityGroups(any(DescribeSecurityGroupsRequest.class)))
                 .thenReturn(DescribeSecurityGroupsResponse.builder().securityGroups(SecurityGroup.builder().groupId("group-id").build()).build());
-        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
-        transitions.add(DBCLUSTER_ACTIVE);
-        transitions.add(DBCLUSTER_INPROGRESS);
-        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
 
         final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
+        context.setAddTagsComplete(true);
 
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
-                () -> {
-                    if (transitions.size() > 0) {
-                        return transitions.remove();
-                    }
-                    return DBCLUSTER_ACTIVE;
-                },
-                () -> resourceModel,
+                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+                () -> DBCLUSTER_ACTIVE,
+                () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of("sec group")).build(),
                 () -> resourceModel,
                 expectSuccess()
         );
 
-        Assertions.assertThat(resourceModel.getVpcSecurityGroupIds().isEmpty()).isFalse();
+        Assertions.assertThat(resourceModel.getVpcSecurityGroupIds()).isEqualTo(ImmutableList.of("group-id"));
 
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_WithUpdateToDefaultVpcFromDefaultVpc() {
+        final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+                () -> DBCLUSTER_ACTIVE,
+                () -> resourceModel.toBuilder().build(),
+                () -> resourceModel.toBuilder().build(),
+                expectSuccess()
+        );
+
+        Assertions.assertThat(resourceModel.getVpcSecurityGroupIds()).isNullOrEmpty();
+
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
     @Test

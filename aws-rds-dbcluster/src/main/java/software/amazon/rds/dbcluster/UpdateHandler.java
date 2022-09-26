@@ -17,6 +17,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
 
@@ -69,7 +70,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> {
-                    if (shouldSetDefaultVpcSecurityGroupIds(progress)) {
+                    if (shouldSetDefaultVpcSecurityGroupIds(previousResourceState, desiredResourceState)) {
                         return setDefaultVpcSecurityGroupIds(proxy, rdsProxyClient, ec2ProxyClient, progress);
                     }
                     return progress;
@@ -78,8 +79,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         progress,
                         () -> modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback),
                         CallbackContext::isModified,
-                        CallbackContext::setModified)
-                )
+                        CallbackContext::setModified))
                 .then(progress -> removeAssociatedRoles(proxy, rdsProxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
                 .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
@@ -101,9 +101,13 @@ public class UpdateHandler extends BaseHandlerStd {
                         dbClusterModifyRequest,
                         proxyInvocation.client()::modifyDBCluster
                 ))
-                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
-                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
-                })
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) ->
+                        Probing.withProbing(
+                                context.getProbingContext(),
+                                "db-cluster-stabilized",
+                                3,
+                                () -> isDBClusterStabilized(proxyClient, desiredResourceState))
+                )
                 .handleError((createRequest, exception, client, resourceModel, callbackCtx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtx),
                         exception,

@@ -1,9 +1,7 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import software.amazon.cloudformation.proxy.StdCallbackContext;
+import software.amazon.rds.common.handler.ProbingContext;
 import software.amazon.rds.common.handler.TaggingContext;
 
 
@@ -11,34 +9,25 @@ import software.amazon.rds.common.handler.TaggingContext;
 @lombok.Setter
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
-public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider {
+public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, ProbingContext.Provider {
     private String marker;
     private String dbClusterParameterGroupArn;
 
     private boolean parametersApplied;
     private boolean clusterStabilized;
     private boolean parametersModified;
-    private Map<String, Integer> probes;
 
     private TaggingContext taggingContext;
+    private ProbingContext probingContext;
 
     public CallbackContext() {
         super();
-        this.probes = new HashMap<>();
         this.taggingContext = new TaggingContext();
+        this.probingContext = new ProbingContext();
     }
 
-    public int getProbes(final String sampleName) {
-        return this.probes.getOrDefault(sampleName, 0);
-    }
-
-    public int incProbes(final String sampleName) {
-        return this.probes.merge(sampleName, 1, Integer::sum);
-    }
-
-    public void flushProbes(final String sampleName) {
-        this.probes.remove(sampleName);
-    }
+    @Override
+    public ProbingContext getProbingContext() { return probingContext; }
 
     @Override
     public TaggingContext getTaggingContext() {

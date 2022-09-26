@@ -20,9 +20,11 @@ import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfigurati
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
@@ -208,6 +210,9 @@ public class Translator {
                 builder.applyImmediately(true);
                 builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
+                if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
+                    builder.dbInstanceParameterGroupName(desiredModel.getDBInstanceParameterGroupName());
+                }
             }
             if (!Objects.equals(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow())) {
                 builder.preferredBackupWindow(desiredModel.getPreferredBackupWindow());
@@ -231,6 +236,7 @@ public class Translator {
                 builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
             }
         }
+
         return builder.build();
     }
 
@@ -451,8 +457,16 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeGlobalClustersRequest describeGlobalClustersRequest(String globalClusterIdentifier) {
+    public static DescribeGlobalClustersRequest describeGlobalClustersRequest(final String globalClusterIdentifier) {
         return DescribeGlobalClustersRequest.builder().globalClusterIdentifier(globalClusterIdentifier).build();
+    }
+
+    public static DescribeDbInstancesRequest describeDbInstancesRequest(final String dbInstanceIdentifier) {
+        return DescribeDbInstancesRequest.builder().dbInstanceIdentifier(dbInstanceIdentifier).build();
+    }
+
+    public static RebootDbInstanceRequest rebootDbInstanceRequest(final String dbInstanceIdentifier) {
+        return RebootDbInstanceRequest.builder().dbInstanceIdentifier(dbInstanceIdentifier).build();
     }
 
     private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
