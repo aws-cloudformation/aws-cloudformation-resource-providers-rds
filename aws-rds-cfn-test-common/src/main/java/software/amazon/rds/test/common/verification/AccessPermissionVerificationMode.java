@@ -7,6 +7,7 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mockito.exceptions.base.MockitoAssertionError;
+import org.mockito.internal.verification.VerificationModeFactory;
 import org.mockito.internal.verification.api.VerificationData;
 import org.mockito.invocation.Invocation;
 import org.mockito.verification.VerificationMode;
@@ -65,5 +66,11 @@ public class AccessPermissionVerificationMode implements VerificationMode {
         for (final Invocation invocation : invocations) {
             verifyInvocationPermissions(invocation);
         }
+    }
+
+    @Override
+    @ExcludeFromJacocoGeneratedReport
+    public VerificationMode description(String description) {
+        return VerificationModeFactory.description(this, description);
     }
 }

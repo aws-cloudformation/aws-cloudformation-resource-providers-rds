@@ -47,8 +47,6 @@ import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
-import software.amazon.cloudformation.exceptions.CfnNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -125,9 +123,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected final static HandlerConfig DB_CLUSTER_HANDLER_CONFIG_36H = HandlerConfig.builder()
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofHours(36)).build())
+            .probingEnabled(true)
             .build();
 
-    private static final String DB_CLUSTER_FAILED_TO_STABILIZE = "DBCluster %s failed to stabilize.";
+    protected final static String IN_SYNC_STATUS = "in-sync";
 
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
 
@@ -222,11 +221,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isDBClusterStabilized(
             final ProxyClient<RdsClient> proxyClient,
-            final ResourceModel model,
-            final DBClusterStatus expectedStatus
+            final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
-        return expectedStatus.equalsString(dbCluster.status());
+        return DBClusterStatus.Available.equalsString(dbCluster.status());
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(
@@ -424,8 +422,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxyInvocation.client()::removeFromGlobalCluster
                 ))
                 .stabilize((removeRequest, removeResponse, proxyInvocation, model, context) ->
-                        isDBClusterStabilized(proxyClient, resourceModel, DBClusterStatus.Available) &&
-                        isClusterRemovedFromGlobalCluster(proxyClient, globalClusterIdentifier, resourceModel))
+                        isDBClusterStabilized(proxyClient, resourceModel) &&
+                                isClusterRemovedFromGlobalCluster(proxyClient, globalClusterIdentifier, resourceModel))
                 .handleError((removeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -458,8 +456,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
-    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        final ResourceModel resourceModel = progress.getResourceModel();
-        return CollectionUtils.isEmpty(resourceModel.getVpcSecurityGroupIds());
+    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState, final ResourceModel desiredState) {
+        if (previousState != null) {
+            final List<String> previousVpcIds = CollectionUtils.isEmpty(previousState.getVpcSecurityGroupIds()) ?
+                    Collections.emptyList() : previousState.getVpcSecurityGroupIds();
+            final List<String> desiredVpcIds = CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds()) ?
+                    Collections.emptyList() : desiredState.getVpcSecurityGroupIds();
+
+            if (CollectionUtils.isEqualCollection(previousVpcIds, desiredVpcIds)) {
+                return false;
+            }
+        }
+        return CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds());
     }
 }

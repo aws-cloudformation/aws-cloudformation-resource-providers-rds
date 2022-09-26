@@ -20,9 +20,11 @@ import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfigurati
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
@@ -69,6 +71,7 @@ public class Translator {
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .replicationSourceIdentifier(model.getReplicationSourceIdentifier())
+                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .sourceRegion(model.getSourceRegion())
                 .storageEncrypted(model.getStorageEncrypted())
@@ -91,6 +94,8 @@ public class Translator {
                 .kmsKeyId(model.getKmsKeyId())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreType(model.getRestoreType())
+                .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
+                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
@@ -122,6 +127,7 @@ public class Translator {
                 .port(model.getPort())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
+                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .snapshotIdentifier(model.getSnapshotIdentifier())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
@@ -193,7 +199,9 @@ public class Translator {
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
                 .port(desiredModel.getPort())
                 .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
+                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(desiredModel.getServerlessV2ScalingConfiguration()))
                 .storageType(desiredModel.getStorageType());
+
         if (previousModel != null) {
             if (!Objects.equals(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword())) {
                 builder.masterUserPassword(desiredModel.getMasterUserPassword());
@@ -202,6 +210,9 @@ public class Translator {
                 builder.applyImmediately(true);
                 builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
+                if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
+                    builder.dbInstanceParameterGroupName(desiredModel.getDBInstanceParameterGroupName());
+                }
             }
             if (!Objects.equals(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow())) {
                 builder.preferredBackupWindow(desiredModel.getPreferredBackupWindow());
@@ -225,6 +236,7 @@ public class Translator {
                 builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
             }
         }
+
         return builder.build();
     }
 
@@ -309,6 +321,18 @@ public class Translator {
                 .collect(Collectors.toSet());
     }
 
+    static software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration translateServerlessV2ScalingConfiguration(
+            final ServerlessV2ScalingConfiguration serverlessV2ScalingConfiguration
+    ) {
+        if (serverlessV2ScalingConfiguration == null) {
+            return null;
+        }
+        return software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration.builder()
+                .maxCapacity(serverlessV2ScalingConfiguration.getMaxCapacity())
+                .minCapacity(serverlessV2ScalingConfiguration.getMinCapacity())
+                .build();
+    }
+
     static software.amazon.awssdk.services.rds.model.ScalingConfiguration translateScalingConfigurationToSdk(
             final ScalingConfiguration scalingConfiguration
     ) {
@@ -319,7 +343,20 @@ public class Translator {
                 .autoPause(scalingConfiguration.getAutoPause())
                 .maxCapacity(scalingConfiguration.getMaxCapacity())
                 .minCapacity(scalingConfiguration.getMinCapacity())
-                .secondsUntilAutoPause(scalingConfiguration.getSecondsUntilAutoPause()).build();
+                .secondsUntilAutoPause(scalingConfiguration.getSecondsUntilAutoPause())
+                .build();
+    }
+
+    static ServerlessV2ScalingConfiguration translateServerlessV2ScalingConfigurationFromSdk(
+            final software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfigurationInfo serverlessV2ScalingConfiguration
+    ) {
+        if (serverlessV2ScalingConfiguration == null) {
+            return null;
+        }
+        return ServerlessV2ScalingConfiguration.builder()
+                .maxCapacity(serverlessV2ScalingConfiguration.maxCapacity())
+                .minCapacity(serverlessV2ScalingConfiguration.minCapacity())
+                .build();
     }
 
     static ScalingConfiguration translateScalingConfigurationFromSdk(
@@ -332,7 +369,8 @@ public class Translator {
                 .autoPause(scalingConfiguration.autoPause())
                 .maxCapacity(scalingConfiguration.maxCapacity())
                 .minCapacity(scalingConfiguration.minCapacity())
-                .secondsUntilAutoPause(scalingConfiguration.secondsUntilAutoPause()).build();
+                .secondsUntilAutoPause(scalingConfiguration.secondsUntilAutoPause())
+                .build();
     }
 
     public static DBClusterRole transformDBCusterRoleFromSdk(
@@ -404,10 +442,11 @@ public class Translator {
                                 .build()
                 )
                 .replicationSourceIdentifier(dbCluster.replicationSourceIdentifier())
-                .scalingConfiguration(Translator.translateScalingConfigurationFromSdk(dbCluster.scalingConfigurationInfo()))
+                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfigurationFromSdk(dbCluster.serverlessV2ScalingConfiguration()))
+                .scalingConfiguration(translateScalingConfigurationFromSdk(dbCluster.scalingConfigurationInfo()))
                 .storageEncrypted(dbCluster.storageEncrypted())
                 .storageType(dbCluster.storageType())
-                .tags(Translator.translateTagsFromSdk(dbCluster.tagList()))
+                .tags(translateTagsFromSdk(dbCluster.tagList()))
                 .vpcSecurityGroupIds(
                         Optional.ofNullable(dbCluster.vpcSecurityGroups())
                                 .orElse(Collections.emptyList())
@@ -418,8 +457,16 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeGlobalClustersRequest describeGlobalClustersRequest(String globalClusterIdentifier) {
+    public static DescribeGlobalClustersRequest describeGlobalClustersRequest(final String globalClusterIdentifier) {
         return DescribeGlobalClustersRequest.builder().globalClusterIdentifier(globalClusterIdentifier).build();
+    }
+
+    public static DescribeDbInstancesRequest describeDbInstancesRequest(final String dbInstanceIdentifier) {
+        return DescribeDbInstancesRequest.builder().dbInstanceIdentifier(dbInstanceIdentifier).build();
+    }
+
+    public static RebootDbInstanceRequest rebootDbInstanceRequest(final String dbInstanceIdentifier) {
+        return RebootDbInstanceRequest.builder().dbInstanceIdentifier(dbInstanceIdentifier).build();
     }
 
     private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {

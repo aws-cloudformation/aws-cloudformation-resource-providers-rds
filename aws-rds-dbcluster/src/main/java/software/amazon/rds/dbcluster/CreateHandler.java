@@ -97,7 +97,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBCluster
                 ))
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
-                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                    return isDBClusterStabilized(proxyInvocation, model);
                 })
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
@@ -121,7 +121,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBClusterToPointInTime
                 ))
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
-                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                    return isDBClusterStabilized(proxyInvocation, model);
                 })
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
@@ -145,7 +145,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBClusterFromSnapshot
                 ))
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
-                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                    return isDBClusterStabilized(proxyInvocation, model);
                 })
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
@@ -168,7 +168,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::modifyDBCluster
                 ))
                 .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) -> {
-                    return isDBClusterStabilized(proxyInvocation, model, DBClusterStatus.Available);
+                    return isDBClusterStabilized(proxyInvocation, model);
                 })
                 .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtxt),
