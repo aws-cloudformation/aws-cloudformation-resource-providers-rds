@@ -27,6 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -49,6 +50,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotReq
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
+import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -120,13 +122,45 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DBCLUSTER_ACTIVE,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_ServerlessV2ScalingConfiguration() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .serverlessV2ScalingConfiguration(SERVERLESS_V2_SCALING_CONFIGURATION)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<CreateDbClusterRequest> captor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMaxCapacity())
+                        .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
+                        .build()
+        );
     }
 
     @Test
@@ -157,6 +191,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DBCLUSTER_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .build(),
                 expectSuccess()
@@ -198,7 +233,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
                 expectSuccess()
         );
 
@@ -298,6 +335,36 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDbClusterFromSnapshot_ServerlessV2ScalingConfiguration() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE.toBuilder()
+                        .serverlessV2ScalingConfiguration(SERVERLESS_V2_SCALING_CONFIGURATION)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMaxCapacity())
+                        .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
+                        .build()
+        );
+    }
+
+    @Test
     public void handleRequest_RestoreDbClusterFromSnapshot_SetKmsKeyId() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
@@ -335,6 +402,36 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDbClusterToPointInTime_ServerlessV2ScalingConfiguration() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
+                        .serverlessV2ScalingConfiguration(SERVERLESS_V2_SCALING_CONFIGURATION)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMaxCapacity())
+                        .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
+                        .build()
+        );
     }
 
     @Test
