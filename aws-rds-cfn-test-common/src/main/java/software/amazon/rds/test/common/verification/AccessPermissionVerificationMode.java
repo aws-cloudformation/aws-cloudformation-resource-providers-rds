@@ -69,6 +69,7 @@ public class AccessPermissionVerificationMode implements VerificationMode {
     }
 
     @Override
+    @ExcludeFromJacocoGeneratedReport
     public VerificationMode description(String description) {
         return VerificationModeFactory.description(this, description);
     }
