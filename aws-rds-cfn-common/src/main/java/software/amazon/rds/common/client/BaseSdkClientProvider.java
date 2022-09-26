@@ -10,6 +10,7 @@ import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.LambdaWrapper;
+import software.amazon.rds.common.annotations.ExcludeFromJacocoGeneratedReport;
 
 public abstract class BaseSdkClientProvider<B extends AwsClientBuilder<B, C> & AwsSyncClientBuilder<B, C>, C extends SdkClient> {
 
@@ -37,6 +38,7 @@ public abstract class BaseSdkClientProvider<B extends AwsClientBuilder<B, C> & A
         });
     }
 
+    @ExcludeFromJacocoGeneratedReport
     protected B setEndpointOverride(final B builder) {
         if (!RdsEndpointOverrideProvider.getEndpointOverride().isPresent()) {
             return builder;

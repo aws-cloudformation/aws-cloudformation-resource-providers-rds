@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.Properties;
 
+@ExcludeFromJacocoGeneratedReport
 public final class RdsEndpointOverrideProvider {
 
     private static final String ENDPOINT_PROPERTIES_FILE_PATH = "endpoint.properties";
@@ -27,7 +28,6 @@ public final class RdsEndpointOverrideProvider {
         this.endpointOverride = readProperty(ENDPOINT_PROPERTIES_FILE_PATH, RDS_ENDPOINT_OVERRIDE);
     }
 
-    @ExcludeFromJacocoGeneratedReport
     private Optional<URI> readProperty(final String propertiesFile, final String propertyName) {
         final InputStream versionsInputStream = getClass().getClassLoader().getResourceAsStream(propertiesFile);
         final Properties versionProperties = new Properties();

@@ -6,9 +6,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperties;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -56,7 +55,7 @@ class BaseSdkClientProviderTest {
     }
 
     @Test
-    @EnabledIfSystemProperty(named="rds.endpoint.override", matches = "^$")
+    @DisabledIfSystemProperty(named="rds.endpoint.override", matches = ".+")
      public void test_BaseSdkClientProvider_setEndpointOverride_byDefault() {
         final TestBaseSdkClientProvider provider = new TestBaseSdkClientProvider();
 
