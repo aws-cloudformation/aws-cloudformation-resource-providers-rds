@@ -2,11 +2,19 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
     hooks:
-      -   id: trailing-whitespace
-      -   id: end-of-file-fixer
-      -   id: check-yaml
-          exclude: aws-rds-dbclusterendpoint/contract-test-required-resources.template.yaml
-      -   id: check-added-large-files
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args:
+          - --fix=lf
+      - id: trailing-whitespace
+      - id: pretty-format-json
+        args:
+          - --autofix
+          - --indent=2
+          - --no-sort-keys
+      - id: check-merge-conflict
 
   - repo: https://github.com/aws-cloudformation/cfn-python-lint
     rev: v0.61.0  # The version of cfn-lint to use

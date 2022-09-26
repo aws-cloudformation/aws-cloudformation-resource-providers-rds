@@ -64,8 +64,7 @@
           "Value": "v"
         }
       ],
-      "DBSecurityGroupMemberships": [
-      ],
+      "DBSecurityGroupMemberships": [],
       "VpcSecurityGroupMemberships": [
         "{{VPCSecurityGroupID1}}"
       ]
