@@ -16,7 +16,6 @@ import org.mockito.stubbing.OngoingStubbing;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
@@ -35,6 +34,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRes
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo;
+import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfigurationInfo;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
@@ -93,6 +93,11 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
 
     protected static final String ERROR_MSG = "error";
 
+    protected static final ServerlessV2ScalingConfigurationInfo SERVERLESS_V2_SCALING_CONFIGURATION_INFO;
+    protected static final ServerlessV2ScalingConfiguration SERVERLESS_V2_SCALING_CONFIGURATION;
+    protected static final ScalingConfigurationInfo SCALING_CONFIGURATION_INFO;
+    protected static final ScalingConfiguration SCALING_CONFIGURATION;
+
     protected static final Set<Tag> TAG_LIST;
     protected static final Set<Tag> TAG_LIST_EMPTY;
     protected static final Set<Tag> TAG_LIST_ALTER;
@@ -125,8 +130,31 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         ROLE_WITH_EMPTY_FEATURE = DBClusterRole.builder().roleArn(ROLE_ARN).build();
         VPC_SG_IDS = Arrays.asList("vpc-sg-id-1", "vpc-sg-id-2");
 
+        SERVERLESS_V2_SCALING_CONFIGURATION = ServerlessV2ScalingConfiguration.builder()
+                .maxCapacity(10.0)
+                .minCapacity(1.0)
+                .build();
+
+        SERVERLESS_V2_SCALING_CONFIGURATION_INFO = ServerlessV2ScalingConfigurationInfo.builder()
+                .maxCapacity(10.0)
+                .minCapacity(1.0)
+                .build();
+
+        SCALING_CONFIGURATION = ScalingConfiguration.builder()
+                .autoPause(true)
+                .maxCapacity(10)
+                .minCapacity(1)
+                .secondsUntilAutoPause(5)
+                .build();
+
+        SCALING_CONFIGURATION_INFO = ScalingConfigurationInfo.builder()
+                .autoPause(true)
+                .minCapacity(1)
+                .maxCapacity(10)
+                .secondsUntilAutoPause(5)
+                .build();
+
         RESOURCE_MODEL = ResourceModel.builder()
-                .associatedRoles(Lists.newArrayList(ROLE))
                 .backtrackWindow(BACKTRACK_WINDOW)
                 .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
                 .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
@@ -139,7 +167,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .build();
 
         RESOURCE_MODEL_EMPTY_VPC = ResourceModel.builder()
-                .associatedRoles(Lists.newArrayList(ROLE))
                 .backtrackWindow(BACKTRACK_WINDOW)
                 .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
                 .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
@@ -157,14 +184,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .engineMode(ENGINE_MODE)
                 .masterUsername(USER_NAME)
                 .masterUserPassword(USER_PASSWORD)
-                .scalingConfiguration(
-                        ScalingConfiguration.builder()
-                                .autoPause(true)
-                                .minCapacity(1)
-                                .maxCapacity(10)
-                                .secondsUntilAutoPause(5)
-                                .build()
-                )
+                .scalingConfiguration(SCALING_CONFIGURATION)
                 .vpcSecurityGroupIds(VPC_SG_IDS)
                 .build();
 
@@ -179,7 +199,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .build();
 
         RESOURCE_MODEL_WITH_GLOBAL_CLUSTER = ResourceModel.builder()
-                .associatedRoles(Lists.newArrayList(ROLE))
                 .backtrackWindow(BACKTRACK_WINDOW)
                 .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
                 .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
@@ -202,14 +221,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Available.toString())
-                .scalingConfigurationInfo(
-                        ScalingConfigurationInfo.builder()
-                                .autoPause(true)
-                                .maxCapacity(10)
-                                .minCapacity(1)
-                                .secondsUntilAutoPause(5)
-                                .build()
-                )
+                .scalingConfigurationInfo(SCALING_CONFIGURATION_INFO)
                 .build();
 
         DBCLUSTER_ACTIVE_DELETION_ENABLED = DBCluster.builder()
@@ -222,14 +234,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .port(RESOURCE_MODEL.getPort())
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Available.toString())
-                .scalingConfigurationInfo(
-                        ScalingConfigurationInfo.builder()
-                                .autoPause(true)
-                                .maxCapacity(10)
-                                .minCapacity(1)
-                                .secondsUntilAutoPause(5)
-                                .build()
-                )
+                .scalingConfigurationInfo(SCALING_CONFIGURATION_INFO)
                 .build();
 
         DBCLUSTER_SNAPSHOT = DBClusterSnapshot.builder()

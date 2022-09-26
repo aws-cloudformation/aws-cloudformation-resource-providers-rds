@@ -49,6 +49,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>" : <i>Boolean</i>,
         "<a href="#replicationsourceidentifier" title="ReplicationSourceIdentifier">ReplicationSourceIdentifier</a>" : <i>String</i>,
         "<a href="#restoretype" title="RestoreType">RestoreType</a>" : <i>String</i>,
+        "<a href="#serverlessv2scalingconfiguration" title="ServerlessV2ScalingConfiguration">ServerlessV2ScalingConfiguration</a>" : <i><a href="serverlessv2scalingconfiguration.md">ServerlessV2ScalingConfiguration</a></i>,
         "<a href="#scalingconfiguration" title="ScalingConfiguration">ScalingConfiguration</a>" : <i><a href="scalingconfiguration.md">ScalingConfiguration</a></i>,
         "<a href="#snapshotidentifier" title="SnapshotIdentifier">SnapshotIdentifier</a>" : <i>String</i>,
         "<a href="#sourcedbclusteridentifier" title="SourceDBClusterIdentifier">SourceDBClusterIdentifier</a>" : <i>String</i>,
@@ -107,6 +108,7 @@ Properties:
     <a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>: <i>Boolean</i>
     <a href="#replicationsourceidentifier" title="ReplicationSourceIdentifier">ReplicationSourceIdentifier</a>: <i>String</i>
     <a href="#restoretype" title="RestoreType">RestoreType</a>: <i>String</i>
+    <a href="#serverlessv2scalingconfiguration" title="ServerlessV2ScalingConfiguration">ServerlessV2ScalingConfiguration</a>: <i><a href="serverlessv2scalingconfiguration.md">ServerlessV2ScalingConfiguration</a></i>
     <a href="#scalingconfiguration" title="ScalingConfiguration">ScalingConfiguration</a>: <i><a href="scalingconfiguration.md">ScalingConfiguration</a></i>
     <a href="#snapshotidentifier" title="SnapshotIdentifier">SnapshotIdentifier</a>: <i>String</i>
     <a href="#sourcedbclusteridentifier" title="SourceDBClusterIdentifier">SourceDBClusterIdentifier</a>: <i>String</i>
@@ -507,6 +509,16 @@ _Required_: No
 _Type_: String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### ServerlessV2ScalingConfiguration
+
+Contains the scaling configuration of an Aurora Serverless v2 DB cluster.
+
+_Required_: No
+
+_Type_: <a href="serverlessv2scalingconfiguration.md">ServerlessV2ScalingConfiguration</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### ScalingConfiguration
 
