@@ -1,8 +1,6 @@
 package software.amazon.rds.dbsubnetgroup;
 
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
