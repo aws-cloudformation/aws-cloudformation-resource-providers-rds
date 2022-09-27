@@ -64,8 +64,7 @@
           "Value": "ascii"
         }
       ],
-      "DBSecurityGroupMemberships": [
-      ],
+      "DBSecurityGroupMemberships": [],
       "VpcSecurityGroupMemberships": [
         "{{VPCSecurityGroupID1}}"
       ]
