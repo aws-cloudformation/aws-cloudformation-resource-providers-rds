@@ -64,7 +64,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        rds = mock(RdsClient.class, withSettings().verboseLogging());
+        rds = mock(RdsClient.class);
         proxyRdsClient = MOCK_PROXY(proxy, rds);
     }
 
@@ -76,8 +76,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
-
+    public void handleRequest_Success() {
         final CreateHandler handler = new CreateHandler();
 
         final CreateEventSubscriptionResponse createEventSubscriptionResponse = CreateEventSubscriptionResponse.builder().build();
@@ -123,8 +122,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessV2() {
-
+    public void handleRequest_SuccessV2() {
         final CreateHandler handler = new CreateHandler();
 
         final CreateEventSubscriptionResponse createEventSubscriptionResponse = CreateEventSubscriptionResponse.builder().build();
@@ -171,7 +169,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleFailWithAccessDenied() {
+    public void handleRequest_FailWithAccessDenied() {
         final String message = "AccessDenied on create request";
 
         final CreateHandler handler = new CreateHandler();
@@ -181,7 +179,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                         .awsErrorDetails(AwsErrorDetails.builder().errorMessage(message).errorCode("AccessDenied").build())
                         .build());
 
-        CallbackContext callbackContext = new CallbackContext();
         final ResourceModel model = ResourceModel.builder().subscriptionName("subscriptionName")
                 .build();
 
@@ -202,9 +199,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleFailWithNotFound() {
-        final String message = "AccessDenied on create request";
-
+    public void handleRequest_FailWithNotFound() {
         final CreateHandler handler = new CreateHandler();
 
         when(proxyRdsClient.client().createEventSubscription(any(CreateEventSubscriptionRequest.class)))
@@ -232,7 +227,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_DefaultEnabledValue() {
-
         final CreateHandler handler = new CreateHandler();
 
         final CreateEventSubscriptionResponse createEventSubscriptionResponse = CreateEventSubscriptionResponse.builder().build();
