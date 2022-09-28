@@ -34,6 +34,8 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.dbinstance.status.DBInstanceStatus;
+import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -175,7 +177,7 @@ public class UpdateHandler extends BaseHandlerStd {
         try {
             final DBInstance dbInstance = fetchDBInstance(proxyClient, progress.getResourceModel());
             if (!CollectionUtils.isNullOrEmpty(dbInstance.dbParameterGroups())) {
-                return PENDING_REBOOT_STATUS.equals(dbInstance.dbParameterGroups().get(0).parameterApplyStatus());
+                return DBParameterGroupStatus.PendingReboot.equalsString(dbInstance.dbParameterGroups().get(0).parameterApplyStatus());
             }
         } catch (DbInstanceNotFoundException e) {
             return false;
@@ -192,7 +194,7 @@ public class UpdateHandler extends BaseHandlerStd {
         if (!CollectionUtils.isNullOrEmpty(dbCluster.dbClusterMembers())) {
             for (final DBClusterMember member : dbCluster.dbClusterMembers()) {
                 if (dbInstanceIdentifier.equalsIgnoreCase(member.dbInstanceIdentifier())) {
-                    return PENDING_REBOOT_STATUS.equals(member.dbClusterParameterGroupStatus());
+                    return DBParameterGroupStatus.PendingReboot.equalsString(member.dbClusterParameterGroupStatus());
                 }
             }
         }
@@ -316,7 +318,7 @@ public class UpdateHandler extends BaseHandlerStd {
             return true;
         }
         final DBInstance instance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
-        return Objects.equals(instance.dbInstanceStatus(), STORAGE_FULL_STATUS);
+        return DBInstanceStatus.StorageFull.equalsString(instance.dbInstanceStatus());
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> setDefaultVpcId(
