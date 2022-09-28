@@ -13,9 +13,11 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
+import com.amazonaws.util.CollectionUtils;
+import com.google.common.collect.ImmutableList;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableList;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -139,8 +142,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DBCLUSTER_ACTIVE,
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
                 expectSuccess()
         );
 
@@ -164,8 +171,14 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DBCLUSTER_ACTIVE,
-                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("global-cluster-identifier").build(),
-                () -> RESOURCE_MODEL.toBuilder().globalClusterIdentifier("").build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .globalClusterIdentifier("global-cluster-identifier")
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .globalClusterIdentifier("")
+                        .build(),
                 expectSuccess()
         );
 
@@ -199,10 +212,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RemoveFromGlobalClusterStabilization() {
         when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
                 .thenReturn(RemoveFromGlobalClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
-        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
-                .thenThrow(DbClusterRoleNotFoundException.builder().message("not found").build());
 
         final Queue<GlobalCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(GlobalCluster.builder().globalClusterMembers(GlobalClusterMember.builder().dbClusterArn(DBCLUSTER_ACTIVE.dbClusterArn()).build()).build());
@@ -221,7 +230,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(7)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(6)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
         verify(rdsProxy.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
     }
@@ -267,8 +276,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
                 expectSuccess()
         );
 
@@ -280,51 +293,54 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SuccessWithEmptyVPC() {
-        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
-                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
-        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
-                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+    public void handleRequest_WithUpdateToDefaultVPC() {
         when(rdsProxy.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class)))
                 .thenReturn(DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DBSubnetGroup.builder().vpcId("vpcId").build()).build());
         when(ec2Proxy.client().describeSecurityGroups(any(DescribeSecurityGroupsRequest.class)))
                 .thenReturn(DescribeSecurityGroupsResponse.builder().securityGroups(SecurityGroup.builder().groupId("group-id").build()).build());
-        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
-        transitions.add(DBCLUSTER_ACTIVE);
-        transitions.add(DBCLUSTER_INPROGRESS);
-        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
 
         final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
+        context.setAddTagsComplete(true);
 
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
-                () -> {
-                    if (transitions.size() > 0) {
-                        return transitions.remove();
-                    }
-                    return DBCLUSTER_ACTIVE;
-                },
-                () -> resourceModel,
+                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+                () -> DBCLUSTER_ACTIVE,
+                () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of("sec group")).build(),
                 () -> resourceModel,
                 expectSuccess()
         );
 
-        Assertions.assertFalse(resourceModel.getVpcSecurityGroupIds().isEmpty());
+        Assertions.assertThat(resourceModel.getVpcSecurityGroupIds()).isEqualTo(ImmutableList.of("group-id"));
 
-        verify(rdsProxy.client(), times(6)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
-        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
-        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_WithUpdateToDefaultVpcFromDefaultVpc() {
+        final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+                () -> DBCLUSTER_ACTIVE,
+                () -> resourceModel.toBuilder().build(),
+                () -> resourceModel.toBuilder().build(),
+                expectSuccess()
+        );
+
+        Assertions.assertThat(resourceModel.getVpcSecurityGroupIds()).isNullOrEmpty();
+
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
     @Test
@@ -358,8 +374,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return dbclusterActive;
                 },
-                () -> RESOURCE_MODEL.toBuilder().associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE)).build(),
-                () -> RESOURCE_MODEL.toBuilder().associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE)).build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE))
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE))
+                        .build(),
                 expectSuccess()
         );
 
@@ -404,10 +424,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
-        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
-                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -417,14 +433,18 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword).build(),
-                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword).build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .masterUserPassword(masterUserPassword)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .masterUserPassword(masterUserPassword)
+                        .build(),
                 expectSuccess()
         );
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
-        Assertions.assertNull(argument.getValue().masterUserPassword());
+        Assertions.assertThat(argument.getValue().masterUserPassword()).isNull();
     }
 
     @Test
@@ -432,7 +452,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final String masterUserPassword1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String masterUserPassword2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
-        Assertions.assertNotEquals(masterUserPassword1, masterUserPassword2);
+        Assertions.assertThat(masterUserPassword1).isNotEqualTo(masterUserPassword2);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -441,10 +461,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
-        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
-                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -454,14 +470,18 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword1).build(),
-                () -> RESOURCE_MODEL.toBuilder().masterUserPassword(masterUserPassword2).build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .masterUserPassword(masterUserPassword1)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .masterUserPassword(masterUserPassword2)
+                        .build(),
                 expectSuccess()
         );
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
-        Assertions.assertEquals(argument.getValue().masterUserPassword(), masterUserPassword2);
+        Assertions.assertThat(argument.getValue().masterUserPassword()).isEqualTo(masterUserPassword2);
     }
 
     @Test
@@ -488,14 +508,20 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion).build(),
-                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion).build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .engineVersion(engineVersion)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .engineVersion(engineVersion)
+                        .build(),
                 expectSuccess()
         );
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
-        Assertions.assertNull(argument.getValue().engineVersion());
+        Assertions.assertThat(argument.getValue().engineVersion()).isNull();
     }
 
     @Test
@@ -503,7 +529,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
-        Assertions.assertNotEquals(engineVersion1, engineVersion2);
+        Assertions.assertThat(engineVersion1).isNotEqualTo(engineVersion2);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -512,10 +538,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
-        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
-                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -526,14 +548,18 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion1).build(),
-                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion2).build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engineVersion(engineVersion1)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engineVersion(engineVersion2)
+                        .build(),
                 expectSuccess()
         );
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
-        Assertions.assertNull(argument.getValue().engineVersion());
+        Assertions.assertThat(argument.getValue().engineVersion()).isNull();
     }
 
     @Test
@@ -541,7 +567,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
-        Assertions.assertNotEquals(engineVersion1, engineVersion2);
+        Assertions.assertThat(engineVersion1).isNotEqualTo(engineVersion2);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -550,10 +576,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
-        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
-                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -563,16 +585,76 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DBCLUSTER_ACTIVE;
                 },
-                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion1).build(),
-                () -> RESOURCE_MODEL.toBuilder().engineVersion(engineVersion2).build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engineVersion(engineVersion1)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engineVersion(engineVersion2)
+                        .build(),
                 expectSuccess()
         );
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
-        Assertions.assertEquals(argument.getValue().engineVersion(), engineVersion2);
-        Assertions.assertTrue(argument.getValue().applyImmediately());
-        Assertions.assertTrue(argument.getValue().allowMajorVersionUpgrade());
+        Assertions.assertThat(argument.getValue().engineVersion()).isEqualTo(engineVersion2);
+        Assertions.assertThat(argument.getValue().applyImmediately()).isTrue();
+        Assertions.assertThat(argument.getValue().allowMajorVersionUpgrade()).isTrue();
+    }
+
+    @Test
+    public void handleRequest_ServerlessV2ScalingConfiguration_Success() {
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
+                .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        final ServerlessV2ScalingConfiguration previousServerlessV2ScalingConfiguration = ServerlessV2ScalingConfiguration.builder()
+                .minCapacity(1.0)
+                .maxCapacity(2.0)
+                .build();
+
+        final ServerlessV2ScalingConfiguration desiredServerlessV2ScalingConfiguration = ServerlessV2ScalingConfiguration.builder()
+                .minCapacity(3.0)
+                .maxCapacity(4.0)
+                .build();
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL.toBuilder()
+                        .serverlessV2ScalingConfiguration(previousServerlessV2ScalingConfiguration)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .serverlessV2ScalingConfiguration(desiredServerlessV2ScalingConfiguration)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> captor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+
+        Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration())
+                .isEqualTo(software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(desiredServerlessV2ScalingConfiguration.getMaxCapacity())
+                        .minCapacity(desiredServerlessV2ScalingConfiguration.getMinCapacity())
+                        .build());
     }
 
     static class ModifyDBClusterExceptionArgumentsProvider implements ArgumentsProvider {
