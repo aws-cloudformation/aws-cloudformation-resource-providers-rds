@@ -7,11 +7,11 @@ public enum DBInstanceStatus implements TerminableStatus {
     Creating("creating"),
     Deleting("deleting"),
     Failed("failed", true),
-    IncompatibleRestore("incompatible-restore", true),
+    InaccessibleEncryptionCredentials("inaccessible-encryption-credentials", true),
     IncompatibleNetwork("incompatible-network", true),
     IncompatibleParameters("incompatible-parameters", true),
-    InaccessibleEncryptionCredentials("inaccessible-encryption-credentials", true),
-    StorageFull("storage-full", true);
+    IncompatibleRestore("incompatible-restore", true),
+    StorageFull("storage-full");
 
     private final String value;
     private final boolean terminal;
