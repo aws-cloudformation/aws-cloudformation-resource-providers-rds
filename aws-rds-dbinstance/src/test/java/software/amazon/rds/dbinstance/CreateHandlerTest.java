@@ -57,6 +57,7 @@ import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
@@ -64,6 +65,7 @@ import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -71,6 +73,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -1175,6 +1178,27 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .build(),
                 expectFailed(HandlerErrorCode.NotFound)
         );
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_OptionGroupInTerminalState() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        Assertions.assertThatThrownBy(() -> {
+            test_handleRequest_base(
+                    context,
+                    () -> DB_INSTANCE_ACTIVE.toBuilder()
+                            .optionGroupMemberships(OptionGroupMembership.builder()
+                                    .status(OptionGroupStatus.Failed.toString())
+                                    .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
+                                    .build()).build(),
+                    () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                    expectFailed(HandlerErrorCode.NotStabilized)
+            );
+        }).isInstanceOf(CfnNotStabilizedException.class);
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
