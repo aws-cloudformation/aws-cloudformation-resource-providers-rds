@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -243,6 +244,33 @@ class TranslatorTest extends AbstractHandlerTest {
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
         assertThat(request.storageType()).isEqualTo("gp2");
+    }
+
+    @Test
+    public void test_modifyDBInstanceRequest_cloudwatchLogsExportConfiguration_unchanged() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.cloudwatchLogsExportConfiguration()).isNull();
+    }
+
+    @Test
+    public void test_modifyDBInstanceRequest_cloudwatchLogsExportConfiguration_changed() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-3"))
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.cloudwatchLogsExportConfiguration().disableLogTypes()).isEqualTo(ImmutableList.of("config-2"));
+        assertThat(request.cloudwatchLogsExportConfiguration().enableLogTypes()).isEqualTo(ImmutableList.of("config-3"));
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

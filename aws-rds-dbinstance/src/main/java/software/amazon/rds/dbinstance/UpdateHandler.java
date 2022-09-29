@@ -288,6 +288,7 @@ public class UpdateHandler extends BaseHandlerStd {
     private boolean shouldSetDefaultVpcId(final ResourceHandlerRequest<ResourceModel> request) {
         // DBCluster member instances inherit default vpc security groups from the corresponding umbrella cluster
         return !isDBClusterMember(request.getDesiredResourceState()) &&
+                !isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
                 CollectionUtils.isNullOrEmpty(request.getDesiredResourceState().getVPCSecurityGroups());
     }
 

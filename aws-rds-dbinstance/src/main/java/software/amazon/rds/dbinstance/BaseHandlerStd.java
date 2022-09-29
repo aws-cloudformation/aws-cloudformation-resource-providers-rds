@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
@@ -105,6 +106,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     static final String VPC_SECURITY_GROUP_STATUS_ACTIVE = "active";
     static final String DOMAIN_MEMBERSHIP_JOINED = "joined";
     static final String DOMAIN_MEMBERSHIP_KERBEROS_ENABLED = "kerberos-enabled";
+
+    protected static final List<String> RDS_CUSTOM_ORACLE_ENGINES = ImmutableList.of(
+            "custom-oracle-ee",
+            "custom-oracle-ee-cdb"
+    );
 
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
@@ -435,6 +441,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isDBClusterMember(final ResourceModel model) {
         return StringUtils.isNotBlank(model.getDBClusterIdentifier());
+    }
+
+    protected boolean isRdsCustomOracleInstance(final ResourceModel model) {
+        return RDS_CUSTOM_ORACLE_ENGINES.contains(model.getEngine());
     }
 
     protected DBInstance fetchDBInstance(
