@@ -522,14 +522,14 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder().dbParameterGroups(
                 ImmutableList.of(DBParameterGroupStatus.builder()
                         .dbParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
-                        .parameterApplyStatus(UpdateHandler.PENDING_REBOOT_STATUS)
+                        .parameterApplyStatus(software.amazon.rds.dbinstance.status.DBParameterGroupStatus.PendingReboot.toString())
                         .build())
         ).build());
 
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder().dbParameterGroups(
                 ImmutableList.of(DBParameterGroupStatus.builder()
                         .dbParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
-                        .parameterApplyStatus(UpdateHandler.IN_SYNC_STATUS)
+                        .parameterApplyStatus(software.amazon.rds.dbinstance.status.DBParameterGroupStatus.InSync.toString())
                         .build())
         ).build());
 

@@ -55,6 +55,7 @@ import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
@@ -88,6 +89,12 @@ import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.RequestValidationException;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.dbinstance.status.DBInstanceStatus;
+import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
+import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
+import software.amazon.rds.dbinstance.status.OptionGroupStatus;
+import software.amazon.rds.dbinstance.status.ReadReplicaStatus;
+import software.amazon.rds.dbinstance.status.VPCSecurityGroupStatus;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
@@ -97,15 +104,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     public static final String API_VERSION_V12 = "2012-09-17";
 
-    static final String DB_PARAMETER_GROUP_STATUS_APPLYING = "applying";
-    static final String IN_SYNC_STATUS = "in-sync";
-    static final String PENDING_REBOOT_STATUS = "pending-reboot";
-    static final String READ_REPLICA_STATUS = "read replication";
-    static final String STORAGE_FULL_STATUS = "storage-full";
-    static final String READ_REPLICA_STATUS_REPLICATING = "replicating";
-    static final String VPC_SECURITY_GROUP_STATUS_ACTIVE = "active";
-    static final String DOMAIN_MEMBERSHIP_JOINED = "joined";
-    static final String DOMAIN_MEMBERSHIP_KERBEROS_ENABLED = "kerberos-enabled";
+    static final String READ_REPLICA_STATUS_TYPE = "read replication";
 
     protected static final List<String> RDS_CUSTOM_ORACLE_ENGINES = ImmutableList.of(
             "custom-oracle-ee",
@@ -513,11 +512,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return false;
     }
 
-    private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
+    private void assertNoDBInstanceTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
         final DBInstanceStatus status = DBInstanceStatus.fromString(dbInstance.dbInstanceStatus());
         if (status != null && status.isTerminal()) {
             throw new CfnNotStabilizedException(new Exception("DB Instance is in state: " + status.toString()));
         }
+    }
+
+    private void assertNoOptionGroupTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
+        final List<OptionGroupMembership> termOptionGroups = Optional.ofNullable(dbInstance.optionGroupMemberships()).orElse(Collections.emptyList())
+                .stream()
+                .filter(optionGroup -> {
+                    final OptionGroupStatus status = OptionGroupStatus.fromString(optionGroup.status());
+                    return status != null && status.isTerminal();
+                })
+                .collect(Collectors.toList());
+
+        if (!termOptionGroups.isEmpty()) {
+            throw new CfnNotStabilizedException(new Exception(
+                    String.format("OptionGroup %s is in a terminal state",
+                            termOptionGroups.get(0).optionGroupName())));
+        }
+    }
+
+    private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
+        assertNoDBInstanceTerminalStatus(dbInstance);
+        assertNoOptionGroupTerminalStatus(dbInstance);
     }
 
     protected boolean isDBInstanceStabilizedAfterMutate(
@@ -562,14 +582,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     boolean isDomainMembershipsJoined(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
                 .stream()
-                .allMatch(membership -> DOMAIN_MEMBERSHIP_JOINED.equals(membership.status()) ||
-                        DOMAIN_MEMBERSHIP_KERBEROS_ENABLED.equals(membership.status()));
+                .allMatch(membership -> DomainMembershipStatus.Joined.equalsString(membership.status()) ||
+                        DomainMembershipStatus.KerberosEnabled.equalsString(membership.status()));
     }
 
     boolean isVpcSecurityGroupsActive(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.vpcSecurityGroups()).orElse(Collections.emptyList())
                 .stream()
-                .allMatch(group -> VPC_SECURITY_GROUP_STATUS_ACTIVE.equals(group.status()));
+                .allMatch(group -> VPCSecurityGroupStatus.Active.equalsString(group.status()));
     }
 
     boolean isNoPendingChanges(final DBInstance dbInstance) {
@@ -598,14 +618,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     boolean isDBParameterGroupNotApplying(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList())
                 .stream()
-                .noneMatch(group -> DB_PARAMETER_GROUP_STATUS_APPLYING.equals(group.parameterApplyStatus()));
+                .noneMatch(group -> DBParameterGroupStatus.Applying.equalsString(group.parameterApplyStatus()));
     }
 
     boolean isReplicationComplete(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.statusInfos()).orElse(Collections.emptyList())
                 .stream()
-                .filter(statusInfo -> READ_REPLICA_STATUS.equals(statusInfo.statusType()))
-                .allMatch(statusInfo -> READ_REPLICA_STATUS_REPLICATING.equals(statusInfo.status()));
+                .filter(statusInfo -> READ_REPLICA_STATUS_TYPE.equals(statusInfo.statusType()))
+                .allMatch(statusInfo -> ReadReplicaStatus.Replicating.equalsString(statusInfo.status()));
     }
 
     protected boolean isOptionGroupStabilized(
@@ -618,7 +638,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected boolean isOptionGroupInSync(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.optionGroupMemberships()).orElse(Collections.emptyList())
                 .stream()
-                .allMatch(optionGroup -> IN_SYNC_STATUS.equals(optionGroup.status()));
+                .allMatch(optionGroup -> OptionGroupStatus.InSync.equalsString(optionGroup.status()));
     }
 
     protected boolean isDBParameterGroupStabilized(
@@ -631,7 +651,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected boolean isDBParameterGroupInSync(final DBInstance dbInstance) {
         return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList())
                 .stream()
-                .allMatch(parameterGroup -> IN_SYNC_STATUS.equals(parameterGroup.parameterApplyStatus()));
+                .allMatch(parameterGroup -> DBParameterGroupStatus.InSync.equalsString(parameterGroup.parameterApplyStatus()));
     }
 
     protected boolean isDBClusterParameterGroupStabilized(
@@ -645,7 +665,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return Optional.ofNullable(dbCluster.dbClusterMembers()).orElse(Collections.emptyList())
                 .stream()
                 .filter(member -> model.getDBInstanceIdentifier().equalsIgnoreCase(member.dbInstanceIdentifier()))
-                .anyMatch(member -> IN_SYNC_STATUS.equals(member.dbClusterParameterGroupStatus()));
+                .anyMatch(member -> DBParameterGroupStatus.InSync.equalsString(member.dbClusterParameterGroupStatus()));
     }
 
     protected boolean isDBInstanceRoleStabilized(
