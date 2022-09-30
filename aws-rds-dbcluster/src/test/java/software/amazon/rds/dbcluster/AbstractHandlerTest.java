@@ -56,7 +56,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final org.slf4j.Logger delegate;
     protected static final LoggerProxy logger;
 
-
     protected static final Integer BACKUP_RETENTION_PERIOD;
     protected static final Integer BACKTRACK_WINDOW;
     protected static final String DBCLUSTER_IDENTIFIER;
@@ -67,6 +66,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final String SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
     protected static final String ENGINE;
+    protected static final String ENGINE_AURORA_POSTGRESQL;
     protected static final String ENGINE_MODE;
     protected static final Integer PORT;
     protected static final String USER_NAME;
@@ -123,6 +123,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
         ENGINE = "aurora";
+        ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
         ENGINE_MODE = "serverless";
         PORT = 3306;
         USER_NAME = "username";
