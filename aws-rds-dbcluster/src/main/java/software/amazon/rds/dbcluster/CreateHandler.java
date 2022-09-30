@@ -36,8 +36,10 @@ public class CreateHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
-        ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
+            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger
+    ) {
+        final ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
+
         if (StringUtils.isNullOrEmpty(model.getDBClusterIdentifier())) {
             model.setDBClusterIdentifier(dbClusterIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())

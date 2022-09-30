@@ -483,6 +483,28 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
     }
 
+    @Test
+    public void handleRequest_CreateDbCluster_SetDefaultPortForPostgresql() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engine(ENGINE_AURORA_POSTGRESQL)
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbClusterRequest> captor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().port()).isEqualTo(5432);
+    }
+
     static class CreateDBClusterExceptionArgumentsProvider implements ArgumentsProvider {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
