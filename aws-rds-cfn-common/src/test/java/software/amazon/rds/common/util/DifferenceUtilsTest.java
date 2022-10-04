@@ -10,14 +10,14 @@ import software.amazon.awssdk.core.util.DefaultSdkAutoConstructMap;
 import java.util.List;
 import java.util.Map;
 
-public class TranslatorUtilsTest {
+public class DifferenceUtilsTest {
 
     @Test
     public void listDifference_differs() {
         final List<String> previous = ImmutableList.of("role1", "role3");
         final List<String> desired = ImmutableList.of("role2", "role3");
 
-        final List<String> diff = TranslatorUtils.difference(previous, desired);
+        final List<String> diff = DifferenceUtils.diff(previous, desired);
         Assertions.assertThat(diff).isEqualTo(ImmutableList.of("role2", "role3"));
     }
 
@@ -26,7 +26,7 @@ public class TranslatorUtilsTest {
         final List<String> previous = ImmutableList.of("role1", "role3");
         final List<String> desired = ImmutableList.of("role1", "role3");
 
-        final List<String> diff = TranslatorUtils.difference(previous, desired);
+        final List<String> diff = DifferenceUtils.diff(previous, desired);
         Assertions.assertThat(diff).isEmpty();
         Assertions.assertThat(diff.getClass()).isEqualTo(DefaultSdkAutoConstructList.class);
     }
@@ -34,7 +34,7 @@ public class TranslatorUtilsTest {
     @Test
     public void listDifference_bothNull() {
         final List<String> previous = null;
-        final List<String> diff = TranslatorUtils.difference(previous, null);
+        final List<String> diff = DifferenceUtils.diff(previous, null);
 
         Assertions.assertThat(diff).isEmpty();
         Assertions.assertThat(diff.getClass()).isEqualTo(DefaultSdkAutoConstructList.class);
@@ -44,7 +44,7 @@ public class TranslatorUtilsTest {
         final Map<String, String> previous = ImmutableMap.of("key1", "value1", "key2", "value2");
         final Map<String, String> desired = ImmutableMap.of("key1", "value1", "key2", "value2");
 
-        final Map<String, String> diff = TranslatorUtils.difference(previous, desired);
+        final Map<String, String> diff = DifferenceUtils.diff(previous, desired);
         Assertions.assertThat(diff).isEmpty();
         Assertions.assertThat(diff.getClass()).isEqualTo(DefaultSdkAutoConstructMap.class);
     }
@@ -53,14 +53,14 @@ public class TranslatorUtilsTest {
         final Map<String, String> previous = ImmutableMap.of("key1", "value1", "key2", "value2");
         final Map<String, String> desired = ImmutableMap.of("key1", "value3", "key3", "value2");
 
-        final Map<String, String> diff = TranslatorUtils.difference(previous, desired);
+        final Map<String, String> diff = DifferenceUtils.diff(previous, desired);
         Assertions.assertThat(diff).isEqualTo(ImmutableMap.of("key1", "value3", "key3", "value2"));
     }
 
     @Test void mapDifference_prevNull() {
         final Map<String, String> desired = ImmutableMap.of("key1", "value3", "key3", "value2");
 
-        final Map<String, String> diff = TranslatorUtils.difference(null, desired);
+        final Map<String, String> diff = DifferenceUtils.diff(null, desired);
         Assertions.assertThat(diff).isEqualTo(ImmutableMap.of("key1", "value3", "key3", "value2"));
     }
 
@@ -68,7 +68,7 @@ public class TranslatorUtilsTest {
         final String previous = "previous";
         final String desired = "desired";
 
-        final String diff = TranslatorUtils.difference(previous, desired);
+        final String diff = DifferenceUtils.diff(previous, desired);
         Assertions.assertThat(diff).isEqualTo("desired");
     }
 
@@ -76,7 +76,7 @@ public class TranslatorUtilsTest {
         final String previous = "previous";
         final String desired = "previous";
 
-        final String diff = TranslatorUtils.difference(previous, desired);
+        final String diff = DifferenceUtils.diff(previous, desired);
         Assertions.assertThat(diff).isNull();
     }
 }
