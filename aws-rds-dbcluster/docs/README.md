@@ -28,6 +28,8 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>" : <i>String</i>,
         "<a href="#dbsubnetgroupname" title="DBSubnetGroupName">DBSubnetGroupName</a>" : <i>String</i>,
         "<a href="#deletionprotection" title="DeletionProtection">DeletionProtection</a>" : <i>Boolean</i>,
+        "<a href="#domain" title="Domain">Domain</a>" : <i>String</i>,
+        "<a href="#domainiamrolename" title="DomainIAMRoleName">DomainIAMRoleName</a>" : <i>String</i>,
         "<a href="#enablecloudwatchlogsexports" title="EnableCloudwatchLogsExports">EnableCloudwatchLogsExports</a>" : <i>[ String, ... ]</i>,
         "<a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>" : <i>Boolean</i>,
         "<a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>" : <i>Boolean</i>,
@@ -87,6 +89,8 @@ Properties:
     <a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>: <i>String</i>
     <a href="#dbsubnetgroupname" title="DBSubnetGroupName">DBSubnetGroupName</a>: <i>String</i>
     <a href="#deletionprotection" title="DeletionProtection">DeletionProtection</a>: <i>Boolean</i>
+    <a href="#domain" title="Domain">Domain</a>: <i>String</i>
+    <a href="#domainiamrolename" title="DomainIAMRoleName">DomainIAMRoleName</a>: <i>String</i>
     <a href="#enablecloudwatchlogsexports" title="EnableCloudwatchLogsExports">EnableCloudwatchLogsExports</a>: <i>
       - String</i>
     <a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>: <i>Boolean</i>
@@ -293,6 +297,26 @@ A value that indicates whether the DB cluster has deletion protection enabled. T
 _Required_: No
 
 _Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### Domain
+
+The Active Directory directory ID to create the DB cluster in.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### DomainIAMRoleName
+
+Specify the name of the IAM role to be used when making API calls to the Directory Service.
+
+_Required_: No
+
+_Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

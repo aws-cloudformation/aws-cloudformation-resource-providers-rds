@@ -490,6 +490,13 @@ public class Translator {
             allocatedStorage = dbInstance.allocatedStorage().toString();
         }
 
+        String domain = null;
+        String domainIAMRoleName = null;
+        if (CollectionUtils.isNotEmpty(dbInstance.domainMemberships())) {
+            domain = dbInstance.domainMemberships().get(0).domain();
+            domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
+        }
+
         return ResourceModel.builder()
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
@@ -507,6 +514,8 @@ public class Translator {
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
+                .domain(domain)
+                .domainIAMRoleName(domainIAMRoleName)
                 .deletionProtection(dbInstance.deletionProtection())
                 .enableCloudwatchLogsExports(translateEnableCloudwatchLogsExport(dbInstance.enabledCloudwatchLogsExports()))
                 .enableIAMDatabaseAuthentication(dbInstance.iamDatabaseAuthenticationEnabled())
