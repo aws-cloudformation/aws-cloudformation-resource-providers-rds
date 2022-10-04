@@ -255,24 +255,22 @@ public class Translator {
             final ResourceModel desiredModel,
             final Boolean isRollback
     ) {
-        ResourceModel difference = TranslatorUtils.difference(previousModel, desiredModel, ResourceModel::new);
-        difference.setDBInstanceIdentifier(desiredModel.getDBInstanceIdentifier());
 
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
-                .dbInstanceClass(difference.getDBInstanceClass())
-                .dbSecurityGroups(difference.getDBSecurityGroups())
+                .dbInstanceClass(TranslatorUtils.difference(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
+                .dbSecurityGroups(TranslatorUtils.difference(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
                 .applyImmediately(Boolean.TRUE)
-                .masterUserPassword(difference.getMasterUserPassword())
-                .dbParameterGroupName(difference.getDBParameterGroupName())
-                .backupRetentionPeriod(difference.getBackupRetentionPeriod())
-                .preferredBackupWindow(difference.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(difference.getPreferredMaintenanceWindow())
-                .multiAZ(difference.getMultiAZ())
-                .engineVersion(difference.getEngineVersion())
-                .allowMajorVersionUpgrade(difference.getAllowMajorVersionUpgrade())
-                .autoMinorVersionUpgrade(difference.getAutoMinorVersionUpgrade())
-                .optionGroupName(difference.getOptionGroupName());
+                .masterUserPassword(TranslatorUtils.difference(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
+                .dbParameterGroupName(TranslatorUtils.difference(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
+                .backupRetentionPeriod(TranslatorUtils.difference(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
+                .preferredBackupWindow(TranslatorUtils.difference(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(TranslatorUtils.difference(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
+                .multiAZ(TranslatorUtils.difference(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
+                .engineVersion(TranslatorUtils.difference(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
+                .allowMajorVersionUpgrade(TranslatorUtils.difference(previousModel.getAllowMajorVersionUpgrade(), desiredModel.getAllowMajorVersionUpgrade()))
+                .autoMinorVersionUpgrade(TranslatorUtils.difference(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
+                .optionGroupName(TranslatorUtils.difference(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()));
 
         if (previousModel != null && BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
@@ -302,43 +300,40 @@ public class Translator {
             final ResourceModel desiredModel,
             final Boolean isRollback
     ) {
-        ResourceModel difference = TranslatorUtils.difference(previousModel, desiredModel, ResourceModel::new);
-        difference.setDBInstanceIdentifier(desiredModel.getDBInstanceIdentifier());
-
         ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
-                .allowMajorVersionUpgrade(difference.getAllowMajorVersionUpgrade())
+                .allowMajorVersionUpgrade(TranslatorUtils.difference(previousModel.getAllowMajorVersionUpgrade(), desiredModel.getAllowMajorVersionUpgrade()))
                 .applyImmediately(Boolean.TRUE)
-                .autoMinorVersionUpgrade(difference.getAutoMinorVersionUpgrade())
-                .backupRetentionPeriod(difference.getBackupRetentionPeriod())
-                .caCertificateIdentifier(difference.getCACertificateIdentifier())
-                .copyTagsToSnapshot(difference.getCopyTagsToSnapshot())
-                .dbInstanceClass(difference.getDBInstanceClass())
-                .dbInstanceIdentifier(difference.getDBInstanceIdentifier())
-                .dbParameterGroupName(difference.getDBParameterGroupName())
-                .dbPortNumber(translatePortToSdk(difference.getPort()))
-                .deletionProtection(difference.getDeletionProtection())
-                .domain(difference.getDomain())
-                .domainIAMRoleName(difference.getDomainIAMRoleName())
-                .enableIAMDatabaseAuthentication(difference.getEnableIAMDatabaseAuthentication())
-                .enablePerformanceInsights(difference.getEnablePerformanceInsights())
-                .licenseModel(difference.getLicenseModel())
-                .masterUserPassword(difference.getMasterUserPassword())
-                .maxAllocatedStorage(difference.getMaxAllocatedStorage())
-                .monitoringInterval(difference.getMonitoringInterval())
-                .monitoringRoleArn(difference.getMonitoringRoleArn())
-                .multiAZ(difference.getMultiAZ())
-                .optionGroupName(difference.getOptionGroupName())
-                .performanceInsightsKMSKeyId(difference.getPerformanceInsightsKMSKeyId())
-                .performanceInsightsRetentionPeriod(difference.getPerformanceInsightsRetentionPeriod())
-                .preferredBackupWindow(difference.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(difference.getPreferredMaintenanceWindow())
-                .promotionTier(difference.getPromotionTier())
-                .storageType(difference.getStorageType())
-                .tdeCredentialArn(difference.getTdeCredentialArn())
-                .tdeCredentialPassword(difference.getTdeCredentialPassword())
+                .autoMinorVersionUpgrade(TranslatorUtils.difference(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
+                .backupRetentionPeriod(TranslatorUtils.difference(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
+                .caCertificateIdentifier(TranslatorUtils.difference(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
+                .copyTagsToSnapshot(TranslatorUtils.difference(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
+                .dbInstanceClass(TranslatorUtils.difference(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
+                .dbInstanceIdentifier(TranslatorUtils.difference(previousModel.getDBInstanceIdentifier(), desiredModel.getDBInstanceIdentifier()))
+                .dbParameterGroupName(TranslatorUtils.difference(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
+                .dbPortNumber(translatePortToSdk(TranslatorUtils.difference(previousModel.getPort(), desiredModel.getPort())))
+                .deletionProtection(TranslatorUtils.difference(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
+                .domain(TranslatorUtils.difference(previousModel.getDomain(), desiredModel.getDomain()))
+                .domainIAMRoleName(TranslatorUtils.difference(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
+                .enableIAMDatabaseAuthentication(TranslatorUtils.difference(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
+                .enablePerformanceInsights(TranslatorUtils.difference(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights()))
+                .licenseModel(TranslatorUtils.difference(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
+                .masterUserPassword(TranslatorUtils.difference(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
+                .maxAllocatedStorage(TranslatorUtils.difference(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
+                .monitoringInterval(TranslatorUtils.difference(previousModel.getMonitoringInterval(), desiredModel.getMonitoringInterval()))
+                .monitoringRoleArn(TranslatorUtils.difference(previousModel.getMonitoringRoleArn(), desiredModel.getMonitoringRoleArn()))
+                .multiAZ(TranslatorUtils.difference(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
+                .optionGroupName(TranslatorUtils.difference(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
+                .performanceInsightsKMSKeyId(TranslatorUtils.difference(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId()))
+                .performanceInsightsRetentionPeriod(TranslatorUtils.difference(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
+                .preferredBackupWindow(TranslatorUtils.difference(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(TranslatorUtils.difference(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
+                .promotionTier(TranslatorUtils.difference(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .storageType(TranslatorUtils.difference(previousModel.getStorageType(), desiredModel.getStorageType()))
+                .tdeCredentialArn(TranslatorUtils.difference(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
+                .tdeCredentialPassword(TranslatorUtils.difference(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(desiredModel.getVPCSecurityGroups()) ? desiredModel.getVPCSecurityGroups() : null);
 
-        if (difference.getEnableCloudwatchLogsExports() != null) {
+        if (previousModel != null && !Objects.deepEquals(previousModel.getEnableCloudwatchLogsExports(), desiredModel.getEnableCloudwatchLogsExports())) {
             final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
                     Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),
                     desiredModel.getEnableCloudwatchLogsExports()

@@ -198,7 +198,7 @@ class TranslatorTest extends AbstractHandlerTest {
     public void test_modifyReadReplicaRequest_parameterGroupNotSet() {
         final ResourceModel model = RESOURCE_MODEL_BLDR().build();
 
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(null, model, false);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(ResourceModel.builder().build(), model, false);
         Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
