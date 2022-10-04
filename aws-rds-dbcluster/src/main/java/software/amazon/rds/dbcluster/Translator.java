@@ -181,6 +181,7 @@ public class Translator {
 
         ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
                 .allocatedStorage(desiredModel.getAllocatedStorage())
+                .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
                 .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
                 .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
@@ -207,7 +208,6 @@ public class Translator {
                 builder.masterUserPassword(desiredModel.getMasterUserPassword());
             }
             if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
-                builder.applyImmediately(true);
                 builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
                 if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
