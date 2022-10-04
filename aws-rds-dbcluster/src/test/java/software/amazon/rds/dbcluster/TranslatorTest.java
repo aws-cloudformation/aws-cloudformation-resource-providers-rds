@@ -1,14 +1,20 @@
 package software.amazon.rds.dbcluster;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Collection;
+
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class TranslatorTest extends AbstractHandlerTest {
 
@@ -97,17 +103,50 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.dbInstanceParameterGroupName()).isBlank();
     }
 
-    @Override
-    protected BaseHandlerStd getHandler() { return null; }
+    @Test
+    public void test_translateDbClusterFromSdk_emptyDomainMembership() {
+        final DBCluster cluster = DBCluster.builder()
+                .domainMemberships((Collection<DomainMembership>) null)
+                .build();
+        final ResourceModel model = Translator.translateDbClusterFromSdk(cluster);
+        assertThat(model.getDomain()).isNull();
+        assertThat(model.getDomainIAMRoleName()).isNull();
+    }
+
+    @Test
+    public void test_translateDbClusterFromSdk_withDomainMembership() {
+        final DBCluster cluster = DBCluster.builder()
+                .domainMemberships(ImmutableList.of(
+                        DomainMembership.builder()
+                                .domain(DOMAIN_NON_EMPTY)
+                                .iamRoleName(DOMAIN_IAM_ROLE_NAME_NON_EMPTY)
+                                .build()
+                ))
+                .build();
+        final ResourceModel model = Translator.translateDbClusterFromSdk(cluster);
+        assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
+        assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
+    }
 
     @Override
-    protected AmazonWebServicesClientProxy getProxy() { return null; }
+    protected BaseHandlerStd getHandler() {
+        return null;
+    }
 
     @Override
-    protected ProxyClient<RdsClient> getRdsProxy() { return null; }
+    protected AmazonWebServicesClientProxy getProxy() {
+        return null;
+    }
 
     @Override
-    protected ProxyClient<Ec2Client> getEc2Proxy() { return null; }
+    protected ProxyClient<RdsClient> getRdsProxy() {
+        return null;
+    }
+
+    @Override
+    protected ProxyClient<Ec2Client> getEc2Proxy() {
+        return null;
+    }
 
     @Override
     public HandlerName getHandlerName() {

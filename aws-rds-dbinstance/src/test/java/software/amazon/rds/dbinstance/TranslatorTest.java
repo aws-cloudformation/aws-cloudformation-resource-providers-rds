@@ -2,13 +2,18 @@ package software.amazon.rds.dbinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collection;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -243,6 +248,31 @@ class TranslatorTest extends AbstractHandlerTest {
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
         assertThat(request.storageType()).isEqualTo("gp2");
+    }
+
+    @Test
+    public void test_translateDbInstanceFromSdkBuilder_emptyDomainMembership() {
+        final DBInstance instance = DBInstance.builder()
+                .domainMemberships((Collection<DomainMembership>) null)
+                .build();
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
+        assertThat(model.getDomain()).isNull();
+        assertThat(model.getDomainIAMRoleName()).isNull();
+    }
+
+    @Test
+    public void test_translateDbInstanceFromSdkBuilder_withDomainMembership() {
+        final DBInstance instance = DBInstance.builder()
+                .domainMemberships(ImmutableList.of(
+                        DomainMembership.builder()
+                                .domain(DOMAIN_NON_EMPTY)
+                                .iamRoleName(DOMAIN_IAM_ROLE_NAME_NON_EMPTY)
+                                .build()
+                ))
+                .build();
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
+        assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
+        assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
