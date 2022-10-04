@@ -61,6 +61,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final String DBCLUSTER_IDENTIFIER;
     protected static final String DBGLOBALCLUSTER_IDENTIFIER;
     protected static final String DBCLUSTER_PARAMETER_GROUP_NAME;
+    protected static final String DOMAIN_NON_EMPTY;
+    protected static final String DOMAIN_IAM_ROLE_NAME_NON_EMPTY;
     protected static final String SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
     protected static final String ENGINE;
@@ -116,6 +118,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         DBCLUSTER_IDENTIFIER = "my-sample-dbcluster";
         DBGLOBALCLUSTER_IDENTIFIER = "my-sample-global-cluster";
         DBCLUSTER_PARAMETER_GROUP_NAME = "default.aurora5.6";
+        DOMAIN_NON_EMPTY = "domain-name";
+        DOMAIN_IAM_ROLE_NAME_NON_EMPTY = "domain-iam-role-name";
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
         ENGINE = "aurora";

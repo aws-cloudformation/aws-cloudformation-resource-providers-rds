@@ -4,10 +4,6 @@ import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.ProbingContext;
 import software.amazon.rds.common.handler.TaggingContext;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
-
 @lombok.Getter
 @lombok.Setter
 @lombok.ToString

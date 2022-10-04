@@ -109,7 +109,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Boolean DELETION_PROTECTION_YES = true;
     protected static final Boolean DELETION_PROTECTION_NO = false;
     protected static final String DOMAIN_EMPTY = null;
+    protected static final String DOMAIN_NON_EMPTY = "domain-name";
     protected static final String DOMAIN_IAM_ROLE_NAME_EMPTY = null;
+    protected static final String DOMAIN_IAM_ROLE_NAME_NON_EMPTY = "domain-iam-role-name";
     protected static final Boolean ENABLE_IAM_DATABASE_AUTHENTICATION_YES = true;
     protected static final Boolean ENABLE_IAM_DATABASE_AUTHENTICATION_NO = false;
     protected static final Boolean ENABLE_PERFORMANCE_INSIGHTS_YES = true;
