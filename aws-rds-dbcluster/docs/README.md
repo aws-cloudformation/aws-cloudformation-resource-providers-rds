@@ -42,6 +42,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>" : <i>String</i>,
         "<a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>" : <i>Integer</i>,
         "<a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>" : <i>String</i>,
+        "<a href="#networktype" title="NetworkType">NetworkType</a>" : <i>String</i>,
         "<a href="#performanceinsightsenabled" title="PerformanceInsightsEnabled">PerformanceInsightsEnabled</a>" : <i>Boolean</i>,
         "<a href="#performanceinsightskmskeyid" title="PerformanceInsightsKmsKeyId">PerformanceInsightsKmsKeyId</a>" : <i>String</i>,
         "<a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>" : <i>Integer</i>,
@@ -103,6 +104,7 @@ Properties:
     <a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>: <i>String</i>
     <a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>: <i>Integer</i>
     <a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>: <i>String</i>
+    <a href="#networktype" title="NetworkType">NetworkType</a>: <i>String</i>
     <a href="#performanceinsightsenabled" title="PerformanceInsightsEnabled">PerformanceInsightsEnabled</a>: <i>Boolean</i>
     <a href="#performanceinsightskmskeyid" title="PerformanceInsightsKmsKeyId">PerformanceInsightsKmsKeyId</a>: <i>String</i>
     <a href="#performanceinsightsretentionperiod" title="PerformanceInsightsRetentionPeriod">PerformanceInsightsRetentionPeriod</a>: <i>Integer</i>
@@ -435,6 +437,16 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 #### MonitoringRoleArn
 
 The Amazon Resource Name (ARN) for the IAM role that permits RDS to send Enhanced Monitoring metrics to Amazon CloudWatch Logs.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### NetworkType
+
+The network type of the DB cluster.
 
 _Required_: No
 

@@ -155,6 +155,10 @@
       "description": "The Amazon Resource Name (ARN) for the IAM role that permits RDS to send Enhanced Monitoring metrics to Amazon CloudWatch Logs.",
       "type": "string"
     },
+    "NetworkType": {
+      "description": "The network type of the DB cluster.",
+      "type": "string"
+    },
     "PerformanceInsightsEnabled": {
       "description": "A value that indicates whether to turn on Performance Insights for the DB cluster.",
       "type": "boolean"
