@@ -261,7 +261,7 @@ public class Translator {
             final Boolean isRollback
     ) {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
-                .allowMajorVersionUpgrade(TranslatorUtils.difference(previousModel.getAllowMajorVersionUpgrade(), desiredModel.getAllowMajorVersionUpgrade()))
+                .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(TranslatorUtils.difference(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
                 .backupRetentionPeriod(TranslatorUtils.difference(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
@@ -306,14 +306,14 @@ public class Translator {
             final Boolean isRollback
     ) {
         ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
-                .allowMajorVersionUpgrade(TranslatorUtils.difference(previousModel.getAllowMajorVersionUpgrade(), desiredModel.getAllowMajorVersionUpgrade()))
+                .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(TranslatorUtils.difference(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
                 .backupRetentionPeriod(TranslatorUtils.difference(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
                 .caCertificateIdentifier(TranslatorUtils.difference(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
                 .copyTagsToSnapshot(TranslatorUtils.difference(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
                 .dbInstanceClass(TranslatorUtils.difference(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
-                .dbInstanceIdentifier(TranslatorUtils.difference(previousModel.getDBInstanceIdentifier(), desiredModel.getDBInstanceIdentifier()))
+                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(TranslatorUtils.difference(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbPortNumber(translatePortToSdk(TranslatorUtils.difference(previousModel.getPort(), desiredModel.getPort())))
                 .deletionProtection(TranslatorUtils.difference(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
@@ -337,7 +337,7 @@ public class Translator {
                 .storageType(TranslatorUtils.difference(previousModel.getStorageType(), desiredModel.getStorageType()))
                 .tdeCredentialArn(TranslatorUtils.difference(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
                 .tdeCredentialPassword(TranslatorUtils.difference(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(desiredModel.getVPCSecurityGroups()) ? desiredModel.getVPCSecurityGroups() : null);
+                .vpcSecurityGroupIds(TranslatorUtils.difference(previousModel.getVPCSecurityGroups(), desiredModel.getVPCSecurityGroups()));
 
         if (!Objects.deepEquals(previousModel.getEnableCloudwatchLogsExports(), desiredModel.getEnableCloudwatchLogsExports())) {
             final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
