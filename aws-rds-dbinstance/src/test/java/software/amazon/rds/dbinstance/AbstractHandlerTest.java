@@ -99,6 +99,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String DB_SECURITY_GROUP_ID = "db-security-group-id";
     protected static final String DB_SECURITY_GROUP_VPC_ID = "db-security-group-vpc-id";
     protected static final List<String> DB_SECURITY_GROUPS;
+    protected static final List<String> DB_SECURITY_GROUPS_ALTER;
+
     protected static final String DB_SNAPSHOT_IDENTIFIER_EMPTY = null;
     protected static final String DB_SNAPSHOT_IDENTIFIER_NON_EMPTY = "db-snapshot-identifier";
     protected static final String DB_SUBNET_GROUP_NAME_DEFAULT = "default";
@@ -277,7 +279,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                         .build()
         );
 
-        DB_SECURITY_GROUPS = ImmutableList.of("db-sec-group-1", "db-sec-group-2", "db-sec-group-3");
+        DB_SECURITY_GROUPS = ImmutableList.of("db-sec-group-1", "db-sec-group-2");
+        DB_SECURITY_GROUPS_ALTER = ImmutableList.of("db-sec-group-1", "db-sec-group-2", "db-sec-group-3");
+
 
         RESOURCE_MODEL_NO_IDENTIFIER = ResourceModel.builder()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())

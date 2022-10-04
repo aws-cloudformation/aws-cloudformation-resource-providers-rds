@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
@@ -202,7 +202,7 @@ class TranslatorTest extends AbstractHandlerTest {
     public void test_modifyReadReplicaRequest_parameterGroupNotSet() {
         final ResourceModel model = RESOURCE_MODEL_BLDR().build();
 
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(null, model, false);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(ResourceModel.builder().build(), model, false);
         Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
@@ -248,6 +248,46 @@ class TranslatorTest extends AbstractHandlerTest {
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
         assertThat(request.storageType()).isEqualTo("gp2");
+    }
+
+    @Test
+    public void test_modifyDBInstanceRequest_cloudwatchLogsExportConfiguration_unchanged() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.cloudwatchLogsExportConfiguration()).isNull();
+    }
+
+    @Test
+    public void test_modifyDBInstanceRequest_cloudwatchLogsExportConfiguration_changed() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-3"))
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.cloudwatchLogsExportConfiguration().disableLogTypes()).isEqualTo(ImmutableList.of("config-2"));
+        assertThat(request.cloudwatchLogsExportConfiguration().enableLogTypes()).isEqualTo(ImmutableList.of("config-3"));
+    }
+
+    @Test
+    public void test_modifyDBInstanceRequest_cloudwatchLogsExportConfiguration_previousNull() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(null)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.cloudwatchLogsExportConfiguration().enableLogTypes()).isEqualTo(ImmutableList.of("config-1", "config-2"));
     }
 
     @Test
