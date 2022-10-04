@@ -13,8 +13,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
-import com.amazonaws.util.CollectionUtils;
-import com.google.common.collect.ImmutableList;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -257,16 +255,16 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
         transitions.add(DBCLUSTER_INPROGRESS);
         transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
 
-        final CallbackContext context = new CallbackContext();
-        context.setModified(true);
-
         test_handleRequest_base(
-                context,
+                new CallbackContext(),
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
                         .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
@@ -290,6 +288,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+
+        ArgumentCaptor<ModifyDbClusterRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().applyImmediately()).isTrue();
     }
 
     @Test
@@ -597,7 +599,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
         Assertions.assertThat(argument.getValue().engineVersion()).isEqualTo(engineVersion2);
-        Assertions.assertThat(argument.getValue().applyImmediately()).isTrue();
         Assertions.assertThat(argument.getValue().allowMajorVersionUpgrade()).isTrue();
     }
 
