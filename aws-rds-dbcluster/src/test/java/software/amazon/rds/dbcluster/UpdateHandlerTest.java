@@ -41,6 +41,7 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
@@ -292,6 +293,40 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<ModifyDbClusterRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argumentCaptor.capture());
         Assertions.assertThat(argumentCaptor.getValue().applyImmediately()).isTrue();
+    }
+
+    @Test
+    public void handleRequest_StabilizeWithPendingActions() {
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE.toBuilder()
+                .pendingModifiedValues(ClusterPendingModifiedValues.builder()
+                        .iamDatabaseAuthenticationEnabled(true)
+                        .build()
+                ).build());
+        transitions.add(DBCLUSTER_ACTIVE);
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE;
+                },
+                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
     @Test
