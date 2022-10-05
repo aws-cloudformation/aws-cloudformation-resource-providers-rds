@@ -56,15 +56,17 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final org.slf4j.Logger delegate;
     protected static final LoggerProxy logger;
 
-
     protected static final Integer BACKUP_RETENTION_PERIOD;
     protected static final Integer BACKTRACK_WINDOW;
     protected static final String DBCLUSTER_IDENTIFIER;
     protected static final String DBGLOBALCLUSTER_IDENTIFIER;
     protected static final String DBCLUSTER_PARAMETER_GROUP_NAME;
+    protected static final String DOMAIN_NON_EMPTY;
+    protected static final String DOMAIN_IAM_ROLE_NAME_NON_EMPTY;
     protected static final String SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
     protected static final String ENGINE;
+    protected static final String ENGINE_AURORA_POSTGRESQL;
     protected static final String ENGINE_MODE;
     protected static final Integer PORT;
     protected static final String USER_NAME;
@@ -116,9 +118,12 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         DBCLUSTER_IDENTIFIER = "my-sample-dbcluster";
         DBGLOBALCLUSTER_IDENTIFIER = "my-sample-global-cluster";
         DBCLUSTER_PARAMETER_GROUP_NAME = "default.aurora5.6";
+        DOMAIN_NON_EMPTY = "domain-name";
+        DOMAIN_IAM_ROLE_NAME_NON_EMPTY = "domain-iam-role-name";
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
         ENGINE = "aurora";
+        ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
         ENGINE_MODE = "serverless";
         PORT = 3306;
         USER_NAME = "username";

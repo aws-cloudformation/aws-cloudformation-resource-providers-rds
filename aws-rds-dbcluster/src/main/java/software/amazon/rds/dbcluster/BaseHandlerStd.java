@@ -43,6 +43,7 @@ import software.amazon.awssdk.services.rds.model.InvalidGlobalClusterStateExcept
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
@@ -106,7 +107,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     KmsKeyNotAccessibleException.class,
-                    StorageTypeNotSupportedException.class)
+                    StorageTypeNotSupportedException.class,
+                    NetworkTypeNotSupportedException.class)
             .build();
 
     protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet

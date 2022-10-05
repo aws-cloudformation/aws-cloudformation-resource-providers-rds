@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
@@ -54,6 +55,7 @@ import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
@@ -104,6 +106,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String API_VERSION_V12 = "2012-09-17";
 
     static final String READ_REPLICA_STATUS_TYPE = "read replication";
+
+    protected static final List<String> RDS_CUSTOM_ORACLE_ENGINES = ImmutableList.of(
+            "custom-oracle-ee",
+            "custom-oracle-ee-cdb"
+    );
 
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
@@ -197,6 +204,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     InvalidVpcNetworkStateException.class,
                     KmsKeyNotAccessibleException.class,
+                    NetworkTypeNotSupportedException.class,
                     ProvisionedIopsNotAvailableInAzException.class,
                     StorageTypeNotSupportedException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
@@ -388,7 +396,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequestV12(
-                        request.getPreviousResourceState(),
+                        Optional.ofNullable(request.getPreviousResourceState()).orElse(ResourceModel.builder().build()),
                         request.getDesiredResourceState(),
                         BooleanUtils.isTrue(request.getRollback()))
                 )
@@ -414,7 +422,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         return proxy.initiate("rds::modify-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(
-                        request.getPreviousResourceState(),
+                        Optional.ofNullable(request.getPreviousResourceState()).orElse(ResourceModel.builder().build()),
                         request.getDesiredResourceState(),
                         BooleanUtils.isTrue(request.getRollback()))
                 )
@@ -434,6 +442,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isDBClusterMember(final ResourceModel model) {
         return StringUtils.isNotBlank(model.getDBClusterIdentifier());
+    }
+
+    protected boolean isRdsCustomOracleInstance(final ResourceModel model) {
+        return RDS_CUSTOM_ORACLE_ENGINES.contains(model.getEngine());
     }
 
     protected DBInstance fetchDBInstance(

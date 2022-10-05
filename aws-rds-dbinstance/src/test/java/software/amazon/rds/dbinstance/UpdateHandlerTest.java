@@ -208,7 +208,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .dBSecurityGroups(DB_SECURITY_GROUPS)
                         .build(),
                 () -> RESOURCE_MODEL_ALTER.toBuilder()
-                        .dBSecurityGroups(DB_SECURITY_GROUPS)
+                        .dBSecurityGroups(DB_SECURITY_GROUPS_ALTER)
                         .build(),
                 expectSuccess()
         );
@@ -220,7 +220,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
 
-        Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS, String.class));
+        Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS_ALTER, String.class));
     }
 
     @Test
@@ -824,6 +824,30 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .build(),
                 () -> RESOURCE_MODEL_BLDR()
                         .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_NoDefaultVpcIdForOracleCustom() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setStorageAllocated(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR()
+                        // A default vpc group won't be set for rds oracle custom instance
+                        .engine("custom-oracle-ee-cdb")
+                        .vPCSecurityGroups(Collections.emptyList())
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .engine("custom-oracle-ee-cdb")
                         .vPCSecurityGroups(Collections.emptyList())
                         .build(),
                 expectSuccess()

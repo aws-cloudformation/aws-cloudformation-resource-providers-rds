@@ -99,6 +99,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String DB_SECURITY_GROUP_ID = "db-security-group-id";
     protected static final String DB_SECURITY_GROUP_VPC_ID = "db-security-group-vpc-id";
     protected static final List<String> DB_SECURITY_GROUPS;
+    protected static final List<String> DB_SECURITY_GROUPS_ALTER;
+
     protected static final String DB_SNAPSHOT_IDENTIFIER_EMPTY = null;
     protected static final String DB_SNAPSHOT_IDENTIFIER_NON_EMPTY = "db-snapshot-identifier";
     protected static final String DB_SUBNET_GROUP_NAME_DEFAULT = "default";
@@ -107,7 +109,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Boolean DELETION_PROTECTION_YES = true;
     protected static final Boolean DELETION_PROTECTION_NO = false;
     protected static final String DOMAIN_EMPTY = null;
+    protected static final String DOMAIN_NON_EMPTY = "domain-name";
     protected static final String DOMAIN_IAM_ROLE_NAME_EMPTY = null;
+    protected static final String DOMAIN_IAM_ROLE_NAME_NON_EMPTY = "domain-iam-role-name";
     protected static final Boolean ENABLE_IAM_DATABASE_AUTHENTICATION_YES = true;
     protected static final Boolean ENABLE_IAM_DATABASE_AUTHENTICATION_NO = false;
     protected static final Boolean ENABLE_PERFORMANCE_INSIGHTS_YES = true;
@@ -275,7 +279,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                         .build()
         );
 
-        DB_SECURITY_GROUPS = ImmutableList.of("db-sec-group-1", "db-sec-group-2", "db-sec-group-3");
+        DB_SECURITY_GROUPS = ImmutableList.of("db-sec-group-1", "db-sec-group-2");
+        DB_SECURITY_GROUPS_ALTER = ImmutableList.of("db-sec-group-1", "db-sec-group-2", "db-sec-group-3");
+
 
         RESOURCE_MODEL_NO_IDENTIFIER = ResourceModel.builder()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())

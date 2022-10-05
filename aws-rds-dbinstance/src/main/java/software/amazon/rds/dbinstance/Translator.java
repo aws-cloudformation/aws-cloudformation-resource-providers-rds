@@ -36,6 +36,10 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Tagging;
+
+import static software.amazon.rds.common.util.DifferenceUtils.diff;
+
+import software.amazon.rds.common.util.DifferenceUtils;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
@@ -85,6 +89,7 @@ public class Translator {
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
                 .multiAZ(model.getMultiAZ())
+                .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
                 .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
@@ -115,6 +120,7 @@ public class Translator {
                 .engine(model.getEngine())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
+                .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
                 .port(translatePortToSdk(model.getPort()));
 
@@ -147,6 +153,7 @@ public class Translator {
                 .engine(model.getEngine())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
+                .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
@@ -187,6 +194,7 @@ public class Translator {
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUsername(model.getMasterUsername())
                 .multiAZ(model.getMultiAZ())
+                .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
                 .port(translatePortToSdk(model.getPort()))
                 .preferredBackupWindow(model.getPreferredBackupWindow())
@@ -230,6 +238,7 @@ public class Translator {
                 .monitoringRoleArn(model.getMonitoringRoleArn())
                 .multiAZ(model.getMultiAZ())
                 .ncharCharacterSetName(model.getNcharCharacterSetName())
+                .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
                 .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
@@ -255,22 +264,23 @@ public class Translator {
             final Boolean isRollback
     ) {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
-                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
-                .dbInstanceClass(desiredModel.getDBInstanceClass())
-                .dbSecurityGroups(desiredModel.getDBSecurityGroups())
-                .applyImmediately(Boolean.TRUE)
-                .masterUserPassword(desiredModel.getMasterUserPassword())
-                .dbParameterGroupName(desiredModel.getDBParameterGroupName())
-                .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
-                .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
-                .multiAZ(desiredModel.getMultiAZ())
-                .engineVersion(desiredModel.getEngineVersion())
                 .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
-                .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
-                .optionGroupName(desiredModel.getOptionGroupName());
+                .applyImmediately(Boolean.TRUE)
+                .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
+                .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
+                .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
+                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
+                .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
+                .dbSecurityGroups(DifferenceUtils.diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
+                .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
+                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
+                .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
+                .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
+                .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
+                .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()));
 
-        if (previousModel != null && BooleanUtils.isTrue(isRollback)) {
+        if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
                     canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
             );
@@ -301,42 +311,44 @@ public class Translator {
         ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
-                .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
-                .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
-                .caCertificateIdentifier(desiredModel.getCACertificateIdentifier())
-                .copyTagsToSnapshot(desiredModel.getCopyTagsToSnapshot())
-                .dbInstanceClass(desiredModel.getDBInstanceClass())
+                .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
+                .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
+                .caCertificateIdentifier(diff(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
+                .copyTagsToSnapshot(diff(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
+                .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
-                .dbParameterGroupName(desiredModel.getDBParameterGroupName())
-                .dbPortNumber(translatePortToSdk(desiredModel.getPort()))
-                .deletionProtection(desiredModel.getDeletionProtection())
-                .domain(desiredModel.getDomain())
-                .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
-                .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
-                .enablePerformanceInsights(desiredModel.getEnablePerformanceInsights())
-                .licenseModel(desiredModel.getLicenseModel())
-                .masterUserPassword(desiredModel.getMasterUserPassword())
-                .maxAllocatedStorage(desiredModel.getMaxAllocatedStorage())
-                .monitoringInterval(desiredModel.getMonitoringInterval())
-                .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
-                .multiAZ(desiredModel.getMultiAZ())
-                .optionGroupName(desiredModel.getOptionGroupName())
-                .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKMSKeyId())
-                .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
-                .preferredBackupWindow(desiredModel.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
-                .promotionTier(desiredModel.getPromotionTier())
-                .storageType(desiredModel.getStorageType())
-                .tdeCredentialArn(desiredModel.getTdeCredentialArn())
-                .tdeCredentialPassword(desiredModel.getTdeCredentialPassword())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(desiredModel.getVPCSecurityGroups()) ? desiredModel.getVPCSecurityGroups() : null);
+                .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
+                .dbPortNumber(translatePortToSdk(diff(previousModel.getPort(), desiredModel.getPort())))
+                .deletionProtection(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
+                .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
+                .domainIAMRoleName(diff(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
+                .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
+                .enablePerformanceInsights(diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights()))
+                .licenseModel(diff(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
+                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
+                .maxAllocatedStorage(diff(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
+                .monitoringInterval(diff(previousModel.getMonitoringInterval(), desiredModel.getMonitoringInterval()))
+                .monitoringRoleArn(diff(previousModel.getMonitoringRoleArn(), desiredModel.getMonitoringRoleArn()))
+                .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
+                .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
+                .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
+                .performanceInsightsKMSKeyId(diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId()))
+                .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
+                .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
+                .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .storageType(diff(previousModel.getStorageType(), desiredModel.getStorageType()))
+                .tdeCredentialArn(diff(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
+                .tdeCredentialPassword(diff(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
+                .vpcSecurityGroupIds(DifferenceUtils.diff(previousModel.getVPCSecurityGroups(), desiredModel.getVPCSecurityGroups()));
 
-        final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
-                Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),
-                desiredModel.getEnableCloudwatchLogsExports()
-        );
-        builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
-
+        if (!Objects.deepEquals(previousModel.getEnableCloudwatchLogsExports(), desiredModel.getEnableCloudwatchLogsExports())) {
+            final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
+                    Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),
+                    desiredModel.getEnableCloudwatchLogsExports()
+            );
+            builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
+        }
 
         if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
@@ -482,6 +494,13 @@ public class Translator {
             allocatedStorage = dbInstance.allocatedStorage().toString();
         }
 
+        String domain = null;
+        String domainIAMRoleName = null;
+        if (CollectionUtils.isNotEmpty(dbInstance.domainMemberships())) {
+            domain = dbInstance.domainMemberships().get(0).domain();
+            domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
+        }
+
         return ResourceModel.builder()
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
@@ -499,6 +518,8 @@ public class Translator {
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
+                .domain(domain)
+                .domainIAMRoleName(domainIAMRoleName)
                 .deletionProtection(dbInstance.deletionProtection())
                 .enableCloudwatchLogsExports(translateEnableCloudwatchLogsExport(dbInstance.enabledCloudwatchLogsExports()))
                 .enableIAMDatabaseAuthentication(dbInstance.iamDatabaseAuthenticationEnabled())
@@ -515,6 +536,7 @@ public class Translator {
                 .monitoringRoleArn(dbInstance.monitoringRoleArn())
                 .multiAZ(dbInstance.multiAZ())
                 .ncharCharacterSetName(dbInstance.ncharCharacterSetName())
+                .networkType(dbInstance.networkType())
                 .performanceInsightsKMSKeyId(dbInstance.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbInstance.performanceInsightsRetentionPeriod())
                 .port(port == null ? null : port.toString())

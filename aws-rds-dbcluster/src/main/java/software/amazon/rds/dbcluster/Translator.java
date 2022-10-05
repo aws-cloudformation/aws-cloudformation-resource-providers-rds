@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
@@ -50,6 +52,8 @@ public class Translator {
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
+                .domain(model.getDomain())
+                .domainIAMRoleName(model.getDomainIAMRoleName())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
@@ -64,6 +68,7 @@ public class Translator {
                 .masterUsername(model.getMasterUsername())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
+                .networkType(model.getNetworkType())
                 .performanceInsightsKMSKeyId(model.getPerformanceInsightsKmsKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
                 .port(model.getPort())
@@ -90,8 +95,11 @@ public class Translator {
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .domain(model.getDomain())
+                .domainIAMRoleName(model.getDomainIAMRoleName())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
+                .networkType(model.getNetworkType())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreType(model.getRestoreType())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
@@ -116,6 +124,8 @@ public class Translator {
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .domain(model.getDomain())
+                .domainIAMRoleName(model.getDomainIAMRoleName())
                 .deletionProtection(model.getDeletionProtection())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
@@ -124,6 +134,7 @@ public class Translator {
                 .engineVersion(model.getEngineVersion())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
+                .networkType(model.getNetworkType())
                 .port(model.getPort())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
@@ -181,6 +192,7 @@ public class Translator {
 
         ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
                 .allocatedStorage(desiredModel.getAllocatedStorage())
+                .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
                 .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
                 .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
@@ -190,11 +202,14 @@ public class Translator {
                 .dbClusterInstanceClass(desiredModel.getDBClusterInstanceClass())
                 .dbClusterParameterGroupName(desiredModel.getDBClusterParameterGroupName())
                 .deletionProtection(desiredModel.getDeletionProtection())
+                .domain(desiredModel.getDomain())
+                .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .monitoringInterval(desiredModel.getMonitoringInterval())
                 .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
+                .networkType(desiredModel.getNetworkType())
                 .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKmsKeyId())
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
                 .port(desiredModel.getPort())
@@ -207,7 +222,6 @@ public class Translator {
                 builder.masterUserPassword(desiredModel.getMasterUserPassword());
             }
             if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
-                builder.applyImmediately(true);
                 builder.engineVersion(desiredModel.getEngineVersion());
                 builder.allowMajorVersionUpgrade(true);
                 if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
@@ -391,6 +405,13 @@ public class Translator {
     public static ResourceModel translateDbClusterFromSdk(
             final software.amazon.awssdk.services.rds.model.DBCluster dbCluster
     ) {
+        String domain = null;
+        String domainIAMRoleName = null;
+        if (CollectionUtils.isNotEmpty(dbCluster.domainMemberships())) {
+            domain = dbCluster.domainMemberships().get(0).domain();
+            domainIAMRoleName = dbCluster.domainMemberships().get(0).iamRoleName();
+        }
+
         return ResourceModel.builder()
                 .allocatedStorage(dbCluster.allocatedStorage())
                 .associatedRoles(
@@ -412,6 +433,8 @@ public class Translator {
                 .dBClusterResourceId(dbCluster.dbClusterResourceId())
                 .dBSubnetGroupName(dbCluster.dbSubnetGroup())
                 .deletionProtection(dbCluster.deletionProtection())
+                .domain(domain)
+                .domainIAMRoleName(domainIAMRoleName)
                 .enableCloudwatchLogsExports(dbCluster.enabledCloudwatchLogsExports())
                 .enableHttpEndpoint(dbCluster.httpEndpointEnabled())
                 .enableIAMDatabaseAuthentication(dbCluster.iamDatabaseAuthenticationEnabled())
@@ -429,6 +452,7 @@ public class Translator {
                 .masterUsername(dbCluster.masterUsername())
                 .monitoringInterval(dbCluster.monitoringInterval())
                 .monitoringRoleArn(dbCluster.monitoringRoleArn())
+                .networkType(dbCluster.networkType())
                 .performanceInsightsEnabled(dbCluster.performanceInsightsEnabled())
                 .performanceInsightsKmsKeyId(dbCluster.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbCluster.performanceInsightsRetentionPeriod())
