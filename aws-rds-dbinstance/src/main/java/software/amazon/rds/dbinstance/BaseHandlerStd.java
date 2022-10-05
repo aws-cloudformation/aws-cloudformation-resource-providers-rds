@@ -396,7 +396,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequestV12(
-                        Optional.ofNullable(request.getPreviousResourceState()).orElse(ResourceModel.builder().build()),
+                        request.getPreviousResourceState(),
                         request.getDesiredResourceState(),
                         BooleanUtils.isTrue(request.getRollback()))
                 )
@@ -422,7 +422,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         return proxy.initiate("rds::modify-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(
-                        Optional.ofNullable(request.getPreviousResourceState()).orElse(ResourceModel.builder().build()),
+                        request.getPreviousResourceState(),
                         request.getDesiredResourceState(),
                         BooleanUtils.isTrue(request.getRollback()))
                 )
