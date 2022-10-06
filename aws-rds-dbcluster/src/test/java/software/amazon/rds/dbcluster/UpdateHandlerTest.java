@@ -142,7 +142,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DBCLUSTER_ACTIVE,
                 () -> RESOURCE_MODEL.toBuilder()
-                        .associatedRoles(ImmutableList.of(ROLE))
+                        .associatedRoles(ImmutableList.of(OLD_ROLE))
                         .build(),
                 () -> RESOURCE_MODEL.toBuilder()
                         .associatedRoles(ImmutableList.of(ROLE))
@@ -171,7 +171,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DBCLUSTER_ACTIVE,
                 () -> RESOURCE_MODEL.toBuilder()
-                        .associatedRoles(ImmutableList.of(ROLE))
+                        .associatedRoles(ImmutableList.of(OLD_ROLE))
                         .globalClusterIdentifier("global-cluster-identifier")
                         .build(),
                 () -> RESOURCE_MODEL.toBuilder()
@@ -276,7 +276,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     return DBCLUSTER_ACTIVE;
                 },
                 () -> RESOURCE_MODEL.toBuilder()
-                        .associatedRoles(ImmutableList.of(ROLE))
+                        .associatedRoles(ImmutableList.of(OLD_ROLE))
                         .build(),
                 () -> RESOURCE_MODEL.toBuilder()
                         .associatedRoles(ImmutableList.of(ROLE))
@@ -412,7 +412,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     return dbclusterActive;
                 },
                 () -> RESOURCE_MODEL.toBuilder()
-                        .associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE))
+                        .associatedRoles(Lists.newArrayList(ROLE))
                         .build(),
                 () -> RESOURCE_MODEL.toBuilder()
                         .associatedRoles(Lists.newArrayList(ROLE_WITH_EMPTY_FEATURE))
@@ -425,6 +425,59 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
     }
 
+    @Test
+    public void handleRequest_HandleUpdateAssociatedRole() {
+        when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
+                .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+
+        final DBCluster dbclusterActive = DBCLUSTER_ACTIVE.toBuilder()
+                .associatedRoles(software.amazon.awssdk.services.rds.model.DBClusterRole.builder()
+                                .roleArn(ROLE.getRoleArn())
+                                .featureName(ROLE.getFeatureName())
+                                .build(),
+                        software.amazon.awssdk.services.rds.model.DBClusterRole.builder()
+                                .roleArn(NEW_ROLE.getRoleArn())
+                                .featureName(NEW_ROLE.getFeatureName())
+                                .build())
+                .build();
+
+        transitions.add(dbclusterActive);
+        transitions.add(DBCLUSTER_INPROGRESS);
+        transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.builder(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return dbclusterActive;
+                },
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(Lists.newArrayList(OLD_ROLE, ROLE))
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(Lists.newArrayList(ROLE, NEW_ROLE))
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(5)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        ArgumentCaptor<RemoveRoleFromDbClusterRequest> removedRolesArgument = ArgumentCaptor.forClass(RemoveRoleFromDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(removedRolesArgument.capture());
+        Assertions.assertThat(removedRolesArgument.getValue().roleArn()).isEqualTo(OLD_ROLE.getRoleArn());
+        ArgumentCaptor<AddRoleToDbClusterRequest> addedRolesArgument = ArgumentCaptor.forClass(AddRoleToDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(addedRolesArgument.capture());
+        Assertions.assertThat(addedRolesArgument.getValue().roleArn()).isEqualTo(NEW_ROLE.getRoleArn());
+    }
 
     @Test
     public void handleRequest_ImmutableUpdate_GlobalCluster() {
@@ -546,7 +599,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     return DBCLUSTER_ACTIVE;
                 },
                 () -> RESOURCE_MODEL.toBuilder()
-                        .associatedRoles(ImmutableList.of(ROLE))
+                        .associatedRoles(ImmutableList.of(OLD_ROLE))
                         .engineVersion(engineVersion)
                         .build(),
                 () -> RESOURCE_MODEL.toBuilder()
