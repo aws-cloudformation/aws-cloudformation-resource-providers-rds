@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -224,12 +225,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return StringUtils.isNotBlank(model.getGlobalClusterIdentifier());
     }
 
+    protected boolean isDBClusterAvailable(final DBCluster dbCluster) {
+        return DBClusterStatus.Available.equalsString(dbCluster.status());
+    }
+
+    protected boolean isNoPendingChanges(final DBCluster dbCluster) {
+        final ClusterPendingModifiedValues modifiedValues = dbCluster.pendingModifiedValues();
+        return modifiedValues == null || (
+                modifiedValues.masterUserPassword() == null &&
+                        modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
+                        modifiedValues.engineVersion() == null);
+    }
+
     protected boolean isDBClusterStabilized(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
-        return DBClusterStatus.Available.equalsString(dbCluster.status());
+        return isDBClusterAvailable(dbCluster) &&
+                isNoPendingChanges(dbCluster);
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(
