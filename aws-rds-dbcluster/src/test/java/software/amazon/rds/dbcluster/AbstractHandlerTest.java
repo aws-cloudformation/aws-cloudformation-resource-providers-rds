@@ -72,7 +72,11 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final String USER_NAME;
     protected static final String USER_PASSWORD;
     protected static final String ROLE_ARN;
+    protected static final String OLD_ROLE_ARN;
+    protected static final String NEW_ROLE_ARN;
     protected static final String ROLE_FEATURE;
+    protected static final DBClusterRole OLD_ROLE;
+    protected static final DBClusterRole NEW_ROLE;
     protected static final DBClusterRole ROLE;
     protected static final DBClusterRole ROLE_WITH_EMPTY_FEATURE;
 
@@ -130,8 +134,12 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         USER_PASSWORD = "xxx";
 
         ROLE_ARN = "sampleArn";
+        OLD_ROLE_ARN = "oldRoleArn";
+        NEW_ROLE_ARN = "newRoleArn";
         ROLE_FEATURE = "sampleFeature";
         ROLE = DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build();
+        OLD_ROLE = DBClusterRole.builder().roleArn(OLD_ROLE_ARN).build();
+        NEW_ROLE = DBClusterRole.builder().roleArn(NEW_ROLE_ARN).featureName(ROLE_FEATURE).build();
         ROLE_WITH_EMPTY_FEATURE = DBClusterRole.builder().roleArn(ROLE_ARN).build();
         VPC_SG_IDS = Arrays.asList("vpc-sg-id-1", "vpc-sg-id-2");
 
