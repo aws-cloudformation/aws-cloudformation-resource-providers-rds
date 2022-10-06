@@ -1203,4 +1203,58 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
+
+    @Test
+    public void handleRequest_SetEngineVersionIfChanged() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final String previousEngineVersion = ENGINE_VERSION_MYSQL_56;
+        final String desiredEngineVersion = ENGINE_VERSION_MYSQL_80;
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().engineVersion(previousEngineVersion).build(),
+                () -> RESOURCE_MODEL_BLDR().engineVersion(desiredEngineVersion).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().engineVersion()).isEqualTo(desiredEngineVersion);
+    }
+
+    @Test
+    public void handleRequest_UnsetEngineVersionIfNoChange() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final String previousEngineVersion = ENGINE_VERSION_MYSQL_56;
+        final String desiredEngineVersion = previousEngineVersion;
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().engineVersion(previousEngineVersion).build(),
+                () -> RESOURCE_MODEL_BLDR().engineVersion(desiredEngineVersion).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().engineVersion()).isNull();
+    }
 }
