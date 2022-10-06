@@ -4,10 +4,13 @@ import static software.amazon.rds.dbcluster.Translator.addRoleToDbClusterRequest
 import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 
@@ -16,6 +19,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -221,12 +225,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return StringUtils.isNotBlank(model.getGlobalClusterIdentifier());
     }
 
+    protected boolean isDBClusterAvailable(final DBCluster dbCluster) {
+        return DBClusterStatus.Available.equalsString(dbCluster.status());
+    }
+
+    protected boolean isNoPendingChanges(final DBCluster dbCluster) {
+        final ClusterPendingModifiedValues modifiedValues = dbCluster.pendingModifiedValues();
+        return modifiedValues == null || (
+                modifiedValues.masterUserPassword() == null &&
+                        modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
+                        modifiedValues.engineVersion() == null);
+    }
+
     protected boolean isDBClusterStabilized(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
-        return DBClusterStatus.Available.equalsString(dbCluster.status());
+        return isDBClusterAvailable(dbCluster) &&
+                isNoPendingChanges(dbCluster);
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(
@@ -255,11 +272,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return false;
     }
 
+    protected ProgressEvent<ResourceModel, CallbackContext> updateAssociatedRoles(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            ProgressEvent<ResourceModel, CallbackContext> progress,
+            Collection<DBClusterRole> previousRoles,
+            Collection<DBClusterRole> desiredRoles
+    ) {
+        final Set<DBClusterRole> rolesToRemove = new LinkedHashSet<>(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
+        final Set<DBClusterRole> rolesToAdd = new LinkedHashSet<>(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
+
+        rolesToAdd.removeAll(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
+        rolesToRemove.removeAll(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
+
+        return progress
+                .then(p -> removeAssociatedRoles(proxy, rdsProxyClient, p, rolesToRemove))
+                .then(p -> addAssociatedRoles(proxy, rdsProxyClient, p, rolesToAdd));
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> addAssociatedRoles(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final List<DBClusterRole> roles
+            final Collection<DBClusterRole> roles
     ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
@@ -296,7 +331,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final List<DBClusterRole> roles
+            final Collection<DBClusterRole> roles
     ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
