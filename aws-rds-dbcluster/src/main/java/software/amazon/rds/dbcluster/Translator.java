@@ -108,6 +108,7 @@ public class Translator {
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
                 .build();
     }
 
