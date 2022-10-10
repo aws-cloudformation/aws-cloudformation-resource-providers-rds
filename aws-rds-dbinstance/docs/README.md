@@ -772,3 +772,11 @@ Returns the <code>Port</code> value.
 #### HostedZoneId
 
 Returns the <code>HostedZoneId</code> value.
+
+#### DbiResourceId
+
+The AWS Region-unique, immutable identifier for the DB instance. This identifier is found in AWS CloudTrail log entries whenever the AWS KMS key for the DB instance is accessed.
+
+#### DBInstanceArn
+
+The Amazon Resource Name (ARN) for the DB instance.
