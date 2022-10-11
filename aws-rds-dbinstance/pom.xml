@@ -224,6 +224,7 @@
                 <directory>${project.basedir}</directory>
                 <includes>
                     <include>aws-rds-dbinstance.json</include>
+                    <include>config/*.properties</include>
                 </includes>
             </resource>
         </resources>

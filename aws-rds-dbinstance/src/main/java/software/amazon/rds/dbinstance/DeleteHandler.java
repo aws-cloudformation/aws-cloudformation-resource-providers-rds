@@ -10,8 +10,9 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.rds.common.util.ConfigHelper;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
@@ -29,10 +30,10 @@ public class DeleteHandler extends BaseHandlerStd {
     );
 
     public DeleteHandler() {
-        this(DB_INSTANCE_HANDLER_CONFIG_36H);
+        this(RuntimeConfig.loadFrom(resource(RuntimeConfig.RUNTIME_PROPERTIES)));
     }
 
-    public DeleteHandler(final HandlerConfig config) {
+    public DeleteHandler(final RuntimeConfig config) {
         super(config);
     }
 
@@ -63,7 +64,7 @@ public class DeleteHandler extends BaseHandlerStd {
         return ProgressEvent.progress(resourceModel, callbackContext)
                 .then(progress -> proxy.initiate("rds::delete-db-instance", rdsProxyClient.defaultClient(), resourceModel, callbackContext)
                         .translateToServiceRequest(model -> Translator.deleteDbInstanceRequest(model, finalSnapshotIdentifier))
-                        .backoffDelay(config.getBackoff())
+                        .backoffDelay(ConfigHelper.getBackoff(config))
                         .makeServiceCall((deleteRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                                 deleteRequest,
                                 proxyInvocation.client()::deleteDBInstance
@@ -82,7 +83,7 @@ public class DeleteHandler extends BaseHandlerStd {
                 // thrown by isDbInstanceDeleted, hence the default ruleset is put in place instead.
                 .then(progress -> proxy.initiate("rds::delete-db-instance-stabilize", rdsProxyClient.defaultClient(), progress.getResourceModel(), progress.getCallbackContext())
                         .translateToServiceRequest(Function.identity())
-                        .backoffDelay(config.getBackoff())
+                        .backoffDelay(ConfigHelper.getBackoff(config))
                         .makeServiceCall(NOOP_CALL)
                         .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDbInstanceDeleted(proxyInvocation, model))
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(

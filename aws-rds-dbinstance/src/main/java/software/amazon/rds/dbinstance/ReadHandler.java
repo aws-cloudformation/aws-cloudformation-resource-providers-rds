@@ -6,18 +6,18 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
 
 public class ReadHandler extends BaseHandlerStd {
 
     public ReadHandler() {
-        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
+        this(RuntimeConfig.loadFrom(resource(RuntimeConfig.RUNTIME_PROPERTIES)));
     }
 
-    public ReadHandler(final HandlerConfig config) {
+    public ReadHandler(final RuntimeConfig config) {
         super(config);
     }
 

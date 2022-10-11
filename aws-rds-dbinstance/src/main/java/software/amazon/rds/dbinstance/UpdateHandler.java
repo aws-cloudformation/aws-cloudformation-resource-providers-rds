@@ -2,7 +2,6 @@ package software.amazon.rds.dbinstance;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -28,8 +27,9 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.util.ConfigHelper;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
@@ -41,10 +41,10 @@ import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
-        this(DB_INSTANCE_HANDLER_CONFIG_36H);
+        this(RuntimeConfig.loadFrom(resource(RuntimeConfig.RUNTIME_PROPERTIES)));
     }
 
-    public UpdateHandler(final HandlerConfig config) {
+    public UpdateHandler(final RuntimeConfig config) {
         super(config);
     }
 
@@ -140,7 +140,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles)
                 )
                 .then(progress -> updateTags(proxy, rdsClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> new ReadHandler(config).handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> handleResourceDrift(
@@ -167,7 +167,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> new ReadHandler(config).handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
     private boolean shouldReboot(
@@ -235,10 +235,10 @@ public class UpdateHandler extends BaseHandlerStd {
         progress.getCallbackContext().setAllocatingStorage(true);
         return proxy.initiate("rds::increase-allocated-storage", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::updateAllocatedStorageRequest)
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                                modifyRequest,
-                                proxyInvocation.client()::modifyDBInstance))
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance))
                 .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
@@ -355,7 +355,7 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::stabilize-db-parameter-group-drift", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall(NOOP_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> isDBParameterGroupStabilized(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
@@ -373,7 +373,7 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::stabilize-option-group-drift", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall(NOOP_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> isOptionGroupStabilized(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
@@ -391,7 +391,7 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::stabilize-db-cluster-parameter-group-drift", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall(NOOP_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> isDBClusterParameterGroupStabilized(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
