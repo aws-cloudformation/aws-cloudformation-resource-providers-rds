@@ -329,6 +329,10 @@
         "SecondsUntilAutoPause": {
           "description": "The time, in seconds, before an Aurora DB cluster in serverless mode is paused.",
           "type": "integer"
+        },
+        "TimeoutAction": {
+          "description": "The action to take when the timeout is reached, either ForceApplyCapacityChange or RollbackCapacityChange.\nForceApplyCapacityChange sets the capacity to the specified value as soon as possible.\nRollbackCapacityChange, the default, ignores the capacity change if a scaling point isn't found in the timeout period.\n\nFor more information, see Autoscaling for Aurora Serverless v1 in the Amazon Aurora User Guide.",
+          "type": "string"
         }
       }
     },
