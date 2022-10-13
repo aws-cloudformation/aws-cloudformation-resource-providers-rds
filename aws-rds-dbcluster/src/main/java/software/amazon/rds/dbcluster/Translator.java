@@ -430,6 +430,7 @@ public class Translator {
                 .backupRetentionPeriod(dbCluster.backupRetentionPeriod())
                 .copyTagsToSnapshot(dbCluster.copyTagsToSnapshot())
                 .databaseName(dbCluster.databaseName())
+                .dBClusterArn(dbCluster.dbClusterArn())
                 .dBClusterIdentifier(dbCluster.dbClusterIdentifier())
                 .dBClusterInstanceClass(dbCluster.dbClusterInstanceClass())
                 .dBClusterParameterGroupName(dbCluster.dbClusterParameterGroup())

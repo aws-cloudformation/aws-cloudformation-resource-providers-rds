@@ -53,6 +53,10 @@
       "description": "The name of your database. If you don't provide a name, then Amazon RDS won't create a database in this DB cluster. For naming constraints, see Naming Constraints in the Amazon RDS User Guide.",
       "type": "string"
     },
+    "DBClusterArn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) for the DB cluster."
+    },
     "DBClusterInstanceClass": {
       "description": "The compute and memory capacity of each DB instance in the Multi-AZ DB cluster, for example db.m6g.xlarge.",
       "type": "string"
@@ -368,6 +372,7 @@
     "/properties/SourceDBClusterIdentifier": "$lowercase(SourceDBClusterIdentifier)"
   },
   "readOnlyProperties": [
+    "/properties/DBClusterArn",
     "/properties/DBClusterResourceId",
     "/properties/Endpoint",
     "/properties/Endpoint/Address",
