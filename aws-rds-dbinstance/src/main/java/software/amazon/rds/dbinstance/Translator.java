@@ -33,6 +33,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
@@ -443,6 +444,14 @@ public class Translator {
                     .finalDBSnapshotIdentifier(finalDBSnapshotIdentifier);
         }
         return builder.build();
+    }
+
+    public static PromoteReadReplicaRequest promoteReadReplica(final ResourceModel model) {
+        return PromoteReadReplicaRequest.builder()
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .preferredBackupWindow(model.getPreferredBackupWindow())
+                .build();
     }
 
     public static DescribeDbParameterGroupsRequest describeDbParameterGroupsRequest(final String dbParameterGroupName) {
