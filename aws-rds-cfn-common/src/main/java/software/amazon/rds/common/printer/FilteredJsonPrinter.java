@@ -35,7 +35,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
     public FilteredJsonPrinter(String... filterFields) {
         this.filterFields = filterFields;
         mapper = new ObjectMapper()
-                //.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE)
+                .setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE)
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         mapper.registerModule(new JavaTimeModule());
