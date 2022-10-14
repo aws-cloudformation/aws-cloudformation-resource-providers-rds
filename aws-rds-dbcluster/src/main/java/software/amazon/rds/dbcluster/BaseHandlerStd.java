@@ -52,6 +52,7 @@ import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -242,6 +243,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+
+        assertNoDBClusterTerminalStatus(dbCluster);
+
         return isDBClusterAvailable(dbCluster) &&
                 isNoPendingChanges(dbCluster);
     }
@@ -505,5 +509,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             }
         }
         return CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds());
+    }
+
+    private void assertNoDBClusterTerminalStatus(final DBCluster dbCluster) throws CfnNotStabilizedException {
+        final DBClusterStatus status = DBClusterStatus.fromString(dbCluster.status());
+        if (status != null && status.isTerminal()) {
+            throw new CfnNotStabilizedException(new Exception("DBDluster is in state: " + status));
+        }
     }
 }
