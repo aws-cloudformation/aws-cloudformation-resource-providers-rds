@@ -381,7 +381,6 @@
     "/properties/NcharCharacterSetName",
     "/properties/Port",
     "/properties/PubliclyAccessible",
-    "/properties/SourceDBInstanceIdentifier",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/Timezone"
@@ -396,6 +395,7 @@
     "/properties/MultiAZ",
     "/properties/PerformanceInsightsKMSKeyId",
     "/properties/PreferredMaintenanceWindow",
+    "/properties/SourceDBInstanceIdentifier",
     "/properties/StorageType"
   ],
   "deprecatedProperties": [
@@ -482,6 +482,7 @@
         "rds:DescribeDBInstances",
         "rds:DescribeDBParameterGroups",
         "rds:ModifyDBInstance",
+        "rds:PromoteReadReplica",
         "rds:RebootDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource"
