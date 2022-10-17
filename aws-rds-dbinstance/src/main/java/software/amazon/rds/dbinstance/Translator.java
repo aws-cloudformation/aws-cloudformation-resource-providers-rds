@@ -446,7 +446,7 @@ public class Translator {
         return builder.build();
     }
 
-    public static PromoteReadReplicaRequest promoteReadReplica(final ResourceModel model) {
+    public static PromoteReadReplicaRequest promoteReadReplicaRequest(final ResourceModel model) {
         return PromoteReadReplicaRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())

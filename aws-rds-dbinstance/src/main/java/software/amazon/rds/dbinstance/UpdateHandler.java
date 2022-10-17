@@ -418,7 +418,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate("rds::promote-read-replica", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::promoteReadReplica)
+                .translateToServiceRequest(Translator::promoteReadReplicaRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         modifyRequest,
