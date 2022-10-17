@@ -2,7 +2,6 @@ package software.amazon.rds.dbinstance;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -117,6 +116,12 @@ public class UpdateHandler extends BaseHandlerStd {
                         return Commons.handleException(progress, ex, MODIFY_DB_INSTANCE_ERROR_RULE_SET);
                     }
                 }, CallbackContext::isStorageAllocated, CallbackContext::setStorageAllocated))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                    if (shouldPromoteReadReplica(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                        return promoteReadReplica(proxy, rdsClient, progress);
+                    }
+                    return progress;
+                }, CallbackContext::isReadReplicaPromoted, CallbackContext::setReadReplicaPromoted))
                 .then(progress -> Commons.execOnce(progress, () ->
                                 versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                                         /*
@@ -300,6 +305,11 @@ public class UpdateHandler extends BaseHandlerStd {
                 request.getDesiredResourceState().getMaxAllocatedStorage() == null;
     }
 
+    private boolean shouldPromoteReadReplica(final ResourceModel previous, final ResourceModel desired) {
+        return !StringUtils.isNullOrEmpty(previous.getSourceDBInstanceIdentifier()) &&
+                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
+    }
+
 
     private boolean isAllocatedStorageIncrease(
             final ResourceHandlerRequest<ResourceModel> request
@@ -394,6 +404,26 @@ public class UpdateHandler extends BaseHandlerStd {
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> isDBClusterParameterGroupStabilized(proxyInvocation, model))
+                .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> promoteReadReplica(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::promote-read-replica", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::promoteReadReplicaRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        modifyRequest,
+                        proxyInvocation.client()::promoteReadReplica))
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,

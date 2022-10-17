@@ -15,6 +15,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean rebooted;
     private boolean storageAllocated;
     private boolean allocatingStorage;
+    private boolean readReplicaPromoted;
 
     private TaggingContext taggingContext;
 
