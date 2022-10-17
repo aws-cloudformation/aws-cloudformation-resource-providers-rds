@@ -514,7 +514,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private void assertNoDBClusterTerminalStatus(final DBCluster dbCluster) throws CfnNotStabilizedException {
         final DBClusterStatus status = DBClusterStatus.fromString(dbCluster.status());
         if (status != null && status.isTerminal()) {
-            throw new CfnNotStabilizedException(new Exception("DBDluster is in state: " + status));
+            throw new CfnNotStabilizedException(new Exception("DBCluster is in state: " + status));
         }
     }
 }
