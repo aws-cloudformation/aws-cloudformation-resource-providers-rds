@@ -505,7 +505,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbCluster_SetDefaultPortForPostgresql() {
+    public void handleRequest_CreateDbCluster_SetDefaultPortForProvisionedPostgresql() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
 
@@ -514,6 +514,29 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DBCLUSTER_ACTIVE,
                 () -> RESOURCE_MODEL.toBuilder()
                         .engine(ENGINE_AURORA_POSTGRESQL)
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbClusterRequest> captor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().port()).isEqualTo(3306);
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_SetDefaultPortForServerlessPostgresql() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engine(ENGINE_AURORA_POSTGRESQL)
+                        .engineMode(EngineMode.Serverless.toString())
                         .port(null)
                         .build(),
                 expectSuccess()
