@@ -95,6 +95,7 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
+                .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
                 .storageType(model.getStorageType())
@@ -281,7 +282,8 @@ public class Translator {
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
-                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()));
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
+                .replicaMode(desiredModel.getReplicaMode());
 
         if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
@@ -344,6 +346,7 @@ public class Translator {
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
                 .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .replicaMode(desiredModel.getReplicaMode())
                 .storageType(diff(previousModel.getStorageType(), desiredModel.getStorageType()))
                 .tdeCredentialArn(diff(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
                 .tdeCredentialPassword(diff(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
@@ -515,6 +518,8 @@ public class Translator {
             domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
         }
 
+        String replicaMode = dbInstance.replicaMode() == null ? null : dbInstance.replicaMode().toString();
+
         return ResourceModel.builder()
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
@@ -561,6 +566,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesFromSdk(dbInstance.processorFeatures()))
                 .promotionTier(dbInstance.promotionTier())
                 .publiclyAccessible(dbInstance.publiclyAccessible())
+                .replicaMode(replicaMode)
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())
                 .tags(tags)
