@@ -160,7 +160,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SuccessOnSoftCrate() {
+    public void handleRequest_SuccessOnSoftCreate() {
         final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
                 .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
 
@@ -372,6 +372,48 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SuccessWithEmptyParameters() {
+        final CreateDbClusterParameterGroupResponse createDbClusterParameterGroupResponse = CreateDbClusterParameterGroupResponse
+                .builder().dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP).build();
+        when(rds.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class))).thenReturn(createDbClusterParameterGroupResponse);
+        final DescribeDBClustersIterable describeDbClustersResponse = mock(DescribeDBClustersIterable.class);
+        when(describeDbClustersResponse.stream())
+                .thenReturn(Stream.<DescribeDbClustersResponse>builder()
+                        .add(DescribeDbClustersResponse.builder().dbClusters(DBCluster.builder().dbClusterParameterGroup("group").build()).build())
+                        .build()
+                );
+        when(rds.describeDBClustersPaginator(any(DescribeDbClustersRequest.class))).thenReturn(describeDbClustersResponse);
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn")
+                        .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                        .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                        .description(RESOURCE_MODEL.getDescription()).build()).build();
+        when(proxyRdsClient.client().describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder()
+                .tagList(Tag.builder().key("key").value("value").build()).build();
+        when(proxyRdsClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        RESOURCE_MODEL.setDBClusterParameterGroupName("sampleName");
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken("token")
+                .desiredResourceState(RESOURCE_MODEL.toBuilder().parameters(Collections.emptyMap()).build())
+                .desiredResourceTags(translateTagsToMap(TAG_SET))
+                .stackId(StackId)
+                .logicalResourceIdentifier("logicalId").build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
         verify(proxyRdsClient.client()).describeDBClustersPaginator(any(DescribeDbClustersRequest.class));
     }
 

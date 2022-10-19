@@ -8,15 +8,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
@@ -230,8 +230,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                                                              final AmazonWebServicesClientProxy proxy,
                                                                                              final ProxyClient<RdsClient> proxyClient,
                                                                                              final String marker) {
+        if (MapUtils.isEmpty(progress.getResourceModel().getParameters())) {
+            return progress;
+        }
         return proxy.initiate("rds::describe-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(model -> Translator.describeDbClusterParametersRequest(model, marker))
+                .translateToServiceRequest(model -> Translator.describeDbClusterParametersFilteredRequest(model, marker))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request,
                         proxyInvocation.client()::describeDBClusterParameters))
                 .handleError((describeDBParametersRequest, exception, client, resourceModel, ctx) ->
