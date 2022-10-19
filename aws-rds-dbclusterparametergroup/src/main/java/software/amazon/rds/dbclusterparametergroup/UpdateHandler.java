@@ -9,6 +9,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.DifferenceUtils;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -40,12 +41,21 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
+        final boolean isParametersChange = !DifferenceUtils.diff(request.getPreviousResourceState().getParameters(), request.getDesiredResourceState().getParameters()).isEmpty();
+
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags),
-                        CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
-                .then(progress -> resetAllParameters(progress, proxy, proxyClient))
-                .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()),
-                        CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
+                .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+                .then(progress -> {
+                    if (isParametersChange) {
+                        return resetAllParameters(progress, proxy, proxyClient);
+                    }
+                    return progress;
+                }).then(progress -> Commons.execOnce(progress, () -> {
+                    if (isParametersChange) {
+                        return applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext());
+                    }
+                    return progress;
+                }, CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 }

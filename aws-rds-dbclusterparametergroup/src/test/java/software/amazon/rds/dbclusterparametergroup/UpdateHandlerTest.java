@@ -71,6 +71,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     private ResourceHandlerRequest<ResourceModel> requestSameParams;
     private ResourceHandlerRequest<ResourceModel> requestUpdParams;
+    private ResourceHandlerRequest<ResourceModel> tagUpdatesOnly;
 
     @Override
     public HandlerName getHandlerName() {
@@ -164,6 +165,34 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyRdsClient.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(proxyRdsClient.client()).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_NoParametersChanged() {
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        final DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse = DescribeDbClusterParameterGroupsResponse.builder()
+                .dbClusterParameterGroups(DBClusterParameterGroup.builder()
+                        .dbClusterParameterGroupArn("arn").build()).build();
+        when(rds.describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(rds.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rds.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, requestSameParams, callbackContext, proxyRdsClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
         verify(proxyRdsClient.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
