@@ -39,14 +39,18 @@ public class Translator {
     }
 
     static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model, final String marker) {
-        return DescribeDbClusterParametersRequest.builder()
+        final DescribeDbClusterParametersRequest.Builder builder = DescribeDbClusterParametersRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
-                .filters(Filter.builder()
-                        .name(FILTER_PARAMETER_NAME)
-                        .values(model.getParameters().keySet())
-                        .build())
-                .marker(marker)
-                .build();
+                .marker(marker);
+
+        if (model.getParameters() != null && !model.getParameters().isEmpty()) {
+            builder.filters(
+                    Filter.builder()
+                            .name(FILTER_PARAMETER_NAME)
+                            .values(model.getParameters().keySet())
+                            .build());
+        }
+        return builder.build();
     }
 
     static DescribeDbClustersRequest describeDbClustersRequest() {
