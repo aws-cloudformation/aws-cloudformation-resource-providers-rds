@@ -41,17 +41,17 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
-        final boolean isParametersChange = !DifferenceUtils.diff(request.getPreviousResourceState().getParameters(), request.getDesiredResourceState().getParameters()).isEmpty();
+        final boolean shouldUpdateParameters = !DifferenceUtils.diff(request.getPreviousResourceState().getParameters(), request.getDesiredResourceState().getParameters()).isEmpty();
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> {
-                    if (isParametersChange) {
+                    if (shouldUpdateParameters) {
                         return resetAllParameters(progress, proxy, proxyClient);
                     }
                     return progress;
                 }).then(progress -> Commons.execOnce(progress, () -> {
-                    if (isParametersChange) {
+                    if (shouldUpdateParameters) {
                         return applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext());
                     }
                     return progress;
