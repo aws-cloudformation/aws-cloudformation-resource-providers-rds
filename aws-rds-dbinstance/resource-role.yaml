@@ -54,6 +54,7 @@ Resources:
                 - "rds:DescribeDBParameterGroups"
                 - "rds:DescribeDBSnapshots"
                 - "rds:ModifyDBInstance"
+                - "rds:PromoteReadReplica"
                 - "rds:RebootDBInstance"
                 - "rds:RemoveRoleFromDBInstance"
                 - "rds:RemoveTagsFromResource"
