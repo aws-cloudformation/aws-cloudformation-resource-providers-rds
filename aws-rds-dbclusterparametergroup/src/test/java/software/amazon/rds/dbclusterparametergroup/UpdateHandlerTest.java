@@ -71,7 +71,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
     private ResourceHandlerRequest<ResourceModel> requestSameParams;
     private ResourceHandlerRequest<ResourceModel> requestUpdParams;
-    private ResourceHandlerRequest<ResourceModel> tagUpdatesOnly;
 
     @Override
     public HandlerName getHandlerName() {
