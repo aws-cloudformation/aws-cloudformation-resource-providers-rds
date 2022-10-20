@@ -1,8 +1,6 @@
 package software.amazon.rds.customdbengineversion;
 
 
-import java.util.List;
-
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -12,7 +10,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.handler.Tagging;
 
 
 public class ReadHandler extends BaseHandlerStd {
@@ -35,6 +32,7 @@ public class ReadHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::read-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbEngineVersionsRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeDbEngineVersionsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbEngineVersionsRequest, proxyInvocation.client()::describeDBEngineVersions))
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),

@@ -6,8 +6,8 @@ import software.amazon.rds.common.client.BaseSdkClientProvider;
 
 public class ClientProvider extends BaseSdkClientProvider<RdsClientBuilder, RdsClient> {
 
-  @Override
-  public RdsClient getClient() {
-    return setHttpClient(setUserAgent(RdsClient.builder())).build();
-  }
+    @Override
+    public RdsClient getClient() {
+        return setHttpClient(setUserAgent(RdsClient.builder())).build();
+    }
 }

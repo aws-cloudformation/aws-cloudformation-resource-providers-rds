@@ -3,13 +3,8 @@ package software.amazon.rds.customdbengineversion;
 // TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
 // import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
 
-import software.amazon.awssdk.awscore.AwsResponse;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -17,7 +12,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.logging.RequestLogger;
 
 public class DeleteHandler extends BaseHandlerStd {
 
@@ -31,6 +25,7 @@ public class DeleteHandler extends BaseHandlerStd {
     public DeleteHandler(HandlerConfig config) {
         super(config);
     }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,

@@ -140,27 +140,33 @@
   "handlers": {
     "create": {
       "permissions": [
-        "initech:CreateReport"
+        "rds:AddTagsToResource",
+        "rds:CreateCustomDBEngineVersion",
+        "rds:DescribeDBEngineVersions"
       ]
     },
     "read": {
       "permissions": [
-        "initech:DescribeReport"
+        "rds:DescribeDBEngineVersions"
       ]
     },
     "update": {
       "permissions": [
-        "initech:UpdateReport"
+        "rds:AddTagsToResource",
+        "rds:DescribeDBEngineVersions",
+        "rds:ModifyCustomDBEngineVersion",
+        "rds:RemoveTagsFromResource"
       ]
     },
     "delete": {
       "permissions": [
-        "initech:DeleteReport"
+        "rds:DeleteCustomDBEngineVersion",
+        "rds:DescribeDBEngineVersions"
       ]
     },
     "list": {
       "permissions": [
-        "initech:ListReports"
+        "rds:DescribeDBEngineVersions"
       ]
     }
   }

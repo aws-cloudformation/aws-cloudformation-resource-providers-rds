@@ -1,4 +1,4 @@
-package software.amazon.rds.eventsubscription;
+package software.amazon.rds.customdbengineversion;
 
 import java.util.HashSet;
 
@@ -11,14 +11,8 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
-import software.amazon.rds.customdbengineversion.BaseHandlerStd;
-import software.amazon.rds.customdbengineversion.CallbackContext;
-import software.amazon.rds.customdbengineversion.ReadHandler;
-import software.amazon.rds.customdbengineversion.ResourceModel;
-import software.amazon.rds.customdbengineversion.Translator;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -37,7 +31,7 @@ public class CreateHandler extends BaseHandlerStd {
     public CreateHandler(HandlerConfig config) {
         super(config);
     }
-    
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -64,7 +58,7 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> safeCreateCustomEngineVersion(proxy, proxyClient, progress, allTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
@@ -89,6 +83,7 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::create-custom-db-engine-version", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator.createCustomDbEngineVersionRequest(resourceModel, tags))
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((createCustomDbEngineVersionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createCustomDbEngineVersionRequest, proxyInvocation.client()::createCustomDBEngineVersion))
                 .stabilize((createCustomDbEngineVersionRequest, createCustomDbEngineVersionResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))

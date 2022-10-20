@@ -30,11 +30,12 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                - "initech:CreateReport"
-                - "initech:DeleteReport"
-                - "initech:DescribeReport"
-                - "initech:ListReports"
-                - "initech:UpdateReport"
+                - "rds:AddTagsToResource"
+                - "rds:CreateCustomDBEngineVersion"
+                - "rds:DeleteCustomDBEngineVersion"
+                - "rds:DescribeDBEngineVersions"
+                - "rds:ModifyCustomDBEngineVersion"
+                - "rds:RemoveTagsFromResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

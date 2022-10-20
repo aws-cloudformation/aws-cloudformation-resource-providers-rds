@@ -3,11 +3,11 @@ package software.amazon.rds.customdbengineversion;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.rds.model.CreateCustomDbEngineVersionRequest;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.awssdk.services.rds.model.DeleteCustomDbEngineVersionRequest;
@@ -67,14 +67,10 @@ public class Translator {
                 .collect(Collectors.toList());
     }
 
-    static List<Tag> translateTags(final Collection<software.amazon.awssdk.services.rds.model.Tag> rdsTags) {
-        return CollectionUtils.isNullOrEmpty(rdsTags) ? null
-                : rdsTags.stream()
-                .map(tag -> Tag.builder()
-                        .key(tag.key())
-                        .value(tag.value())
-                        .build())
-                .collect(Collectors.toList());
+    public static Map<String, String> translateTagsToRequest(final Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptyList())
+                .stream()
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
     }
 
     private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {

@@ -35,7 +35,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         final ResourceModel desiredModel = request.getDesiredResourceState();
         final ResourceModel previousModel = request.getPreviousResourceState();
-        
+
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
@@ -61,6 +61,7 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::update-custom-db-engine-version", proxyClient, desiredModel, callbackContext)
                 .translateToServiceRequest(Translator::modifyCustomDbEngineVersionRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((modifyCustomDbEngineVersionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyCustomDbEngineVersionRequest, proxyInvocation.client()::modifyCustomDBEngineVersion))
                 .stabilize((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
                         isStabilized(resourceModel, proxyInvocation))
