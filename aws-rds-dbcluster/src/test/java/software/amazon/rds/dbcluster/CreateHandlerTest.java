@@ -1,18 +1,8 @@
 package software.amazon.rds.dbcluster;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.stream.Stream;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import lombok.Getter;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,10 +16,6 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -52,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRe
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -62,6 +49,19 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
+
+import java.time.Duration;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
+
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractHandlerTest {
@@ -505,7 +505,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbCluster_SetDefaultPortForPostgresql() {
+    public void handleRequest_CreateDbCluster_SetDefaultPortForProvisionedPostgresql() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
 
@@ -514,6 +514,29 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DBCLUSTER_ACTIVE,
                 () -> RESOURCE_MODEL.toBuilder()
                         .engine(ENGINE_AURORA_POSTGRESQL)
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbClusterRequest> captor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().port()).isEqualTo(3306);
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_SetDefaultPortForServerlessPostgresql() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engine(ENGINE_AURORA_POSTGRESQL)
+                        .engineMode(EngineMode.Serverless.toString())
                         .port(null)
                         .build(),
                 expectSuccess()
@@ -554,5 +577,23 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 requestException,
                 expectResponseCode
         );
+    }
+
+    @Test
+    public void handleRequest_CreateDBCluster_DBClusterInTerminalState() {
+        final CallbackContext context = new CallbackContext();
+
+        Assertions.assertThatThrownBy(() -> {
+            test_handleRequest_base(
+                    context,
+                    () -> DBCLUSTER_ACTIVE.toBuilder()
+                            .status(DBClusterStatus.InaccessibleEncryptionCredentials.toString())
+                            .build(),
+                    () -> RESOURCE_MODEL,
+                    expectFailed(HandlerErrorCode.NotStabilized)
+            );
+        }).isInstanceOf(CfnNotStabilizedException.class);
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 }

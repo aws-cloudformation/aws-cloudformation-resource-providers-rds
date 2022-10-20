@@ -12,6 +12,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "AWS::RDS::OptionGroup",
     "Properties" : {
+        "<a href="#optiongroupname" title="OptionGroupName">OptionGroupName</a>" : <i>String</i>,
         "<a href="#optiongroupdescription" title="OptionGroupDescription">OptionGroupDescription</a>" : <i>String</i>,
         "<a href="#enginename" title="EngineName">EngineName</a>" : <i>String</i>,
         "<a href="#majorengineversion" title="MajorEngineVersion">MajorEngineVersion</a>" : <i>String</i>,
@@ -26,6 +27,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::RDS::OptionGroup
 Properties:
+    <a href="#optiongroupname" title="OptionGroupName">OptionGroupName</a>: <i>String</i>
     <a href="#optiongroupdescription" title="OptionGroupDescription">OptionGroupDescription</a>: <i>String</i>
     <a href="#enginename" title="EngineName">EngineName</a>: <i>String</i>
     <a href="#majorengineversion" title="MajorEngineVersion">MajorEngineVersion</a>: <i>String</i>
@@ -36,6 +38,16 @@ Properties:
 </pre>
 
 ## Properties
+
+#### OptionGroupName
+
+Specifies the name of the option group.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### OptionGroupDescription
 
@@ -92,13 +104,3 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 ### Ref
 
 When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the OptionGroupName.
-
-### Fn::GetAtt
-
-The `Fn::GetAtt` intrinsic function returns a value for a specified attribute of this type. The following are the available attributes and sample return values.
-
-For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::GetAtt](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html).
-
-#### OptionGroupName
-
-Specifies the name of the option group.

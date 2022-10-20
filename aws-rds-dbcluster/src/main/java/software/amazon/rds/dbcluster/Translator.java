@@ -358,6 +358,7 @@ public class Translator {
                 .autoPause(scalingConfiguration.getAutoPause())
                 .maxCapacity(scalingConfiguration.getMaxCapacity())
                 .minCapacity(scalingConfiguration.getMinCapacity())
+                .timeoutAction(scalingConfiguration.getTimeoutAction())
                 .secondsUntilAutoPause(scalingConfiguration.getSecondsUntilAutoPause())
                 .build();
     }
@@ -384,6 +385,7 @@ public class Translator {
                 .autoPause(scalingConfiguration.autoPause())
                 .maxCapacity(scalingConfiguration.maxCapacity())
                 .minCapacity(scalingConfiguration.minCapacity())
+                .timeoutAction(scalingConfiguration.timeoutAction())
                 .secondsUntilAutoPause(scalingConfiguration.secondsUntilAutoPause())
                 .build();
     }
@@ -428,6 +430,7 @@ public class Translator {
                 .backupRetentionPeriod(dbCluster.backupRetentionPeriod())
                 .copyTagsToSnapshot(dbCluster.copyTagsToSnapshot())
                 .databaseName(dbCluster.databaseName())
+                .dBClusterArn(dbCluster.dbClusterArn())
                 .dBClusterIdentifier(dbCluster.dbClusterIdentifier())
                 .dBClusterInstanceClass(dbCluster.dbClusterInstanceClass())
                 .dBClusterParameterGroupName(dbCluster.dbClusterParameterGroup())

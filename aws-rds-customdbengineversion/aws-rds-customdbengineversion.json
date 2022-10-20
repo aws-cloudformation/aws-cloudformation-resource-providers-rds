@@ -142,7 +142,8 @@
       "permissions": [
         "rds:AddTagsToResource",
         "rds:CreateCustomDBEngineVersion",
-        "rds:DescribeDBEngineVersions"
+        "rds:DescribeDBEngineVersions",
+        "rds:ModifyCustomDBEngineVersion"
       ]
     },
     "read": {

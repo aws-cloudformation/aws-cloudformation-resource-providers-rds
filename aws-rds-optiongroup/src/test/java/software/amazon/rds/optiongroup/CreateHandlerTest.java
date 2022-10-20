@@ -128,11 +128,19 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
-    // This test Ignores verification since the tests returns progress.FAILURE before any invocation of proxy.initiate
-    @Tag(IGNORE_TEST_VERIFICATION)
     @Test
-    public void handleRequest_WithOptionGroupName_CreateFailure() {
+    public void handleRequest_WithOptionGroupName_CreatesOptionGroup() {
         ResourceModel RESOURCE_MODEL_WITH_NAME = RESOURCE_MODEL_WITH_NAME_BUILDER().build();
+
+        when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
+                .thenReturn(CreateOptionGroupResponse.builder().build());
+
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
@@ -143,13 +151,18 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isEqualTo("Encountered unsupported property OptionGroupName");
-        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InvalidRequest);
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
 
-        verifyNoMoreInteractions(rdsClient);
+        ArgumentCaptor<CreateOptionGroupRequest> createOptionGroupCaptor = ArgumentCaptor.forClass(CreateOptionGroupRequest.class);
+
+        verify(proxyClient.client(), times(1)).createOptionGroup(createOptionGroupCaptor.capture());
+        assertThat(createOptionGroupCaptor.getValue().optionGroupName()).isEqualTo("OptionGroupName");
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
 

@@ -153,4 +153,32 @@ class ImmutabilityHelperTest {
             assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
         }
     }
+
+    @Test
+    public void test_isSourceDBIdentifierMutable() {
+        final List<ResourceModelTestCase> tests = Arrays.asList(
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBInstanceIdentifier("").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
+                        .desired(ResourceModel.builder().availabilityZone(null).build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBInstanceIdentifier("new").build())
+                        .expect(false)
+                        .build());
+        for (final ResourceModelTestCase test : tests) {
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+        }
+    }
 }

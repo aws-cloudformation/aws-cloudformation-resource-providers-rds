@@ -4,6 +4,7 @@ import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CustomEngineVersionStatus;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -58,14 +59,32 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> safeCreateCustomEngineVersion(proxy, proxyClient, progress, allTags))
+                .then(progress -> modifyAfterCreate(proxy, proxyClient, progress))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> modifyAfterCreate(final AmazonWebServicesClientProxy proxy,
+                                                                            final ProxyClient<RdsClient> proxyClient,
+                                                                            final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        if (shouldUpdateCustomEngineVersion(progress)) {
+            return Commons.execOnce(
+                    progress,
+                    () -> updateCustomEngineVersion(proxy, proxyClient, progress),
+                    CallbackContext::isModified,
+                    CallbackContext::setModified
+            );
+        }
+        return progress;
+    }
+
+    private boolean shouldUpdateCustomEngineVersion(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        return !CustomEngineVersionStatus.AVAILABLE.toString().equalsIgnoreCase(progress.getResourceModel().getStatus());
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
                                                                                         final ProxyClient<RdsClient> proxyClient,
                                                                                         final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                         final Tagging.TagSet allTags) {
-//        final HandlerMethod<ResourceModel, CallbackContext> createMethod = (pxy, pcl, prg, tgs) -> createCustomEngineVersion(pxy, pcl, prg, tgs);
         return Tagging.safeCreate(proxy, proxyClient, this::createCustomEngineVersion, progress, allTags)
                 .then(p -> Commons.execOnce(p, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()

@@ -31,6 +31,8 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateCustomDbEngineVersionRequest;
 import software.amazon.awssdk.services.rds.model.CreateCustomDbEngineVersionResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.ModifyCustomDbEngineVersionRequest;
+import software.amazon.awssdk.services.rds.model.ModifyCustomDbEngineVersionResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -92,6 +94,24 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateSuccessWithNotAvailableStatus() {
+        when(rdsProxy.client().createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class)))
+                .thenReturn(CreateCustomDbEngineVersionResponse.builder().dbEngineVersionArn("arn").build());
+        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
+                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_ENGINE_VERSION_AVAILABLE,
+                () -> RESOURCE_MODEL_BUILDER().status("inactive").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
     }
 
     @Test

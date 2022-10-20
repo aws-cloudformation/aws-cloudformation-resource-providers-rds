@@ -1,6 +1,7 @@
 package software.amazon.rds.dbinstance.status;
 
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.rds.common.status.Status;
 
 public enum VPCSecurityGroupStatus implements Status {
     Active("active");

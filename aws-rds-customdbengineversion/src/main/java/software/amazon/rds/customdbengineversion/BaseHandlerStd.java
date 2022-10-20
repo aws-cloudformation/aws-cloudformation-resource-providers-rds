@@ -135,4 +135,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         return progress;
     }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> updateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
+                                                                                      final ProxyClient<RdsClient> proxyClient,
+                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        return proxy.initiate("rds::update-custom-db-engine-version", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Translator::modifyCustomDbEngineVersionRequest)
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyCustomDbEngineVersionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyCustomDbEngineVersionRequest, proxyInvocation.client()::modifyCustomDBEngineVersion))
+                .stabilize((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
+                        isStabilized(resourceModel, proxyInvocation))
+                .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, ctx),
+                        exception,
+                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
+                .progress();
+    }
 }

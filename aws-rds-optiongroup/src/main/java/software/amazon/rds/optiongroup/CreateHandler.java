@@ -101,9 +101,7 @@ public class CreateHandler extends BaseHandlerStd {
                     .withResourceId(request.getLogicalResourceIdentifier())
                     .withRequestToken(request.getClientRequestToken())
                     .toString());
-            return ProgressEvent.progress(desiredModel, progress.getCallbackContext());
         }
-        return ProgressEvent.failed(desiredModel, progress.getCallbackContext(), HandlerErrorCode.InvalidRequest,
-                "Encountered unsupported property OptionGroupName");
+        return ProgressEvent.progress(desiredModel, progress.getCallbackContext());
     }
 }

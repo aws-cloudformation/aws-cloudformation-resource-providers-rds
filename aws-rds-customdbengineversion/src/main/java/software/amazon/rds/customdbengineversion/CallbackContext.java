@@ -8,6 +8,8 @@ import software.amazon.rds.common.handler.TaggingContext;
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
 public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider {
+    private boolean modified;
+
     private TaggingContext taggingContext;
 
     public CallbackContext() {

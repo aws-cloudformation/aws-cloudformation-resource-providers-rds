@@ -33,6 +33,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
@@ -94,6 +95,7 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
+                .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
                 .storageType(model.getStorageType())
@@ -280,7 +282,8 @@ public class Translator {
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
-                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()));
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
+                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
         if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
@@ -343,6 +346,7 @@ public class Translator {
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
                 .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()))
                 .storageType(diff(previousModel.getStorageType(), desiredModel.getStorageType()))
                 .tdeCredentialArn(diff(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
                 .tdeCredentialPassword(diff(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
@@ -445,6 +449,14 @@ public class Translator {
         return builder.build();
     }
 
+    public static PromoteReadReplicaRequest promoteReadReplicaRequest(final ResourceModel model) {
+        return PromoteReadReplicaRequest.builder()
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .preferredBackupWindow(model.getPreferredBackupWindow())
+                .build();
+    }
+
     public static DescribeDbParameterGroupsRequest describeDbParameterGroupsRequest(final String dbParameterGroupName) {
         return DescribeDbParameterGroupsRequest.builder().dbParameterGroupName(dbParameterGroupName).build();
     }
@@ -517,8 +529,10 @@ public class Translator {
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
                 .customIAMInstanceProfile(dbInstance.customIamInstanceProfile())
                 .dBClusterIdentifier(dbInstance.dbClusterIdentifier())
+                .dBInstanceArn(dbInstance.dbInstanceArn())
                 .dBInstanceClass(dbInstance.dbInstanceClass())
                 .dBInstanceIdentifier(dbInstance.dbInstanceIdentifier())
+                .dbiResourceId(dbInstance.dbiResourceId())
                 .dBName(dbInstance.dbName())
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
@@ -550,6 +564,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesFromSdk(dbInstance.processorFeatures()))
                 .promotionTier(dbInstance.promotionTier())
                 .publiclyAccessible(dbInstance.publiclyAccessible())
+                .replicaMode(dbInstance.replicaModeAsString())
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())
                 .tags(tags)

@@ -101,6 +101,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                 .dBSecurityGroups(Collections.emptyList())
                 .vPCSecurityGroups(Collections.emptyList())
                 .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER)
+                .replicaMode(null)
                 .build();
 
         assertThat(response.getResourceModels()).isNotNull();

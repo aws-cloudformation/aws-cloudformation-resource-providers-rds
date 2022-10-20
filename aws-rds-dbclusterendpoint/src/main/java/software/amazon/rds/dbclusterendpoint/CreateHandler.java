@@ -75,7 +75,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   final Tagging.TagSet tags
     ) {
         return proxy.initiate("rds::create-db-cluster-endpoint", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest((resourceModel) -> Translator.cxreateDbClusterEndpointRequest(resourceModel, tags))
+                .translateToServiceRequest((resourceModel) -> Translator.createDbClusterEndpointRequest(resourceModel, tags))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((createDbClusterEndpointRequest, proxyInvocation) ->
                         proxyInvocation.injectCredentialsAndInvokeV2(createDbClusterEndpointRequest, proxyInvocation.client()::createDBClusterEndpoint))

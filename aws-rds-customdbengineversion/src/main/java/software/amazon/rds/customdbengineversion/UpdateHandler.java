@@ -11,7 +11,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
@@ -49,26 +48,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(desiredModel, callbackContext)
-                .then(progress -> updateCustomEngineVersion(proxy, callbackContext, proxyClient, desiredModel))
+                .then(progress -> updateCustomEngineVersion(proxy, proxyClient, progress))
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> updateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
-                                                                                    final CallbackContext callbackContext,
-                                                                                    final ProxyClient<RdsClient> proxyClient,
-                                                                                    final ResourceModel desiredModel
-    ) {
-        return proxy.initiate("rds::update-custom-db-engine-version", proxyClient, desiredModel, callbackContext)
-                .translateToServiceRequest(Translator::modifyCustomDbEngineVersionRequest)
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((modifyCustomDbEngineVersionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyCustomDbEngineVersionRequest, proxyInvocation.client()::modifyCustomDBEngineVersion))
-                .stabilize((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->
-                        isStabilized(resourceModel, proxyInvocation))
-                .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, ctx),
-                        exception,
-                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
-                .progress();
     }
 }

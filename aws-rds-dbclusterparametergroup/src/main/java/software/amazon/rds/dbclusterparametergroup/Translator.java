@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.MapUtils;
+
 import com.amazonaws.arn.Arn;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
@@ -19,6 +21,7 @@ import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
+import software.amazon.cloudformation.exceptions.CfnInternalFailureException;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 
@@ -38,7 +41,10 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model, final String marker) {
+    static DescribeDbClusterParametersRequest describeDbClusterParametersFilteredRequest(final ResourceModel model, final String marker) {
+        if (MapUtils.isEmpty(model.getParameters())) {
+            throw new CfnInternalFailureException(new Exception("Model parameters should not be empty"));
+        }
         return DescribeDbClusterParametersRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .filters(Filter.builder()

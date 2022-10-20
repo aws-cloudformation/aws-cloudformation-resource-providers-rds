@@ -13,7 +13,8 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "<a href="#autopause" title="AutoPause">AutoPause</a>" : <i>Boolean</i>,
     "<a href="#maxcapacity" title="MaxCapacity">MaxCapacity</a>" : <i>Integer</i>,
     "<a href="#mincapacity" title="MinCapacity">MinCapacity</a>" : <i>Integer</i>,
-    "<a href="#secondsuntilautopause" title="SecondsUntilAutoPause">SecondsUntilAutoPause</a>" : <i>Integer</i>
+    "<a href="#secondsuntilautopause" title="SecondsUntilAutoPause">SecondsUntilAutoPause</a>" : <i>Integer</i>,
+    "<a href="#timeoutaction" title="TimeoutAction">TimeoutAction</a>" : <i>String</i>
 }
 </pre>
 
@@ -24,6 +25,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <a href="#maxcapacity" title="MaxCapacity">MaxCapacity</a>: <i>Integer</i>
 <a href="#mincapacity" title="MinCapacity">MinCapacity</a>: <i>Integer</i>
 <a href="#secondsuntilautopause" title="SecondsUntilAutoPause">SecondsUntilAutoPause</a>: <i>Integer</i>
+<a href="#timeoutaction" title="TimeoutAction">TimeoutAction</a>: <i>String</i>
 </pre>
 
 ## Properties
@@ -71,5 +73,19 @@ The time, in seconds, before an Aurora DB cluster in serverless mode is paused.
 _Required_: No
 
 _Type_: Integer
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### TimeoutAction
+
+The action to take when the timeout is reached, either ForceApplyCapacityChange or RollbackCapacityChange.
+ForceApplyCapacityChange sets the capacity to the specified value as soon as possible.
+RollbackCapacityChange, the default, ignores the capacity change if a scaling point isn't found in the timeout period.
+
+For more information, see Autoscaling for Aurora Serverless v1 in the Amazon Aurora User Guide.
+
+_Required_: No
+
+_Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
