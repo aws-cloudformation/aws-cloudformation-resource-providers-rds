@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.MapUtils;
+
 import com.amazonaws.arn.Arn;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
@@ -19,6 +21,7 @@ import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
+import software.amazon.cloudformation.exceptions.CfnInternalFailureException;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
 
@@ -38,19 +41,18 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbClusterParametersRequest describeDbClusterParametersRequest(final ResourceModel model, final String marker) {
-        final DescribeDbClusterParametersRequest.Builder builder = DescribeDbClusterParametersRequest.builder()
-                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
-                .marker(marker);
-
-        if (model.getParameters() != null && !model.getParameters().isEmpty()) {
-            builder.filters(
-                    Filter.builder()
-                            .name(FILTER_PARAMETER_NAME)
-                            .values(model.getParameters().keySet())
-                            .build());
+    static DescribeDbClusterParametersRequest describeDbClusterParametersFilteredRequest(final ResourceModel model, final String marker) {
+        if (MapUtils.isEmpty(model.getParameters())) {
+            throw new CfnInternalFailureException(new Exception("Model parameters should not be empty"));
         }
-        return builder.build();
+        return DescribeDbClusterParametersRequest.builder()
+                .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
+                .filters(Filter.builder()
+                        .name(FILTER_PARAMETER_NAME)
+                        .values(model.getParameters().keySet())
+                        .build())
+                .marker(marker)
+                .build();
     }
 
     static DescribeDbClustersRequest describeDbClustersRequest() {
