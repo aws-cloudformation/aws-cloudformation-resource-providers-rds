@@ -1,6 +1,6 @@
 package software.amazon.rds.dbcluster;
 
-enum EngineMode {
+public enum EngineMode {
     Serverless("serverless"),
     Provisioned("provisioned"),
     ParallelQuery("parallelquery"),
