@@ -49,7 +49,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
-        final ResourceModel previousResourceState = request.getPreviousResourceState();
+        final ResourceModel previousResourceState = setDefaults(request.getPreviousResourceState());
         final ResourceModel desiredResourceState = setDefaults(request.getDesiredResourceState());
         final boolean isRollback = BooleanUtils.isTrue(request.getRollback());
 
