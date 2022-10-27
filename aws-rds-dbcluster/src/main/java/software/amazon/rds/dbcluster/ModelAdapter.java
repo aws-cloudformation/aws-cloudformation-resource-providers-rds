@@ -34,7 +34,6 @@ public class ModelAdapter {
     );
 
     public static ResourceModel setDefaults(final ResourceModel resourceModel) {
-
         final Integer port = resourceModel.getPort();
         final Integer backupRetentionPeriod = resourceModel.getBackupRetentionPeriod();
         final List<DBClusterRole> associatedRoles = resourceModel.getAssociatedRoles();
