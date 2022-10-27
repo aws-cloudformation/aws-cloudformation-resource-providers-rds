@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -122,17 +123,13 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 }, CallbackContext::isReadReplicaPromoted, CallbackContext::setReadReplicaPromoted))
-                .then(progress -> Commons.execOnce(progress, () ->
-                                versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
-                                        /*
-                                          {@code updateDbInstance*} is not entirely compatible with {@code HandlerMethod} interface.
-                                          Hence, we need to create a request-capturing closure.
-                                         */
-                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
-                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
-                                )),
-                        CallbackContext::isUpdated, CallbackContext::setUpdated)
-                )
+                .then(progress -> Commons.execOnce(progress, () -> {
+                    progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
+                    return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
+                            ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
+                            ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
+                    )).then(p -> checkFailedEvents(rdsClient, logger, p, p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)));
+                }, CallbackContext::isUpdated, CallbackContext::setUpdated))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (shouldReboot(rdsClient, progress)) {
                                 return rebootAwait(proxy, rdsClient, progress);
@@ -242,9 +239,9 @@ public class UpdateHandler extends BaseHandlerStd {
                 .translateToServiceRequest(Translator::updateAllocatedStorageRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                                modifyRequest,
-                                proxyInvocation.client()::modifyDBInstance))
-                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance))
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -310,7 +307,6 @@ public class UpdateHandler extends BaseHandlerStd {
                 StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
     }
 
-
     private boolean isAllocatedStorageIncrease(
             final ResourceHandlerRequest<ResourceModel> request
     ) {
@@ -337,7 +333,6 @@ public class UpdateHandler extends BaseHandlerStd {
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-
         SecurityGroup securityGroup;
 
         try {
@@ -423,7 +418,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         modifyRequest,
                         proxyInvocation.client()::promoteReadReplica))
-                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,

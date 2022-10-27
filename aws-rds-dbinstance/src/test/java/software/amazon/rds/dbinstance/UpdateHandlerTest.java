@@ -8,8 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
+import static software.amazon.rds.dbinstance.BaseHandlerStd.RESOURCE_UPDATED_AT;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -32,6 +34,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
@@ -60,6 +64,9 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
+import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
@@ -73,6 +80,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
@@ -164,6 +172,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(false);
@@ -183,6 +193,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -196,6 +207,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(false);
@@ -221,6 +234,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client()).describeEvents(any(DescribeEventsRequest.class));
 
         Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS_ALTER, String.class));
     }
@@ -231,6 +245,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .dbInstance(DB_INSTANCE_ACTIVE)
                 .build();
         when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(false);
@@ -257,6 +274,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(argument.getValue().maxAllocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
 
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -563,6 +581,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_NoEngineVersionChangeOnRollback() {
         when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
                 .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .engineVersion(ENGINE_VERSION_MYSQL_56)
@@ -589,6 +609,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
         Assertions.assertThat(captor.getValue().engineVersion()).isNull();
+
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -661,6 +683,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_PerformanceInsightsKMSId_UpdatedFromEmptyToValue() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .performanceInsightsKMSKeyId("performance_insights_kms_id")
                 .build();
@@ -683,6 +708,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
         Assertions.assertThat(argumentCaptor.getValue().performanceInsightsKMSKeyId()).isEqualTo("performance_insights_kms_id");
+
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1070,6 +1097,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_EmptyVpcSecurityGroupIdList() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final CallbackContext context = new CallbackContext();
         context.setUpdated(false);
         context.setStorageAllocated(true);
@@ -1095,6 +1125,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     static class ModifyDBInstanceExceptionArgumentProvider implements ArgumentsProvider {
@@ -1210,6 +1242,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_SetEngineVersionIfChanged() {
         when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
                 .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setRebooted(true);
@@ -1231,12 +1265,16 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
         Assertions.assertThat(argumentCaptor.getValue().engineVersion()).isEqualTo(desiredEngineVersion);
+
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
     public void handleRequest_UnsetEngineVersionIfNoChange() {
         when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
                 .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setRebooted(true);
@@ -1258,6 +1296,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
         Assertions.assertThat(argumentCaptor.getValue().engineVersion()).isNull();
+
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1284,6 +1324,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_UseLatestRestorableTime_UpdatedFromTrueToFalse() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .useLatestRestorableTime(false)
                 .build();
@@ -1304,10 +1347,14 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
     public void handleRequest_UseLatestRestorableTime_UpdatedFromTrueToEmpty() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .useLatestRestorableTime(null)
                 .build();
@@ -1328,6 +1375,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1355,6 +1403,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_RestoreTime_UpdatedFromValueToEmpty() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .restoreTime(null)
                 .build();
@@ -1375,6 +1426,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1402,6 +1454,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_SourceDBInstanceAutomatedBackupsArn_UpdatedFromValueToEmpty() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .sourceDBInstanceAutomatedBackupsArn(null)
                 .build();
@@ -1418,6 +1473,66 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 () -> DB_INSTANCE_ACTIVE,
                 () -> previousModel,
                 () -> desiredModel,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_FetchEventsFromUpdateMoment() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setUpdated(false);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectSuccess()
+        );
+
+        final Instant updatedAt = response.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT);
+        Assertions.assertThat(updatedAt).isNotNull();
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        ArgumentCaptor<DescribeEventsRequest> describeEventsCaptor = ArgumentCaptor.forClass(DescribeEventsRequest.class);
+        verify(rdsProxy.client(), times(1)).describeEvents(describeEventsCaptor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        Assertions.assertThat(describeEventsCaptor.getValue().startTime()).isEqualTo(updatedAt);
+    }
+
+    @Test
+    public void handleRequest_FetchEventsThrowsAwsServiceExceptionIgnore() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(HandlerErrorCode.AccessDenied.toString())
+                                .errorMessage("Access denied")
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setUpdated(false);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().build(),
                 expectSuccess()
         );
 
@@ -1449,6 +1564,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_SourceDbiResourceId_UpdatedFromValueToEmpty() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .sourceDbiResourceId(null)
                 .build();
@@ -1469,6 +1587,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1492,5 +1611,34 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 () -> desiredModel,
                 expectFailed(HandlerErrorCode.NotUpdatable)
         );
+    }
+
+    @Test
+    public void handleRequest_ObserveFailureEvent() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder()
+                        .events(Event.builder()
+                                .message("Database instance is in a state that cannot be upgraded: PreUpgrade checks failed: The instance could not be upgraded")
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setUpdated(false);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.GeneralServiceException)
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 }
