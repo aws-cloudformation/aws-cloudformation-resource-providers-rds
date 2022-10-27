@@ -21,3 +21,5 @@ rpdk.log*
 
 # contains credentials
 sam-tests/
+/src/resources/
+/inputs/

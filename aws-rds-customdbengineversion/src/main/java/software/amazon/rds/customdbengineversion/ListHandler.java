@@ -14,9 +14,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 public class ListHandler extends BaseHandlerStd {
 
     public ListHandler() {
-        this(HandlerConfig.builder()
-                .backoff(BACKOFF_DELAY)
-                .build());
+        this(CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H);
     }
 
     public ListHandler(HandlerConfig config) {
@@ -36,7 +34,7 @@ public class ListHandler extends BaseHandlerStd {
                         describeRequest,
                         proxyInvocation.client()::describeDBEngineVersions
                 )).done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
-                    final List<ResourceModel> resourceModels = Translator.translateToModel(describeResponse.dbEngineVersions().stream());
+                    final List<ResourceModel> resourceModels = Translator.translateFromSdk(describeResponse.dbEngineVersions().stream());
                     return ProgressEvent.<ResourceModel, CallbackContext>builder()
                             .callbackContext(callbackContext)
                             .resourceModels(resourceModels)

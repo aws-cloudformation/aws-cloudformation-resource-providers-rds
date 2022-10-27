@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.assertj.core.api.Assertions;
@@ -106,29 +107,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DB_ENGINE_VERSION_AVAILABLE,
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 () -> RESOURCE_MODEL_BUILDER().status("inactive").build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateWithEmptyIdentifier() {
-        when(rdsProxy.client().createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class)))
-                .thenReturn(CreateCustomDbEngineVersionResponse.builder().build());
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                () -> DB_ENGINE_VERSION_AVAILABLE,
-                () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER().engineVersion(null).build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(1)).createCustomDBEngineVersion(
-                argThat((CreateCustomDbEngineVersionRequest request) -> StringUtils.isNotBlank(request.engineVersion())));
     }
 
     @Test

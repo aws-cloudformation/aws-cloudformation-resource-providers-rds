@@ -88,7 +88,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 null,
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().description("updated").status(null).build(),
                 expectFailed(HandlerErrorCode.NotFound)
         );
 
@@ -108,7 +108,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 null,
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().status("invalid").build(),
                 expectFailed(HandlerErrorCode.InternalFailure)
         );
 
@@ -122,8 +122,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
-        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
-                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
 
@@ -135,8 +133,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
@@ -162,7 +159,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     }
                     return DB_ENGINE_VERSION_AVAILABLE;
                 },
-                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST_ALTER).build(),
+                () -> RESOURCE_MODEL_BUILDER().status("inactive-except-restore").tags(TAG_LIST_ALTER).build(),
                 () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
@@ -188,13 +185,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_ENGINE_VERSION_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
-                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().status("inactive").build(),
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(rdsProxy.client(), times(1)).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
     }
 
     @Test
@@ -212,19 +207,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_ENGINE_VERSION_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
+                () -> RESOURCE_MODEL_BUILDER().status("inactive").tags(TAG_LIST).build(),
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(rdsProxy.client(), times(1)).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
     }
 
     @Test
     public void handleRequest_SoftFailingTaggingOnRemoveTags() {
-        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
-                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -243,14 +234,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 
     @Test
     public void handleRequest_SoftFailingTaggingOnAddTags() {
-        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
-                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -269,7 +257,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 }

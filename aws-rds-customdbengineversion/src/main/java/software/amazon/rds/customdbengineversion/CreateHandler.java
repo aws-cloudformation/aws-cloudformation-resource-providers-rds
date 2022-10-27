@@ -4,7 +4,6 @@ import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.CustomEngineVersionStatus;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -24,9 +23,7 @@ public class CreateHandler extends BaseHandlerStd {
     );
 
     public CreateHandler() {
-        this(HandlerConfig.builder()
-                .backoff(BACKOFF_DELAY)
-                .build());
+        this(CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H);
     }
 
     public CreateHandler(HandlerConfig config) {
@@ -42,14 +39,11 @@ public class CreateHandler extends BaseHandlerStd {
 
         final ResourceModel model = request.getDesiredResourceState();
 
-        if (StringUtils.isNullOrEmpty(model.getEngineVersion())) {
-            model.setEngineVersion(DEFAULT_ENGINE_NAME_PREFIX +
-                    dbCustomEngineVersionIdentifierFactory.newIdentifier()
-                            .withStackId(request.getStackId())
-                            .withResourceId(request.getLogicalResourceIdentifier())
-                            .withRequestToken(request.getClientRequestToken())
-                            .toString());
+        if (model.getStatus() == null) {
+            model.setStatus(CustomDBEngineVersionStatus.Available.toString());
         }
+
+        assertCustomDbEngineVersionStableStatus(model.getStatus());
 
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
@@ -59,26 +53,24 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> safeCreateCustomEngineVersion(proxy, proxyClient, progress, allTags))
-                .then(progress -> modifyAfterCreate(proxy, proxyClient, progress))
+                .then(progress -> {
+                    if (shouldModifyCustomEngineVersion(progress)) {
+                        return Commons.execOnce(
+                                progress,
+                                () -> modifyCustomEngineVersion(proxy, proxyClient, request.getPreviousResourceState(), progress),
+                                CallbackContext::isModified,
+                                CallbackContext::setModified
+                        );
+                    }
+                    return progress;
+                })
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> modifyAfterCreate(final AmazonWebServicesClientProxy proxy,
-                                                                            final ProxyClient<RdsClient> proxyClient,
-                                                                            final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        if (shouldUpdateCustomEngineVersion(progress)) {
-            return Commons.execOnce(
-                    progress,
-                    () -> updateCustomEngineVersion(proxy, proxyClient, progress),
-                    CallbackContext::isModified,
-                    CallbackContext::setModified
-            );
-        }
-        return progress;
-    }
-
-    private boolean shouldUpdateCustomEngineVersion(final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return !CustomEngineVersionStatus.AVAILABLE.toString().equalsIgnoreCase(progress.getResourceModel().getStatus());
+    private boolean shouldModifyCustomEngineVersion(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+        String status = progress.getResourceModel().getStatus();
+        return CustomDBEngineVersionStatus.Inactive.toString().equals(status) ||
+                CustomDBEngineVersionStatus.InactiveExceptRestore.toString().equals(status);
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,

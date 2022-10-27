@@ -1,9 +1,8 @@
 package software.amazon.rds.customdbengineversion;
 
-// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
-// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
-
 import java.util.HashSet;
+
+import org.apache.commons.lang3.StringUtils;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -17,7 +16,7 @@ import software.amazon.rds.common.handler.Tagging;
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
-        this(HandlerConfig.builder().build());
+        this(CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H);
     }
 
     public UpdateHandler(final HandlerConfig config) {
@@ -47,9 +46,24 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
+        if (desiredModel.getStatus() == null) {
+            desiredModel.setStatus(CustomDBEngineVersionStatus.Available.toString());
+        }
+
         return ProgressEvent.progress(desiredModel, callbackContext)
-                .then(progress -> updateCustomEngineVersion(proxy, proxyClient, progress))
+                .then(progress -> {
+                    if (shouldModifyDBEngineVersion(previousModel, progress.getResourceModel())) {
+                        return modifyCustomEngineVersion(proxy, proxyClient, previousModel, progress);
+                    }
+                    return progress;
+                })
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+    }
+
+
+    private boolean shouldModifyDBEngineVersion(final ResourceModel previousModel, final ResourceModel desiredModel) {
+        return !StringUtils.equals(previousModel.getStatus(), desiredModel.getStatus()) ||
+                !StringUtils.equals(previousModel.getDescription(), desiredModel.getDescription());
     }
 }

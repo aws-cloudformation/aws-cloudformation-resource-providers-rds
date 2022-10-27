@@ -1,6 +1,6 @@
 # AWS::RDS::CustomDBEngineVersion
 
-An example resource schema demonstrating some basic constructs and validation rules.
+The AWS::RDS::CustomDBEngineVersion resource creates an Amazon RDS custom DB engine version.
 
 ## Syntax
 
@@ -48,7 +48,7 @@ Properties:
 
 The name of an Amazon S3 bucket that contains database installation files for your CEV. For example, a valid bucket name is `my-custom-installation-files`.
 
-_Required_: No
+_Required_: Yes
 
 _Type_: String
 
@@ -90,7 +90,7 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 The database engine to use for your custom engine version (CEV). The only supported value is `custom-oracle-ee`.
 
-_Required_: No
+_Required_: Yes
 
 _Type_: String
 
@@ -98,23 +98,19 @@ _Minimum_: <code>1</code>
 
 _Maximum_: <code>35</code>
 
-_Pattern_: <code>^[A-Za-z0-9-]{1,35}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### EngineVersion
 
 The name of your CEV. The name format is 19.customized_string . For example, a valid name is 19.my_cev1. This setting is required for RDS Custom for Oracle, but optional for Amazon RDS. The combination of Engine and EngineVersion is unique per customer per Region.
 
-_Required_: No
+_Required_: Yes
 
 _Type_: String
 
 _Minimum_: <code>1</code>
 
 _Maximum_: <code>60</code>
-
-_Pattern_: <code>^(11\.\d{1}|12\.\d{1}|18|19)(\.[a-zA-Z0-9_.-]{1,50})$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -130,23 +126,19 @@ _Minimum_: <code>1</code>
 
 _Maximum_: <code>2048</code>
 
-_Pattern_: <code>[a-zA-Z0-9_:\-\/]+</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### Manifest
 
 The CEV manifest, which is a JSON document that describes the installation .zip files stored in Amazon S3. Specify the name/value pairs in a file or a quoted string. RDS Custom applies the patches in the order in which they are listed.
 
-_Required_: No
+_Required_: Yes
 
 _Type_: String
 
 _Minimum_: <code>1</code>
 
 _Maximum_: <code>51000</code>
-
-_Pattern_: <code>[\s\S]*</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
@@ -157,8 +149,6 @@ The availability status to be assigned to the CEV.
 _Required_: No
 
 _Type_: String
-
-_Allowed Values_: <code>available</code> | <code>inactive</code> | <code>inactive-except-restore</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

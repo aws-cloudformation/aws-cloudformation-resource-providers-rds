@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.rds.model.DeleteCustomDbEngineVersionRequ
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyCustomDbEngineVersionRequest;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.DifferenceUtils;
 
 public class Translator {
     public static CreateCustomDbEngineVersionRequest createCustomDbEngineVersionRequest(
@@ -36,15 +37,18 @@ public class Translator {
         return DescribeDbEngineVersionsRequest.builder()
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .includeAll(true)
                 .build();
     }
 
-    static ModifyCustomDbEngineVersionRequest modifyCustomDbEngineVersionRequest(final ResourceModel model) {
+    static ModifyCustomDbEngineVersionRequest modifyCustomDbEngineVersionRequest(final ResourceModel previousModel,
+                                                                                 final ResourceModel model) {
         return ModifyCustomDbEngineVersionRequest.builder()
-                .description(model.getDescription())
+                //Engine and EngineVersion together are the primary identifier of EngineVersion
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
-                .status(model.getStatus())
+                .description(DifferenceUtils.diff(previousModel.getDescription(), model.getDescription()))
+                .status(DifferenceUtils.diff(previousModel.getStatus(), model.getStatus()))
                 .build();
     }
 
@@ -90,7 +94,7 @@ public class Translator {
                 .collect(Collectors.toList());
     }
 
-    static ResourceModel translateToModel(
+    static ResourceModel translateFromSdk(
             final DBEngineVersion engineVersion
     ) {
         return ResourceModel.builder()
@@ -111,9 +115,9 @@ public class Translator {
                 .build();
     }
 
-    public static List<ResourceModel> translateToModel(final Stream<DBEngineVersion> engineVersionsStream) {
+    public static List<ResourceModel> translateFromSdk(final Stream<DBEngineVersion> engineVersionsStream) {
         return engineVersionsStream
-                .map(Translator::translateToModel)
+                .map(Translator::translateFromSdk)
                 .collect(Collectors.toList());
     }
 

@@ -1,8 +1,5 @@
 package software.amazon.rds.customdbengineversion;
 
-// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
-// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
-
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -17,9 +14,7 @@ public class DeleteHandler extends BaseHandlerStd {
 
 
     public DeleteHandler() {
-        this(HandlerConfig.builder()
-                .backoff(BACKOFF_DELAY)
-                .build());
+        this(CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H);
     }
 
     public DeleteHandler(HandlerConfig config) {
@@ -49,7 +44,7 @@ public class DeleteHandler extends BaseHandlerStd {
     protected boolean isDeleted(final ResourceModel model,
                                 final ProxyClient<RdsClient> proxyClient) {
         try {
-            proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbEngineVersionsRequest(model), proxyClient.client()::describeDBEngineVersions);
+            fetchDBEngineVersion(model, proxyClient);
             return false;
         } catch (CustomDbEngineVersionNotFoundException e) {
             return true;

@@ -138,7 +138,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBEngineVersi
                 .engineVersion("engine-version")
                 .engine("engine")
                 .dbEngineVersionArn("engine-version-arn")
-                .status("modifying")
+                .status("validating")
                 .build();
 
         DB_ENGINE_VERSION_DELETING = DBEngineVersion.builder()

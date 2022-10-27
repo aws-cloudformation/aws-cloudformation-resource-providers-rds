@@ -1,16 +1,20 @@
 package software.amazon.rds.customdbengineversion;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionNotFoundException;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.CustomEngineVersionStatus;
+import software.amazon.awssdk.services.rds.model.DBEngineVersion;
+import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.InvalidCustomDbEngineVersionStateException;
 import software.amazon.awssdk.services.rds.model.InvalidS3BucketException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -32,12 +36,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "customdbengineversion";
-    protected static final String DEFAULT_ENGINE_NAME_PREFIX = "19.";
+    protected static final String DEFAULT_ENGINE_NAME_PREFIX = "19";
+    protected static final String DEFAULT_ENGINE_NAME_SEPARATOR = ".";
     protected static final int RESOURCE_ID_MAX_LENGTH = 50;
 
-    protected static final Constant BACKOFF_DELAY = Constant.of()
-            .timeout(Duration.ofSeconds(180L))
-            .delay(Duration.ofSeconds(15L))
+    protected final static HandlerConfig CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H = HandlerConfig.builder()
+            .backoff(Constant.of()
+                    .delay(Duration.ofSeconds(30))
+                    .timeout(Duration.ofHours(10))
+                    .build())
             .build();
 
     protected static final ErrorRuleSet DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET = ErrorRuleSet
@@ -92,11 +99,40 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
-        final String status = proxyClient.injectCredentialsAndInvokeV2(
+        try {
+            final String status = fetchDBEngineVersion(model, proxyClient).status();
+            assertNoCustomDbEngineVersionTerminalStatus(status);
+            return CustomDBEngineVersionStatus.fromString(status).isStable();
+        } catch (CustomDbEngineVersionNotFoundException exception) {
+            return false;
+        }
+    }
+
+    protected void assertCustomDbEngineVersionStableStatus(final String source) throws CfnNotStabilizedException {
+        CustomDBEngineVersionStatus status = CustomDBEngineVersionStatus.fromString(source);
+        if (status == null || !status.isStable()) {
+            throw new CfnInvalidRequestException(new Exception("Invalid Custom DB Engine Version state: " + source + " valid values: [available, inactive, inactive-except-restore]"));
+        }
+    }
+
+    private void assertNoCustomDbEngineVersionTerminalStatus(final String source) throws CfnNotStabilizedException {
+        CustomDBEngineVersionStatus status = CustomDBEngineVersionStatus.fromString(source);
+        if (status != null && status.isTerminal()) {
+            throw new CfnNotStabilizedException(new Exception("Custom DB Engine Version is in state: " + source + ""));
+        }
+    }
+
+    protected DBEngineVersion fetchDBEngineVersion(final ResourceModel model,
+                                                   final ProxyClient<RdsClient> proxyClient) {
+        DescribeDbEngineVersionsResponse response = proxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbEngineVersionsRequest(model),
-                proxyClient.client()::describeDBEngineVersions)
-                .dbEngineVersions().stream().findFirst().get().status();
-        return !CustomEngineVersionStatus.UNKNOWN_TO_SDK_VERSION.equals(CustomEngineVersionStatus.fromValue(status));
+                proxyClient.client()::describeDBEngineVersions);
+
+        final Optional<DBEngineVersion> engineVersion = response
+                .dbEngineVersions().stream().findFirst();
+
+        return engineVersion.orElseThrow(() -> CustomDbEngineVersionNotFoundException.builder().message(
+                "CustomDBEngineVersion " + model.getEngineVersion() + " not found").build());
     }
 
 
@@ -113,34 +149,42 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return progress;
         }
 
-        String arn = progress.getResourceModel().getDBEngineVersionArn();
+        final String arn = progress.getResourceModel().getDBEngineVersionArn();
 
         try {
             Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
             Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
         } catch (Exception exception) {
-            return Commons.handleException(
-                    progress,
-                    exception,
-                    DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET.extendWith(
-                            Tagging.bestEffortErrorRuleSet(
-                                    tagsToAdd,
-                                    tagsToRemove,
-                                    Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
-                                    Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
-                            )
-                    )
-            );
+            return getTaggingErrorRuleSet(progress, tagsToAdd, tagsToRemove, exception);
         }
 
         return progress;
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> updateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
+    private ProgressEvent<ResourceModel, CallbackContext> getTaggingErrorRuleSet(final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                                 final Tagging.TagSet tagsToAdd,
+                                                                                 final Tagging.TagSet tagsToRemove,
+                                                                                 final Exception exception) {
+        return Commons.handleException(
+                progress,
+                exception,
+                DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET.extendWith(
+                        Tagging.bestEffortErrorRuleSet(
+                                tagsToAdd,
+                                tagsToRemove,
+                                Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
+                                Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                        )
+                )
+        );
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> modifyCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
                                                                                       final ProxyClient<RdsClient> proxyClient,
+                                                                                      final ResourceModel previousModel,
                                                                                       final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        return proxy.initiate("rds::update-custom-db-engine-version", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::modifyCustomDbEngineVersionRequest)
+        return proxy.initiate("rds::modify-custom-db-engine-version", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(model -> Translator.modifyCustomDbEngineVersionRequest(previousModel, model))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((modifyCustomDbEngineVersionRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyCustomDbEngineVersionRequest, proxyInvocation.client()::modifyCustomDBEngineVersion))
                 .stabilize((modifyEventSubscriptionRequest, modifyEventSubscriptionResponse, proxyInvocation, resourceModel, context) ->

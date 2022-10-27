@@ -1,25 +1,11 @@
 {
   "typeName": "AWS::RDS::CustomDBEngineVersion",
-  "description": "An example resource schema demonstrating some basic constructs and validation rules.",
+  "description": "The AWS::RDS::CustomDBEngineVersion resource creates an Amazon RDS custom DB engine version.",
   "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+  "tagging": {
+    "taggable": true
+  },
   "definitions": {
-    "InitechDateFormat": {
-      "$comment": "Use the `definitions` block to provide shared resource property schemas",
-      "type": "string",
-      "format": "date-time"
-    },
-    "Memo": {
-      "type": "object",
-      "properties": {
-        "Heading": {
-          "type": "string"
-        },
-        "Body": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
     "Tag": {
       "description": "A key-value pair to associate with a resource.",
       "type": "object",
@@ -38,8 +24,7 @@
         }
       },
       "required": [
-        "Key",
-        "Value"
+        "Key"
       ],
       "additionalProperties": false
     }
@@ -66,28 +51,24 @@
     "Engine": {
       "type": "string",
       "description": "The database engine to use for your custom engine version (CEV). The only supported value is `custom-oracle-ee`.",
-      "pattern": "^[A-Za-z0-9-]{1,35}$",
       "minLength": 1,
       "maxLength": 35
     },
     "EngineVersion": {
       "type": "string",
       "description": "The name of your CEV. The name format is 19.customized_string . For example, a valid name is 19.my_cev1. This setting is required for RDS Custom for Oracle, but optional for Amazon RDS. The combination of Engine and EngineVersion is unique per customer per Region.",
-      "pattern": "^(11\\.\\d{1}|12\\.\\d{1}|18|19)(\\.[a-zA-Z0-9_.-]{1,50})$",
       "minLength": 1,
       "maxLength": 60
     },
     "KMSKeyId": {
       "type": "string",
       "description": "The AWS KMS key identifier for an encrypted CEV. A symmetric KMS key is required for RDS Custom, but optional for Amazon RDS.",
-      "pattern": "[a-zA-Z0-9_:\\-\\/]+",
       "minLength": 1,
       "maxLength": 2048
     },
     "Manifest": {
       "type": "string",
       "description": "The CEV manifest, which is a JSON document that describes the installation .zip files stored in Amazon S3. Specify the name/value pairs in a file or a quoted string. RDS Custom applies the patches in the order in which they are listed.",
-      "pattern": "[\\s\\S]*",
       "minLength": 1,
       "maxLength": 51000
     },
@@ -98,11 +79,7 @@
     "Status": {
       "type": "string",
       "description": "The availability status to be assigned to the CEV.",
-      "enum": [
-        "available",
-        "inactive",
-        "inactive-except-restore"
-      ]
+      "default": "available"
     },
     "Tags": {
       "description": "An array of key-value pairs to apply to this resource.",
@@ -115,9 +92,15 @@
     }
   },
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/Engine": "$lowercase(Engine)",
+    "/properties/EngineVersion": "$lowercase(EngineVersion)"
+  },
   "required": [
-    "TestCode",
-    "Title"
+    "DatabaseInstallationFilesS3BucketName",
+    "Engine",
+    "EngineVersion",
+    "Manifest"
   ],
   "writeOnlyProperties": [
     "/properties/Manifest"
@@ -144,7 +127,8 @@
         "rds:CreateCustomDBEngineVersion",
         "rds:DescribeDBEngineVersions",
         "rds:ModifyCustomDBEngineVersion"
-      ]
+      ],
+      "timeoutInMinutes": 600
     },
     "read": {
       "permissions": [
@@ -157,13 +141,15 @@
         "rds:DescribeDBEngineVersions",
         "rds:ModifyCustomDBEngineVersion",
         "rds:RemoveTagsFromResource"
-      ]
+      ],
+      "timeoutInMinutes": 600
     },
     "delete": {
       "permissions": [
         "rds:DeleteCustomDBEngineVersion",
         "rds:DescribeDBEngineVersions"
-      ]
+      ],
+      "timeoutInMinutes": 600
     },
     "list": {
       "permissions": [

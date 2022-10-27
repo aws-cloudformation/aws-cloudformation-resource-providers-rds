@@ -1,9 +1,12 @@
 package software.amazon.rds.customdbengineversion;
 
 
+import java.util.Optional;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -14,9 +17,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ReadHandler extends BaseHandlerStd {
     public ReadHandler() {
-        this(HandlerConfig.builder()
-                .backoff(BACKOFF_DELAY)
-                .build());
+        this(CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H);
     }
 
     public ReadHandler(HandlerConfig config) {
@@ -39,8 +40,14 @@ public class ReadHandler extends BaseHandlerStd {
                         exception,
                         DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
                 .done((describeCustomDbEngineVersionRequest, describeCustomDbEngineVersionResponse, proxyInvocation, model, context) -> {
-                    final DBEngineVersion engineVersion = describeCustomDbEngineVersionResponse.dbEngineVersions().stream().findFirst().get();
-                    return ProgressEvent.success(Translator.translateToModel(engineVersion), context);
+                    final Optional<DBEngineVersion> engineVersion = describeCustomDbEngineVersionResponse.dbEngineVersions().stream().findFirst();
+
+                    if (!engineVersion.isPresent()) {
+                        return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
+                                "CustomDBEngineVersion " + model.getEngineVersion() + " not found");
+                    }
+
+                    return ProgressEvent.success(Translator.translateFromSdk(engineVersion.get()), context);
                 });
     }
 

@@ -86,6 +86,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                 new CallbackContext(),
                 null,
                 () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
                 expectSuccess()
         );
 
@@ -97,7 +98,6 @@ public class ListHandlerTest extends AbstractHandlerTest {
 
         assertThat(response.getResourceModels()).isNotNull();
         assertThat(response.getResourceModels()).containsExactly(expectedModel);
-        assertThat(response.getNextToken()).isEqualTo(DESCRIBE_DB_ENGINE_VERSIONS_MARKER);
 
         verify(rdsProxy.client()).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
     }
