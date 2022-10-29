@@ -3,6 +3,10 @@ package software.amazon.rds.dbclustersnapshot;
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,6 +24,22 @@ import java.util.stream.Stream;
  */
 
 public class Translator {
+  public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model) {
+    return DescribeDbClusterSnapshotsRequest.builder()
+//            .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
+            .build();
+  }
+
+  public static ResourceModel translateToModel(DBClusterSnapshot dbClusterSnapshotSnapshot) {
+    return ResourceModel.builder()
+//            .dBSnapshotIdentifier(dbSnapshot.dbSnapshotIdentifier())
+//            .dBInstanceIdentifier(dbSnapshot.dbInstanceIdentifier())
+//            .dBSnapshotArn(dbSnapshot.dbSnapshotArn())
+//            .engineVersion(dbSnapshot.engineVersion())
+//            .optionGroupName(dbSnapshot.optionGroupName())
+//            .tags(translateToModel(dbSnapshot.tagList()))
+            .build();
+  }
 
   /**
    * Request to create a resource
