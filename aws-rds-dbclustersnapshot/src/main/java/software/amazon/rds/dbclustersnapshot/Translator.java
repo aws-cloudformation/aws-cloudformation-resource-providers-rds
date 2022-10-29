@@ -26,18 +26,29 @@ import java.util.stream.Stream;
 public class Translator {
   public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model) {
     return DescribeDbClusterSnapshotsRequest.builder()
-//            .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
+            .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
             .build();
+  }
+
+  public static List<Tag> translateToModel(final Collection<software.amazon.awssdk.services.rds.model.Tag> sdkTags) {
+    return streamOfOrEmpty(sdkTags)
+            .map(tag -> Tag
+                    .builder()
+                    .key(tag.key())
+                    .value(tag.value())
+                    .build()
+            )
+            .collect(Collectors.toList());
   }
 
   public static ResourceModel translateToModel(DBClusterSnapshot dbClusterSnapshotSnapshot) {
     return ResourceModel.builder()
-//            .dBSnapshotIdentifier(dbSnapshot.dbSnapshotIdentifier())
-//            .dBInstanceIdentifier(dbSnapshot.dbInstanceIdentifier())
-//            .dBSnapshotArn(dbSnapshot.dbSnapshotArn())
+            .dBClusterSnapshotIdentifier(dbClusterSnapshotSnapshot.dbClusterSnapshotIdentifier())
+            .dBClusterIdentifier(dbClusterSnapshotSnapshot.dbClusterIdentifier())
+            .dBClusterSnapshotArn(dbClusterSnapshotSnapshot.dbClusterSnapshotArn())
 //            .engineVersion(dbSnapshot.engineVersion())
 //            .optionGroupName(dbSnapshot.optionGroupName())
-//            .tags(translateToModel(dbSnapshot.tagList()))
+            .tags(translateToModel(dbClusterSnapshotSnapshot.tagList()))
             .build();
   }
 

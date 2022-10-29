@@ -44,7 +44,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        /*DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET*/Commons.DEFAULT_ERROR_RULE_SET))
+                        /*DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET; FIXME*/Commons.DEFAULT_ERROR_RULE_SET))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final DBClusterSnapshot dbClusterSnapshot = describeResponse.dbClusterSnapshots().stream().findFirst().get();
                     return ProgressEvent.success(Translator.translateToModel(dbClusterSnapshot), context);
