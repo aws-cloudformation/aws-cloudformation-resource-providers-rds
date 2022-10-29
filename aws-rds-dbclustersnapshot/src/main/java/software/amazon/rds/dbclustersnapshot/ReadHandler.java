@@ -1,15 +1,7 @@
 package software.amazon.rds.dbclustersnapshot;
 
-// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
-// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
-
-import software.amazon.awssdk.awscore.AwsResponse;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
-import software.amazon.awssdk.services.rds.model.DBSnapshot;
-import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -44,7 +36,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        /*DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET; FIXME*/Commons.DEFAULT_ERROR_RULE_SET))
+                        DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final DBClusterSnapshot dbClusterSnapshot = describeResponse.dbClusterSnapshots().stream().findFirst().get();
                     return ProgressEvent.success(Translator.translateToModel(dbClusterSnapshot), context);

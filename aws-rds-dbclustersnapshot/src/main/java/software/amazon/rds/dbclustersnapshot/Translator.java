@@ -3,12 +3,22 @@ package software.amazon.rds.dbclustersnapshot;
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.DeleteDbClusterSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.handler.Tagging;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +38,31 @@ public class Translator {
     return DescribeDbClusterSnapshotsRequest.builder()
             .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
             .build();
+  }
+
+  public static CreateDbClusterSnapshotRequest createDbClusterSnapshotRequest(final ResourceModel model,
+                                                                       final Tagging.TagSet tags) {
+    return CreateDbClusterSnapshotRequest.builder()
+            .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
+            .dbClusterIdentifier(model.getDBClusterIdentifier())
+            .tags(Tagging.translateTagsToSdk(tags))
+            .build();
+  }
+
+  public static DeleteDbClusterSnapshotRequest deleteDbClusterSnapshotRequest(final ResourceModel resourceModel) {
+    return DeleteDbClusterSnapshotRequest.builder()
+            .dbClusterSnapshotIdentifier(resourceModel.getDBClusterSnapshotIdentifier())
+            .build();
+  }
+
+  public static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final List<Tag> tags) {
+    return streamOfOrEmpty(tags)
+            .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
+                    .key(tag.getKey())
+                    .value(tag.getValue())
+                    .build()
+            )
+            .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
   public static List<Tag> translateToModel(final Collection<software.amazon.awssdk.services.rds.model.Tag> sdkTags) {
@@ -51,6 +86,10 @@ public class Translator {
             .tags(translateToModel(dbClusterSnapshotSnapshot.tagList()))
             .build();
   }
+
+
+
+  /////////////////////////////////
 
   /**
    * Request to create a resource
