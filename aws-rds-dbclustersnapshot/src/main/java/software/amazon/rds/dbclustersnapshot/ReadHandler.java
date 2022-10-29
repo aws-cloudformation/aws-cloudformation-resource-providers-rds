@@ -12,9 +12,17 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.handler.HandlerConfig;
 
 public class ReadHandler extends BaseHandlerStd {
     private Logger logger;
+    public ReadHandler() {
+        this(HandlerConfig.builder().build());
+    }
+
+    public ReadHandler(final HandlerConfig config) {
+        super(config);
+    }
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
         final AmazonWebServicesClientProxy proxy,
