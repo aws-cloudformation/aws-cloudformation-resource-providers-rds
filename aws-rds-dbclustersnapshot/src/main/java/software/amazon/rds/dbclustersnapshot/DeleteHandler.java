@@ -1,14 +1,10 @@
 package software.amazon.rds.dbclustersnapshot;
 
-// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
-// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
-
-import software.amazon.awssdk.awscore.AwsResponse;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.DbClusterSnapshotAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -18,8 +14,6 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 
 public class DeleteHandler extends BaseHandlerStd {
-    private Logger logger;
-
     public DeleteHandler() {
         this(HandlerConfig.builder().build());
     }
@@ -53,7 +47,7 @@ public class DeleteHandler extends BaseHandlerStd {
         try {
             fetchDBClusterSnapshot(model, proxyClient);
             return false;
-        } catch (DbSnapshotNotFoundException e) {
+        } catch (DbClusterSnapshotNotFoundException e) {
             return true;
         }
     }

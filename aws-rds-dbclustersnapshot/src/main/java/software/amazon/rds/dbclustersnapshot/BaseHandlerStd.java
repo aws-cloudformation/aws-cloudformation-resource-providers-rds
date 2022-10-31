@@ -3,13 +3,23 @@ package software.amazon.rds.dbclustersnapshot;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
+import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
@@ -28,7 +38,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
   protected static final int MAX_LENGTH_DB_SNAPSHOT = 255; // FIXME: Really?
 
   protected static final ErrorRuleSet DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET = ErrorRuleSet
-          .extend(Commons.DEFAULT_ERROR_RULE_SET).build(); // FIXME fr fr
+          .extend(Commons.DEFAULT_ERROR_RULE_SET)
+          .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                  DbClusterSnapshotNotFoundException.class/*,
+                  DbClusterNotFoundException.class*/)
+          .build(); // FIXME fr fr
+
+//  protected static final ErrorRuleSet DELETE_DB_CLUSTER_SNAPSHOT_ERROR_RULE_SET = ErrorRuleSet
+//          .extend(DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET)
+//          .withErrorCodes(ErrorStatus.ignore(OperationStatus.SUCCESS),
+//                  ErrorCode.NotFound)
+//          .build();
 
   public BaseHandlerStd(final HandlerConfig config) {
     super();
