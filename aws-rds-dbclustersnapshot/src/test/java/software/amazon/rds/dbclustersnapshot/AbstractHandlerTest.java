@@ -3,6 +3,7 @@ package software.amazon.rds.dbclustersnapshot;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
@@ -20,6 +22,7 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.AbstractTestBase;
 import software.amazon.rds.test.common.core.HandlerName;
@@ -34,7 +37,13 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
   protected static final org.slf4j.Logger delegate;
   protected static final LoggerProxy logger;
 
+  protected static final String DB_CLUSTER_IDENTIFIER = "db-cluster-identifier";
+  protected static final String DB_CLUSTER_SNAPSHOT_ARN = "arn:aws:rds:us-east-1:608777835420:cluster-snapshot:db-cluster-snapshot-arn";
+  protected static final String DB_CLUSTER_SNAPSHOT_IDENTIFIER = "db-cluster-snapshot-identifier";
+
   protected static final ResourceModel RESOURCE_MODEL;
+
+  protected static final DBClusterSnapshot DB_CLUSTER_SNAPSHOT_ACTIVE;
 
   protected static final String ERROR_MSG = "error";
 
@@ -42,6 +51,11 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
   protected static final Set<Tag> TAG_LIST_EMPTY;
   protected static final Set<Tag> TAG_LIST_ALTER;
   protected static final Tagging.TagSet TAG_SET;
+
+  protected static Constant TEST_BACKOFF_DELAY = Constant.of()
+          .delay(Duration.ofSeconds(1L))
+          .timeout(Duration.ofSeconds(10L))
+          .build();
 
   static {
     System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -52,6 +66,15 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
     logger = new LoggerProxy();
 
     RESOURCE_MODEL = ResourceModel.builder()
+            .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+            .dBClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
+            .dBClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
+            .build();
+
+    DB_CLUSTER_SNAPSHOT_ACTIVE = DBClusterSnapshot.builder()
+            .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+            .dbClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
+            .dbClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
             .build();
 
     TAG_LIST_EMPTY = ImmutableSet.of();
