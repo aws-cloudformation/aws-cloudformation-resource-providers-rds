@@ -2,6 +2,7 @@
   "OptionGroupDescription": "A test option group",
   "EngineName": "mysql",
   "MajorEngineVersion": "5.6",
+  "OptionGroupName": "contract-test-optiongroup",
   "OptionConfigurations": [
     {
       "OptionName": "MEMCACHED",
