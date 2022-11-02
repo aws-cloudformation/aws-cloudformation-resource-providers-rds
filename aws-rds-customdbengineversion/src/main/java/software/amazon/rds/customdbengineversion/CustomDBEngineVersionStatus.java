@@ -1,31 +1,24 @@
 package software.amazon.rds.customdbengineversion;
 
-import software.amazon.rds.common.status.StableStatus;
-import software.amazon.rds.common.status.TerminableStatus;
-
-public enum CustomDBEngineVersionStatus implements TerminableStatus, StableStatus {
-    Available("available", false, true),
-    Creating("creating"),
-    Deleting("deleting"),
-    Failed("failed", true, false),
-    Inactive("inactive", false, true),
-    InactiveExceptRestore("inactive-except-restore", false, true),
-    IncompatibleImageConfiguration("incompatible-image-configuration", true, false),
-    PendingValidation("pending-validation"),
-    Validating("validating");
+public enum CustomDBEngineVersionStatus {
+    Available("available", StatusOption.Stable),
+    Creating("creating", StatusOption.Transient),
+    Deleting("deleting", StatusOption.Transient),
+    Deprecated("deprecated", StatusOption.Terminal),
+    Failed("failed", StatusOption.Terminal),
+    Inactive("inactive", StatusOption.Stable),
+    InactiveExceptRestore("inactive-except-restore", StatusOption.Stable),
+    IncompatibleImageConfiguration("incompatible-image-configuration", StatusOption.Terminal),
+    PendingValidation("pending-validation", StatusOption.Transient),
+    Validating("validating", StatusOption.Transient);
 
     private final String value;
-    private final boolean isTerminal;
-    private final boolean isStable;
+     private final StatusOption statusOption;
 
-    CustomDBEngineVersionStatus(final String value) {
-        this(value, false, false);
-    }
 
-    CustomDBEngineVersionStatus(final String value, final boolean isTerminal, final boolean isStable) {
+    CustomDBEngineVersionStatus(final String value, final StatusOption statusOption) {
         this.value = value;
-        this.isTerminal = isTerminal;
-        this.isStable = isStable;
+        this.statusOption = statusOption;
     }
 
     public static CustomDBEngineVersionStatus fromString(final String source) {
@@ -42,19 +35,15 @@ public enum CustomDBEngineVersionStatus implements TerminableStatus, StableStatu
         return value;
     }
 
-    @Override
     public boolean equalsString(final String status) {
         return this.value.equals(status);
     }
 
-    @Override
     public boolean isTerminal() {
-        return this.isTerminal;
+        return StatusOption.Terminal.equals(statusOption);
     }
 
-
-    @Override
     public boolean isStable() {
-        return this.isStable;
+        return StatusOption.Stable.equals(statusOption);
     }
 }

@@ -21,6 +21,7 @@ import software.amazon.rds.test.common.core.HandlerName;
 import java.time.Duration;
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -82,7 +83,8 @@ public class ReadHandlerTest extends AbstractHandlerTest {
                 () -> RESOURCE_MODEL_BUILDER().tags(TAG_LIST).build(),
                 expectSuccess()
         );
-        progress.getResourceModel();
+        final ResourceModel model = progress.getResourceModel();
+        assertThat(model.getDBClusterEndpointIdentifier()).isEqualTo("dbClusterEndpointIdentifier");
         verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
     }
 

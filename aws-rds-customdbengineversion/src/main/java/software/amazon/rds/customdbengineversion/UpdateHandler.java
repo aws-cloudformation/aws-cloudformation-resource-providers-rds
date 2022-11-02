@@ -52,7 +52,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(desiredModel, callbackContext)
                 .then(progress -> {
-                    if (shouldModifyDBEngineVersion(previousModel, progress.getResourceModel())) {
+                    if (shouldModifyEngineVersion(previousModel, progress.getResourceModel())) {
                         return modifyCustomEngineVersion(proxy, proxyClient, previousModel, progress);
                     }
                     return progress;
@@ -62,7 +62,7 @@ public class UpdateHandler extends BaseHandlerStd {
     }
 
 
-    private boolean shouldModifyDBEngineVersion(final ResourceModel previousModel, final ResourceModel desiredModel) {
+    private boolean shouldModifyEngineVersion(final ResourceModel previousModel, final ResourceModel desiredModel) {
         return !StringUtils.equals(previousModel.getStatus(), desiredModel.getStatus()) ||
                 !StringUtils.equals(previousModel.getDescription(), desiredModel.getDescription());
     }

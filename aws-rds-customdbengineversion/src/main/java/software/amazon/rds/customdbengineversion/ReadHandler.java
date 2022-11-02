@@ -1,6 +1,8 @@
 package software.amazon.rds.customdbengineversion;
 
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -40,14 +42,14 @@ public class ReadHandler extends BaseHandlerStd {
                         exception,
                         DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
                 .done((describeCustomDbEngineVersionRequest, describeCustomDbEngineVersionResponse, proxyInvocation, model, context) -> {
-                    final Optional<DBEngineVersion> engineVersion = describeCustomDbEngineVersionResponse.dbEngineVersions().stream().findFirst();
+                    final List<DBEngineVersion> engineVersions = describeCustomDbEngineVersionResponse.dbEngineVersions();
 
-                    if (!engineVersion.isPresent()) {
+                    if (engineVersions.isEmpty()) {
                         return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
                                 "CustomDBEngineVersion " + model.getEngineVersion() + " not found");
                     }
 
-                    return ProgressEvent.success(Translator.translateFromSdk(engineVersion.get()), context);
+                    return ProgressEvent.success(Translator.translateFromSdk(engineVersions.get(0)), context);
                 });
     }
 

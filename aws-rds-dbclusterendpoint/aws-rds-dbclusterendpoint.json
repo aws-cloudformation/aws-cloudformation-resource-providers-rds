@@ -5,7 +5,6 @@
   "tagging": {
     "taggable": true
   },
-  "replacementStrategy": "delete_then_create",
   "definitions": {
     "Tag": {
       "description": "A key-value pair to associate with a resource.",
@@ -34,25 +33,18 @@
     "DBClusterIdentifier": {
       "description": "The DB cluster identifier of the DB cluster associated with the endpoint. This parameter is stored as a lowercase string.",
       "type": "string",
-      "pattern": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$",
       "minLength": 1,
       "maxLength": 63
     },
     "DBClusterEndpointIdentifier": {
       "description": "The identifier to use for the new endpoint. This parameter is stored as a lowercase string.",
       "type": "string",
-      "pattern": "^[a-z]{1}(?:-?[a-z0-9]){0,62}$",
       "minLength": 1,
       "maxLength": 63
     },
     "EndpointType": {
       "description": "The type of the endpoint, one of: READER , WRITER , ANY",
-      "type": "string",
-      "enum": [
-        "READER",
-        "WRITER",
-        "ANY"
-      ]
+      "type": "string"
     },
     "DBClusterEndpointArn": {
       "type": "string",

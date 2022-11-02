@@ -2,7 +2,6 @@ package software.amazon.rds.customdbengineversion;
 
 import java.util.HashSet;
 
-import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -43,8 +42,6 @@ public class CreateHandler extends BaseHandlerStd {
             model.setStatus(CustomDBEngineVersionStatus.Available.toString());
         }
 
-        assertCustomDbEngineVersionStableStatus(model.getStatus());
-
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
@@ -54,7 +51,7 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> safeCreateCustomEngineVersion(proxy, proxyClient, progress, allTags))
                 .then(progress -> {
-                    if (shouldModifyCustomEngineVersion(progress)) {
+                    if (shouldModifyEngineVersionAfterCreate(progress)) {
                         return Commons.execOnce(
                                 progress,
                                 () -> modifyCustomEngineVersion(proxy, proxyClient, request.getPreviousResourceState(), progress),
@@ -67,7 +64,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
-    private boolean shouldModifyCustomEngineVersion(final ProgressEvent<ResourceModel, CallbackContext> progress) {
+    private boolean shouldModifyEngineVersionAfterCreate(final ProgressEvent<ResourceModel, CallbackContext> progress) {
         String status = progress.getResourceModel().getStatus();
         return CustomDBEngineVersionStatus.Inactive.toString().equals(status) ||
                 CustomDBEngineVersionStatus.InactiveExceptRestore.toString().equals(status);

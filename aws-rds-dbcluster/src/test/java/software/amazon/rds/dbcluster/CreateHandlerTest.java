@@ -1,8 +1,18 @@
 package software.amazon.rds.dbcluster;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import lombok.Getter;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +26,10 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -49,19 +63,6 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
-
-import java.time.Duration;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.stream.Stream;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractHandlerTest {
@@ -242,6 +243,36 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDbClusterFromSnapshot_UnsetPort() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE.toBuilder()
+                        .engineMode(EngineMode.Serverless.toString())
+                        .engine("aurora-mysql")
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(restoreCaptor.capture());
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        // We expect the default engine-specific port to be set
+        Assertions.assertThat(restoreCaptor.getValue().port()).isNotNull();
+        // Modify request should have no port as it is the same as the default
+        Assertions.assertThat(modifyCaptor.getValue().port()).isNull();
     }
 
     @Test

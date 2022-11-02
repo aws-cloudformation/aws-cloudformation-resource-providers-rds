@@ -77,7 +77,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ModifyDbClusterEndpoint_NotFound() {
+    public void handleRequest_ModifyDbEngineVersion_NotFound() {
 
         when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
                 .thenThrow(CustomDbEngineVersionNotFoundException.builder().message(MSG_NOT_FOUND).build());

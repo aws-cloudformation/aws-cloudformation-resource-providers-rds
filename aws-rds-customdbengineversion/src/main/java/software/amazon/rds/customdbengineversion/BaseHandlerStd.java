@@ -62,7 +62,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidCustomDbEngineVersionStateException.class)
             .build();
 
-    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+    private final FilteredJsonPrinter EMPTY_FILTER = new FilteredJsonPrinter();
 
     protected final HandlerConfig config;
 
@@ -80,7 +80,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return RequestLogger.handleRequest(
                 logger,
                 request,
-                PARAMETERS_FILTER,
+                EMPTY_FILTER,
                 requestLogger -> handleRequest(
                         proxy,
                         request,
@@ -102,16 +102,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         try {
             final String status = fetchDBEngineVersion(model, proxyClient).status();
             assertNoCustomDbEngineVersionTerminalStatus(status);
-            return CustomDBEngineVersionStatus.fromString(status).isStable();
+            return status != null && CustomDBEngineVersionStatus.fromString(status).isStable();
         } catch (CustomDbEngineVersionNotFoundException exception) {
             return false;
-        }
-    }
-
-    protected void assertCustomDbEngineVersionStableStatus(final String source) throws CfnNotStabilizedException {
-        CustomDBEngineVersionStatus status = CustomDBEngineVersionStatus.fromString(source);
-        if (status == null || !status.isStable()) {
-            throw new CfnInvalidRequestException(new Exception("Invalid Custom DB Engine Version state: " + source + " valid values: [available, inactive, inactive-except-restore]"));
         }
     }
 

@@ -79,7 +79,12 @@
     "Status": {
       "type": "string",
       "description": "The availability status to be assigned to the CEV.",
-      "default": "available"
+      "default": "available",
+      "enum": [
+        "available",
+        "inactive",
+        "inactive-except-restore"
+      ]
     },
     "Tags": {
       "description": "An array of key-value pairs to apply to this resource.",

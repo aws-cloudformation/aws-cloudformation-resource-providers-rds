@@ -653,6 +653,32 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_DoNotSetDefaultPortOnUpdate() {
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engineMode(EngineMode.Serverless.toString())
+                        .engine(ENGINE_AURORA_POSTGRESQL)
+                        .port(null)
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engineMode(EngineMode.Serverless.toString())
+                        .engine(ENGINE_AURORA_POSTGRESQL)
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterRequest> captor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(captor.capture());
+        Assertions.assertThat(captor.getValue().port()).isNull();
+    }
+
+    @Test
     public void handleRequest_EngineVersionUpdateIfMismatch() {
         final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);

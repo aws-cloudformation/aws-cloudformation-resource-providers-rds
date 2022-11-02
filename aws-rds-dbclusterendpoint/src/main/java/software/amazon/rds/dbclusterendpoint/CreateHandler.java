@@ -85,10 +85,6 @@ public class CreateHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .done((createRequest, createResponse, proxyInvocation, model, context) ->
-                {
-                    context.setDbClusterEndpointArn(createResponse.dbClusterEndpointArn());
-                    return ProgressEvent.progress(model, context);
-                });
+                .progress();
     }
 }

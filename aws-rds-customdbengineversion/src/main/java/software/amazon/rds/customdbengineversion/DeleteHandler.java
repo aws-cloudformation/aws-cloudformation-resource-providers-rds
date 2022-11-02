@@ -30,8 +30,8 @@ public class DeleteHandler extends BaseHandlerStd {
         return proxy.initiate("rds::delete-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteCustomDbEngineVersion)
                 .backoffDelay(config.getBackoff())
-                .makeServiceCall((deleteDbClusterEndpointRequest, proxyInvocation) ->
-                        proxyInvocation.injectCredentialsAndInvokeV2(deleteDbClusterEndpointRequest, proxyInvocation.client()::deleteCustomDBEngineVersion))
+                .makeServiceCall((deleteDbEngineVersionRequest, proxyInvocation) ->
+                        proxyInvocation.injectCredentialsAndInvokeV2(deleteDbEngineVersionRequest, proxyInvocation.client()::deleteCustomDBEngineVersion))
                 .stabilize((deleteRequest, deleteResponse, proxyInvocation, model, context) ->
                         isDeleted(model, proxyInvocation))
                 .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
