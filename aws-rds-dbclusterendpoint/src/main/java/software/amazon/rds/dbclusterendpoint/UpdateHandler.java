@@ -47,7 +47,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(desiredModel, callbackContext)
                 .then(progress -> updateEndpoint(proxy, request, callbackContext, proxyClient))
-                .then(progress -> updateTags(proxy, proxyClient, progress, callbackContext.getDbClusterEndpointArn(), previousTags, desiredTags))
+                .then(progress -> updateTags(proxy, proxyClient, progress, progress.getResourceModel().getDBClusterEndpointArn(), previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
@@ -70,10 +70,6 @@ public class UpdateHandler extends BaseHandlerStd {
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
                         DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET))
-                .done((modifyRequest, modifyResponse, proxyInvocation, model, context) ->
-                {
-                    context.setDbClusterEndpointArn(modifyResponse.dbClusterEndpointArn());
-                    return ProgressEvent.progress(model, context);
-                });
+                .progress();
     }
 }
