@@ -312,6 +312,14 @@
       "description": "The open mode of an Oracle read replica. The default is open-read-only.",
       "type": "string"
     },
+    "RestoreTime": {
+      "description": "The date and time to restore from.",
+      "type": "string"
+    },
+    "SourceDBInstanceAutomatedBackupsArn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) of the replicated automated backups from which to restore."
+    },
     "SourceDBInstanceIdentifier": {
       "type": "string",
       "description": "If you want to create a Read Replica DB instance, specify the ID of the source DB instance. Each DB instance can have a limited number of Read Replicas."
@@ -341,6 +349,10 @@
       },
       "description": "Tags to assign to the DB instance."
     },
+    "TargetDBInstanceIdentifier": {
+      "type": "string",
+      "description": "The name of the new DB instance to be created."
+    },
     "TdeCredentialArn": {
       "type": "string",
       "description": "The ARN from the key store with which to associate the instance for TDE encryption."
@@ -356,6 +368,10 @@
     "UseDefaultProcessorFeatures": {
       "type": "boolean",
       "description": "A value that indicates whether the DB instance class of the DB instance uses its default processor features."
+    },
+    "UseLatestRestorableTime": {
+      "type": "boolean",
+      "description": "A value that indicates whether the DB instance is restored from the latest backup time. By default, the DB instance isn't restored from the latest backup time."
     },
     "VPCSecurityGroups": {
       "type": "array",
@@ -374,7 +390,9 @@
     "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
     "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
     "/properties/OptionGroupName": "$lowercase(OptionGroupName)",
-    "/properties/SourceDBInstanceIdentifier": "$lowercase(SourceDBInstanceIdentifier)"
+    "/properties/SourceDBInstanceAutomatedBackupsArn": "$lowercase(SourceDBInstanceAutomatedBackupsArn)",
+    "/properties/SourceDBInstanceIdentifier": "$lowercase(SourceDBInstanceIdentifier)",
+    "/properties/TargetDBInstanceIdentifier": "$lowercase(TargetDBInstanceIdentifier)"
   },
   "createOnlyProperties": [
     "/properties/CharacterSetName",
@@ -387,9 +405,13 @@
     "/properties/MasterUsername",
     "/properties/NcharCharacterSetName",
     "/properties/Port",
+    "/properties/RestoreTime",
+    "/properties/SourceDBInstanceAutomatedBackupsArn",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
-    "/properties/Timezone"
+    "/properties/TargetDBInstanceIdentifier",
+    "/properties/Timezone",
+    "/properties/UseLatestRestorableTime"
   ],
   "conditionalCreateOnlyProperties": [
     "/properties/DBSnapshotIdentifier",
@@ -450,7 +472,8 @@
         "rds:DescribeDBSnapshots",
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",
-        "rds:RestoreDBInstanceFromDBSnapshot"
+        "rds:RestoreDBInstanceFromDBSnapshot",
+        "rds:RestoreDBInstanceToPointInTime"
       ],
       "timeoutInMinutes": 2160
     },

@@ -61,16 +61,20 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#promotiontier" title="PromotionTier">PromotionTier</a>" : <i>Integer</i>,
         "<a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>" : <i>Boolean</i>,
         "<a href="#replicamode" title="ReplicaMode">ReplicaMode</a>" : <i>String</i>,
+        "<a href="#restoretime" title="RestoreTime">RestoreTime</a>" : <i>String</i>,
+        "<a href="#sourcedbinstanceautomatedbackupsarn" title="SourceDBInstanceAutomatedBackupsArn">SourceDBInstanceAutomatedBackupsArn</a>" : <i>String</i>,
         "<a href="#sourcedbinstanceidentifier" title="SourceDBInstanceIdentifier">SourceDBInstanceIdentifier</a>" : <i>String</i>,
         "<a href="#sourceregion" title="SourceRegion">SourceRegion</a>" : <i>String</i>,
         "<a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>" : <i>Boolean</i>,
         "<a href="#storagetype" title="StorageType">StorageType</a>" : <i>String</i>,
         "<a href="#storagethroughput" title="StorageThroughput">StorageThroughput</a>" : <i>Integer</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>,
+        "<a href="#targetdbinstanceidentifier" title="TargetDBInstanceIdentifier">TargetDBInstanceIdentifier</a>" : <i>String</i>,
         "<a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>" : <i>String</i>,
         "<a href="#tdecredentialpassword" title="TdeCredentialPassword">TdeCredentialPassword</a>" : <i>String</i>,
         "<a href="#timezone" title="Timezone">Timezone</a>" : <i>String</i>,
         "<a href="#usedefaultprocessorfeatures" title="UseDefaultProcessorFeatures">UseDefaultProcessorFeatures</a>" : <i>Boolean</i>,
+        "<a href="#uselatestrestorabletime" title="UseLatestRestorableTime">UseLatestRestorableTime</a>" : <i>Boolean</i>,
         "<a href="#vpcsecuritygroups" title="VPCSecurityGroups">VPCSecurityGroups</a>" : <i>[ String, ... ]</i>
     }
 }
@@ -134,6 +138,8 @@ Properties:
     <a href="#promotiontier" title="PromotionTier">PromotionTier</a>: <i>Integer</i>
     <a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>: <i>Boolean</i>
     <a href="#replicamode" title="ReplicaMode">ReplicaMode</a>: <i>String</i>
+    <a href="#restoretime" title="RestoreTime">RestoreTime</a>: <i>String</i>
+    <a href="#sourcedbinstanceautomatedbackupsarn" title="SourceDBInstanceAutomatedBackupsArn">SourceDBInstanceAutomatedBackupsArn</a>: <i>String</i>
     <a href="#sourcedbinstanceidentifier" title="SourceDBInstanceIdentifier">SourceDBInstanceIdentifier</a>: <i>String</i>
     <a href="#sourceregion" title="SourceRegion">SourceRegion</a>: <i>String</i>
     <a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>: <i>Boolean</i>
@@ -141,10 +147,12 @@ Properties:
     <a href="#storagethroughput" title="StorageThroughput">StorageThroughput</a>: <i>Integer</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
+    <a href="#targetdbinstanceidentifier" title="TargetDBInstanceIdentifier">TargetDBInstanceIdentifier</a>: <i>String</i>
     <a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>: <i>String</i>
     <a href="#tdecredentialpassword" title="TdeCredentialPassword">TdeCredentialPassword</a>: <i>String</i>
     <a href="#timezone" title="Timezone">Timezone</a>: <i>String</i>
     <a href="#usedefaultprocessorfeatures" title="UseDefaultProcessorFeatures">UseDefaultProcessorFeatures</a>: <i>Boolean</i>
+    <a href="#uselatestrestorabletime" title="UseLatestRestorableTime">UseLatestRestorableTime</a>: <i>Boolean</i>
     <a href="#vpcsecuritygroups" title="VPCSecurityGroups">VPCSecurityGroups</a>: <i>
       - String</i>
 </pre>
@@ -663,6 +671,26 @@ _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### RestoreTime
+
+The date and time to restore from.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### SourceDBInstanceAutomatedBackupsArn
+
+The Amazon Resource Name (ARN) of the replicated automated backups from which to restore.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
 #### SourceDBInstanceIdentifier
 
 If you want to create a Read Replica DB instance, specify the ID of the source DB instance. Each DB instance can have a limited number of Read Replicas.
@@ -723,6 +751,16 @@ _Type_: List of <a href="tag.md">Tag</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### TargetDBInstanceIdentifier
+
+The name of the new DB instance to be created.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
 #### TdeCredentialArn
 
 The ARN from the key store with which to associate the instance for TDE encryption.
@@ -762,6 +800,16 @@ _Required_: No
 _Type_: Boolean
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### UseLatestRestorableTime
+
+A value that indicates whether the DB instance is restored from the latest backup time. By default, the DB instance isn't restored from the latest backup time.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### VPCSecurityGroups
 

@@ -2,6 +2,8 @@ package software.amazon.rds.dbinstance;
 
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,7 +38,9 @@ import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
@@ -259,6 +263,61 @@ public class Translator {
                 .timezone(model.getTimezone())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
                 .build();
+    }
+
+    static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
+        final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
+                .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
+                .availabilityZone(model.getAvailabilityZone())
+//                .backupTarget(model.getba)
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
+                .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
+                .dbInstanceClass(model.getDBInstanceClass())
+                .dbName(model.getDBName())
+                .dbParameterGroupName(model.getDBParameterGroupName())
+                .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .deletionProtection(model.getDeletionProtection())
+                .domain(model.getDomain())
+                .domainIAMRoleName(model.getDomainIAMRoleName())
+                .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
+//                .enableCustomerOwnedIp()
+                .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
+                .engine(model.getEngine())
+                .iops(model.getIops())
+                .licenseModel(model.getLicenseModel())
+                .maxAllocatedStorage(model.getMaxAllocatedStorage())
+                .multiAZ(model.getMultiAZ())
+                .networkType(model.getNetworkType())
+                .optionGroupName(model.getOptionGroupName())
+                .port(translatePortToSdk(model.getPort()))
+                .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
+                .publiclyAccessible(model.getPubliclyAccessible())
+                .restoreTime(null) // FIXME
+//                .sourceDBInstanceAutomatedBackupsArn()
+                .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
+//                .sourceDbiResourceId()
+//                .sourceDBInstanceAutomatedBackupsArn(model.getsour)
+                .storageType(model.getStorageType())
+                .tags(Tagging.translateTagsToSdk(tagSet))
+                .targetDBInstanceIdentifier(model.getTargetDBInstanceIdentifier())
+                .tdeCredentialArn(model.getTdeCredentialArn())
+                .tdeCredentialPassword(model.getTdeCredentialPassword())
+                .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
+                .useLatestRestorableTime(model.getUseLatestRestorableTime())
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        if (ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)) {
+            builder.storageType(model.getStorageType());
+        }
+
+        return builder.build();
+
+//        return builder.build();
+//        return RestoreDbInstanceFromDbSnapshotRequest.builder()
+//                .build();
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequestV12(

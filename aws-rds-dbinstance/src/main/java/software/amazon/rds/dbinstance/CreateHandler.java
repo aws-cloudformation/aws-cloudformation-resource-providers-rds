@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.utils.ImmutableMap;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -25,6 +26,8 @@ import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.RequestValidationException;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
+
+import static software.amazon.cloudformation.proxy.ProgressEvent.progress;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -66,11 +69,16 @@ public class CreateHandler extends BaseHandlerStd {
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
-            model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
-                    .withStackId(request.getStackId())
-                    .withResourceId(request.getLogicalResourceIdentifier())
-                    .withRequestToken(request.getClientRequestToken())
-                    .toString());
+            if (!StringUtils.isNullOrEmpty(model.getTargetDBInstanceIdentifier())) {
+                // Customer only needs to specify TargetDBInstanceIdentifier for a RestoreToPointInTime
+                model.setDBInstanceIdentifier(model.getTargetDBInstanceIdentifier());
+            } else {
+                model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
+                        .withStackId(request.getStackId())
+                        .withResourceId(request.getLogicalResourceIdentifier())
+                        .withRequestToken(request.getClientRequestToken())
+                        .toString());
+            }
         }
 
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
@@ -81,8 +89,19 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
-                        // createDBInstanceReadReplica is not a versioned call, unlike the others.
+                    if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
+                        if (StringUtils.isNullOrEmpty(model.getTargetDBInstanceIdentifier())) {
+                            model.setTargetDBInstanceIdentifier(model.getDBInstanceIdentifier());
+                        }
+                        if (!model.getDBInstanceIdentifier().equals(model.getTargetDBInstanceIdentifier())) {
+                            throw new CfnInvalidRequestException(String.format("TargetDBInstanceIdentifier %s and DBInstanceIdentifier %s don't match", model.getTargetDBInstanceIdentifier(), model.getDBInstanceIdentifier()));
+                        }
+
+                        // restoreDBInstanceToPointInTime is not a versioned call.
+                        return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
+                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
+                    } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
+                        // createDBInstanceReadReplica is not a versioned call.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel())) {
@@ -237,6 +256,33 @@ public class CreateHandler extends BaseHandlerStd {
                 .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         restoreRequest,
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
+                ))
+                .stabilize((request, response, proxyInvocation, model, context) ->
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceToPointInTimeRequest( // FIXME
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
+    ) {
+        return proxy.initiate(
+                        "rds::restore-db-instance-to-point-in-time",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(model -> Translator.restoreDbInstanceToPointInTimeRequest(model, tagSet))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        restoreRequest,
+                        proxyInvocation.client()::restoreDBInstanceToPointInTime
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
                         isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
