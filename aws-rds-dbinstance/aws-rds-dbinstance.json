@@ -395,7 +395,6 @@
     "/properties/BackupRetentionPeriod",
     "/properties/DBParameterGroupName",
     "/properties/Engine",
-    "/properties/MonitoringInterval",
     "/properties/MultiAZ",
     "/properties/PerformanceInsightsKMSKeyId",
     "/properties/PreferredMaintenanceWindow",
