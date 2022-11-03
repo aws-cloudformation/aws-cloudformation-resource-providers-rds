@@ -30,9 +30,10 @@ public final class ResourceModelHelper {
 
     public static boolean isRestoreToPointInTime(final ResourceModel model) {
 //         Parameters to rely on are UseLatestRestorableTime and RestoreTime to tell if this is a RestoreToPointInTime
-//         But TargetDBInstanceIdentifier is unique to RestoreToPointInTime so the call should go to RestoreToPointInTime and fail if UseLatestRestorableTime or RestoreTime isn't set
+//         But TargetDBInstanceIdentifier, SourceDBInstanceAutomatedBackupsArn and DbiResourceId are also unique identifying parameters of RestoreToPointInTime
         return (model.getUseLatestRestorableTime() != null && model.getUseLatestRestorableTime() == true) || StringUtils.hasValue(model.getRestoreTime())  ||
-                StringUtils.hasValue(model.getTargetDBInstanceIdentifier()) || StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn());
+                StringUtils.hasValue(model.getTargetDBInstanceIdentifier()) || StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn()) ||
+                StringUtils.hasValue(model.getDbiResourceId());
     }
 
     private static boolean isCertificateAuthorityApplied(final ResourceModel model) {

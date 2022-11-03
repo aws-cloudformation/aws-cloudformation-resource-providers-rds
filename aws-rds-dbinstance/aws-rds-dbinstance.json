@@ -316,6 +316,10 @@
       "description": "The date and time to restore from.",
       "type": "string"
     },
+    "SourceDbiResourceId": {
+      "type": "string",
+      "description": "The resource ID of the source DB instance from which to restore."
+    },
     "SourceDBInstanceAutomatedBackupsArn": {
       "type": "string",
       "description": "The Amazon Resource Name (ARN) of the replicated automated backups from which to restore."

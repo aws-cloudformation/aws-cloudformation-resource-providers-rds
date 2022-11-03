@@ -62,6 +62,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>" : <i>Boolean</i>,
         "<a href="#replicamode" title="ReplicaMode">ReplicaMode</a>" : <i>String</i>,
         "<a href="#restoretime" title="RestoreTime">RestoreTime</a>" : <i>String</i>,
+        "<a href="#sourcedbiresourceid" title="SourceDbiResourceId">SourceDbiResourceId</a>" : <i>String</i>,
         "<a href="#sourcedbinstanceautomatedbackupsarn" title="SourceDBInstanceAutomatedBackupsArn">SourceDBInstanceAutomatedBackupsArn</a>" : <i>String</i>,
         "<a href="#sourcedbinstanceidentifier" title="SourceDBInstanceIdentifier">SourceDBInstanceIdentifier</a>" : <i>String</i>,
         "<a href="#sourceregion" title="SourceRegion">SourceRegion</a>" : <i>String</i>,
@@ -139,6 +140,7 @@ Properties:
     <a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>: <i>Boolean</i>
     <a href="#replicamode" title="ReplicaMode">ReplicaMode</a>: <i>String</i>
     <a href="#restoretime" title="RestoreTime">RestoreTime</a>: <i>String</i>
+    <a href="#sourcedbiresourceid" title="SourceDbiResourceId">SourceDbiResourceId</a>: <i>String</i>
     <a href="#sourcedbinstanceautomatedbackupsarn" title="SourceDBInstanceAutomatedBackupsArn">SourceDBInstanceAutomatedBackupsArn</a>: <i>String</i>
     <a href="#sourcedbinstanceidentifier" title="SourceDBInstanceIdentifier">SourceDBInstanceIdentifier</a>: <i>String</i>
     <a href="#sourceregion" title="SourceRegion">SourceRegion</a>: <i>String</i>
@@ -680,6 +682,16 @@ _Required_: No
 _Type_: String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### SourceDbiResourceId
+
+The resource ID of the source DB instance from which to restore.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### SourceDBInstanceAutomatedBackupsArn
 

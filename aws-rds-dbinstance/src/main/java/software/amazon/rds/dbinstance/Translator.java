@@ -296,10 +296,9 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreTime(null) // FIXME
-//                .sourceDBInstanceAutomatedBackupsArn()
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
-//                .sourceDbiResourceId()
-//                .sourceDBInstanceAutomatedBackupsArn(model.getsour)
+                .sourceDbiResourceId(model.getDbiResourceId())
+                .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .targetDBInstanceIdentifier(model.getTargetDBInstanceIdentifier())

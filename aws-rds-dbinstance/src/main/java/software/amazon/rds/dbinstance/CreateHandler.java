@@ -80,6 +80,8 @@ public class CreateHandler extends BaseHandlerStd {
                         .toString());
             }
         }
+//        model.setDBInstanceIdentifier(model.getTargetDBInstanceIdentifier()); FIXME: If this line is uncommented then
+
 
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
