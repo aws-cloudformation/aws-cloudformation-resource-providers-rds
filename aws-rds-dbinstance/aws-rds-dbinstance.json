@@ -378,7 +378,6 @@
     "/properties/DBClusterIdentifier",
     "/properties/DBInstanceIdentifier",
     "/properties/DBName",
-    "/properties/DBSnapshotIdentifier",
     "/properties/DBSubnetGroupName",
     "/properties/KmsKeyId",
     "/properties/MasterUsername",
@@ -390,6 +389,7 @@
     "/properties/Timezone"
   ],
   "conditionalCreateOnlyProperties": [
+    "/properties/DBSnapshotIdentifier",
     "/properties/AutoMinorVersionUpgrade",
     "/properties/AvailabilityZone",
     "/properties/BackupRetentionPeriod",
