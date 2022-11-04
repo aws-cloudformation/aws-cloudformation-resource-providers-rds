@@ -61,10 +61,16 @@ public final class ImmutabilityHelper {
                 isReadReplicaPromotion(previous, desired);
     }
 
+    public static boolean isDBSnapshotIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getDBSnapshotIdentifier(), desired.getDBSnapshotIdentifier()) ||
+                StringUtils.isNullOrEmpty(desired.getDBSnapshotIdentifier());
+    }
+
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return isEngineMutable(previous, desired) &&
                 isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
                 isAvailabilityZoneChangeMutable(previous, desired) &&
-                isSourceDBInstanceIdentifierMutable(previous, desired);
+                isSourceDBInstanceIdentifierMutable(previous, desired) &&
+                isDBSnapshotIdentifierMutable(previous, desired);
     }
 }
