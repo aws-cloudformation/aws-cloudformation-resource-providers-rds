@@ -1550,32 +1550,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
-//    @Test
-    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_TargetDBInstanceIdentifier_FAILS_FIXME() { // Why does this fail? I think it's because of the waiters and queue
-        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
-        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
-                .thenReturn(restoreResponse);
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-        context.setUpdated(true);
-        context.setRebooted(true);
-        context.setUpdatedRoles(false);
-
-
-        test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
-                        .build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-    }
-
     @Test
     public void handleRequest_RestoreDBInstanceToPointInTime_NullIdentifiers() {
         final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();

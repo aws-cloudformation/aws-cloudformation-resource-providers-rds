@@ -78,8 +78,6 @@ public class CreateHandler extends BaseHandlerStd {
                         .toString());
             }
         }
-//        model.setDBInstanceIdentifier(model.getTargetDBInstanceIdentifier()); FIXME: If this line is uncommented then
-
 
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
@@ -269,7 +267,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .progress();
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceToPointInTimeRequest( // FIXME
+    private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceToPointInTimeRequest(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
