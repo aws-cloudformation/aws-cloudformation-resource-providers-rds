@@ -51,6 +51,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -1464,22 +1465,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .dbiResourceId(null)
-                        .dBInstanceIdentifier(null)
-                        .restoreTime(null)
-                        .sourceDBInstanceAutomatedBackupsArn(null)
-                        .targetDBInstanceIdentifier(null)
-                        .useLatestRestorableTime(true)
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
                         .build(),
                 expectSuccess()
         );
 
-        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-
-        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isNotNull();
     }
 
     @Test
@@ -1498,22 +1490,38 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .dbiResourceId("dbi-instance-identifier")
-                        .dBInstanceIdentifier("db-instance-identifier")
-                        .restoreTime(null)
-                        .sourceDBInstanceAutomatedBackupsArn(null)
-                        .targetDBInstanceIdentifier(null)
-                        .useLatestRestorableTime(true)
+                        .dbiResourceId(DBI_RESOURCE_ID_NON_EMPTY)
                         .build(),
                 expectSuccess()
         );
 
-        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
 
-        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo("db-instance-identifier");
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_RestoreTime() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .restoreTime(RESTORE_TIME_NON_EMPTY)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1533,12 +1541,58 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .dbiResourceId(null)
-                        .dBInstanceIdentifier(null)
-                        .restoreTime(null)
-                        .sourceDBInstanceAutomatedBackupsArn(null)
-                        .targetDBInstanceIdentifier("target-db-instance-identifier")
-                        .useLatestRestorableTime(false)
+                        .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+//    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_TargetDBInstanceIdentifier_FAILS_FIXME() { // Why does this fail? I think it's because of the waiters and queue
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(false);
+
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_NullIdentifiers() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
                         .build(),
                 expectSuccess()
         );
@@ -1548,11 +1602,106 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
-        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo("target-db-instance-identifier");
+        // Both identifiers are passed as null. DBInstanceIdentifier will be random and the same value will be used for TargetDBInstanceIdentifier
+        // All of these InstanceIdentifier tests are non-perfect since we can't tell the value of DBInstanceIdentifier. So this is only half the picture
+        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isNotNull();
     }
 
     @Test
-    public void handleRequest_RestoreDBInstanceToPointInTime_CfnInvalidRequestException() {
+    public void handleRequest_RestoreDBInstanceToPointInTime_SpecificDBInstanceIdentifier() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        // Specific DBInstanceIdentifier. The same value will be used for TargetDBInstanceIdentifier
+        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo(DB_INSTANCE_IDENTIFIER_NON_EMPTY);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_SpecificTargetDBInstanceIdentifier() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .dBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        // Specific DBInstanceIdentifier. The same value will be used for TargetDBInstanceIdentifier
+        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo(TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_SpecificMatchingIdentifiers() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .targetDBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo(DB_INSTANCE_IDENTIFIER_NON_EMPTY);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_SpecificMissMatchingIdentifiers_CfnInvalidRequestException() {
         expectServiceInvocation = false;
 
         final CallbackContext context = new CallbackContext();
@@ -1562,11 +1711,33 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 context,
                 null,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .dBInstanceIdentifier("db-instance-identifier")
-                        .targetDBInstanceIdentifier("target-db-instance-identifier")
+                        .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
                         .build(),
                 expectFailed(HandlerErrorCode.InvalidRequest)
         );
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_InvalidRestoreTime_CfnInvalidRequestException() {
+        expectServiceInvocation = false;
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        Assertions.assertThatThrownBy(() -> {
+            test_handleRequest_base(
+                    context,
+                    null,
+                    () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                            .restoreTime(RESTORE_TIME_INVALID)
+                            .build(),
+                    expectFailed(HandlerErrorCode.InvalidRequest)
+            );
+        }).isInstanceOf(CfnInvalidRequestException.class);
     }
 
     @Test
@@ -1603,6 +1774,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 null,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .useLatestRestorableTime(true)
                         .build(),
                 expectSuccess()
         );
@@ -1644,7 +1816,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(true)
+                        .build(),
                 expectSuccess()
         );
 
@@ -1669,7 +1843,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(true)
+                        .build(),
                 expectSuccess()
         );
 

@@ -176,11 +176,16 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String VPC_SECURITY_GROUP_NAME_DEFAULT = "default";
 
     protected static final String DBI_RESOURCE_ID_EMPTY = null;
+    protected static final String DBI_RESOURCE_ID_NON_EMPTY = "dbi-instance-identifier";
     protected static final String REPLICA_MODE_EMPTY = null;
     protected static final String RESTORE_TIME_EMPTY = null;
+    protected static final String RESTORE_TIME_INVALID = "invalid-date-format";
+    protected static final String RESTORE_TIME_NON_EMPTY = "2022-11-05 15:20:00";
     protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY = null;
     protected static final String TARGET_DB_INSTANCE_IDENTIFIER_EMPTY = null;
+    protected static final String TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY = "target-db-instance-identifier";
     protected static final boolean USE_LATEST_RESTORABLE_TIME_NO = false;
+    protected static final boolean USE_LATEST_RESTORABLE_TIME_YES = true;
 
 
 
@@ -463,6 +468,10 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT))
                 .build();
 
+        // The impactful properties of this call are:
+        //          .dbiResourceId, .dBInstanceIdentifier, .restoreTime, .sourceDBInstanceAutomatedBackupsArn,
+        //          .targetDBInstanceIdentifier, .useLatestRestorableTime
+        // They've all been set to null or false to be set as required by the necessary tests
         RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME = ResourceModel.builder()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())
                 .associatedRoles(ASSOCIATED_ROLES)
@@ -473,7 +482,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .characterSetName(CHARACTER_SET_NAME)
                 .copyTagsToSnapshot(COPY_TAGS_TO_SNAPSHOT_YES)
                 .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_EMPTY)
-                .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_EMPTY)
+                .dbiResourceId(DBI_RESOURCE_ID_EMPTY)
                 .dBName(DB_NAME)
                 .dBParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
                 .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_NON_EMPTY) // setting this field marks the instance as recovering from the snapshot
@@ -505,15 +515,18 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
+                .restoreTime(RESTORE_TIME_EMPTY)
+                .sourceDBInstanceAutomatedBackupsArn(SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .sourceRegion(SOURCE_REGION_EMPTY)
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .storageType(STORAGE_TYPE_STANDARD)
                 .tags(TAG_LIST)
+                .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .timezone(TIMEZONE_DEFAULT)
                 .useDefaultProcessorFeatures(USE_DEFAULT_PROCESSOR_FEATURES_YES)
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT))
-                .useLatestRestorableTime(true)
+                .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_NO)
                 .build();
 
         DB_INSTANCE_BASE = DBInstance.builder()

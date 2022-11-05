@@ -2,7 +2,9 @@ package software.amazon.rds.dbinstance;
 
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +44,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRe
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
@@ -265,10 +268,27 @@ public class Translator {
                 .build();
     }
 
+    static Instant stringToInstant(String restoreTimeString) {
+        if (com.amazonaws.util.StringUtils.hasValue(restoreTimeString)) {
+            try {
+                return LocalDateTime.parse(
+                                restoreTimeString,
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        )
+                        .atOffset(ZoneOffset.ofHours(0))
+                        .toInstant();
+            } catch (Exception e) {
+                throw new CfnInvalidRequestException(new Exception("Unable to parse RestoreTime"));
+            }
+        }
+        return null;
+    }
+
     static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
+
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
@@ -295,7 +315,7 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .restoreTime(null) // FIXME
+                .restoreTime(stringToInstant(model.getRestoreTime()))
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceDbiResourceId(model.getDbiResourceId())
                 .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
