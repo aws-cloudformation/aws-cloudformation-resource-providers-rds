@@ -10,8 +10,8 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.utils.ImmutableMap;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -26,8 +26,6 @@ import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.RequestValidationException;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
-
-import static software.amazon.cloudformation.proxy.ProgressEvent.progress;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -96,7 +94,9 @@ public class CreateHandler extends BaseHandlerStd {
                             model.setTargetDBInstanceIdentifier(model.getDBInstanceIdentifier());
                         }
                         if (!model.getDBInstanceIdentifier().equals(model.getTargetDBInstanceIdentifier())) {
-                            throw new CfnInvalidRequestException(String.format("TargetDBInstanceIdentifier %s and DBInstanceIdentifier %s don't match", model.getTargetDBInstanceIdentifier(), model.getDBInstanceIdentifier()));
+                            return ProgressEvent.failed(model, progress.getCallbackContext(), HandlerErrorCode.InvalidRequest,
+                                        String.format("TargetDBInstanceIdentifier %s and DBInstanceIdentifier %s don't match",
+                                        model.getTargetDBInstanceIdentifier(), model.getDBInstanceIdentifier()));
                         }
 
                         // restoreDBInstanceToPointInTime is not a versioned call.

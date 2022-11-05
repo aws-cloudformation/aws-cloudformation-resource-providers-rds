@@ -175,6 +175,15 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Boolean USE_DEFAULT_PROCESSOR_FEATURES_NO = false;
     protected static final String VPC_SECURITY_GROUP_NAME_DEFAULT = "default";
 
+    protected static final String DBI_RESOURCE_ID_EMPTY = null;
+    protected static final String REPLICA_MODE_EMPTY = null;
+    protected static final String RESTORE_TIME_EMPTY = null;
+    protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY = null;
+    protected static final String TARGET_DB_INSTANCE_IDENTIFIER_EMPTY = null;
+    protected static final boolean USE_LATEST_RESTORABLE_TIME_NO = false;
+
+
+
     protected static final String MSG_ALREADY_EXISTS_ERR = "DBInstance already exists";
     protected static final String MSG_NOT_FOUND_ERR = "DBInstance not found";
     protected static final String MSG_GENERIC_ERR = "Error";
@@ -183,6 +192,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final ResourceModel RESOURCE_MODEL_ALTER;
     protected static final ResourceModel RESOURCE_MODEL_READ_REPLICA;
     protected static final ResourceModel RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT;
+    protected static final ResourceModel RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME;
 
     protected static final DBInstance DB_INSTANCE_BASE;
     protected static final DBInstance DB_INSTANCE_ACTIVE;
@@ -453,6 +463,59 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT))
                 .build();
 
+        RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME = ResourceModel.builder()
+                .allocatedStorage(ALLOCATED_STORAGE.toString())
+                .associatedRoles(ASSOCIATED_ROLES)
+                .autoMinorVersionUpgrade(AUTO_MINOR_VERSION_UPGRADE_YES)
+                .availabilityZone(AVAILABILITY_ZONE)
+                .backupRetentionPeriod(BACKUP_RETENTION_PERIOD_DEFAULT)
+                .cACertificateIdentifier(CA_CERTIFICATE_IDENTIFIER_NON_EMPTY)
+                .characterSetName(CHARACTER_SET_NAME)
+                .copyTagsToSnapshot(COPY_TAGS_TO_SNAPSHOT_YES)
+                .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_EMPTY)
+                .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                .dBName(DB_NAME)
+                .dBParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
+                .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_NON_EMPTY) // setting this field marks the instance as recovering from the snapshot
+                .dBSubnetGroupName(DB_SUBNET_GROUP_NAME_DEFAULT)
+                .deleteAutomatedBackups(DELETE_AUTOMATED_BACKUPS_YES)
+                .deletionProtection(DELETION_PROTECTION_NO)
+                .domain(DOMAIN_EMPTY)
+                .domainIAMRoleName(DOMAIN_IAM_ROLE_NAME_EMPTY)
+                .enableCloudwatchLogsExports(ImmutableList.of())
+                .enableIAMDatabaseAuthentication(ENABLE_IAM_DATABASE_AUTHENTICATION_NO)
+                .enablePerformanceInsights(ENABLE_PERFORMANCE_INSIGHTS_NO)
+                .engine(ENGINE_MYSQL)
+                .engineVersion(ENGINE_VERSION_MYSQL_56)
+                .iops(IOPS_DEFAULT)
+                .kmsKeyId(KMS_KEY_ID_EMPTY)
+                .licenseModel(LICENSE_MODEL_LICENSE_INCLUDED)
+                .masterUsername(MASTER_USERNAME)
+                .masterUserPassword(MASTER_USER_PASSWORD)
+                .maxAllocatedStorage(MAX_ALLOCATED_STORAGE_DEFAULT)
+                .monitoringInterval(MONITORING_INTERVAL_DEFAULT)
+                .monitoringRoleArn(MONITORING_ROLE_ARN)
+                .multiAZ(MULTI_AZ_NO)
+                .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
+                .performanceInsightsKMSKeyId(PERFORMANCE_INSIGHTS_KMS_ID_EMPTY)
+                .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD_DEFAULT)
+                .port(PORT_DEFAULT_STR)
+                .preferredBackupWindow(PREFERRED_BACKUP_WINDOW_EMPTY)
+                .preferredMaintenanceWindow(PREFERRED_MAINTENANCE_WINDOW_EMPTY)
+                .processorFeatures(PROCESSOR_FEATURES)
+                .promotionTier(PROMOTION_TIER_DEFAULT)
+                .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
+                .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
+                .sourceRegion(SOURCE_REGION_EMPTY)
+                .storageEncrypted(STORAGE_ENCRYPTED_NO)
+                .storageType(STORAGE_TYPE_STANDARD)
+                .tags(TAG_LIST)
+                .timezone(TIMEZONE_DEFAULT)
+                .useDefaultProcessorFeatures(USE_DEFAULT_PROCESSOR_FEATURES_YES)
+                .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT))
+                .useLatestRestorableTime(true)
+                .build();
+
         DB_INSTANCE_BASE = DBInstance.builder()
                 .dbInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
                 .dbName(DB_NAME)
@@ -529,6 +592,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .copyTagsToSnapshot(COPY_TAGS_TO_SNAPSHOT_YES)
                 .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_EMPTY)
                 .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                .dbiResourceId(DBI_RESOURCE_ID_EMPTY)
                 .dBName(DB_NAME)
                 .dBParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
                 .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_EMPTY)
@@ -560,13 +624,18 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
+                .replicaMode(REPLICA_MODE_EMPTY)
+                .restoreTime(RESTORE_TIME_EMPTY)
+                .sourceDBInstanceAutomatedBackupsArn(SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .sourceRegion(SOURCE_REGION_EMPTY)
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .storageType(STORAGE_TYPE_STANDARD)
                 .tags(TAG_LIST)
                 .timezone(TIMEZONE_DEFAULT)
+                .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .useDefaultProcessorFeatures(USE_DEFAULT_PROCESSOR_FEATURES_YES)
+                .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_NO)
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT));
     }
 
