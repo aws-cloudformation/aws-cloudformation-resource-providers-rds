@@ -40,8 +40,8 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.error.ErrorCode;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -76,12 +76,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new DeleteHandler(
-                HandlerConfig.builder()
-                        .probingEnabled(false)
-                        .backoff(TEST_BACKOFF_DELAY)
-                        .build()
-        );
+        handler = new DeleteHandler(RuntimeConfig.loadFrom(DeleteHandler.resource(RuntimeConfig.TEST_PROPERTIES)));
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         ec2Client = mock(Ec2Client.class);

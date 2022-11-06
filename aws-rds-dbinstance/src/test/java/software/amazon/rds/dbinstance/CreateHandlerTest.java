@@ -54,8 +54,8 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.error.ErrorCode;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
@@ -124,10 +124,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new CreateHandler(HandlerConfig.builder()
-                .probingEnabled(false)
-                .backoff(TEST_BACKOFF_DELAY)
-                .build());
+        handler = new CreateHandler(RuntimeConfig.loadFrom(CreateHandler.resource(RuntimeConfig.TEST_PROPERTIES)));
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         rdsClientV12 = mock(RdsClient.class);

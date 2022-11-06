@@ -75,8 +75,8 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.error.ErrorCode;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -128,10 +128,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @BeforeEach
     public void setup() {
-        handler = new UpdateHandler(HandlerConfig.builder()
-                .probingEnabled(false)
-                .backoff(TEST_BACKOFF_DELAY)
-                .build());
+        handler = new UpdateHandler(RuntimeConfig.loadFrom(UpdateHandler.resource(RuntimeConfig.TEST_PROPERTIES)));
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         rdsClientV12 = mock(RdsClient.class);

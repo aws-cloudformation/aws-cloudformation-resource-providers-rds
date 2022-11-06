@@ -21,7 +21,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.RequestValidationException;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
@@ -30,7 +30,7 @@ class BaseHandlerStdTest {
 
     class TestBaseHandlerStd extends BaseHandlerStd {
 
-        public TestBaseHandlerStd(HandlerConfig config) {
+        public TestBaseHandlerStd(RuntimeConfig config) {
             super(config);
         }
 

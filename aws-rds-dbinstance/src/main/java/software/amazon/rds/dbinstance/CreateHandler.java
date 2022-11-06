@@ -15,8 +15,9 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.util.ConfigHelper;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
@@ -35,10 +36,10 @@ public class CreateHandler extends BaseHandlerStd {
     );
 
     public CreateHandler() {
-        this(DB_INSTANCE_HANDLER_CONFIG_36H);
+        this(RuntimeConfig.loadFrom(resource(RuntimeConfig.RUNTIME_PROPERTIES)));
     }
 
-    public CreateHandler(final HandlerConfig config) {
+    public CreateHandler(final RuntimeConfig config) {
         super(config);
     }
 
@@ -133,7 +134,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> Commons.execOnce(progress, () ->
                                 updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> new ReadHandler(config).handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
     }
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
@@ -152,7 +153,7 @@ public class CreateHandler extends BaseHandlerStd {
                         progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(Translator::createDbInstanceRequestV12)
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         createRequest,
                         proxyInvocation.client()::createDBInstance
@@ -179,7 +180,7 @@ public class CreateHandler extends BaseHandlerStd {
                         progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(model -> Translator.createDbInstanceRequest(model, tagSet))
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         createRequest,
                         proxyInvocation.client()::createDBInstance
@@ -206,7 +207,7 @@ public class CreateHandler extends BaseHandlerStd {
                         progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(Translator::restoreDbInstanceFromSnapshotRequestV12)
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         restoreRequest,
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
@@ -233,7 +234,7 @@ public class CreateHandler extends BaseHandlerStd {
                         progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(model -> Translator.restoreDbInstanceFromSnapshotRequest(model, tagSet))
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         restoreRequest,
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
@@ -260,7 +261,7 @@ public class CreateHandler extends BaseHandlerStd {
                         progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(model -> Translator.createDbInstanceReadReplicaRequest(model, tagSet))
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         createRequest,
                         proxyInvocation.client()::createDBInstanceReadReplica

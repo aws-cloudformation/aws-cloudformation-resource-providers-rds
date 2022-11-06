@@ -8,17 +8,17 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.request.ValidatedRequest;
 
 public class ListHandler extends BaseHandlerStd {
 
     public ListHandler() {
-        this(DEFAULT_DB_INSTANCE_HANDLER_CONFIG);
+        this(RuntimeConfig.loadFrom(resource(RuntimeConfig.RUNTIME_PROPERTIES)));
     }
 
-    public ListHandler(final HandlerConfig config) {
+    public ListHandler(final RuntimeConfig config) {
         super(config);
     }
 

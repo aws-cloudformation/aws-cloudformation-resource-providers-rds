@@ -1,6 +1,6 @@
 package software.amazon.rds.dbinstance;
 
-import java.time.Duration;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,10 +15,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -72,12 +72,12 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.util.ConfigHelper;
+import software.amazon.rds.common.config.RuntimeConfig;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
@@ -119,14 +119,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             "sqlserver-se"
     );
 
-    protected final static HandlerConfig DEFAULT_DB_INSTANCE_HANDLER_CONFIG = HandlerConfig.builder()
-            .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
-            .build();
-
-    protected final static HandlerConfig DB_INSTANCE_HANDLER_CONFIG_36H = HandlerConfig.builder()
-            .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofHours(36)).build())
-            .build();
-
     protected static final RuntimeException MISSING_METHOD_VERSION_EXCEPTION = new RuntimeException("Missing method version");
 
     // Note: looking up this error message fragment is the only way to distinguish between an already deleting
@@ -142,7 +134,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
-    protected final HandlerConfig config;
+    protected final RuntimeConfig config;
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
 
@@ -298,9 +290,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSnapshotAlreadyExistsException.class)
             .build();
 
-    public BaseHandlerStd(final HandlerConfig config) {
+    public BaseHandlerStd() {
+        this(RuntimeConfig.loadFrom(resource(RuntimeConfig.RUNTIME_PROPERTIES)));
+    }
+
+    public BaseHandlerStd(final RuntimeConfig config) {
         super();
         this.config = config;
+
         this.apiVersionDispatcher = new ApiVersionDispatcher<ResourceModel, CallbackContext>()
                 .register(ApiVersion.V12, (m, c) -> !software.amazon.awssdk.utils.CollectionUtils.isNullOrEmpty(m.getDBSecurityGroups()));
     }
@@ -400,7 +397,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         request.getDesiredResourceState(),
                         BooleanUtils.isTrue(request.getRollback()))
                 )
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
@@ -426,7 +423,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         request.getDesiredResourceState(),
                         BooleanUtils.isTrue(request.getRollback()))
                 )
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
@@ -733,7 +730,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         for (final DBInstanceRole role : rolesToAdd) {
             final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::add-roles-to-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                     .translateToServiceRequest(addRequest -> Translator.addRoleToDbInstanceRequest(progress.getResourceModel(), role))
-                    .backoffDelay(config.getBackoff())
+                    .backoffDelay(ConfigHelper.getBackoff(config))
                     .makeServiceCall((request, proxyInvocation) -> {
                         return proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::addRoleToDBInstance);
                     })
@@ -764,7 +761,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .translateToServiceRequest(removeRequest -> Translator.removeRoleFromDbInstanceRequest(
                             progress.getResourceModel(), role
                     ))
-                    .backoffDelay(config.getBackoff())
+                    .backoffDelay(ConfigHelper.getBackoff(config))
                     .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                             request, proxyInvocation.client()::removeRoleFromDBInstance
                     ))
@@ -795,7 +792,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         progress.getResourceModel(),
                         progress.getCallbackContext()
                 ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
                         proxyInvocation.client()::rebootDBInstance
@@ -828,7 +825,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         progress.getCallbackContext()
                 )
                 .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
+                .backoffDelay(ConfigHelper.getBackoff(config))
                 .makeServiceCall(NOOP_CALL)
                 .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterReboot(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
@@ -908,5 +905,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             throw MISSING_METHOD_VERSION_EXCEPTION;
         }
         return methodVersions.get(apiVersion).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
+    }
+
+    protected static InputStream resource(final String resourceName) {
+        return BaseHandlerStd.class.getClassLoader().getResourceAsStream(resourceName);
     }
 }

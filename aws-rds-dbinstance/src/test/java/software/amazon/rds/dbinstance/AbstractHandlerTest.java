@@ -5,7 +5,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
-import java.time.Duration;
+import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -40,7 +40,6 @@ import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
@@ -190,11 +189,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final DBInstance DB_INSTANCE_MODIFYING;
     protected static final DBInstance DB_INSTANCE_EMPTY_PORT;
     protected static final DBInstance DB_INSTANCE_STORAGE_FULL;
-
-    protected static Constant TEST_BACKOFF_DELAY = Constant.of()
-            .delay(Duration.ofMillis(1L))
-            .timeout(Duration.ofSeconds(10L))
-            .build();
 
     static {
         MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
@@ -593,7 +587,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     public abstract HandlerName getHandlerName();
 
-    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJSONObject();
 
     public void verifyAccessPermissions(final Object mock) {
         new AccessPermissionVerificationMode()
