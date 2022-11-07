@@ -383,7 +383,6 @@
     "/properties/MasterUsername",
     "/properties/NcharCharacterSetName",
     "/properties/Port",
-    "/properties/PubliclyAccessible",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/Timezone"
