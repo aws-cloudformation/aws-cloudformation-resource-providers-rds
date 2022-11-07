@@ -328,7 +328,7 @@
       "type": "string",
       "description": "Specifies the storage type to be associated with the DB instance."
     },
-    "storageThroughput": {
+    "StorageThroughput": {
       "type": "integer",
       "description": "Specifies the storage throughput for the DB instance."
     },
