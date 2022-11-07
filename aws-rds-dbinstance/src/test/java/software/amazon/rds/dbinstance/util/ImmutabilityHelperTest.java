@@ -169,12 +169,40 @@ class ImmutabilityHelperTest {
                         .build(),
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
-                        .desired(ResourceModel.builder().availabilityZone(null).build())
+                        .desired(ResourceModel.builder().sourceDBInstanceIdentifier(null).build())
                         .expect(true)
                         .build(),
                 ResourceModelTestCase.builder()
                         .previous(ResourceModel.builder().sourceDBInstanceIdentifier("old").build())
                         .desired(ResourceModel.builder().sourceDBInstanceIdentifier("new").build())
+                        .expect(false)
+                        .build());
+        for (final ResourceModelTestCase test : tests) {
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+        }
+    }
+
+    @Test
+    public void test_isDBSnapshotIdentifierMutable() {
+        final List<ResourceModelTestCase> tests = Arrays.asList(
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBSnapshotIdentifier("old").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBSnapshotIdentifier("").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBSnapshotIdentifier(null).build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBSnapshotIdentifier("new").build())
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
