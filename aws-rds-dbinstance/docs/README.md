@@ -65,6 +65,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#sourceregion" title="SourceRegion">SourceRegion</a>" : <i>String</i>,
         "<a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>" : <i>Boolean</i>,
         "<a href="#storagetype" title="StorageType">StorageType</a>" : <i>String</i>,
+        "<a href="#storagethroughput" title="storageThroughput">storageThroughput</a>" : <i>Integer</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>,
         "<a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>" : <i>String</i>,
         "<a href="#tdecredentialpassword" title="TdeCredentialPassword">TdeCredentialPassword</a>" : <i>String</i>,
@@ -137,6 +138,7 @@ Properties:
     <a href="#sourceregion" title="SourceRegion">SourceRegion</a>: <i>String</i>
     <a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>: <i>Boolean</i>
     <a href="#storagetype" title="StorageType">StorageType</a>: <i>String</i>
+    <a href="#storagethroughput" title="storageThroughput">storageThroughput</a>: <i>Integer</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
     <a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>: <i>String</i>
@@ -698,6 +700,16 @@ Specifies the storage type to be associated with the DB instance.
 _Required_: No
 
 _Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### storageThroughput
+
+Specifies the storage throughput for the DB instance.
+
+_Required_: No
+
+_Type_: Integer
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
