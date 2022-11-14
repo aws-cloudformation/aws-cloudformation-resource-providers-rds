@@ -40,7 +40,6 @@ import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.utils.StringUtils;
@@ -292,7 +291,6 @@ public class Translator {
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
-//                .backupTarget(model.getba)
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
                 .dbInstanceClass(model.getDBInstanceClass())
@@ -303,7 +301,6 @@ public class Translator {
                 .domain(model.getDomain())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
-//                .enableCustomerOwnedIp()
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
                 .iops(model.getIops())
@@ -333,10 +330,6 @@ public class Translator {
         }
 
         return builder.build();
-
-//        return builder.build();
-//        return RestoreDbInstanceFromDbSnapshotRequest.builder()
-//                .build();
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequestV12(

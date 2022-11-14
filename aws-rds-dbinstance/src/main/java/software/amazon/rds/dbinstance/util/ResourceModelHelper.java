@@ -1,7 +1,6 @@
 package software.amazon.rds.dbinstance.util;
 
 import com.amazonaws.util.StringUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 

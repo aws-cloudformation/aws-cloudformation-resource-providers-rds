@@ -253,11 +253,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).restoreDBInstanceFromDBSnapshot(createCaptor.capture());
 
         final RestoreDbInstanceFromDbSnapshotRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
         );
         final RestoreDbInstanceFromDbSnapshotRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
@@ -265,7 +265,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
@@ -298,7 +298,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
-        assertThat(argument.getValue().multiAZ()).isEqualTo(false);
+        Assertions.assertThat(argument.getValue().multiAZ()).isEqualTo(false);
     }
 
     @Test
@@ -329,7 +329,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
-        assertThat(argument.getValue().multiAZ()).isNull();
+        Assertions.assertThat(argument.getValue().multiAZ()).isNull();
     }
 
 
@@ -396,11 +396,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).createDBInstanceReadReplica(createCaptor.capture());
 
         final CreateDbInstanceReadReplicaRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
         );
         final CreateDbInstanceReadReplicaRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
@@ -408,7 +408,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
@@ -561,7 +561,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
 
-        assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS, String.class));
+        Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS, String.class));
     }
 
     @Test
@@ -605,11 +605,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).createDBInstance(createCaptor.capture());
 
         final CreateDbInstanceRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
         );
         final CreateDbInstanceRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
@@ -617,7 +617,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
@@ -658,7 +658,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).createDBInstance(createCaptor.capture());
 
         final CreateDbInstanceRequest requestWithSystemTags = createCaptor.getValue();
-        assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
@@ -666,7 +666,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
@@ -768,8 +768,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
-        assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(100);
-        assertThat(modifyCaptor.getValue().iops()).isEqualTo(3000);
+        Assertions.assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(100);
+        Assertions.assertThat(modifyCaptor.getValue().iops()).isEqualTo(3000);
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
@@ -1128,7 +1128,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<CreateDbInstanceRequest> argument = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstance(argument.capture());
-        assertThat(argument.getValue().port()).isNull();
+        Assertions.assertThat(argument.getValue().port()).isNull();
     }
 
     @Test
@@ -1230,8 +1230,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 
     @Test
@@ -1258,8 +1258,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<CreateDbInstanceRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstance(captor.capture());
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 
     @Test
@@ -1288,8 +1288,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client()).modifyDBInstance(captor.capture());
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 
     @Test
@@ -1316,8 +1316,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
-        assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
     }
 
     @Test
@@ -1352,7 +1352,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
-        assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
+        Assertions.assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
     }
 
     static class CreateDBInstanceExceptionArgumentsProvider implements ArgumentsProvider {
@@ -1757,11 +1757,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).restoreDBInstanceToPointInTime(createCaptor.capture());
 
         final RestoreDbInstanceToPointInTimeRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
         );
         final RestoreDbInstanceToPointInTimeRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
@@ -1769,7 +1769,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
