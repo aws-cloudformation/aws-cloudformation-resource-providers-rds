@@ -298,6 +298,35 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDBInstanceFromClusterSnapshot_NoFetchingDefaultMZ() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .multiAZ(null)
+                        .dBSnapshotIdentifier(null)
+                        .dBClusterSnapshotIdentifier("cluster-snapshot").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
+        Assertions.assertThat(argument.getValue().multiAZ()).isEqualTo(null);
+        Assertions.assertThat(argument.getValue().dbClusterSnapshotIdentifier()).isEqualTo("cluster-snapshot");
+    }
+
+    @Test
     public void handleRequest_RestoreDBInstanceFromSnapshot_DefaultMZ_SqlServer() {
         final DescribeDbSnapshotsResponse describeDbSnapshotsResponse = DescribeDbSnapshotsResponse.builder()
                 .dbSnapshots(DBSnapshot.builder().engine("sqlserver-ee").build())

@@ -11,7 +11,7 @@ public final class ResourceModelHelper {
     private final static String STORAGE_TYPE_IO1 = "io1";
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model)) &&
+        return (isReadReplica(model) || isRestoreFromSnapshot(model) || isRestoreFromClusterSnapshot(model) || isCertificateAuthorityApplied(model)) &&
                 (
                         !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
                                 StringUtils.hasValue(model.getAllocatedStorage()) ||
@@ -36,8 +36,11 @@ public final class ResourceModelHelper {
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
-        return StringUtils.hasValue(model.getDBSnapshotIdentifier()) ||
-                StringUtils.hasValue(model.getDBClusterSnapshotIdentifier());
+        return StringUtils.hasValue(model.getDBSnapshotIdentifier());
+    }
+
+    public static boolean isRestoreFromClusterSnapshot(final ResourceModel model) {
+        return StringUtils.hasValue(model.getDBClusterSnapshotIdentifier());
     }
 
     public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
