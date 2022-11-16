@@ -23,6 +23,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
         "<a href="#customiaminstanceprofile" title="CustomIAMInstanceProfile">CustomIAMInstanceProfile</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
+        "<a href="#dbclustersnapshotidentifier" title="DBClusterSnapshotIdentifier">DBClusterSnapshotIdentifier</a>" : <i>String</i>,
         "<a href="#dbinstanceclass" title="DBInstanceClass">DBInstanceClass</a>" : <i>String</i>,
         "<a href="#dbinstanceidentifier" title="DBInstanceIdentifier">DBInstanceIdentifier</a>" : <i>String</i>,
         "<a href="#dbname" title="DBName">DBName</a>" : <i>String</i>,
@@ -93,6 +94,7 @@ Properties:
     <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
     <a href="#customiaminstanceprofile" title="CustomIAMInstanceProfile">CustomIAMInstanceProfile</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
+    <a href="#dbclustersnapshotidentifier" title="DBClusterSnapshotIdentifier">DBClusterSnapshotIdentifier</a>: <i>String</i>
     <a href="#dbinstanceclass" title="DBInstanceClass">DBInstanceClass</a>: <i>String</i>
     <a href="#dbinstanceidentifier" title="DBInstanceIdentifier">DBInstanceIdentifier</a>: <i>String</i>
     <a href="#dbname" title="DBName">DBName</a>: <i>String</i>
@@ -268,6 +270,24 @@ _Required_: No
 _Type_: String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### DBClusterSnapshotIdentifier
+
+The identifier for the RDS for MySQL Multi-AZ DB cluster snapshot to restore from. For more information on Multi-AZ DB clusters, see Multi-AZ deployments with two readable standby DB instances in the Amazon RDS User Guide .
+
+Constraints:
+ * Must match the identifier of an existing Multi-AZ DB cluster snapshot.
+ * Can't be specified when DBSnapshotIdentifier is specified.
+ * Must be specified when DBSnapshotIdentifier isn't specified.
+ * If you are restoring from a shared manual Multi-AZ DB cluster snapshot, the DBClusterSnapshotIdentifier must be the ARN of the shared snapshot.
+ * Can't be the identifier of an Aurora DB cluster snapshot.
+ * Can't be the identifier of an RDS for PostgreSQL Multi-AZ DB cluster snapshot.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### DBInstanceClass
 

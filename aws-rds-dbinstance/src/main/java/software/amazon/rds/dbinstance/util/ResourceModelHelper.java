@@ -36,7 +36,8 @@ public final class ResourceModelHelper {
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
-        return StringUtils.hasValue(model.getDBSnapshotIdentifier());
+        return StringUtils.hasValue(model.getDBSnapshotIdentifier()) ||
+                StringUtils.hasValue(model.getDBClusterSnapshotIdentifier());
     }
 
     public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {

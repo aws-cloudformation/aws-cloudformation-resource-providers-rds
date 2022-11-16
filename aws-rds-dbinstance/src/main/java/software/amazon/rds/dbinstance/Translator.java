@@ -144,6 +144,7 @@ public class Translator {
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbName(model.getDBName())
                 .dbParameterGroupName(model.getDBParameterGroupName())
+                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())

@@ -35,6 +35,24 @@ public class ResourceModelHelperTest {
     }
 
     @Test
+    public void isRestoreFromSnapshot_whenClusterSnapshotIdentifierIsSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBClusterSnapshotIdentifier("identifier")
+                .build();
+
+        assertThat(ResourceModelHelper.isRestoreFromSnapshot(model)).isTrue();
+    }
+
+    @Test
+    public void isRestoreFromSnapshot_whenClusterSnapshotIdentifierIsEmpty() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBClusterSnapshotIdentifier("")
+                .build();
+
+        assertThat(ResourceModelHelper.isRestoreFromSnapshot(model)).isFalse();
+    }
+
+    @Test
     public void isRestoreFromSnapshot_whenSnapshotIdentifierIsEmpty() {
         final ResourceModel model = ResourceModel.builder()
                 .dBSnapshotIdentifier("")
