@@ -36,6 +36,7 @@ import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -159,7 +160,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
                     if (shouldReboot(rdsProxyClient.defaultClient(), progress) ||
-                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
+                            (ResourceModelHelper.isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
                         return rebootAwait(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
@@ -167,7 +168,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
-                    if (isDBClusterMember(progress.getResourceModel())) {
+                    if (ResourceModelHelper.isDBClusterMember(progress.getResourceModel())) {
                         return awaitDBClusterParameterGroup(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
@@ -242,8 +243,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .translateToServiceRequest(Translator::updateAllocatedStorageRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                                modifyRequest,
-                                proxyInvocation.client()::modifyDBInstance))
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance))
                 .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
@@ -294,8 +295,8 @@ public class UpdateHandler extends BaseHandlerStd {
 
     private boolean shouldSetDefaultVpcId(final ResourceHandlerRequest<ResourceModel> request) {
         // DBCluster member instances inherit default vpc security groups from the corresponding umbrella cluster
-        return !isDBClusterMember(request.getDesiredResourceState()) &&
-                !isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
+        return !ResourceModelHelper.isDBClusterMember(request.getDesiredResourceState()) &&
+                !ResourceModelHelper.isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
                 CollectionUtils.isNullOrEmpty(request.getDesiredResourceState().getVPCSecurityGroups());
     }
 

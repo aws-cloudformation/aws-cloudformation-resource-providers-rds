@@ -8,6 +8,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -46,11 +47,18 @@ public class CreateHandler extends BaseHandlerStd {
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
         super.validateRequest(request);
         validateDeletionPolicyForClusterInstance(request);
+        validateDeletionPolicyForCustomFamily(request);
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        if (isDBClusterMember(request.getDesiredResourceState()) && BooleanUtils.isTrue(request.getSnapshotRequested())) {
-            throw new RequestValidationException(ILLEGAL_DELETION_POLICY_ERROR);
+        if (BooleanUtils.isTrue(request.getSnapshotRequested()) && ResourceModelHelper.isDBClusterMember(request.getDesiredResourceState())) {
+            throw new RequestValidationException(ILLEGAL_CLUSTER_INSTANCE_DELETION_POLICY_ERROR);
+        }
+    }
+
+    private void validateDeletionPolicyForCustomFamily(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        if (BooleanUtils.isTrue(request.getSnapshotRequested()) && ResourceModelHelper.isRdsCustomFamily(request.getDesiredResourceState())) {
+            throw new RequestValidationException(ILLEGAL_CUSTOM_FAMILY_DELETION_POLICY_ERROR);
         }
     }
 
@@ -115,11 +123,15 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
                     if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
-                        return Commons.execOnce(progress, () ->
-                                                versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
-                                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
-                                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
-                                                )),
+                        return Commons.execOnce(progress, () -> {
+                                            final DBInstance current = fetchDBInstance(rdsProxyClient.defaultClient(), model);
+                                            final ResourceHandlerRequest<ResourceModel> updRequest = getUpdateRequestFromCurrentState(
+                                                    request, Translator.translateDbInstanceFromSdk(current));
+                                            return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
+                                                    ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, updRequest, pcl, prg),
+                                                    ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, updRequest, pcl, prg)
+                                            ));
+                                        },
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {
                                     if (shouldReboot(p.getResourceModel())) {
@@ -280,9 +292,13 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private Boolean getDefaultMultiAzForEngine(final String engine) {
-        if (SQLSERVER_ENGINES_WITH_MIRRORING.contains(engine)) {
+        if (ResourceModelHelper.SQLSERVER_ENGINES_WITH_MIRRORING.contains(engine)) {
             return null;
         }
         return false;
+    }
+
+    private ResourceHandlerRequest<ResourceModel> getUpdateRequestFromCurrentState(final ResourceHandlerRequest<ResourceModel> request, final ResourceModel current) {
+        return request.toBuilder().previousResourceState(current).build();
     }
 }

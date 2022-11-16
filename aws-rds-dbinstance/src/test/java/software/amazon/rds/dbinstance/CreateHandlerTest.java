@@ -1,7 +1,9 @@
 package software.amazon.rds.dbinstance;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import lombok.Getter;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +17,11 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.core.util.DefaultSdkAutoConstructList;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
@@ -49,6 +54,7 @@ import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
+import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -57,13 +63,17 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbinstance.request.RequestValidationException;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
+import software.amazon.rds.dbinstance.status.VPCSecurityGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.mockito.Mockito.any;
@@ -172,6 +182,53 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_DoNotSetVpcSecurityGroupsOnUpdateAfterCreate() {
+        final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(restoreResponse);
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+
+        final List<String> vpcSecurityGroups = ImmutableList.of("vpc-secirity-group-id");
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .vpcSecurityGroups(vpcSecurityGroups.stream()
+                                .map(id -> VpcSecurityGroupMembership.builder()
+                                        .vpcSecurityGroupId(id)
+                                        .status(VPCSecurityGroupStatus.Active.toString())
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build(),
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .vPCSecurityGroups(vpcSecurityGroups)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
+
+        Assertions.assertThat(restoreCaptor.getValue().vpcSecurityGroupIds()).containsExactlyElementsOf(vpcSecurityGroups);
+
+        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
+
+        Assertions.assertThat(modifyCaptor.getValue().vpcSecurityGroupIds()).isEmpty();
+        Assertions.assertThat(modifyCaptor.getValue().vpcSecurityGroupIds()).isInstanceOf(DefaultSdkAutoConstructList.class);
+        Assertions.assertThat(modifyCaptor.getValue().cloudwatchLogsExportConfiguration()).isNull();
+
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -430,7 +487,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
@@ -738,20 +795,26 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
     public void handleRequest_RestoreFromSnapshot_ShouldUpdateAfterCreate_AllocatedStorage_Success() {
-        final ModifyDbInstanceResponse modifyDbInstanceResponse = ModifyDbInstanceResponse.builder().build();
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class))).thenReturn(modifyDbInstanceResponse);
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder().engine(ENGINE_MYSQL).build())
+                        .build());
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
 
         final DBInstance dbInstance = DB_INSTANCE_BASE.toBuilder()
                 .allocatedStorage(100)
                 .iops(3000)
                 .build();
         final CallbackContext context = new CallbackContext();
-        context.setCreated(true);
+        context.setCreated(false);
         context.setUpdated(false);
 
         test_handleRequest_base(
@@ -761,12 +824,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
+        Assertions.assertThat(restoreCaptor.getValue().iops()).isEqualTo(3000);
 
+        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
         Assertions.assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(100);
-        Assertions.assertThat(modifyCaptor.getValue().iops()).isEqualTo(3000);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     @Test
@@ -837,7 +904,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxyV12.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -862,7 +929,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -887,7 +954,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -912,7 +979,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -937,7 +1004,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -962,7 +1029,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -987,7 +1054,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1012,7 +1079,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1037,32 +1104,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-    }
-
-    @Test
-    public void handleRequest_CreateReadReplica_Iops_ShouldUpdate_Success() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenReturn(ModifyDbInstanceResponse.builder().build());
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(true);
-        context.setUpdated(false);
-        context.setRebooted(false);
-        context.setUpdatedRoles(true);
-
-        test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_BAREBONE_BLDR()
-                        .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY) // Read replica
-                        .iops(IOPS_DEFAULT)
-                        .build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1087,7 +1129,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1280,7 +1322,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client()).modifyDBInstance(captor.capture());
@@ -1343,12 +1385,40 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
         Assertions.assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
+    }
+
+    @Test
+    public void validateRequest_PlainEngineWithBackupDeletionPolicy_Success() {
+        expectServiceInvocation = false;
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .region(Region.US_EAST_1.toString())
+                .snapshotRequested(true)
+                .desiredResourceState(ResourceModel.builder()
+                        .engine(ENGINE_AURORA)
+                        .build())
+                .build();
+        Assertions.assertThatCode(() -> handler.validateRequest(request)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateRequest_CustomFamilyWithBackupDeletionPolicy_ThrowsRequestValidationException() {
+        expectServiceInvocation = false;
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .region(Region.US_EAST_1.toString())
+                .snapshotRequested(true)
+                .desiredResourceState(ResourceModel.builder()
+                        .engine(ENGINE_SQLSERVER_EE_CUSTOM)
+                        .build())
+                .build();
+        Assertions.assertThatThrownBy(() -> {
+            handler.validateRequest(request);
+        }).isInstanceOf(RequestValidationException.class);
     }
 
     static class CreateDBInstanceExceptionArgumentsProvider implements ArgumentsProvider {

@@ -1,7 +1,6 @@
 package software.amazon.rds.dbinstance;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -15,7 +14,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
@@ -107,17 +105,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     static final String READ_REPLICA_STATUS_TYPE = "read replication";
 
-    protected static final List<String> RDS_CUSTOM_ORACLE_ENGINES = ImmutableList.of(
-            "custom-oracle-ee",
-            "custom-oracle-ee-cdb"
-    );
-
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
-
-    protected static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
-            "sqlserver-ee",
-            "sqlserver-se"
-    );
 
     protected final static HandlerConfig DEFAULT_DB_INSTANCE_HANDLER_CONFIG = HandlerConfig.builder()
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
@@ -138,7 +126,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     // Considered bounded-safe.
     protected static final String IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT = "is already being deleted";
 
-    protected static final String ILLEGAL_DELETION_POLICY_ERROR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
+    protected static final String ILLEGAL_CLUSTER_INSTANCE_DELETION_POLICY_ERROR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
+    protected static final String ILLEGAL_CUSTOM_FAMILY_DELETION_POLICY_ERROR = "DeletionPolicy:Snapshot cannot be specified for a custom engine instance.";
 
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
@@ -440,14 +429,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .progress();
     }
 
-    protected boolean isDBClusterMember(final ResourceModel model) {
-        return StringUtils.isNotBlank(model.getDBClusterIdentifier());
-    }
-
-    protected boolean isRdsCustomOracleInstance(final ResourceModel model) {
-        return RDS_CUSTOM_ORACLE_ENGINES.contains(model.getEngine());
-    }
-
     protected DBInstance fetchDBInstance(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
@@ -570,7 +551,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return isDBInstanceAvailable(dbInstance) &&
                 isDBParameterGroupInSync(dbInstance) &&
                 isOptionGroupInSync(dbInstance) &&
-                (!isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model));
+                (!ResourceModelHelper.isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model));
     }
 
     boolean isDBInstanceAvailable(final DBInstance dbInstance) {

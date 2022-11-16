@@ -130,6 +130,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String ENGINE_SQLSERVER_SE = "sqlserver-se";
     protected static final String ENGINE_SQLSERVER_EX = "sqlserver-ex";
     protected static final String ENGINE_SQLSERVER_WEB = "sqlserver-web";
+    protected static final String ENGINE_SQLSERVER_EE_CUSTOM = "custom-sqlserver-ee";
+    protected static final String ENGINE_SQLSERVER_SE_CUSTOM = "custom-sqlserver-se";
+    protected static final String ENGINE_SQLSERVER_WEB_CUSTOM = "custom-sqlserver-web";
     protected static final String ENGINE_VERSION_MYSQL_56 = "5.6";
     protected static final String ENGINE_VERSION_MYSQL_80 = "8.0";
     protected static final Integer IOPS_DEFAULT = 10_000;

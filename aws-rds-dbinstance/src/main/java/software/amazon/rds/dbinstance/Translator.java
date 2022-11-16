@@ -24,8 +24,6 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
-import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
@@ -119,6 +117,7 @@ public class Translator {
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
+                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
@@ -152,6 +151,7 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
+                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
@@ -262,43 +262,39 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequestV12(
-            ResourceModel previousModel,
-            final ResourceModel desiredModel,
+            final ResourceModel previous,
+            final ResourceModel desired,
             final Boolean isRollback
     ) {
-        // previousModel might be null if called from CreateHandler.
-        // In this case diff will ensure to set all attributes provided by desiredModel.
-        previousModel = (previousModel != null) ? previousModel : ResourceModel.builder().build();
-
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
-                .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
+                .allowMajorVersionUpgrade(desired.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
-                .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
-                .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
-                .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
-                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
-                .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
-                .dbSecurityGroups(diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
-                .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
-                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
-                .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
-                .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
-                .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
-                .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
-                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
-                .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
-                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
+                .autoMinorVersionUpgrade(diff(previous.getAutoMinorVersionUpgrade(), desired.getAutoMinorVersionUpgrade()))
+                .backupRetentionPeriod(diff(previous.getBackupRetentionPeriod(), desired.getBackupRetentionPeriod()))
+                .dbInstanceClass(diff(previous.getDBInstanceClass(), desired.getDBInstanceClass()))
+                .dbInstanceIdentifier(desired.getDBInstanceIdentifier())
+                .dbParameterGroupName(diff(previous.getDBParameterGroupName(), desired.getDBParameterGroupName()))
+                .dbSecurityGroups(diff(previous.getDBSecurityGroups(), desired.getDBSecurityGroups()))
+                .engineVersion(diff(previous.getEngineVersion(), desired.getEngineVersion()))
+                .masterUserPassword(diff(previous.getMasterUserPassword(), desired.getMasterUserPassword()))
+                .multiAZ(diff(previous.getMultiAZ(), desired.getMultiAZ()))
+                .networkType(diff(previous.getNetworkType(), desired.getNetworkType()))
+                .optionGroupName(diff(previous.getOptionGroupName(), desired.getOptionGroupName()))
+                .preferredBackupWindow(diff(previous.getPreferredBackupWindow(), desired.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(diff(previous.getPreferredMaintenanceWindow(), desired.getPreferredMaintenanceWindow()))
+                .publiclyAccessible(diff(previous.getPubliclyAccessible(), desired.getPubliclyAccessible()))
+                .replicaMode(diff(previous.getReplicaMode(), desired.getReplicaMode()));
 
         if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
+                    canUpdateAllocatedStorage(previous.getAllocatedStorage(), desired.getAllocatedStorage()) ? getAllocatedStorage(desired) : getAllocatedStorage(previous)
             );
             builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
+                    canUpdateIops(previous.getIops(), desired.getIops()) ? desired.getIops() : previous.getIops()
             );
         } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
+            builder.allocatedStorage(getAllocatedStorage(desired));
+            builder.iops(diff(previous.getIops(), desired.getIops()));
         }
 
         return builder.build();
@@ -313,75 +309,71 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequest(
-            ResourceModel previousModel,
-            final ResourceModel desiredModel,
+            final ResourceModel previous,
+            final ResourceModel desired,
             final Boolean isRollback
     ) {
-        // previousModel might be null if called from CreateHandler.
-        // In this case diff will ensure to set all attributes provided by desiredModel.
-        previousModel = (previousModel != null) ? previousModel : ResourceModel.builder().build();
-
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
-                .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
+                .allowMajorVersionUpgrade(desired.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
-                .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
-                .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
-                .caCertificateIdentifier(diff(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
-                .copyTagsToSnapshot(diff(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
-                .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
-                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
-                .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
-                .dbPortNumber(translatePortToSdk(diff(previousModel.getPort(), desiredModel.getPort())))
-                .deletionProtection(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
-                .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
-                .domainIAMRoleName(diff(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
-                .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enablePerformanceInsights(diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights()))
-                .licenseModel(diff(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
-                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
-                .maxAllocatedStorage(diff(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
-                .monitoringInterval(diff(previousModel.getMonitoringInterval(), desiredModel.getMonitoringInterval()))
-                .monitoringRoleArn(diff(previousModel.getMonitoringRoleArn(), desiredModel.getMonitoringRoleArn()))
-                .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
-                .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
-                .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
-                .performanceInsightsKMSKeyId(diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId()))
-                .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
-                .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
-                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
-                .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
-                .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), previousModel.getPubliclyAccessible()))
-                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()))
-                .storageThroughput(diff(previousModel.getStorageThroughput(), desiredModel.getStorageThroughput()))
-                .storageType(diff(previousModel.getStorageType(), desiredModel.getStorageType()))
-                .tdeCredentialArn(diff(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
-                .tdeCredentialPassword(diff(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
-                .vpcSecurityGroupIds(diff(previousModel.getVPCSecurityGroups(), desiredModel.getVPCSecurityGroups()));
+                .autoMinorVersionUpgrade(diff(previous.getAutoMinorVersionUpgrade(), desired.getAutoMinorVersionUpgrade()))
+                .backupRetentionPeriod(diff(previous.getBackupRetentionPeriod(), desired.getBackupRetentionPeriod()))
+                .caCertificateIdentifier(diff(previous.getCACertificateIdentifier(), desired.getCACertificateIdentifier()))
+                .copyTagsToSnapshot(diff(previous.getCopyTagsToSnapshot(), desired.getCopyTagsToSnapshot()))
+                .dbInstanceClass(diff(previous.getDBInstanceClass(), desired.getDBInstanceClass()))
+                .dbInstanceIdentifier(desired.getDBInstanceIdentifier())
+                .dbParameterGroupName(diff(previous.getDBParameterGroupName(), desired.getDBParameterGroupName()))
+                .dbPortNumber(translatePortToSdk(diff(previous.getPort(), desired.getPort())))
+                .deletionProtection(diff(previous.getDeletionProtection(), desired.getDeletionProtection()))
+                .domain(diff(previous.getDomain(), desired.getDomain()))
+                .domainIAMRoleName(diff(previous.getDomainIAMRoleName(), desired.getDomainIAMRoleName()))
+                .enableIAMDatabaseAuthentication(diff(previous.getEnableIAMDatabaseAuthentication(), desired.getEnableIAMDatabaseAuthentication()))
+                .enablePerformanceInsights(diff(previous.getEnablePerformanceInsights(), desired.getEnablePerformanceInsights()))
+                .licenseModel(diff(previous.getLicenseModel(), desired.getLicenseModel()))
+                .masterUserPassword(diff(previous.getMasterUserPassword(), desired.getMasterUserPassword()))
+                .maxAllocatedStorage(diff(previous.getMaxAllocatedStorage(), desired.getMaxAllocatedStorage()))
+                .monitoringInterval(diff(previous.getMonitoringInterval(), desired.getMonitoringInterval()))
+                .monitoringRoleArn(diff(previous.getMonitoringRoleArn(), desired.getMonitoringRoleArn()))
+                .multiAZ(diff(previous.getMultiAZ(), desired.getMultiAZ()))
+                .networkType(diff(previous.getNetworkType(), desired.getNetworkType()))
+                .optionGroupName(diff(previous.getOptionGroupName(), desired.getOptionGroupName()))
+                .performanceInsightsKMSKeyId(diff(previous.getPerformanceInsightsKMSKeyId(), desired.getPerformanceInsightsKMSKeyId()))
+                .performanceInsightsRetentionPeriod(diff(previous.getPerformanceInsightsRetentionPeriod(), desired.getPerformanceInsightsRetentionPeriod()))
+                .preferredBackupWindow(diff(previous.getPreferredBackupWindow(), desired.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(diff(previous.getPreferredMaintenanceWindow(), desired.getPreferredMaintenanceWindow()))
+                .promotionTier(diff(previous.getPromotionTier(), desired.getPromotionTier()))
+                .publiclyAccessible(diff(previous.getPubliclyAccessible(), previous.getPubliclyAccessible()))
+                .replicaMode(diff(previous.getReplicaMode(), desired.getReplicaMode()))
+                .storageThroughput(diff(previous.getStorageThroughput(), desired.getStorageThroughput()))
+                .storageType(diff(previous.getStorageType(), desired.getStorageType()))
+                .tdeCredentialArn(diff(previous.getTdeCredentialArn(), desired.getTdeCredentialArn()))
+                .tdeCredentialPassword(diff(previous.getTdeCredentialPassword(), desired.getTdeCredentialPassword()))
+                .vpcSecurityGroupIds(diff(previous.getVPCSecurityGroups(), desired.getVPCSecurityGroups()));
 
-        if (!Objects.deepEquals(previousModel.getEnableCloudwatchLogsExports(), desiredModel.getEnableCloudwatchLogsExports())) {
+        if (!isEqualCollection(previous.getEnableCloudwatchLogsExports(), desired.getEnableCloudwatchLogsExports())) {
             final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
-                    previousModel.getEnableCloudwatchLogsExports(),
-                    desiredModel.getEnableCloudwatchLogsExports()
+                    previous.getEnableCloudwatchLogsExports(),
+                    desired.getEnableCloudwatchLogsExports()
             );
             builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
         }
 
         if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
+                    canUpdateAllocatedStorage(previous.getAllocatedStorage(), desired.getAllocatedStorage()) ? getAllocatedStorage(desired) : getAllocatedStorage(previous)
             );
             builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
+                    canUpdateIops(previous.getIops(), desired.getIops()) ? desired.getIops() : previous.getIops()
             );
         } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
-            builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
+            builder.allocatedStorage(getAllocatedStorage(desired));
+            builder.iops(diff(previous.getIops(), desired.getIops()));
+            builder.engineVersion(diff(previous.getEngineVersion(), desired.getEngineVersion()));
         }
 
-        if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
-            builder.processorFeatures(translateProcessorFeaturesToSdk(desiredModel.getProcessorFeatures()));
-            builder.useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures());
+        if (shouldSetProcessorFeatures(previous, desired)) {
+            builder.processorFeatures(translateProcessorFeaturesToSdk(desired.getProcessorFeatures()));
+            builder.useDefaultProcessorFeatures(desired.getUseDefaultProcessorFeatures());
         }
 
         return builder.build();
@@ -595,18 +587,17 @@ public class Translator {
     }
 
     public static String translateDBParameterGroupFromSdk(final software.amazon.awssdk.services.rds.model.DBParameterGroupStatus parameterGroup) {
-        return Optional.ofNullable(parameterGroup).map(DBParameterGroupStatus::dbParameterGroupName).orElse(null);
+        return parameterGroup == null ? null : parameterGroup.dbParameterGroupName();
     }
 
     public static List<String> translateEnableCloudwatchLogsExport(final Collection<String> enabledCloudwatchLogsExports) {
-        return new ArrayList<>(Optional.ofNullable(enabledCloudwatchLogsExports)
-                .orElse(Collections.emptyList()));
+        return enabledCloudwatchLogsExports == null ? null : new ArrayList<>(enabledCloudwatchLogsExports);
     }
 
     public static List<String> translateVpcSecurityGroupsFromSdk(
             final Collection<software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership> vpcSecurityGroups
     ) {
-        return streamOfOrEmpty(vpcSecurityGroups)
+        return vpcSecurityGroups == null ? null : vpcSecurityGroups.stream()
                 .map(software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership::vpcSecurityGroupId)
                 .collect(Collectors.toList());
     }
@@ -640,7 +631,7 @@ public class Translator {
     public static List<ProcessorFeature> translateProcessorFeaturesFromSdk(
             final Collection<software.amazon.awssdk.services.rds.model.ProcessorFeature> sdkProcessorFeatures
     ) {
-        return streamOfOrEmpty(sdkProcessorFeatures)
+        return sdkProcessorFeatures == null ? null : sdkProcessorFeatures.stream()
                 .map(processorFeature -> ProcessorFeature
                         .builder()
                         .name(processorFeature.name())
@@ -652,7 +643,7 @@ public class Translator {
     public static Set<software.amazon.awssdk.services.rds.model.ProcessorFeature> translateProcessorFeaturesToSdk(
             final Collection<ProcessorFeature> processorFeatures
     ) {
-        return streamOfOrEmpty(processorFeatures)
+        return processorFeatures == null ? null : processorFeatures.stream()
                 .map(processorFeature -> software.amazon.awssdk.services.rds.model.ProcessorFeature
                         .builder()
                         .name(processorFeature.getName())
@@ -664,7 +655,7 @@ public class Translator {
     public static List<String> translateDbSecurityGroupsFromSdk(
             final List<software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership> dbSecurityGroupMemberships
     ) {
-        return streamOfOrEmpty(dbSecurityGroupMemberships)
+        return dbSecurityGroupMemberships == null ? null : dbSecurityGroupMemberships.stream()
                 .map(software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership::dbSecurityGroupName)
                 .collect(Collectors.toList());
     }
@@ -672,7 +663,7 @@ public class Translator {
     public static String translateDbSubnetGroupFromSdk(
             final software.amazon.awssdk.services.rds.model.DBSubnetGroup dbSubnetGroup
     ) {
-        return Optional.ofNullable(dbSubnetGroup).map(DBSubnetGroup::dbSubnetGroupName).orElse(null);
+        return dbSubnetGroup == null ? null : dbSubnetGroup.dbSubnetGroupName();
     }
 
     public static List<DBInstanceRole> translateAssociatedRolesFromSdk(
@@ -730,10 +721,10 @@ public class Translator {
         return fromIops == null || toIops == null || toIops >= fromIops;
     }
 
-    private static boolean shouldSetProcessorFeatures(final ResourceModel previousModel, final ResourceModel desiredModel) {
-        return previousModel != null && desiredModel != null &&
-                (!Objects.deepEquals(previousModel.getProcessorFeatures(), desiredModel.getProcessorFeatures()) ||
-                        !Objects.equals(previousModel.getUseDefaultProcessorFeatures(), desiredModel.getUseDefaultProcessorFeatures()));
+    private static boolean shouldSetProcessorFeatures(final ResourceModel previous, final ResourceModel desired) {
+        return previous != null && desired != null &&
+                (!Objects.deepEquals(previous.getProcessorFeatures(), desired.getProcessorFeatures()) ||
+                        !Objects.equals(previous.getUseDefaultProcessorFeatures(), desired.getUseDefaultProcessorFeatures()));
     }
 
     public static Integer getAllocatedStorage(final ResourceModel model) {
@@ -742,5 +733,12 @@ public class Translator {
             allocatedStorage = Integer.parseInt(model.getAllocatedStorage());
         }
         return allocatedStorage;
+    }
+
+    private static <T> boolean isEqualCollection(final Collection<T> c1, final Collection<T> c2) {
+        if (c1 == null || c2 == null) {
+            return c1 == c2;
+        }
+        return CollectionUtils.isEqualCollection(c1, c2);
     }
 }

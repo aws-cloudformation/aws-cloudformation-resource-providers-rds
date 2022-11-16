@@ -305,6 +305,31 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
         assertThat(argument.getValue().deleteAutomatedBackups()).isTrue();
     }
 
+    @Test
+    public void handleRequest_DeleteCustomSQLServerInstance_SkipFinalSnapshot() {
+        when(rdsProxy.client().deleteDBInstance(any(DeleteDbInstanceRequest.class)))
+                .thenReturn(DeleteDbInstanceResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .engine(ENGINE_SQLSERVER_EE_CUSTOM)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        assertThat(argument.getValue().finalDBSnapshotIdentifier()).isNull();
+        assertThat(argument.getValue().skipFinalSnapshot()).isTrue();
+    }
+
     static class DeleteDBInstanceExceptionArgumentProvider implements ArgumentsProvider {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {

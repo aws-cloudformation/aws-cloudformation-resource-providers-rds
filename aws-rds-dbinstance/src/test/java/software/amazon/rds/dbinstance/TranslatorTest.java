@@ -315,6 +315,118 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
     }
 
+    @Test
+    public void test_modifyDbInstanceRequestV12_keepPreviousAllocatedStorageOnRollbackIfNotUpdatable() {
+        final boolean isRollback = true;
+        final String allocatedStoragePrev = "100";
+        final String allocatedStorageDesired = "50";
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(
+                ResourceModel.builder()
+                        .allocatedStorage(allocatedStoragePrev)
+                        .build(),
+                ResourceModel.builder()
+                        .allocatedStorage(allocatedStorageDesired)
+                        .build(),
+                isRollback
+        );
+        // Given that the desired storage size is smaller than previous,
+        // the largest of 2 should be set
+        assertThat(request.allocatedStorage()).isEqualTo(Integer.parseInt(allocatedStoragePrev, 10));
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequestV12_setDesiredAllocatedStorageOnRollbackIfUpdatable() {
+        final boolean isRollback = true;
+        final String allocatedStoragePrev = "50";
+        final String allocatedStorageDesired = "100";
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(
+                ResourceModel.builder()
+                        .allocatedStorage(allocatedStoragePrev)
+                        .build(),
+                ResourceModel.builder()
+                        .allocatedStorage(allocatedStorageDesired)
+                        .build(),
+                isRollback
+        );
+        // Given that the desired storage size is smaller than previous,
+        // the largest of 2 should be set
+        assertThat(request.allocatedStorage()).isEqualTo(Integer.parseInt(allocatedStorageDesired, 10));
+    }
+
+    @Test
+    public void test_translateDBParameterGroupFromSdk_returnNull() {
+        assertThat(Translator.translateDBParameterGroupFromSdk(null)).isNull();
+    }
+
+    @Test
+    public void test_translateDBParameterGroupFromSdk_returnNonNull() {
+        final String dbParameterGroupName = "db-parameter-group-name";
+        assertThat(Translator.translateDBParameterGroupFromSdk(
+                software.amazon.awssdk.services.rds.model.DBParameterGroupStatus.builder()
+                        .dbParameterGroupName(dbParameterGroupName)
+                        .build()
+        )).isEqualTo(dbParameterGroupName);
+    }
+
+    @Test
+    public void test_translateEnableCloudwatchLogsExport_returnNull() {
+        assertThat(Translator.translateEnableCloudwatchLogsExport(null)).isNull();
+    }
+
+    @Test
+    public void test_translateEnableCloudwatchLogsExport_returnNonNull() {
+        assertThat(Translator.translateEnableCloudwatchLogsExport(
+                ImmutableList.of("cloudwatch-log")
+        )).isNotEmpty();
+    }
+
+    @Test
+    public void test_translateVpcSecurityGroupsFromSdk_returnNull() {
+        assertThat(Translator.translateVpcSecurityGroupsFromSdk(null)).isNull();
+    }
+
+    @Test
+    public void test_translateVpcSecurityGroupsFromSdk_returnNonNull() {
+        final String vpcSecurityGroupId = "vpc-security-group-id";
+        assertThat(Translator.translateVpcSecurityGroupsFromSdk(ImmutableList.of(
+                software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership.builder()
+                        .vpcSecurityGroupId(vpcSecurityGroupId)
+                        .build()
+        ))).containsExactly(vpcSecurityGroupId);
+    }
+
+    @Test
+    public void test_translateProcessorFeaturesFromSdk_returnNull() {
+        assertThat(Translator.translateProcessorFeaturesFromSdk(null)).isNull();
+    }
+
+    @Test
+    public void test_translateProcessorFeaturesFromSdk_returnNonNull() {
+        final String featureName = "feature-name";
+        final String featureValue = "feature-value";
+        assertThat(Translator.translateProcessorFeaturesFromSdk(ImmutableList.of(
+                software.amazon.awssdk.services.rds.model.ProcessorFeature.builder()
+                        .name(featureName)
+                        .value(featureValue)
+                        .build()
+        ))).containsExactly(ProcessorFeature.builder().name(featureName).value(featureValue).build());
+    }
+
+    @Test
+    public void test_translateDbSecurityGroupsFromSdk_returnNull() {
+        assertThat(Translator.translateDbSecurityGroupsFromSdk(null)).isNull();
+    }
+
+    @Test
+    public void test_translateDbSecurityGroupsFromSdk_returnNonNull() {
+        final String dbSecurityGroupName = "db-security-group-name";
+        assertThat(Translator.translateDbSecurityGroupsFromSdk(ImmutableList.of(
+                software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership.builder()
+                        .dbSecurityGroupName(dbSecurityGroupName)
+                        .build()
+        ))).containsExactly(dbSecurityGroupName);
+    }
+
     // Stub methods to satisfy the interface. This is a 1-time thing.
 
     @Override
