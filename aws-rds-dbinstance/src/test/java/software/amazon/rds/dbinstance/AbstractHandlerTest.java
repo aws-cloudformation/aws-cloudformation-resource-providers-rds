@@ -179,7 +179,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String DBI_RESOURCE_ID_NON_EMPTY = "dbi-instance-identifier";
     protected static final String RESTORE_TIME_EMPTY = null;
     protected static final String RESTORE_TIME_INVALID = "invalid-date-format";
-    protected static final String RESTORE_TIME_NON_EMPTY = "2022-11-05 15:20:00";
+    protected static final String RESTORE_TIME_UTC = "2007-04-05T12:30:00Z";
+    protected static final String RESTORE_TIME_UTC_PLUS_5 = "2007-04-05T17:30:00+05:00";
     protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY = null;
     protected static final boolean USE_LATEST_RESTORABLE_TIME_NO = false;
     protected static final boolean USE_LATEST_RESTORABLE_TIME_YES = true;

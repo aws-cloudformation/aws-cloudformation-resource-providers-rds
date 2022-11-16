@@ -3,9 +3,7 @@ package software.amazon.rds.dbinstance;
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,8 +47,6 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
-    public static String RESTORE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
-
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -273,14 +269,9 @@ public class Translator {
     static Instant stringToInstant(String restoreTimeString) {
         if (StringUtils.isNotBlank(restoreTimeString)) {
             try {
-                return LocalDateTime.parse(
-                                restoreTimeString,
-                                DateTimeFormatter.ofPattern(RESTORE_TIME_PATTERN)
-                        )
-                        .atOffset(ZoneOffset.ofHours(0))
-                        .toInstant();
+                return ZonedDateTime.parse(restoreTimeString).toInstant();
             } catch (DateTimeParseException e) {
-                throw new CfnInvalidRequestException(new Exception(String.format("Unable to parse RestoreTime '%s'. Expected pattern '%s'", restoreTimeString, RESTORE_TIME_PATTERN)));
+                throw new CfnInvalidRequestException(String.format("RestoreTime %s", e.getMessage()));
             }
         }
         return null;

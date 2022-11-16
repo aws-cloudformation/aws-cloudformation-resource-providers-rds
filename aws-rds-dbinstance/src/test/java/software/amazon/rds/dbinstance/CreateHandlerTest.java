@@ -1499,31 +1499,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_RestoreTime() {
-        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
-        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
-                .thenReturn(restoreResponse);
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-        context.setUpdated(true);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .restoreTime(RESTORE_TIME_NON_EMPTY)
-                        .build(),
-                expectSuccess()
-        );
-
-        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-    }
-
-    @Test
     public void handleRequest_RestoreDBInstanceToPointInTime_NullIdentifiers() {
         final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
@@ -1583,6 +1558,64 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         // Specific DBInstanceIdentifier. The same value will be used for TargetDBInstanceIdentifier
         Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo(DB_INSTANCE_IDENTIFIER_NON_EMPTY);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_RestoreTimeUTC() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .restoreTime(RESTORE_TIME_UTC)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_RestoreTimeUTCPlus5() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .restoreTime(RESTORE_TIME_UTC_PLUS_5)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
     }
 
     @Test
