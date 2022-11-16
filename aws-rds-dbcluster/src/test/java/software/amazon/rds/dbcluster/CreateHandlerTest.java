@@ -52,6 +52,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRe
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -245,6 +246,36 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDbClusterFromSnapshot_UnsetPort() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE.toBuilder()
+                        .engineMode(EngineMode.Serverless.toString())
+                        .engine("aurora-mysql")
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(restoreCaptor.capture());
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        // We expect the default engine-specific port to be set
+        Assertions.assertThat(restoreCaptor.getValue().port()).isNotNull();
+        // Modify request should have no port as it is the same as the default
+        Assertions.assertThat(modifyCaptor.getValue().port()).isNull();
+    }
+
+    @Test
     public void handleRequest_RestoreDbClusterFromSnapshot_ModifyAfterCreate() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
@@ -405,6 +436,27 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDbClusterToPointInTime_UpdateVpcSecurityGroups() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
+                        .vpcSecurityGroupIds(VPC_SG_IDS)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().vpcSecurityGroupIds()).isEqualTo(VPC_SG_IDS);
+
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
     public void handleRequest_RestoreDbClusterToPointInTime_ServerlessV2ScalingConfiguration() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
@@ -484,7 +536,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbCluster_SetDefaultPortForPostgresql() {
+    public void handleRequest_CreateDbCluster_SetDefaultPortForProvisionedPostgresql() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
 
@@ -493,6 +545,29 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DBCLUSTER_ACTIVE,
                 () -> RESOURCE_MODEL.toBuilder()
                         .engine(ENGINE_AURORA_POSTGRESQL)
+                        .port(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<CreateDbClusterRequest> captor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(captor.getValue().port()).isEqualTo(3306);
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_SetDefaultPortForServerlessPostgresql() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .engine(ENGINE_AURORA_POSTGRESQL)
+                        .engineMode(EngineMode.Serverless.toString())
                         .port(null)
                         .build(),
                 expectSuccess()
@@ -533,5 +608,23 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 requestException,
                 expectResponseCode
         );
+    }
+
+    @Test
+    public void handleRequest_CreateDBCluster_DBClusterInTerminalState() {
+        final CallbackContext context = new CallbackContext();
+
+        Assertions.assertThatThrownBy(() -> {
+            test_handleRequest_base(
+                    context,
+                    () -> DBCLUSTER_ACTIVE.toBuilder()
+                            .status(DBClusterStatus.InaccessibleEncryptionCredentials.toString())
+                            .build(),
+                    () -> RESOURCE_MODEL,
+                    expectFailed(HandlerErrorCode.NotStabilized)
+            );
+        }).isInstanceOf(CfnNotStabilizedException.class);
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }
 }

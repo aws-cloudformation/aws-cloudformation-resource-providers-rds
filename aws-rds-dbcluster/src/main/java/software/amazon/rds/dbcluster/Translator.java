@@ -1,5 +1,7 @@
 package software.amazon.rds.dbcluster;
 
+import static software.amazon.rds.common.util.DifferenceUtils.diff;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -108,6 +110,7 @@ public class Translator {
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
                 .build();
     }
 
@@ -178,10 +181,6 @@ public class Translator {
                 .build();
     }
 
-    static ModifyDbClusterRequest modifyDbClusterRequest(final ResourceModel model) {
-        return modifyDbClusterRequest(null, model, false);
-    }
-
     static ModifyDbClusterRequest modifyDbClusterRequest(
             final ResourceModel previousModel,
             final ResourceModel desiredModel,
@@ -190,7 +189,7 @@ public class Translator {
 
         final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(previousModel, desiredModel);
 
-        ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
+        final ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
                 .allocatedStorage(desiredModel.getAllocatedStorage())
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
@@ -205,48 +204,32 @@ public class Translator {
                 .domain(desiredModel.getDomain())
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
+                .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
+                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .monitoringInterval(desiredModel.getMonitoringInterval())
                 .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
                 .networkType(desiredModel.getNetworkType())
                 .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKmsKeyId())
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
-                .port(desiredModel.getPort())
+                .port(diff(previousModel.getPort(), desiredModel.getPort()))
+                .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
                 .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(desiredModel.getServerlessV2ScalingConfiguration()))
                 .storageType(desiredModel.getStorageType());
 
-        if (previousModel != null) {
-            if (!Objects.equals(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword())) {
-                builder.masterUserPassword(desiredModel.getMasterUserPassword());
-            }
-            if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
-                builder.engineVersion(desiredModel.getEngineVersion());
-                builder.allowMajorVersionUpgrade(true);
-                if (!Objects.equals(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName())) {
-                    builder.dbInstanceParameterGroupName(desiredModel.getDBInstanceParameterGroupName());
-                }
-            }
-            if (!Objects.equals(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow())) {
-                builder.preferredBackupWindow(desiredModel.getPreferredBackupWindow());
-            }
-            if (!Objects.equals(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow())) {
-                builder.preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow());
-            }
-            if (!Objects.equals(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication())) {
-                builder.enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication());
-            }
+        if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
+            builder.engineVersion(desiredModel.getEngineVersion());
+            builder.allowMajorVersionUpgrade(true);
+            builder.dbInstanceParameterGroupName(diff(previousModel.getDBInstanceParameterGroupName(), desiredModel.getDBInstanceParameterGroupName()));
         }
         //only include VPC SG ids if they are changed from previous.
         final Set<String> desiredVpcSgIds = streamOfOrEmpty(desiredModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
         if (!desiredVpcSgIds.isEmpty()) {
-            if (previousModel != null) {
-                final Set<String> previousVpcSgIds = streamOfOrEmpty(previousModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
-                if (!desiredVpcSgIds.equals(previousVpcSgIds)) {
-                    builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
-                }
-            } else {
+            final Set<String> previousVpcSgIds = streamOfOrEmpty(previousModel.getVpcSecurityGroupIds()).collect(Collectors.toSet());
+            if (!desiredVpcSgIds.equals(previousVpcSgIds)) {
                 builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
             }
         }
@@ -357,6 +340,7 @@ public class Translator {
                 .autoPause(scalingConfiguration.getAutoPause())
                 .maxCapacity(scalingConfiguration.getMaxCapacity())
                 .minCapacity(scalingConfiguration.getMinCapacity())
+                .timeoutAction(scalingConfiguration.getTimeoutAction())
                 .secondsUntilAutoPause(scalingConfiguration.getSecondsUntilAutoPause())
                 .build();
     }
@@ -383,6 +367,7 @@ public class Translator {
                 .autoPause(scalingConfiguration.autoPause())
                 .maxCapacity(scalingConfiguration.maxCapacity())
                 .minCapacity(scalingConfiguration.minCapacity())
+                .timeoutAction(scalingConfiguration.timeoutAction())
                 .secondsUntilAutoPause(scalingConfiguration.secondsUntilAutoPause())
                 .build();
     }
@@ -427,6 +412,7 @@ public class Translator {
                 .backupRetentionPeriod(dbCluster.backupRetentionPeriod())
                 .copyTagsToSnapshot(dbCluster.copyTagsToSnapshot())
                 .databaseName(dbCluster.databaseName())
+                .dBClusterArn(dbCluster.dbClusterArn())
                 .dBClusterIdentifier(dbCluster.dbClusterIdentifier())
                 .dBClusterInstanceClass(dbCluster.dbClusterInstanceClass())
                 .dBClusterParameterGroupName(dbCluster.dbClusterParameterGroup())

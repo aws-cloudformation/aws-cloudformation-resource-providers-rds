@@ -49,7 +49,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
-        final ResourceModel previousResourceState = request.getPreviousResourceState();
+        final ResourceModel previousResourceState = setDefaults(request.getPreviousResourceState());
         final ResourceModel desiredResourceState = setDefaults(request.getDesiredResourceState());
         final boolean isRollback = BooleanUtils.isTrue(request.getRollback());
 
@@ -80,8 +80,12 @@ public class UpdateHandler extends BaseHandlerStd {
                         () -> modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback),
                         CallbackContext::isModified,
                         CallbackContext::setModified))
-                .then(progress -> removeAssociatedRoles(proxy, rdsProxyClient, progress, setDefaults(request.getPreviousResourceState()).getAssociatedRoles()))
-                .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
+                .then(progress -> updateAssociatedRoles(
+                        proxy,
+                        rdsProxyClient,
+                        progress,
+                        request.getPreviousResourceState().getAssociatedRoles(),
+                        progress.getResourceModel().getAssociatedRoles()))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }

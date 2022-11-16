@@ -51,9 +51,26 @@ public final class ImmutabilityHelper {
                 (StringUtils.isNullOrEmpty(desired.getAvailabilityZone()) && desired.getMultiAZ());
     }
 
+    private static boolean isReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return !StringUtils.isNullOrEmpty(previous.getSourceDBInstanceIdentifier()) &&
+                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
+    }
+
+    public static boolean isSourceDBInstanceIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getSourceDBInstanceIdentifier(), desired.getSourceDBInstanceIdentifier()) ||
+                isReadReplicaPromotion(previous, desired);
+    }
+
+    public static boolean isDBSnapshotIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getDBSnapshotIdentifier(), desired.getDBSnapshotIdentifier()) ||
+                StringUtils.isNullOrEmpty(desired.getDBSnapshotIdentifier());
+    }
+
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return isEngineMutable(previous, desired) &&
                 isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
-                isAvailabilityZoneChangeMutable(previous, desired);
+                isAvailabilityZoneChangeMutable(previous, desired) &&
+                isSourceDBInstanceIdentifierMutable(previous, desired) &&
+                isDBSnapshotIdentifierMutable(previous, desired);
     }
 }

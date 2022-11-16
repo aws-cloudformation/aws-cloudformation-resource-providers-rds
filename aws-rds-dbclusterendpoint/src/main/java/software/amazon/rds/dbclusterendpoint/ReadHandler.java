@@ -54,8 +54,8 @@ public class ReadHandler extends BaseHandlerStd {
                         return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
                                 "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found");
                     }
-                    context.setDbClusterEndpointArn(dbClusterEndpoint.get().dbClusterEndpointArn());
-                    return ProgressEvent.progress(model, context);
+
+                    return ProgressEvent.progress(Translator.translateDbClusterEndpointFromSdk(dbClusterEndpoint.get()), context);
                 })
                 .then(progress -> readTags(proxyClient, progress));
     }
@@ -66,7 +66,7 @@ public class ReadHandler extends BaseHandlerStd {
         ResourceModel model = progress.getResourceModel();
         CallbackContext context = progress.getCallbackContext();
         try {
-            String arn = progress.getCallbackContext().getDbClusterEndpointArn();
+            String arn = model.getDBClusterEndpointArn();
             Set<software.amazon.rds.dbclusterendpoint.Tag> resourceTags = Translator.translateTagsFromSdk(Tagging.listTagsForResource(proxyClient, arn));
             model.setTags(resourceTags);
         } catch (Exception exception) {

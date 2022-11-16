@@ -87,3 +87,8 @@ jobs:
         cd "${GITHUB_WORKSPACE}/aws-rds-dbclusterendpoint"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
+    - name: Verify AWS::RDS::CustomDBEngineVersion
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-customdbengineversion"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log

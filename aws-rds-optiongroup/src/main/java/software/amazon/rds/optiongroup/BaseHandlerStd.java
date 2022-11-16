@@ -50,7 +50,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     ErrorCode.InvalidOptionGroupStateFault)
-            .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     OptionGroupAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     OptionGroupNotFoundException.class)

@@ -131,6 +131,10 @@
       "type": "string",
       "description": "The identifier of the DB cluster that the instance will belong to."
     },
+    "DBInstanceArn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) for the DB instance."
+    },
     "DBInstanceClass": {
       "type": "string",
       "description": "The compute and memory capacity of the DB instance, for example, db.m4.large. Not all DB instance classes are available in all AWS Regions, or for all database engines."
@@ -141,6 +145,10 @@
       "minLength": 1,
       "maxLength": 63,
       "description": "A name for the DB instance. If you specify a name, AWS CloudFormation converts it to lowercase. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the DB instance."
+    },
+    "DbiResourceId": {
+      "type": "string",
+      "description": "The AWS Region-unique, immutable identifier for the DB instance. This identifier is found in AWS CloudTrail log entries whenever the AWS KMS key for the DB instance is accessed."
     },
     "DBName": {
       "type": "string",
@@ -300,6 +308,10 @@
       "type": "boolean",
       "description": "Indicates whether the DB instance is an internet-facing instance. If you specify true, AWS CloudFormation creates an instance with a publicly resolvable DNS name, which resolves to a public IP address. If you specify false, AWS CloudFormation creates an internal instance with a DNS name that resolves to a private IP address."
     },
+    "ReplicaMode": {
+      "description": "The open mode of an Oracle read replica. The default is open-read-only.",
+      "type": "string"
+    },
     "SourceDBInstanceIdentifier": {
       "type": "string",
       "description": "If you want to create a Read Replica DB instance, specify the ID of the source DB instance. Each DB instance can have a limited number of Read Replicas."
@@ -315,6 +327,10 @@
     "StorageType": {
       "type": "string",
       "description": "Specifies the storage type to be associated with the DB instance."
+    },
+    "StorageThroughput": {
+      "type": "integer",
+      "description": "Specifies the storage throughput for the DB instance."
     },
     "Tags": {
       "type": "array",
@@ -366,28 +382,26 @@
     "/properties/DBClusterIdentifier",
     "/properties/DBInstanceIdentifier",
     "/properties/DBName",
-    "/properties/DBSnapshotIdentifier",
     "/properties/DBSubnetGroupName",
     "/properties/KmsKeyId",
     "/properties/MasterUsername",
     "/properties/NcharCharacterSetName",
     "/properties/Port",
-    "/properties/PubliclyAccessible",
-    "/properties/SourceDBInstanceIdentifier",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/Timezone"
   ],
   "conditionalCreateOnlyProperties": [
+    "/properties/DBSnapshotIdentifier",
     "/properties/AutoMinorVersionUpgrade",
     "/properties/AvailabilityZone",
     "/properties/BackupRetentionPeriod",
     "/properties/DBParameterGroupName",
     "/properties/Engine",
-    "/properties/MonitoringInterval",
     "/properties/MultiAZ",
     "/properties/PerformanceInsightsKMSKeyId",
     "/properties/PreferredMaintenanceWindow",
+    "/properties/SourceDBInstanceIdentifier",
     "/properties/StorageType"
   ],
   "deprecatedProperties": [
@@ -405,7 +419,9 @@
   "readOnlyProperties": [
     "/properties/Endpoint/Address",
     "/properties/Endpoint/Port",
-    "/properties/Endpoint/HostedZoneId"
+    "/properties/Endpoint/HostedZoneId",
+    "/properties/DbiResourceId",
+    "/properties/DBInstanceArn"
   ],
   "primaryIdentifier": [
     "/properties/DBInstanceIdentifier"
@@ -472,6 +488,7 @@
         "rds:DescribeDBInstances",
         "rds:DescribeDBParameterGroups",
         "rds:ModifyDBInstance",
+        "rds:PromoteReadReplica",
         "rds:RebootDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource"

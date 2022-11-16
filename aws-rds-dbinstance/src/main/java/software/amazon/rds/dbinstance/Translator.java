@@ -1,5 +1,7 @@
 package software.amazon.rds.dbinstance;
 
+import static software.amazon.rds.common.util.DifferenceUtils.diff;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,15 +33,12 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Tagging;
-
-import static software.amazon.rds.common.util.DifferenceUtils.diff;
-
-import software.amazon.rds.common.util.DifferenceUtils;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
@@ -96,8 +95,10 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
+                .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
+                .storageThroughput(model.getStorageThroughput())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
@@ -158,6 +159,7 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
+                .storageThroughput(model.getStorageThroughput())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
@@ -249,6 +251,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .storageEncrypted(model.getStorageEncrypted())
+                .storageThroughput(model.getStorageThroughput())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
@@ -259,10 +262,14 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequestV12(
-            final ResourceModel previousModel,
+            ResourceModel previousModel,
             final ResourceModel desiredModel,
             final Boolean isRollback
     ) {
+        // previousModel might be null if called from CreateHandler.
+        // In this case diff will ensure to set all attributes provided by desiredModel.
+        previousModel = (previousModel != null) ? previousModel : ResourceModel.builder().build();
+
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
@@ -271,14 +278,16 @@ public class Translator {
                 .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
-                .dbSecurityGroups(DifferenceUtils.diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
+                .dbSecurityGroups(diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
                 .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
-                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()));
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
+                .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
+                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
         if (BooleanUtils.isTrue(isRollback)) {
             builder.allocatedStorage(
@@ -304,11 +313,15 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequest(
-            final ResourceModel previousModel,
+            ResourceModel previousModel,
             final ResourceModel desiredModel,
             final Boolean isRollback
     ) {
-        ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
+        // previousModel might be null if called from CreateHandler.
+        // In this case diff will ensure to set all attributes provided by desiredModel.
+        previousModel = (previousModel != null) ? previousModel : ResourceModel.builder().build();
+
+        final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
@@ -337,14 +350,17 @@ public class Translator {
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
                 .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), previousModel.getPubliclyAccessible()))
+                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()))
+                .storageThroughput(diff(previousModel.getStorageThroughput(), desiredModel.getStorageThroughput()))
                 .storageType(diff(previousModel.getStorageType(), desiredModel.getStorageType()))
                 .tdeCredentialArn(diff(previousModel.getTdeCredentialArn(), desiredModel.getTdeCredentialArn()))
                 .tdeCredentialPassword(diff(previousModel.getTdeCredentialPassword(), desiredModel.getTdeCredentialPassword()))
-                .vpcSecurityGroupIds(DifferenceUtils.diff(previousModel.getVPCSecurityGroups(), desiredModel.getVPCSecurityGroups()));
+                .vpcSecurityGroupIds(diff(previousModel.getVPCSecurityGroups(), desiredModel.getVPCSecurityGroups()));
 
         if (!Objects.deepEquals(previousModel.getEnableCloudwatchLogsExports(), desiredModel.getEnableCloudwatchLogsExports())) {
             final CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration = buildTranslateCloudwatchLogsExportConfiguration(
-                    Optional.ofNullable(previousModel).map(ResourceModel::getEnableCloudwatchLogsExports).orElse(Collections.emptyList()),
+                    previousModel.getEnableCloudwatchLogsExports(),
                     desiredModel.getEnableCloudwatchLogsExports()
             );
             builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
@@ -360,7 +376,7 @@ public class Translator {
         } else {
             builder.allocatedStorage(getAllocatedStorage(desiredModel));
             builder.iops(desiredModel.getIops());
-            builder.engineVersion(desiredModel.getEngineVersion());
+            builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
@@ -370,7 +386,6 @@ public class Translator {
 
         return builder.build();
     }
-
 
     public static RemoveRoleFromDbInstanceRequest removeRoleFromDbInstanceRequest(
             final ResourceModel model,
@@ -438,6 +453,14 @@ public class Translator {
                     .finalDBSnapshotIdentifier(finalDBSnapshotIdentifier);
         }
         return builder.build();
+    }
+
+    public static PromoteReadReplicaRequest promoteReadReplicaRequest(final ResourceModel model) {
+        return PromoteReadReplicaRequest.builder()
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .preferredBackupWindow(model.getPreferredBackupWindow())
+                .build();
     }
 
     public static DescribeDbParameterGroupsRequest describeDbParameterGroupsRequest(final String dbParameterGroupName) {
@@ -512,8 +535,10 @@ public class Translator {
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
                 .customIAMInstanceProfile(dbInstance.customIamInstanceProfile())
                 .dBClusterIdentifier(dbInstance.dbClusterIdentifier())
+                .dBInstanceArn(dbInstance.dbInstanceArn())
                 .dBInstanceClass(dbInstance.dbInstanceClass())
                 .dBInstanceIdentifier(dbInstance.dbInstanceIdentifier())
+                .dbiResourceId(dbInstance.dbiResourceId())
                 .dBName(dbInstance.dbName())
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
@@ -545,8 +570,10 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesFromSdk(dbInstance.processorFeatures()))
                 .promotionTier(dbInstance.promotionTier())
                 .publiclyAccessible(dbInstance.publiclyAccessible())
+                .replicaMode(dbInstance.replicaModeAsString())
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())
+                .storageThroughput(dbInstance.storageThroughput())
                 .tags(tags)
                 .tdeCredentialArn(dbInstance.tdeCredentialArn())
                 .timezone(dbInstance.timezone())

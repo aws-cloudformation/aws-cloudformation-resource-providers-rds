@@ -60,10 +60,12 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#processorfeatures" title="ProcessorFeatures">ProcessorFeatures</a>" : <i>[ <a href="processorfeature.md">ProcessorFeature</a>, ... ]</i>,
         "<a href="#promotiontier" title="PromotionTier">PromotionTier</a>" : <i>Integer</i>,
         "<a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>" : <i>Boolean</i>,
+        "<a href="#replicamode" title="ReplicaMode">ReplicaMode</a>" : <i>String</i>,
         "<a href="#sourcedbinstanceidentifier" title="SourceDBInstanceIdentifier">SourceDBInstanceIdentifier</a>" : <i>String</i>,
         "<a href="#sourceregion" title="SourceRegion">SourceRegion</a>" : <i>String</i>,
         "<a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>" : <i>Boolean</i>,
         "<a href="#storagetype" title="StorageType">StorageType</a>" : <i>String</i>,
+        "<a href="#storagethroughput" title="StorageThroughput">StorageThroughput</a>" : <i>Integer</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>,
         "<a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>" : <i>String</i>,
         "<a href="#tdecredentialpassword" title="TdeCredentialPassword">TdeCredentialPassword</a>" : <i>String</i>,
@@ -131,10 +133,12 @@ Properties:
       - <a href="processorfeature.md">ProcessorFeature</a></i>
     <a href="#promotiontier" title="PromotionTier">PromotionTier</a>: <i>Integer</i>
     <a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>: <i>Boolean</i>
+    <a href="#replicamode" title="ReplicaMode">ReplicaMode</a>: <i>String</i>
     <a href="#sourcedbinstanceidentifier" title="SourceDBInstanceIdentifier">SourceDBInstanceIdentifier</a>: <i>String</i>
     <a href="#sourceregion" title="SourceRegion">SourceRegion</a>: <i>String</i>
     <a href="#storageencrypted" title="StorageEncrypted">StorageEncrypted</a>: <i>Boolean</i>
     <a href="#storagetype" title="StorageType">StorageType</a>: <i>String</i>
+    <a href="#storagethroughput" title="StorageThroughput">StorageThroughput</a>: <i>Integer</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
     <a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>: <i>String</i>
@@ -331,7 +335,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### DBSubnetGroupName
 
@@ -647,7 +651,17 @@ _Required_: No
 
 _Type_: Boolean
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### ReplicaMode
+
+The open mode of an Oracle read replica. The default is open-read-only.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### SourceDBInstanceIdentifier
 
@@ -657,7 +671,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### SourceRegion
 
@@ -686,6 +700,16 @@ Specifies the storage type to be associated with the DB instance.
 _Required_: No
 
 _Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### StorageThroughput
+
+Specifies the storage throughput for the DB instance.
+
+_Required_: No
+
+_Type_: Integer
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -772,3 +796,11 @@ Returns the <code>Port</code> value.
 #### HostedZoneId
 
 Returns the <code>HostedZoneId</code> value.
+
+#### DbiResourceId
+
+The AWS Region-unique, immutable identifier for the DB instance. This identifier is found in AWS CloudTrail log entries whenever the AWS KMS key for the DB instance is accessed.
+
+#### DBInstanceArn
+
+The Amazon Resource Name (ARN) for the DB instance.

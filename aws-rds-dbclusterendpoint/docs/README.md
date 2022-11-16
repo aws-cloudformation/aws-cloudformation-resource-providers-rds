@@ -52,8 +52,6 @@ _Minimum_: <code>1</code>
 
 _Maximum_: <code>63</code>
 
-_Pattern_: <code>^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### DBClusterEndpointIdentifier
@@ -68,8 +66,6 @@ _Minimum_: <code>1</code>
 
 _Maximum_: <code>63</code>
 
-_Pattern_: <code>^[a-z]{1}(?:-?[a-z0-9]){0,62}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### EndpointType
@@ -79,8 +75,6 @@ The type of the endpoint, one of: READER , WRITER , ANY
 _Required_: Yes
 
 _Type_: String
-
-_Allowed Values_: <code>READER</code> | <code>WRITER</code> | <code>ANY</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
