@@ -177,13 +177,10 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     protected static final String DBI_RESOURCE_ID_EMPTY = null;
     protected static final String DBI_RESOURCE_ID_NON_EMPTY = "dbi-instance-identifier";
-    protected static final String REPLICA_MODE_EMPTY = null;
     protected static final String RESTORE_TIME_EMPTY = null;
     protected static final String RESTORE_TIME_INVALID = "invalid-date-format";
     protected static final String RESTORE_TIME_NON_EMPTY = "2022-11-05 15:20:00";
     protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY = null;
-    protected static final String TARGET_DB_INSTANCE_IDENTIFIER_EMPTY = null;
-    protected static final String TARGET_DB_INSTANCE_IDENTIFIER_NON_EMPTY = "target-db-instance-identifier";
     protected static final boolean USE_LATEST_RESTORABLE_TIME_NO = false;
     protected static final boolean USE_LATEST_RESTORABLE_TIME_YES = true;
 
@@ -522,7 +519,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .storageType(STORAGE_TYPE_STANDARD)
                 .tags(TAG_LIST)
-                .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .timezone(TIMEZONE_DEFAULT)
                 .useDefaultProcessorFeatures(USE_DEFAULT_PROCESSOR_FEATURES_YES)
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT))
@@ -605,7 +601,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .copyTagsToSnapshot(COPY_TAGS_TO_SNAPSHOT_YES)
                 .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_EMPTY)
                 .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
-                .dbiResourceId(DBI_RESOURCE_ID_EMPTY)
                 .dBName(DB_NAME)
                 .dBParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
                 .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_EMPTY)
@@ -637,8 +632,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .processorFeatures(PROCESSOR_FEATURES)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .publiclyAccessible(PUBLICLY_ACCESSIBLE_NO)
-                .replicaMode(REPLICA_MODE_EMPTY)
-                .restoreTime(RESTORE_TIME_EMPTY)
                 .sourceDBInstanceAutomatedBackupsArn(SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .sourceRegion(SOURCE_REGION_EMPTY)
@@ -646,7 +639,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .storageType(STORAGE_TYPE_STANDARD)
                 .tags(TAG_LIST)
                 .timezone(TIMEZONE_DEFAULT)
-                .targetDBInstanceIdentifier(TARGET_DB_INSTANCE_IDENTIFIER_EMPTY)
                 .useDefaultProcessorFeatures(USE_DEFAULT_PROCESSOR_FEATURES_YES)
                 .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_NO)
                 .vPCSecurityGroups(ImmutableList.of(VPC_SECURITY_GROUP_NAME_DEFAULT));

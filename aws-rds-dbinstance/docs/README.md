@@ -70,7 +70,6 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#storagetype" title="StorageType">StorageType</a>" : <i>String</i>,
         "<a href="#storagethroughput" title="StorageThroughput">StorageThroughput</a>" : <i>Integer</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>,
-        "<a href="#targetdbinstanceidentifier" title="TargetDBInstanceIdentifier">TargetDBInstanceIdentifier</a>" : <i>String</i>,
         "<a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>" : <i>String</i>,
         "<a href="#tdecredentialpassword" title="TdeCredentialPassword">TdeCredentialPassword</a>" : <i>String</i>,
         "<a href="#timezone" title="Timezone">Timezone</a>" : <i>String</i>,
@@ -149,7 +148,6 @@ Properties:
     <a href="#storagethroughput" title="StorageThroughput">StorageThroughput</a>: <i>Integer</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
-    <a href="#targetdbinstanceidentifier" title="TargetDBInstanceIdentifier">TargetDBInstanceIdentifier</a>: <i>String</i>
     <a href="#tdecredentialarn" title="TdeCredentialArn">TdeCredentialArn</a>: <i>String</i>
     <a href="#tdecredentialpassword" title="TdeCredentialPassword">TdeCredentialPassword</a>: <i>String</i>
     <a href="#timezone" title="Timezone">Timezone</a>: <i>String</i>
@@ -762,16 +760,6 @@ _Required_: No
 _Type_: List of <a href="tag.md">Tag</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
-
-#### TargetDBInstanceIdentifier
-
-The name of the new DB instance to be created.
-
-_Required_: No
-
-_Type_: String
-
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### TdeCredentialArn
 

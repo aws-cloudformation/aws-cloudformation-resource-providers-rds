@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +49,8 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
+    public static String RESTORE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -268,16 +271,16 @@ public class Translator {
     }
 
     static Instant stringToInstant(String restoreTimeString) {
-        if (com.amazonaws.util.StringUtils.hasValue(restoreTimeString)) {
+        if (StringUtils.isNotBlank(restoreTimeString)) {
             try {
                 return LocalDateTime.parse(
                                 restoreTimeString,
-                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                DateTimeFormatter.ofPattern(RESTORE_TIME_PATTERN)
                         )
                         .atOffset(ZoneOffset.ofHours(0))
                         .toInstant();
-            } catch (Exception e) {
-                throw new CfnInvalidRequestException(new Exception("Unable to parse RestoreTime"));
+            } catch (DateTimeParseException e) {
+                throw new CfnInvalidRequestException(new Exception(String.format("Unable to parse RestoreTime '%s'. Expected pattern '%s'", restoreTimeString, RESTORE_TIME_PATTERN)));
             }
         }
         return null;
@@ -318,7 +321,7 @@ public class Translator {
                 .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
-                .targetDBInstanceIdentifier(model.getTargetDBInstanceIdentifier())
+                .targetDBInstanceIdentifier(model.getDBInstanceIdentifier()) // We only work with DBInstanceId not TargetDBInstanceId
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())

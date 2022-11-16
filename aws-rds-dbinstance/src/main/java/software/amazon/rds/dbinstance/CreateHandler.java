@@ -67,16 +67,11 @@ public class CreateHandler extends BaseHandlerStd {
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
-            if (!StringUtils.isNullOrEmpty(model.getTargetDBInstanceIdentifier())) {
-                // Customer only needs to specify TargetDBInstanceIdentifier for a RestoreToPointInTime
-                model.setDBInstanceIdentifier(model.getTargetDBInstanceIdentifier());
-            } else {
-                model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
-                        .withStackId(request.getStackId())
-                        .withResourceId(request.getLogicalResourceIdentifier())
-                        .withRequestToken(request.getClientRequestToken())
-                        .toString());
-            }
+            model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
+                    .withStackId(request.getStackId())
+                    .withResourceId(request.getLogicalResourceIdentifier())
+                    .withRequestToken(request.getClientRequestToken())
+                    .toString());
         }
 
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
@@ -88,15 +83,6 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
-                        if (StringUtils.isNullOrEmpty(model.getTargetDBInstanceIdentifier())) {
-                            model.setTargetDBInstanceIdentifier(model.getDBInstanceIdentifier());
-                        }
-                        if (!model.getDBInstanceIdentifier().equals(model.getTargetDBInstanceIdentifier())) {
-                            return ProgressEvent.failed(model, progress.getCallbackContext(), HandlerErrorCode.InvalidRequest,
-                                        String.format("TargetDBInstanceIdentifier %s and DBInstanceIdentifier %s don't match",
-                                        model.getTargetDBInstanceIdentifier(), model.getDBInstanceIdentifier()));
-                        }
-
                         // restoreDBInstanceToPointInTime is not a versioned call.
                         return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
