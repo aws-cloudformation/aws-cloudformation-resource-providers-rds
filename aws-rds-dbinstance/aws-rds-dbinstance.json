@@ -404,13 +404,9 @@
     "/properties/MasterUsername",
     "/properties/NcharCharacterSetName",
     "/properties/Port",
-    "/properties/RestoreTime",
-    "/properties/SourceDBInstanceAutomatedBackupsArn",
-    "/properties/SourceDbiResourceId",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
-    "/properties/Timezone",
-    "/properties/UseLatestRestorableTime"
+    "/properties/Timezone"
   ],
   "conditionalCreateOnlyProperties": [
     "/properties/DBSnapshotIdentifier",
@@ -422,8 +418,12 @@
     "/properties/MultiAZ",
     "/properties/PerformanceInsightsKMSKeyId",
     "/properties/PreferredMaintenanceWindow",
+    "/properties/RestoreTime",
+    "/properties/SourceDBInstanceAutomatedBackupsArn",
     "/properties/SourceDBInstanceIdentifier",
-    "/properties/StorageType"
+    "/properties/SourceDbiResourceId",
+    "/properties/StorageType",
+    "/properties/UseLatestRestorableTime"
   ],
   "deprecatedProperties": [
     "/properties/TdeCredentialArn",
