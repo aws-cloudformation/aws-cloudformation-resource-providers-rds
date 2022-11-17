@@ -175,17 +175,14 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Boolean USE_DEFAULT_PROCESSOR_FEATURES_NO = false;
     protected static final String VPC_SECURITY_GROUP_NAME_DEFAULT = "default";
 
-    protected static final String DBI_RESOURCE_ID_EMPTY = null;
-    protected static final String DBI_RESOURCE_ID_NON_EMPTY = "dbi-instance-identifier";
     protected static final String RESTORE_TIME_EMPTY = null;
-    protected static final String RESTORE_TIME_INVALID = "invalid-date-format";
     protected static final String RESTORE_TIME_UTC = "2007-04-05T12:30:00Z";
     protected static final String RESTORE_TIME_UTC_PLUS_5 = "2007-04-05T17:30:00+05:00";
     protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY = null;
+    protected static final String SOURCE_DBI_RESOURCE_ID_EMPTY = null;
+    protected static final String SOURCE_DBI_RESOURCE_ID_NON_EMPTY = "dbi-instance-identifier";
     protected static final boolean USE_LATEST_RESTORABLE_TIME_NO = false;
     protected static final boolean USE_LATEST_RESTORABLE_TIME_YES = true;
-
-
 
     protected static final String MSG_ALREADY_EXISTS_ERR = "DBInstance already exists";
     protected static final String MSG_NOT_FOUND_ERR = "DBInstance not found";
@@ -481,7 +478,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .copyTagsToSnapshot(COPY_TAGS_TO_SNAPSHOT_YES)
                 .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_EMPTY)
                 .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_EMPTY)
-                .dbiResourceId(DBI_RESOURCE_ID_EMPTY)
                 .dBName(DB_NAME)
                 .dBParameterGroupName(DB_PARAMETER_GROUP_NAME_DEFAULT)
                 .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_NON_EMPTY) // setting this field marks the instance as recovering from the snapshot
@@ -516,6 +512,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .restoreTime(RESTORE_TIME_EMPTY)
                 .sourceDBInstanceAutomatedBackupsArn(SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY)
                 .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_EMPTY)
+                .sourceDbiResourceId(SOURCE_DBI_RESOURCE_ID_EMPTY)
                 .sourceRegion(SOURCE_REGION_EMPTY)
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .storageType(STORAGE_TYPE_STANDARD)

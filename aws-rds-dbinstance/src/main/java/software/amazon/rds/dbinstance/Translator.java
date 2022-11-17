@@ -4,7 +4,6 @@ import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,7 +41,6 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.utils.StringUtils;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
@@ -266,21 +264,11 @@ public class Translator {
                 .build();
     }
 
-    static Instant stringToInstant(String restoreTimeString) {
-        if (StringUtils.isNotBlank(restoreTimeString)) {
-            try {
-                return ZonedDateTime.parse(restoreTimeString).toInstant();
-            } catch (DateTimeParseException e) {
-                throw new CfnInvalidRequestException(String.format("RestoreTime %s", e.getMessage()));
-            }
-        }
-        return null;
-    }
-
     static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
+        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? ZonedDateTime.parse(model.getRestoreTime()).toInstant() : null;
 
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -306,9 +294,9 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .restoreTime(stringToInstant(model.getRestoreTime()))
+                .restoreTime(restoreTimeInstant)
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
-                .sourceDbiResourceId(model.getDbiResourceId())
+                .sourceDbiResourceId(model.getSourceDbiResourceId())
                 .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))

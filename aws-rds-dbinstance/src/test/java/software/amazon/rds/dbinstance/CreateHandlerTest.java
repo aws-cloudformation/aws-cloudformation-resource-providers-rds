@@ -51,7 +51,6 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshot
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -1474,7 +1473,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_DbiResourceId() {
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_SourceDbiResourceId() {
         final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
                 .thenReturn(restoreResponse);
@@ -1489,7 +1488,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                        .dbiResourceId(DBI_RESOURCE_ID_NON_EMPTY)
+                        .sourceDbiResourceId(SOURCE_DBI_RESOURCE_ID_NON_EMPTY)
                         .build(),
                 expectSuccess()
         );
@@ -1616,28 +1615,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
-    }
-
-    @Test
-    public void handleRequest_RestoreDBInstanceToPointInTime_InvalidRestoreTime_CfnInvalidRequestException() {
-        expectServiceInvocation = false;
-
-        final CallbackContext context = new CallbackContext();
-        context.setCreated(false);
-        context.setUpdated(true);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        Assertions.assertThatThrownBy(() -> {
-            test_handleRequest_base(
-                    context,
-                    null,
-                    () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
-                            .restoreTime(RESTORE_TIME_INVALID)
-                            .build(),
-                    expectFailed(HandlerErrorCode.InvalidRequest)
-            );
-        }).isInstanceOf(CfnInvalidRequestException.class);
     }
 
     @Test

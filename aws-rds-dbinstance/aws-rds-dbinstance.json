@@ -314,7 +314,8 @@
     },
     "RestoreTime": {
       "description": "The date and time to restore from.",
-      "type": "string"
+      "type": "string",
+      "format": "date-time"
     },
     "SourceDbiResourceId": {
       "type": "string",
@@ -390,7 +391,6 @@
     "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
     "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
     "/properties/OptionGroupName": "$lowercase(OptionGroupName)",
-    "/properties/SourceDBInstanceAutomatedBackupsArn": "$lowercase(SourceDBInstanceAutomatedBackupsArn)",
     "/properties/SourceDBInstanceIdentifier": "$lowercase(SourceDBInstanceIdentifier)"
   },
   "createOnlyProperties": [
@@ -406,6 +406,7 @@
     "/properties/Port",
     "/properties/RestoreTime",
     "/properties/SourceDBInstanceAutomatedBackupsArn",
+    "/properties/SourceDbiResourceId",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/Timezone",
@@ -432,9 +433,13 @@
     "/properties/DBSnapshotIdentifier",
     "/properties/MasterUserPassword",
     "/properties/Port",
+    "/properties/RestoreTime",
+    "/properties/SourceDBInstanceAutomatedBackupsArn",
     "/properties/SourceDBInstanceIdentifier",
+    "/properties/SourceDbiResourceId",
     "/properties/SourceRegion",
-    "/properties/TdeCredentialPassword"
+    "/properties/TdeCredentialPassword",
+    "/properties/UseLatestRestorableTime"
   ],
   "readOnlyProperties": [
     "/properties/Endpoint/Address",
