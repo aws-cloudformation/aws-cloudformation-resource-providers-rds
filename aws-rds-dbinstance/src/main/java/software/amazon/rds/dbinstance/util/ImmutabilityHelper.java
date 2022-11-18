@@ -66,11 +66,17 @@ public final class ImmutabilityHelper {
                 StringUtils.isNullOrEmpty(desired.getDBSnapshotIdentifier());
     }
 
+    public static boolean isDBClusterSnapshotIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getDBClusterSnapshotIdentifier(), desired.getDBClusterSnapshotIdentifier()) ||
+                StringUtils.isNullOrEmpty(desired.getDBClusterSnapshotIdentifier());
+    }
+
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return isEngineMutable(previous, desired) &&
                 isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
                 isAvailabilityZoneChangeMutable(previous, desired) &&
                 isSourceDBInstanceIdentifierMutable(previous, desired) &&
-                isDBSnapshotIdentifierMutable(previous, desired);
+                isDBSnapshotIdentifierMutable(previous, desired) &&
+                isDBClusterSnapshotIdentifierMutable(previous, desired);
     }
 }

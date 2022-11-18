@@ -397,6 +397,7 @@
     "/properties/Timezone"
   ],
   "conditionalCreateOnlyProperties": [
+    "/properties/DBClusterSnapshotIdentifier",
     "/properties/DBSnapshotIdentifier",
     "/properties/AutoMinorVersionUpgrade",
     "/properties/AvailabilityZone",
