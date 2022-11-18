@@ -1,5 +1,7 @@
 package software.amazon.rds.globalcluster;
 
+import java.util.Objects;
+
 import software.amazon.awssdk.services.rds.model.CreateGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
@@ -33,11 +35,19 @@ public class Translator {
             .build();
   }
 
-  static ModifyGlobalClusterRequest modifyGlobalClusterRequest(final ResourceModel model) {
-    return ModifyGlobalClusterRequest.builder()
-            .globalClusterIdentifier(model.getGlobalClusterIdentifier())
-            .deletionProtection(model.getDeletionProtection())
-            .build();
+  static ModifyGlobalClusterRequest modifyGlobalClusterRequest(final ResourceModel previousModel, final ResourceModel desiredModel) {
+    ModifyGlobalClusterRequest.Builder builder = ModifyGlobalClusterRequest.builder()
+            .globalClusterIdentifier(desiredModel.getGlobalClusterIdentifier())
+            .deletionProtection(desiredModel.getDeletionProtection());
+
+    if (previousModel != null) {
+      if (!Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion())) {
+        builder.engineVersion(desiredModel.getEngineVersion());
+        builder.allowMajorVersionUpgrade(true);
+      }
+    }
+
+    return builder.build();
   }
 
   static DeleteGlobalClusterRequest deleteGlobalClusterRequest(final ResourceModel model) {

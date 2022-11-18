@@ -31,11 +31,13 @@ public class AbstractTestBase {
   protected static final String SOURCECLUSTER_IDENTIFIER;
   protected static final String SOURCECLUSTER_ARN;
   protected static final String ENGINE_VERSION;
+  protected static final String ENGINE_VERSION_MVU;
   protected static final String ENGINE;
   protected static final boolean DELETION_PROTECTION;
 
   protected static final ResourceModel RESOURCE_MODEL;
   protected static final ResourceModel RESOURCE_MODEL_UPDATE;
+  protected static final ResourceModel RESOURCE_MODEL_UPDATE_MVU;
   protected static final ResourceModel RESOURCE_MODEL_ALTERNATIVE;
   protected static final ResourceModel RESOURCE_MODEL_WITH_MASTER;
   protected static final ResourceModel RESOURCE_MODEL_WITH_MASTER_ARN;
@@ -59,6 +61,7 @@ public class AbstractTestBase {
     SOURCECLUSTER_ARN = "arn:aws:rds:us-east-1:340834135580:cluster:sample-globalcluster";
     ENGINE = "aurora";
     ENGINE_VERSION = "5.6.mysql_aurora.1.22.2";
+    ENGINE_VERSION_MVU = "5.7.mysql_aurora.2.10.2";
     DELETION_PROTECTION = false;
 
 
@@ -109,6 +112,13 @@ public class AbstractTestBase {
     RESOURCE_MODEL_UPDATE = ResourceModel.builder()
             .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
             .deletionProtection(DELETION_PROTECTION)
+            .engineVersion(ENGINE_VERSION)
+            .build();
+
+    RESOURCE_MODEL_UPDATE_MVU = ResourceModel.builder()
+            .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
+            .deletionProtection(DELETION_PROTECTION)
+            .engineVersion(ENGINE_VERSION_MVU)
             .build();
   }
 
