@@ -4,11 +4,18 @@ import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 public final class ResourceModelHelper {
     private final static String STORAGE_TYPE_IO1 = "io1";
+
+    protected static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
+            "sqlserver-ee",
+            "sqlserver-se"
+    );
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) || isRestoreFromSnapshot(model) || isRestoreFromClusterSnapshot(model) || isCertificateAuthorityApplied(model)) &&
@@ -45,5 +52,16 @@ public final class ResourceModelHelper {
 
     public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
         return !Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && shouldUpdateAfterCreate(model);
+    }
+
+    public static boolean shouldReboot(final ResourceModel model) {
+        return StringUtils.hasValue(model.getDBParameterGroupName());
+    }
+
+    public static Boolean getDefaultMultiAzForEngine(final String engine) {
+        if (SQLSERVER_ENGINES_WITH_MIRRORING.contains(engine)) {
+            return null;
+        }
+        return false;
     }
 }

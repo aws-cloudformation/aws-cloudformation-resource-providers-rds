@@ -115,11 +115,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
-    protected static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
-            "sqlserver-ee",
-            "sqlserver-se"
-    );
-
     protected final static HandlerConfig DEFAULT_DB_INSTANCE_HANDLER_CONFIG = HandlerConfig.builder()
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
             .build();
