@@ -94,7 +94,7 @@ public class CreateHandler extends BaseHandlerStd {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
                                 final String engine = snapshot.engine();
-                                progress.getResourceModel().setMultiAZ(getDefaultMultiAzForEngine(engine));
+                                progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
                             } catch (Exception e) {
                                 return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
                             }
@@ -121,12 +121,12 @@ public class CreateHandler extends BaseHandlerStd {
                     if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(progress, () ->
                                                 versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
-                                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
-                                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
+                                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreateV12(pxy, request, pcl, prg),
+                                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreate(pxy, request, pcl, prg)
                                                 )),
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {
-                                    if (shouldReboot(p.getResourceModel())) {
+                                    if (ResourceModelHelper.shouldReboot(p.getResourceModel())) {
                                         return rebootAwait(proxy, rdsProxyClient.defaultClient(), p);
                                     }
                                     return p;
@@ -306,14 +306,47 @@ public class CreateHandler extends BaseHandlerStd {
                 .progress();
     }
 
-    private boolean shouldReboot(final ResourceModel model) {
-        return StringUtils.hasValue(model.getDBParameterGroupName());
+    protected ProgressEvent<ResourceModel, CallbackContext> updateDbInstanceAfterCreateV12(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceAfterCreateRequestV12(request.getDesiredResourceState()))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance
+                ))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
     }
 
-    private Boolean getDefaultMultiAzForEngine(final String engine) {
-        if (SQLSERVER_ENGINES_WITH_MIRRORING.contains(engine)) {
-            return null;
-        }
-        return false;
+    protected ProgressEvent<ResourceModel, CallbackContext> updateDbInstanceAfterCreate(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        return proxy.initiate("rds::modify-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceAfterCreateRequest(request.getDesiredResourceState()))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((modifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        modifyRequest,
+                        proxyInvocation.client()::modifyDBInstance
+                ))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
     }
 }

@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
@@ -315,14 +316,10 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequestV12(
-            ResourceModel previousModel,
+            final ResourceModel previousModel,
             final ResourceModel desiredModel,
             final Boolean isRollback
     ) {
-        // previousModel might be null if called from CreateHandler.
-        // In this case diff will ensure to set all attributes provided by desiredModel.
-        previousModel = (previousModel != null) ? previousModel : ResourceModel.builder().build();
-
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
@@ -357,23 +354,11 @@ public class Translator {
         return builder.build();
     }
 
-    public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {
-        return ModifyDbInstanceRequest.builder()
-                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
-                .allocatedStorage(getAllocatedStorage(desiredModel))
-                .applyImmediately(Boolean.TRUE)
-                .build();
-    }
-
     public static ModifyDbInstanceRequest modifyDbInstanceRequest(
-            ResourceModel previousModel,
+            final ResourceModel previousModel,
             final ResourceModel desiredModel,
             final Boolean isRollback
     ) {
-        // previousModel might be null if called from CreateHandler.
-        // In this case diff will ensure to set all attributes provided by desiredModel.
-        previousModel = (previousModel != null) ? previousModel : ResourceModel.builder().build();
-
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .allowMajorVersionUpgrade(desiredModel.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
@@ -440,6 +425,47 @@ public class Translator {
         return builder.build();
     }
 
+    public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequestV12(final ResourceModel model) {
+        return ModifyDbInstanceRequest.builder()
+                .applyImmediately(Boolean.TRUE)
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .allocatedStorage(getAllocatedStorage(model))
+                .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .dbParameterGroupName(model.getDBParameterGroupName())
+                .dbSecurityGroups(model.getDBSecurityGroups())
+                .engineVersion(model.getEngineVersion())
+                .iops(model.getIops())
+                .masterUserPassword(model.getMasterUserPassword())
+                .preferredBackupWindow(model.getPreferredBackupWindow())
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
+                .build();
+    }
+
+    public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
+        return ModifyDbInstanceRequest.builder()
+                .applyImmediately(Boolean.TRUE)
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .allocatedStorage(getAllocatedStorage(model))
+                .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .caCertificateIdentifier(model.getCACertificateIdentifier())
+                .dbParameterGroupName(model.getDBParameterGroupName())
+                .engineVersion(model.getEngineVersion())
+                .iops(model.getIops())
+                .masterUserPassword(model.getMasterUserPassword())
+                .maxAllocatedStorage(model.getMaxAllocatedStorage())
+                .preferredBackupWindow(model.getPreferredBackupWindow())
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
+                .build();
+    }
+
+    public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {
+        return ModifyDbInstanceRequest.builder()
+                .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
+                .allocatedStorage(getAllocatedStorage(desiredModel))
+                .applyImmediately(Boolean.TRUE)
+                .build();
+    }
+
     public static RemoveRoleFromDbInstanceRequest removeRoleFromDbInstanceRequest(
             final ResourceModel model,
             final DBInstanceRole role
@@ -485,6 +511,11 @@ public class Translator {
 
         logTypesToEnable.removeAll(Optional.ofNullable(previousLogExports).orElse(Collections.emptyList()));
         logTypesToDisable.removeAll(Optional.ofNullable(desiredLogExports).orElse(Collections.emptyList()));
+
+        if (CollectionUtils.isEmpty(logTypesToEnable) && CollectionUtils.isEmpty(logTypesToDisable)) {
+            // This is a no-op
+            return null;
+        }
 
         return CloudwatchLogsExportConfiguration.builder()
                 .enableLogTypes(logTypesToEnable)
@@ -648,18 +679,17 @@ public class Translator {
     }
 
     public static String translateDBParameterGroupFromSdk(final software.amazon.awssdk.services.rds.model.DBParameterGroupStatus parameterGroup) {
-        return Optional.ofNullable(parameterGroup).map(DBParameterGroupStatus::dbParameterGroupName).orElse(null);
+        return parameterGroup == null ? null : parameterGroup.dbParameterGroupName();
     }
 
     public static List<String> translateEnableCloudwatchLogsExport(final Collection<String> enabledCloudwatchLogsExports) {
-        return new ArrayList<>(Optional.ofNullable(enabledCloudwatchLogsExports)
-                .orElse(Collections.emptyList()));
+        return enabledCloudwatchLogsExports == null ? null : new ArrayList<>(enabledCloudwatchLogsExports);
     }
 
     public static List<String> translateVpcSecurityGroupsFromSdk(
             final Collection<software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership> vpcSecurityGroups
     ) {
-        return streamOfOrEmpty(vpcSecurityGroups)
+        return vpcSecurityGroups == null ? null : vpcSecurityGroups.stream()
                 .map(software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership::vpcSecurityGroupId)
                 .collect(Collectors.toList());
     }
@@ -693,7 +723,7 @@ public class Translator {
     public static List<ProcessorFeature> translateProcessorFeaturesFromSdk(
             final Collection<software.amazon.awssdk.services.rds.model.ProcessorFeature> sdkProcessorFeatures
     ) {
-        return streamOfOrEmpty(sdkProcessorFeatures)
+        return sdkProcessorFeatures == null ? null : sdkProcessorFeatures.stream()
                 .map(processorFeature -> ProcessorFeature
                         .builder()
                         .name(processorFeature.name())
@@ -705,7 +735,7 @@ public class Translator {
     public static Set<software.amazon.awssdk.services.rds.model.ProcessorFeature> translateProcessorFeaturesToSdk(
             final Collection<ProcessorFeature> processorFeatures
     ) {
-        return streamOfOrEmpty(processorFeatures)
+        return processorFeatures == null ? null : processorFeatures.stream()
                 .map(processorFeature -> software.amazon.awssdk.services.rds.model.ProcessorFeature
                         .builder()
                         .name(processorFeature.getName())
@@ -717,7 +747,7 @@ public class Translator {
     public static List<String> translateDbSecurityGroupsFromSdk(
             final List<software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership> dbSecurityGroupMemberships
     ) {
-        return streamOfOrEmpty(dbSecurityGroupMemberships)
+        return dbSecurityGroupMemberships == null ? null : dbSecurityGroupMemberships.stream()
                 .map(software.amazon.awssdk.services.rds.model.DBSecurityGroupMembership::dbSecurityGroupName)
                 .collect(Collectors.toList());
     }
@@ -725,7 +755,7 @@ public class Translator {
     public static String translateDbSubnetGroupFromSdk(
             final software.amazon.awssdk.services.rds.model.DBSubnetGroup dbSubnetGroup
     ) {
-        return Optional.ofNullable(dbSubnetGroup).map(DBSubnetGroup::dbSubnetGroupName).orElse(null);
+        return dbSubnetGroup == null ? null : dbSubnetGroup.dbSubnetGroupName();
     }
 
     public static List<DBInstanceRole> translateAssociatedRolesFromSdk(
@@ -765,7 +795,8 @@ public class Translator {
                 .orElseGet(Stream::empty);
     }
 
-    private static boolean canUpdateAllocatedStorage(final String fromAllocatedStorage, final String toAllocatedStorage) {
+    @VisibleForTesting
+    static boolean canUpdateAllocatedStorage(final String fromAllocatedStorage, final String toAllocatedStorage) {
         if (fromAllocatedStorage == null || toAllocatedStorage == null) {
             return true;
         }
@@ -779,11 +810,13 @@ public class Translator {
         return to >= from;
     }
 
-    private static boolean canUpdateIops(final Integer fromIops, final Integer toIops) {
+    @VisibleForTesting
+    static boolean canUpdateIops(final Integer fromIops, final Integer toIops) {
         return fromIops == null || toIops == null || toIops >= fromIops;
     }
 
-    private static boolean shouldSetProcessorFeatures(final ResourceModel previousModel, final ResourceModel desiredModel) {
+    @VisibleForTesting
+    static boolean shouldSetProcessorFeatures(final ResourceModel previousModel, final ResourceModel desiredModel) {
         return previousModel != null && desiredModel != null &&
                 (!Objects.deepEquals(previousModel.getProcessorFeatures(), desiredModel.getProcessorFeatures()) ||
                         !Objects.equals(previousModel.getUseDefaultProcessorFeatures(), desiredModel.getUseDefaultProcessorFeatures()));
