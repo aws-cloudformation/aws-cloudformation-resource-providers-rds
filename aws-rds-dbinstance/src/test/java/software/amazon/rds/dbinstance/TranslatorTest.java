@@ -37,6 +37,19 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyDbInstanceRequestV12_IncreaseAllocatedStorage() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE.toString())
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final Boolean isRollback = false;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+    }
+
+    @Test
     public void test_modifyDbInstanceRequest_DecreaseAllocatedStorage() {
         final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())
@@ -46,6 +59,19 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_DECR);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequestV12_DecreaseAllocatedStorage() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE.toString())
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
+                .build();
+        final Boolean isRollback = false;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_DECR);
     }
 
@@ -63,6 +89,19 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyDbInstanceRequestV12_isRollback_IncreaseAllocatedStorage() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE.toString())
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final Boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+    }
+
+    @Test
     public void test_modifyDbInstanceRequest_isRollback_DecreaseAllocatedStorage() {
         final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())
@@ -72,6 +111,19 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE); // should stay unchanged
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequestV12_isRollback_DecreaseAllocatedStorage() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE.toString())
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
+                .build();
+        final Boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE); // should stay unchanged
     }
 
@@ -89,6 +141,19 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyDbInstanceRequestV12_IncreaseIops() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_DEFAULT)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_INCR)
+                .build();
+        final Boolean isRollback = false;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
+        assertThat(request.iops()).isEqualTo(IOPS_INCR);
+    }
+
+    @Test
     public void test_modifyDbInstanceRequest_DecreaseIops() {
         final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
                 .iops(IOPS_DEFAULT)
@@ -98,6 +163,19 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = false;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequestV12_DecreaseIops() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_DEFAULT)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_DECR)
+                .build();
+        final Boolean isRollback = false;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DECR);
     }
 
@@ -115,6 +193,19 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyDbInstanceRequestV12_isRollback_IncreaseIops() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_DEFAULT)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_INCR)
+                .build();
+        final Boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
+        assertThat(request.iops()).isEqualTo(IOPS_INCR);
+    }
+
+    @Test
     public void test_modifyDbInstanceRequest_isRollback_DecreaseIops() {
         final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
                 .iops(IOPS_DEFAULT)
@@ -124,6 +215,19 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequestV12_isRollback_DecreaseIops() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_DEFAULT)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .iops(IOPS_DECR)
+                .build();
+        final Boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
     }
 
@@ -313,6 +417,17 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
         assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
         assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
+    }
+
+    @Test
+    public void test_canUpdateAllocatedStorage_nullArg() {
+        assertThat(Translator.canUpdateAllocatedStorage(null, "42")).isTrue();
+        assertThat(Translator.canUpdateAllocatedStorage("42", null)).isTrue();
+    }
+
+    @Test
+    public void test_canUpdateAllocatedStorage_NumberFormatException() {
+        assertThat(Translator.canUpdateAllocatedStorage("123", "invalid")).isTrue();
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
