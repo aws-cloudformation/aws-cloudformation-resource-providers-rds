@@ -35,13 +35,17 @@ public class Translator {
             .build();
   }
 
-  static ModifyGlobalClusterRequest modifyGlobalClusterRequest(final ResourceModel previousModel, final ResourceModel desiredModel) {
+  static ModifyGlobalClusterRequest modifyGlobalClusterRequest(
+          final ResourceModel previousModel,
+          final ResourceModel desiredModel,
+          final boolean isRollback
+  ) {
     ModifyGlobalClusterRequest.Builder builder = ModifyGlobalClusterRequest.builder()
             .globalClusterIdentifier(desiredModel.getGlobalClusterIdentifier())
             .deletionProtection(desiredModel.getDeletionProtection());
 
     if (previousModel != null) {
-      if (!Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion())) {
+      if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
         builder.engineVersion(desiredModel.getEngineVersion());
         builder.allowMajorVersionUpgrade(true);
       }

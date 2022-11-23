@@ -1,5 +1,7 @@
 package software.amazon.rds.globalcluster;
 
+import org.apache.commons.lang3.BooleanUtils;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -19,7 +21,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         return proxy.initiate("rds::update-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
                 // request to update global cluster
-                .translateToServiceRequest(model -> Translator.modifyGlobalClusterRequest(previousModel, desiredModel))
+                .translateToServiceRequest(model -> Translator.modifyGlobalClusterRequest(previousModel, desiredModel, BooleanUtils.isTrue(request.getRollback())))
                 .backoffDelay(BACKOFF_STRATEGY)
                 .makeServiceCall((modifyGlobalClusterRequest, proxyClient1) -> proxyClient1.injectCredentialsAndInvokeV2(modifyGlobalClusterRequest, proxyClient1.client()::modifyGlobalCluster))
                 .stabilize(((modifyGlobalClusterRequest, modifyGlobalClusterResponse, proxyClient1, resourceModel, callbackContext1) ->
