@@ -59,8 +59,7 @@
     "/properties/GlobalClusterIdentifier",
     "/properties/SourceDBClusterIdentifier",
     "/properties/StorageEncrypted",
-    "/properties/Engine",
-    "/properties/EngineVersion"
+    "/properties/Engine"
   ],
   "primaryIdentifier": [
     "/properties/GlobalClusterIdentifier"

@@ -67,6 +67,31 @@ public class UpdateHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    public void handleRequest_EngineVersionUpgrade() {
+        final ModifyGlobalClusterResponse modifyGlobalClusterResponse = ModifyGlobalClusterResponse.builder().build();
+        when(proxyRdsClient.client().modifyGlobalCluster(any(ModifyGlobalClusterRequest.class))).thenReturn(modifyGlobalClusterResponse);
+        final DescribeGlobalClustersResponse describeGlobalClustersResponse = DescribeGlobalClustersResponse.builder().globalClusters(GLOBAL_CLUSTER_ACTIVE).build();
+        when(proxyRdsClient.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class))).thenReturn(describeGlobalClustersResponse);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceState(RESOURCE_MODEL_UPDATE)
+                .desiredResourceState(RESOURCE_MODEL_UPDATE_MVU)
+                .build();
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyRdsClient.client()).modifyGlobalCluster(any(ModifyGlobalClusterRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(rds, times(2)).serviceName();
+        verifyNoMoreInteractions(rds);
+    }
+
+    @Test
     public void handleRequest_ReturnsFailedResponse_WhenRdsClientThrowsClusterNotFoundException() {
         AwsErrorDetails awsErr = AwsErrorDetails.builder().sdkHttpResponse(SdkHttpResponse.builder().statusCode(404).build()).build();
 
