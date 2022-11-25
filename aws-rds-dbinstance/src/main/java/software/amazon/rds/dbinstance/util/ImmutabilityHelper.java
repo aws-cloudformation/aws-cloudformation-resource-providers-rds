@@ -67,6 +67,11 @@ public final class ImmutabilityHelper {
                 StringUtils.isNullOrEmpty(desired.getDBSnapshotIdentifier());
     }
 
+    public static boolean isDBClusterSnapshotIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getDBClusterSnapshotIdentifier(), desired.getDBClusterSnapshotIdentifier()) ||
+                StringUtils.isNullOrEmpty(desired.getDBClusterSnapshotIdentifier());
+    }
+
     public static boolean isUseLatestRestorableTimeMutable(final ResourceModel previous, final ResourceModel desired) {
         return Objects.equal(previous.getUseLatestRestorableTime(), desired.getUseLatestRestorableTime()) ||
                 !BooleanUtils.isTrue(desired.getUseLatestRestorableTime());
@@ -93,6 +98,7 @@ public final class ImmutabilityHelper {
                 isAvailabilityZoneChangeMutable(previous, desired) &&
                 isSourceDBInstanceIdentifierMutable(previous, desired) &&
                 isDBSnapshotIdentifierMutable(previous, desired) &&
+                isDBClusterSnapshotIdentifierMutable(previous, desired) &&
                 isUseLatestRestorableTimeMutable(previous, desired) &&
                 isRestoreTimeMutable(previous, desired) &&
                 isSourceDBInstanceAutomatedBackupsArnMutable(previous, desired) &&

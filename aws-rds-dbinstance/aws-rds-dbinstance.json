@@ -131,6 +131,10 @@
       "type": "string",
       "description": "The identifier of the DB cluster that the instance will belong to."
     },
+    "DBClusterSnapshotIdentifier": {
+      "type": "string",
+      "description": "The identifier for the RDS for MySQL Multi-AZ DB cluster snapshot to restore from. For more information on Multi-AZ DB clusters, see Multi-AZ deployments with two readable standby DB instances in the Amazon RDS User Guide .\n\nConstraints:\n * Must match the identifier of an existing Multi-AZ DB cluster snapshot.\n * Can't be specified when DBSnapshotIdentifier is specified.\n * Must be specified when DBSnapshotIdentifier isn't specified.\n * If you are restoring from a shared manual Multi-AZ DB cluster snapshot, the DBClusterSnapshotIdentifier must be the ARN of the shared snapshot.\n * Can't be the identifier of an Aurora DB cluster snapshot.\n * Can't be the identifier of an RDS for PostgreSQL Multi-AZ DB cluster snapshot."
+    },
     "DBInstanceArn": {
       "type": "string",
       "description": "The Amazon Resource Name (ARN) for the DB instance."
@@ -386,6 +390,7 @@
   "additionalProperties": false,
   "propertyTransform": {
     "/properties/DBClusterIdentifier": "$lowercase(DBClusterIdentifier)",
+    "/properties/DBClusterSnapshotIdentifier": "$lowercase(DBClusterSnapshotIdentifier)",
     "/properties/DBInstanceIdentifier": "$lowercase(DBInstanceIdentifier)",
     "/properties/DBParameterGroupName": "$lowercase(DBParameterGroupName)",
     "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
@@ -409,6 +414,7 @@
     "/properties/Timezone"
   ],
   "conditionalCreateOnlyProperties": [
+    "/properties/DBClusterSnapshotIdentifier",
     "/properties/DBSnapshotIdentifier",
     "/properties/AutoMinorVersionUpgrade",
     "/properties/AvailabilityZone",

@@ -89,8 +89,9 @@ public class CreateHandler extends BaseHandlerStd {
                         // createDBInstanceReadReplica is not a versioned call.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel())) {
-                        if (model.getMultiAZ() == null) {
+                    } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
+                            ResourceModelHelper.isRestoreFromClusterSnapshot(progress.getResourceModel())) {
+                        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && model.getMultiAZ() == null) {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
                                 final String engine = snapshot.engine();

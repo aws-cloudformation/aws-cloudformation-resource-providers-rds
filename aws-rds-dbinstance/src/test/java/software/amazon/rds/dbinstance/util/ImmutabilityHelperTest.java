@@ -209,4 +209,32 @@ class ImmutabilityHelperTest {
             assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
         }
     }
+
+    @Test
+    public void test_isDBClusterSnapshotIdentifierMutable() {
+        final List<ResourceModelTestCase> tests = Arrays.asList(
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBClusterSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBClusterSnapshotIdentifier("old").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBClusterSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBClusterSnapshotIdentifier("").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBClusterSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBClusterSnapshotIdentifier(null).build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().dBClusterSnapshotIdentifier("old").build())
+                        .desired(ResourceModel.builder().dBClusterSnapshotIdentifier("new").build())
+                        .expect(false)
+                        .build());
+        for (final ResourceModelTestCase test : tests) {
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+        }
+    }
 }

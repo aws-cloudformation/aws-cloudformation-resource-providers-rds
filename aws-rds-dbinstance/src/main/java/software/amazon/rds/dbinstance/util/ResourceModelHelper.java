@@ -19,7 +19,11 @@ public final class ResourceModelHelper {
     );
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model) || isRestoreToPointInTime(model)) &&
+        return (isReadReplica(model) ||
+                isRestoreFromSnapshot(model) ||
+                isRestoreFromClusterSnapshot(model) ||
+                isCertificateAuthorityApplied(model) ||
+                isRestoreToPointInTime(model)) &&
                 (
                         !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
                                 StringUtils.hasValue(model.getAllocatedStorage()) ||
@@ -52,6 +56,10 @@ public final class ResourceModelHelper {
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
         return StringUtils.hasValue(model.getDBSnapshotIdentifier());
+    }
+
+    public static boolean isRestoreFromClusterSnapshot(final ResourceModel model) {
+        return StringUtils.hasValue(model.getDBClusterSnapshotIdentifier());
     }
 
     public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {

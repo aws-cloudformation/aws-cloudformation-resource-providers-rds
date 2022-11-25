@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
@@ -297,6 +298,35 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
         Assertions.assertThat(argument.getValue().multiAZ()).isEqualTo(false);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromClusterSnapshot_NoFetchingDefaultMZ() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
+                        .multiAZ(null)
+                        .dBSnapshotIdentifier(null)
+                        .dBClusterSnapshotIdentifier("cluster-snapshot").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
+        Assertions.assertThat(argument.getValue().multiAZ()).isEqualTo(null);
+        Assertions.assertThat(argument.getValue().dbClusterSnapshotIdentifier()).isEqualTo("cluster-snapshot");
     }
 
     @Test
@@ -1370,7 +1400,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(DomainNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
                     Arguments.of(InvalidSubnetException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.GeneralServiceException),
                     Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure),
-                    Arguments.of(StorageTypeNotSupportedException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest)
+                    Arguments.of(StorageTypeNotSupportedException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
+                    Arguments.of(DbClusterSnapshotNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound)
             );
         }
     }
