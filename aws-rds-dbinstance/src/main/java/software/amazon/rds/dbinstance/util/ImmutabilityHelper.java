@@ -5,6 +5,7 @@ import java.util.List;
 import com.amazonaws.util.StringUtils;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 
@@ -71,12 +72,36 @@ public final class ImmutabilityHelper {
                 StringUtils.isNullOrEmpty(desired.getDBClusterSnapshotIdentifier());
     }
 
+    public static boolean isUseLatestRestorableTimeMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getUseLatestRestorableTime(), desired.getUseLatestRestorableTime()) ||
+                !BooleanUtils.isTrue(desired.getUseLatestRestorableTime());
+    }
+
+    public static boolean isRestoreTimeMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getRestoreTime(), desired.getRestoreTime()) ||
+                StringUtils.isNullOrEmpty(desired.getRestoreTime());
+    }
+
+    public static boolean isSourceDBInstanceAutomatedBackupsArnMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getSourceDBInstanceAutomatedBackupsArn(), desired.getSourceDBInstanceAutomatedBackupsArn()) ||
+                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceAutomatedBackupsArn());
+    }
+
+    public static boolean isSourceDbiResourceIdMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getSourceDbiResourceId(), desired.getSourceDbiResourceId()) ||
+                StringUtils.isNullOrEmpty(desired.getSourceDbiResourceId());
+    }
+
     public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return isEngineMutable(previous, desired) &&
                 isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
                 isAvailabilityZoneChangeMutable(previous, desired) &&
                 isSourceDBInstanceIdentifierMutable(previous, desired) &&
                 isDBSnapshotIdentifierMutable(previous, desired) &&
-                isDBClusterSnapshotIdentifierMutable(previous, desired);
+                isDBClusterSnapshotIdentifierMutable(previous, desired) &&
+                isUseLatestRestorableTimeMutable(previous, desired) &&
+                isRestoreTimeMutable(previous, desired) &&
+                isSourceDBInstanceAutomatedBackupsArnMutable(previous, desired) &&
+                isSourceDbiResourceIdMutable(previous, desired);
     }
 }

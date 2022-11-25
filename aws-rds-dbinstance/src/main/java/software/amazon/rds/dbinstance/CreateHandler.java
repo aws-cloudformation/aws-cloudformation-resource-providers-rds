@@ -81,8 +81,12 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
-                        // createDBInstanceReadReplica is not a versioned call, unlike the others.
+                    if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
+                        // restoreDBInstanceToPointInTime is not a versioned call.
+                        return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
+                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
+                    } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
+                        // createDBInstanceReadReplica is not a versioned call.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
@@ -238,6 +242,33 @@ public class CreateHandler extends BaseHandlerStd {
                 .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         restoreRequest,
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
+                ))
+                .stabilize((request, response, proxyInvocation, model, context) ->
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .handleError((request, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceToPointInTimeRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tagSet
+    ) {
+        return proxy.initiate(
+                        "rds::restore-db-instance-to-point-in-time",
+                        rdsProxyClient,
+                        progress.getResourceModel(),
+                        progress.getCallbackContext()
+                ).translateToServiceRequest(model -> Translator.restoreDbInstanceToPointInTimeRequest(model, tagSet))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        restoreRequest,
+                        proxyInvocation.client()::restoreDBInstanceToPointInTime
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
                         isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
