@@ -48,6 +48,8 @@ import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -1443,5 +1445,289 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 requestException,
                 expectResponseCode
         );
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_UseLatestRestorableTime() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_SourceDbiResourceId() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .sourceDbiResourceId(SOURCE_DBI_RESOURCE_ID_NON_EMPTY)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_NullIdentifiers() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        // Both identifiers are passed as null. DBInstanceIdentifier will be random and the same value will be used for TargetDBInstanceIdentifier
+        // All of these InstanceIdentifier tests are non-perfect since we can't tell the value of DBInstanceIdentifier. So this is only half the picture
+        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isNotBlank();
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_SpecificDBInstanceIdentifier() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        // Specific DBInstanceIdentifier. The same value will be used for TargetDBInstanceIdentifier
+        Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo(DB_INSTANCE_IDENTIFIER_NON_EMPTY);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_RestoreTimeUTC() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .restoreTime(RESTORE_TIME_UTC)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_TriggeredBy_RestoreTimeUTCPlus5() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(restoreResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .restoreTime(RESTORE_TIME_UTC_PLUS_5)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_AccessDeniedTagging() {
+        final RestoreDbInstanceToPointInTimeResponse restoreResponse = RestoreDbInstanceToPointInTimeResponse.builder().build();
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build())
+                .thenReturn(restoreResponse);
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                .stackTags(TAG_SET.getStackTags())
+                .resourceTags(TAG_SET.getResourceTags())
+                .build();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                () -> DB_INSTANCE_ACTIVE,
+                null,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .useLatestRestorableTime(true)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(2)).restoreDBInstanceToPointInTime(createCaptor.capture());
+
+        final RestoreDbInstanceToPointInTimeRequest requestWithAllTags = createCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+        final RestoreDbInstanceToPointInTimeRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
+        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
+        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
+        );
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_Update_Success() {
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(true)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceToPointInTime_Reboot_Success() {
+        when(rdsProxy.client().rebootDBInstance(any(RebootDbInstanceRequest.class)))
+                .thenReturn(RebootDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(false);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                        .useLatestRestorableTime(true)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 }

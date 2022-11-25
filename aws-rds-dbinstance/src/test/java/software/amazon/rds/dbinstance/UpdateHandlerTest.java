@@ -1281,4 +1281,216 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client()).promoteReadReplica(any(PromoteReadReplicaRequest.class));
     }
+
+    @Test
+    public void handleRequest_UseLatestRestorableTime_UpdatedFromTrueToFalse() {
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .useLatestRestorableTime(false)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .useLatestRestorableTime(true)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_UseLatestRestorableTime_UpdatedFromTrueToEmpty() {
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .useLatestRestorableTime(null)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .useLatestRestorableTime(true)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_PerformanceInsightsKMSId_UpdatedFromFalseToTrue() {
+        expectServiceInvocation = false;
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .useLatestRestorableTime(true)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .useLatestRestorableTime(false)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                null,
+                () -> previousModel,
+                () -> desiredModel,
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_RestoreTime_UpdatedFromValueToEmpty() {
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .restoreTime(null)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .restoreTime(RESTORE_TIME_UTC)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreTime_UpdatedToDifferentValue() {
+        expectServiceInvocation = false;
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .restoreTime(RESTORE_TIME_UTC_PLUS_5)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .restoreTime(RESTORE_TIME_UTC)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                null,
+                () -> previousModel,
+                () -> desiredModel,
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_SourceDBInstanceAutomatedBackupsArn_UpdatedFromValueToEmpty() {
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .sourceDBInstanceAutomatedBackupsArn(null)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .sourceDBInstanceAutomatedBackupsArn(SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_NON_EMPTY)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SourceDBInstanceAutomatedBackupsArn_UpdatedToDifferentValue() {
+        expectServiceInvocation = false;
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .sourceDBInstanceAutomatedBackupsArn("arn:aws:rds:us-east-1:123456789012:snapshot:rds:backup-name-new")
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .sourceDBInstanceAutomatedBackupsArn(SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_NON_EMPTY)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                null,
+                () -> previousModel,
+                () -> desiredModel,
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_SourceDbiResourceId_UpdatedFromValueToEmpty() {
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .sourceDbiResourceId(null)
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .sourceDbiResourceId(SOURCE_DBI_RESOURCE_ID_NON_EMPTY)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> previousModel,
+                () -> desiredModel,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SourceDbiResourceId_UpdatedToDifferentValue() {
+        expectServiceInvocation = false;
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .sourceDbiResourceId("dbi-instance-identifier-new")
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .sourceDbiResourceId(SOURCE_DBI_RESOURCE_ID_NON_EMPTY)
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+                null,
+                () -> previousModel,
+                () -> desiredModel,
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
 }

@@ -312,6 +312,19 @@
       "description": "The open mode of an Oracle read replica. The default is open-read-only.",
       "type": "string"
     },
+    "RestoreTime": {
+      "description": "The date and time to restore from.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "SourceDbiResourceId": {
+      "type": "string",
+      "description": "The resource ID of the source DB instance from which to restore."
+    },
+    "SourceDBInstanceAutomatedBackupsArn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) of the replicated automated backups from which to restore."
+    },
     "SourceDBInstanceIdentifier": {
       "type": "string",
       "description": "If you want to create a Read Replica DB instance, specify the ID of the source DB instance. Each DB instance can have a limited number of Read Replicas."
@@ -357,6 +370,10 @@
       "type": "boolean",
       "description": "A value that indicates whether the DB instance class of the DB instance uses its default processor features."
     },
+    "UseLatestRestorableTime": {
+      "type": "boolean",
+      "description": "A value that indicates whether the DB instance is restored from the latest backup time. By default, the DB instance isn't restored from the latest backup time."
+    },
     "VPCSecurityGroups": {
       "type": "array",
       "uniqueItems": true,
@@ -401,8 +418,12 @@
     "/properties/MultiAZ",
     "/properties/PerformanceInsightsKMSKeyId",
     "/properties/PreferredMaintenanceWindow",
+    "/properties/RestoreTime",
+    "/properties/SourceDBInstanceAutomatedBackupsArn",
     "/properties/SourceDBInstanceIdentifier",
-    "/properties/StorageType"
+    "/properties/SourceDbiResourceId",
+    "/properties/StorageType",
+    "/properties/UseLatestRestorableTime"
   ],
   "deprecatedProperties": [
     "/properties/TdeCredentialArn",
@@ -412,9 +433,13 @@
     "/properties/DBSnapshotIdentifier",
     "/properties/MasterUserPassword",
     "/properties/Port",
+    "/properties/RestoreTime",
+    "/properties/SourceDBInstanceAutomatedBackupsArn",
     "/properties/SourceDBInstanceIdentifier",
+    "/properties/SourceDbiResourceId",
     "/properties/SourceRegion",
-    "/properties/TdeCredentialPassword"
+    "/properties/TdeCredentialPassword",
+    "/properties/UseLatestRestorableTime"
   ],
   "readOnlyProperties": [
     "/properties/Endpoint/Address",
@@ -450,7 +475,8 @@
         "rds:DescribeDBSnapshots",
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",
-        "rds:RestoreDBInstanceFromDBSnapshot"
+        "rds:RestoreDBInstanceFromDBSnapshot",
+        "rds:RestoreDBInstanceToPointInTime"
       ],
       "timeoutInMinutes": 2160
     },

@@ -1,6 +1,7 @@
 package software.amazon.rds.dbinstance.util;
 
 import com.amazonaws.util.StringUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 
@@ -18,7 +19,7 @@ public final class ResourceModelHelper {
     );
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model)) &&
+        return (isReadReplica(model) || isRestoreFromSnapshot(model) || isCertificateAuthorityApplied(model) || isRestoreToPointInTime(model)) &&
                 (
                         !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
                                 StringUtils.hasValue(model.getAllocatedStorage()) ||
@@ -32,6 +33,13 @@ public final class ResourceModelHelper {
                                 Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0
                 );
+    }
+
+    public static boolean isRestoreToPointInTime(final ResourceModel model) {
+        // Parameters to rely on are UseLatestRestorableTime and RestoreTime to tell if this is a RestoreToPointInTime
+        // But SourceDBInstanceAutomatedBackupsArn and DbiResourceId are also unique identifying parameters of RestoreToPointInTime
+        return  BooleanUtils.isTrue(model.getUseLatestRestorableTime()) || StringUtils.hasValue(model.getRestoreTime())  ||
+                StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn()) || StringUtils.hasValue(model.getSourceDbiResourceId());
     }
 
     private static boolean isCertificateAuthorityApplied(final ResourceModel model) {
