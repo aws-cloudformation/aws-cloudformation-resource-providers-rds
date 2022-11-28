@@ -91,8 +91,8 @@ class RdsClientProviderTest {
         byte[] requestBytes = IOUtils.toByteArray(httpExecuteRequest.contentStreamProvider().get().newStream());
         final String requestBody = new String(requestBytes);
 
-        //TODO: Ensure the client encoded {@code apiVersion} into the request POST body.
-        //Assertions.assertThat(requestBody).contains("Version=" + apiVersion);
+        //Ensure the client encoded {@code apiVersion} into the request POST body.
+        Assertions.assertThat(requestBody).contains("Version=" + apiVersion);
 
         // Ensure UserAgent is modified to reflect the resource handler client signature.
         final String userAgent = httpExecuteRequest.httpRequest().headers().get("User-Agent").get(0);
