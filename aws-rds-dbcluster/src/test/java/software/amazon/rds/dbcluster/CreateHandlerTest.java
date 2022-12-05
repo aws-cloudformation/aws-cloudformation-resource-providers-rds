@@ -536,6 +536,27 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDbClusterToPointInTime_CloudWatchLogsExports() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
+                        .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().enableCloudwatchLogsExports()).isEqualTo(ImmutableList.of("config-1", "config-2"));
+
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
     public void handleRequest_CreateDbCluster_SetDefaultPortForProvisionedPostgresql() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
