@@ -1104,7 +1104,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     // Put error codes below
                     Arguments.of(ErrorCode.InvalidDBInstanceState, HandlerErrorCode.ResourceConflict),
                     Arguments.of(ErrorCode.InvalidDBSecurityGroupState, HandlerErrorCode.InvalidRequest),
-                    Arguments.of(ErrorCode.InvalidParameterCombination, HandlerErrorCode.ResourceConflict)
+                    Arguments.of(ErrorCode.InvalidParameterCombination, HandlerErrorCode.InvalidRequest)
                     // Put exception classes below
                     // <empty>
             );

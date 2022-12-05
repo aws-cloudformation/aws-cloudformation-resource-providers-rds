@@ -256,12 +256,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    ErrorCode.InvalidDBInstanceState,
-                    ErrorCode.InvalidParameterCombination)
+                    ErrorCode.InvalidDBInstanceState)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DBInstanceNotFound)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    ErrorCode.InvalidDBSecurityGroupState)
+                    ErrorCode.InvalidDBSecurityGroupState,
+                    ErrorCode.InvalidParameterCombination)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbInstanceStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),

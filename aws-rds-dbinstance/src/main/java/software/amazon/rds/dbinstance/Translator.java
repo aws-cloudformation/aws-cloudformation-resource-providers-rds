@@ -300,7 +300,6 @@ public class Translator {
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceDbiResourceId(model.getSourceDbiResourceId())
                 .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
-                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .targetDBInstanceIdentifier(model.getDBInstanceIdentifier()) // We only work with DBInstanceId not TargetDBInstanceId
                 .tdeCredentialArn(model.getTdeCredentialArn())
@@ -659,6 +658,7 @@ public class Translator {
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())
                 .storageThroughput(dbInstance.storageThroughput())
+                .storageType(dbInstance.storageType())
                 .tags(tags)
                 .tdeCredentialArn(dbInstance.tdeCredentialArn())
                 .timezone(dbInstance.timezone())

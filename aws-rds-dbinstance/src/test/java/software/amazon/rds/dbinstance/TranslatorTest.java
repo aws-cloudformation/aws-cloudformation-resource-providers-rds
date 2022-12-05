@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
@@ -322,6 +323,17 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_restoreDbInstanceToPointInTimeRequest_storageTypeIO1() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("io1")
+                .build();
+
+        final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isNull();
+    }
+
+    @Test
     public void test_restoreFromSnapshotRequestV12_storageTypeIO1() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
@@ -340,6 +352,17 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo("gp2");
+    }
+
+    @Test
+    public void test_restoreDbInstanceToPointInTimeRequest_storageTypeGp2() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
         assertThat(request.storageType()).isEqualTo("gp2");
     }
 
