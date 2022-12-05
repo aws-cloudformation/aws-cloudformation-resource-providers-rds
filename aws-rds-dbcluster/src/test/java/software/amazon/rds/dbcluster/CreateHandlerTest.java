@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -533,6 +534,29 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
         Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDbClusterToPointInTime_SetEnableCloudwatchLogsExports() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+
+        final List<String> cloudwatchLogsExports = ImmutableList.of("config-1", "config-2", "config-3");
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
+                        .enableCloudwatchLogsExports(cloudwatchLogsExports)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(restoreCaptor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(restoreCaptor.getValue().enableCloudwatchLogsExports()).containsExactlyElementsOf(cloudwatchLogsExports);
     }
 
     @Test

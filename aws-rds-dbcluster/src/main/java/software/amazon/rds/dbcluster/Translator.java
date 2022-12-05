@@ -99,6 +99,7 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .domain(model.getDomain())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .networkType(model.getNetworkType())
