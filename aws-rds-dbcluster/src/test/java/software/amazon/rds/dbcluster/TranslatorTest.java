@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
+import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,7 @@ import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
 
 public class TranslatorTest extends AbstractHandlerTest {
 
@@ -126,6 +128,58 @@ public class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel model = Translator.translateDbClusterFromSdk(cluster);
         assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
         assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
+    }
+
+    @Test
+    public void test_translateScalingConfigurationToSdk_null() {
+        assertThat(Translator.translateScalingConfigurationToSdk(null)).isNull();
+    }
+
+    @Test
+    public void test_translateScalingConfigurationToSdk_SetAttributes() {
+        final Random random = new Random();
+        final ScalingConfiguration config = ScalingConfiguration.builder()
+                .autoPause(true)
+                .minCapacity(random.nextInt())
+                .maxCapacity(random.nextInt())
+                .timeoutAction(TestUtils.randomString(16, TestUtils.ALPHA))
+                .secondsBeforeTimeout(random.nextInt())
+                .secondsUntilAutoPause(random.nextInt())
+                .build();
+
+        final software.amazon.awssdk.services.rds.model.ScalingConfiguration result = Translator.translateScalingConfigurationToSdk(config);
+
+        assertThat(result.autoPause()).isEqualTo(config.getAutoPause());
+        assertThat(result.minCapacity()).isEqualTo(config.getMinCapacity());
+        assertThat(result.maxCapacity()).isEqualTo(config.getMaxCapacity());
+        assertThat(result.secondsBeforeTimeout()).isEqualTo(config.getSecondsBeforeTimeout());
+        assertThat(result.secondsUntilAutoPause()).isEqualTo(config.getSecondsUntilAutoPause());
+    }
+
+    @Test
+    public void test_translateScalingConfigurationFromSdk_null() {
+        assertThat(Translator.translateScalingConfigurationFromSdk(null)).isNull();
+    }
+
+    @Test
+    public void test_translateScalingConfigurationFromSdk_SetAttributes() {
+        final Random random = new Random();
+        final software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo config = software.amazon.awssdk.services.rds.model.ScalingConfigurationInfo.builder()
+                .autoPause(true)
+                .minCapacity(random.nextInt())
+                .maxCapacity(random.nextInt())
+                .timeoutAction(TestUtils.randomString(16, TestUtils.ALPHA))
+                .secondsBeforeTimeout(random.nextInt())
+                .secondsUntilAutoPause(random.nextInt())
+                .build();
+
+        final ScalingConfiguration result = Translator.translateScalingConfigurationFromSdk(config);
+
+        assertThat(result.getAutoPause()).isEqualTo(config.autoPause());
+        assertThat(result.getMinCapacity()).isEqualTo(config.minCapacity());
+        assertThat(result.getMaxCapacity()).isEqualTo(config.maxCapacity());
+        assertThat(result.getSecondsBeforeTimeout()).isEqualTo(config.secondsBeforeTimeout());
+        assertThat(result.getSecondsUntilAutoPause()).isEqualTo(config.secondsUntilAutoPause());
     }
 
     @Override

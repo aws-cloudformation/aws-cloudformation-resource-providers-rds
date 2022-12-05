@@ -343,6 +343,7 @@ public class Translator {
                 .maxCapacity(scalingConfiguration.getMaxCapacity())
                 .minCapacity(scalingConfiguration.getMinCapacity())
                 .timeoutAction(scalingConfiguration.getTimeoutAction())
+                .secondsBeforeTimeout(scalingConfiguration.getSecondsBeforeTimeout())
                 .secondsUntilAutoPause(scalingConfiguration.getSecondsUntilAutoPause())
                 .build();
     }
@@ -370,6 +371,7 @@ public class Translator {
                 .maxCapacity(scalingConfiguration.maxCapacity())
                 .minCapacity(scalingConfiguration.minCapacity())
                 .timeoutAction(scalingConfiguration.timeoutAction())
+                .secondsBeforeTimeout(scalingConfiguration.secondsBeforeTimeout())
                 .secondsUntilAutoPause(scalingConfiguration.secondsUntilAutoPause())
                 .build();
     }

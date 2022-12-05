@@ -13,6 +13,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "<a href="#autopause" title="AutoPause">AutoPause</a>" : <i>Boolean</i>,
     "<a href="#maxcapacity" title="MaxCapacity">MaxCapacity</a>" : <i>Integer</i>,
     "<a href="#mincapacity" title="MinCapacity">MinCapacity</a>" : <i>Integer</i>,
+    "<a href="#secondsbeforetimeout" title="SecondsBeforeTimeout">SecondsBeforeTimeout</a>" : <i>Integer</i>,
     "<a href="#secondsuntilautopause" title="SecondsUntilAutoPause">SecondsUntilAutoPause</a>" : <i>Integer</i>,
     "<a href="#timeoutaction" title="TimeoutAction">TimeoutAction</a>" : <i>String</i>
 }
@@ -24,6 +25,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <a href="#autopause" title="AutoPause">AutoPause</a>: <i>Boolean</i>
 <a href="#maxcapacity" title="MaxCapacity">MaxCapacity</a>: <i>Integer</i>
 <a href="#mincapacity" title="MinCapacity">MinCapacity</a>: <i>Integer</i>
+<a href="#secondsbeforetimeout" title="SecondsBeforeTimeout">SecondsBeforeTimeout</a>: <i>Integer</i>
 <a href="#secondsuntilautopause" title="SecondsUntilAutoPause">SecondsUntilAutoPause</a>: <i>Integer</i>
 <a href="#timeoutaction" title="TimeoutAction">TimeoutAction</a>: <i>String</i>
 </pre>
@@ -59,6 +61,17 @@ The minimum capacity for an Aurora DB cluster in serverless DB engine mode.
 For Aurora MySQL, valid capacity values are 1, 2, 4, 8, 16, 32, 64, 128, and 256.
 For Aurora PostgreSQL, valid capacity values are 2, 4, 8, 16, 32, 64, 192, and 384.
 The minimum capacity must be less than or equal to the maximum capacity.
+
+_Required_: No
+
+_Type_: Integer
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### SecondsBeforeTimeout
+
+The amount of time, in seconds, that Aurora Serverless v1 tries to find a scaling point to perform seamless scaling before enforcing the timeout action.
+The default is 300.
 
 _Required_: No
 
