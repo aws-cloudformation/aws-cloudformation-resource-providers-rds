@@ -396,6 +396,7 @@
     "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
     "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
     "/properties/OptionGroupName": "$lowercase(OptionGroupName)",
+    "/properties/SourceDBInstanceAutomatedBackupsArn": "$lowercase(SourceDBInstanceAutomatedBackupsArn)",
     "/properties/SourceDBInstanceIdentifier": "$lowercase(SourceDBInstanceIdentifier)"
   },
   "createOnlyProperties": [
