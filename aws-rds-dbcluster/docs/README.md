@@ -242,10 +242,7 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### DBSystemId
 
-The system ID (SID) of an Oracle Database instance (memory and processes) that
-manages your Oracle RAC database. The name of your CDB is the same as your
-SID. The default SID is RDSCDB. This option is valid only when you specify the
-engine custom-oracle-rac-ee-cdb.
+Reserved for future use.
 
 _Required_: No
 

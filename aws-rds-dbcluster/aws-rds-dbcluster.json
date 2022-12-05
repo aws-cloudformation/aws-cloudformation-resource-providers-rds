@@ -70,7 +70,7 @@
       "type": "string"
     },
     "DBSystemId": {
-      "description": "The system ID (SID) of an Oracle Database instance (memory and processes) that\nmanages your Oracle RAC database. The name of your CDB is the same as your\nSID. The default SID is RDSCDB. This option is valid only when you specify the\nengine custom-oracle-rac-ee-cdb.",
+      "description": "Reserved for future use.",
       "type": "string"
     },
     "GlobalClusterIdentifier": {
