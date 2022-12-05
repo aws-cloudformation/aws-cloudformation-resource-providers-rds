@@ -23,6 +23,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#databasename" title="DatabaseName">DatabaseName</a>" : <i>String</i>,
         "<a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>" : <i>String</i>,
         "<a href="#dbinstanceparametergroupname" title="DBInstanceParameterGroupName">DBInstanceParameterGroupName</a>" : <i>String</i>,
+        "<a href="#dbsystemid" title="DBSystemId">DBSystemId</a>" : <i>String</i>,
         "<a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>" : <i>String</i>,
@@ -84,6 +85,7 @@ Properties:
     <a href="#databasename" title="DatabaseName">DatabaseName</a>: <i>String</i>
     <a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>: <i>String</i>
     <a href="#dbinstanceparametergroupname" title="DBInstanceParameterGroupName">DBInstanceParameterGroupName</a>: <i>String</i>
+    <a href="#dbsystemid" title="DBSystemId">DBSystemId</a>: <i>String</i>
     <a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
     <a href="#dbclusterparametergroupname" title="DBClusterParameterGroupName">DBClusterParameterGroupName</a>: <i>String</i>
@@ -237,6 +239,19 @@ _Required_: No
 _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### DBSystemId
+
+The system ID (SID) of an Oracle Database instance (memory and processes) that
+manages your Oracle RAC database. The name of your CDB is the same as your
+SID. The default SID is RDSCDB. This option is valid only when you specify the
+engine custom-oracle-rac-ee-cdb.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### GlobalClusterIdentifier
 
