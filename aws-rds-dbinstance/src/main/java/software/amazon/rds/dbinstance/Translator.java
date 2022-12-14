@@ -27,8 +27,6 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
-import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
@@ -46,6 +44,8 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
+    private final static String STORAGE_TYPE_GP3 = "gp3";
+
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -164,7 +164,6 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .storageThroughput(model.getStorageThroughput())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
@@ -426,7 +425,7 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequestV12(final ResourceModel model) {
-        return ModifyDbInstanceRequest.builder()
+        final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .allocatedStorage(getAllocatedStorage(model))
@@ -437,12 +436,18 @@ public class Translator {
                 .iops(model.getIops())
                 .masterUserPassword(model.getMasterUserPassword())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
-                .build();
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
+
+        if (STORAGE_TYPE_GP3.equalsIgnoreCase(model.getStorageType())) {
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.iops(model.getIops());
+            builder.storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
-        return ModifyDbInstanceRequest.builder()
+        final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .allocatedStorage(getAllocatedStorage(model))
@@ -454,8 +459,14 @@ public class Translator {
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
-                .build();
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
+
+        if (STORAGE_TYPE_GP3.equalsIgnoreCase(model.getStorageType())) {
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.iops(model.getIops());
+            builder.storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {

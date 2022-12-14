@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ImmutableList;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
@@ -311,33 +313,36 @@ class TranslatorTest extends AbstractHandlerTest {
         Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
-    @Test
-    public void test_restoreFromSnapshotRequest_storageTypeIO1() {
+    @ParameterizedTest
+    @ValueSource(strings = {"io1", "gp3"})
+    public void test_restoreFromSnapshotRequest_storageType_shouldBeSetOnUpdate(final String storageType) {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType("io1")
+                .storageType(storageType)
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
         assertThat(request.storageType()).isNull();
     }
 
-    @Test
-    public void test_restoreDbInstanceToPointInTimeRequest_storageTypeIO1() {
+    @ParameterizedTest
+    @ValueSource(strings = {"io1", "gp3"})
+    public void test_restoreDbInstanceToPointInTimeRequest_shouldBeSetOnUpdate(final String storageType) {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType("io1")
+                .storageType(storageType)
                 .build();
 
         final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
         assertThat(request.storageType()).isNull();
     }
 
-    @Test
-    public void test_restoreFromSnapshotRequestV12_storageTypeIO1() {
+    @ParameterizedTest
+    @ValueSource(strings = {"io1", "gp3"})
+    public void test_restoreFromSnapshotRequestV12_shouldBeSetOnUpdate(final String storageType) {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType("io1")
+                .storageType(storageType)
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
@@ -451,6 +456,33 @@ class TranslatorTest extends AbstractHandlerTest {
     @Test
     public void test_canUpdateAllocatedStorage_NumberFormatException() {
         assertThat(Translator.canUpdateAllocatedStorage("123", "invalid")).isTrue();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetGP3Parameters() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .storageType("gp3")
+                .storageThroughput(100)
+                .iops(200)
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.iops()).isEqualTo(200);
+        assertThat(request.storageThroughput()).isEqualTo(100);
+        assertThat(request.storageType()).isEqualTo("gp3");
+    }
+    @Test
+    public void test_modifyAfterCreateV12_shouldSetGP3Parameters() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .storageType("gp3")
+                .storageThroughput(100)
+                .iops(200)
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequestV12(model);
+        assertThat(request.iops()).isEqualTo(200);
+        assertThat(request.storageThroughput()).isEqualTo(100);
+        assertThat(request.storageType()).isEqualTo("gp3");
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

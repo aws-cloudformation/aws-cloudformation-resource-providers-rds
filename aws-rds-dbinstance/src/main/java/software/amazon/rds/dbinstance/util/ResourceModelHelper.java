@@ -11,9 +11,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class ResourceModelHelper {
-    private final static String STORAGE_TYPE_IO1 = "io1";
+    private static final List<String> STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE = Arrays.asList(
+            "io1",
+            "gp3"
+    );
 
-    protected static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
+    private static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
             "sqlserver-ee",
             "sqlserver-se"
     );
@@ -35,7 +38,8 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0
+                                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
+                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0
                 );
     }
 
@@ -63,7 +67,7 @@ public final class ResourceModelHelper {
     }
 
     public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
-        return !Objects.equals(model.getStorageType(), STORAGE_TYPE_IO1) && shouldUpdateAfterCreate(model);
+        return !STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE.contains(model.getStorageType()) && shouldUpdateAfterCreate(model);
     }
 
     public static boolean shouldReboot(final ResourceModel model) {
