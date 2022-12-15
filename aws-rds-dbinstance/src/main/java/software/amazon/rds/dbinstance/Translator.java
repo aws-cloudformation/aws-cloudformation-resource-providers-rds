@@ -44,8 +44,6 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
-    private final static String STORAGE_TYPE_GP3 = "gp3";
-
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -455,7 +453,7 @@ public class Translator {
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
-        if (STORAGE_TYPE_GP3.equalsIgnoreCase(model.getStorageType())) {
+        if (StorageType.GP3.equals(StorageType.fromString(model.getStorageType()))) {
             builder.storageThroughput(model.getStorageThroughput());
             builder.iops(model.getIops());
             builder.storageType(model.getStorageType());
