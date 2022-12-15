@@ -471,19 +471,6 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.storageThroughput()).isEqualTo(100);
         assertThat(request.storageType()).isEqualTo("gp3");
     }
-    @Test
-    public void test_modifyAfterCreateV12_shouldSetGP3Parameters() {
-        final ResourceModel model = RESOURCE_MODEL_BLDR()
-                .storageType("gp3")
-                .storageThroughput(100)
-                .iops(200)
-                .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequestV12(model);
-        assertThat(request.iops()).isEqualTo(200);
-        assertThat(request.storageThroughput()).isEqualTo(100);
-        assertThat(request.storageType()).isEqualTo("gp3");
-    }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
 

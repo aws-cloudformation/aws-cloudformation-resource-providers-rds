@@ -1,22 +1,22 @@
 package software.amazon.rds.dbinstance.util;
 
 import com.amazonaws.util.StringUtils;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
+import software.amazon.rds.dbinstance.StorageType;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 public final class ResourceModelHelper {
-    private static final List<String> STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE = Arrays.asList(
-            "io1",
-            "gp3"
+    private static final Set<StorageType> STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE = ImmutableSet.of(
+            StorageType.GP3,
+            StorageType.IO1
     );
 
-    private static final List<String> SQLSERVER_ENGINES_WITH_MIRRORING = Arrays.asList(
+    private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
             "sqlserver-ee",
             "sqlserver-se"
     );
@@ -67,7 +67,7 @@ public final class ResourceModelHelper {
     }
 
     public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
-        return !STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE.contains(model.getStorageType()) && shouldUpdateAfterCreate(model);
+        return !STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE.contains(StorageType.fromString(model.getStorageType())) && shouldUpdateAfterCreate(model);
     }
 
     public static boolean shouldReboot(final ResourceModel model) {

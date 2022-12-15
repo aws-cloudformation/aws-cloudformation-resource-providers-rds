@@ -425,7 +425,7 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequestV12(final ResourceModel model) {
-        final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
+        return ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .allocatedStorage(getAllocatedStorage(model))
@@ -436,14 +436,8 @@ public class Translator {
                 .iops(model.getIops())
                 .masterUserPassword(model.getMasterUserPassword())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
-
-        if (STORAGE_TYPE_GP3.equalsIgnoreCase(model.getStorageType())) {
-            builder.storageThroughput(model.getStorageThroughput());
-            builder.iops(model.getIops());
-            builder.storageType(model.getStorageType());
-        }
-        return builder.build();
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
+                .build();
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
