@@ -1,6 +1,8 @@
 package software.amazon.rds.dbinstance.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -94,16 +96,19 @@ public class ResourceModelHelperTest {
         final ResourceModel model = ResourceModel.builder()
                 .cACertificateIdentifier("identifier")
                 .allocatedStorage("100")
+                .dBSnapshotIdentifier("identifier")
                 .build();
 
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 
-    @Test
-    public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageTypeIO1() {
+    @ParameterizedTest
+    @ValueSource(strings = {"gp3", "io1"})
+    public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageType_shouldBeSetOnModify(final String storageType) {
         final ResourceModel model = ResourceModel.builder()
-                .storageType("io1")
+                .storageType(storageType)
                 .allocatedStorage("100")
+                .dBSnapshotIdentifier("identifier")
                 .build();
 
         assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isFalse();
@@ -112,10 +117,21 @@ public class ResourceModelHelperTest {
     @Test
     public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageTypeGP2() {
         final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
                 .storageType("gp2")
                 .allocatedStorage("100")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenStorageThroughputIsSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .storageThroughput(100)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 }

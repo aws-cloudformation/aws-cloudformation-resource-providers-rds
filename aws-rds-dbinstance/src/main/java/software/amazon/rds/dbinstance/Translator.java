@@ -27,8 +27,6 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
-import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
@@ -164,7 +162,6 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .storageThroughput(model.getStorageThroughput())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
@@ -442,7 +439,7 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
-        return ModifyDbInstanceRequest.builder()
+        final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .allocatedStorage(getAllocatedStorage(model))
@@ -454,8 +451,14 @@ public class Translator {
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
-                .build();
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
+
+        if (StorageType.GP3.equals(StorageType.fromString(model.getStorageType()))) {
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.iops(model.getIops());
+            builder.storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {
