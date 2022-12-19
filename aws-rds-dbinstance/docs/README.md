@@ -872,3 +872,7 @@ The AWS Region-unique, immutable identifier for the DB instance. This identifier
 #### DBInstanceArn
 
 The Amazon Resource Name (ARN) for the DB instance.
+
+#### DBSystemId
+
+The Oracle system ID (Oracle SID) for a container database (CDB). The Oracle SID is also the name of the CDB. This setting is valid for RDS Custom only.

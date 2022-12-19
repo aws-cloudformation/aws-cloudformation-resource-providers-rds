@@ -630,6 +630,7 @@ public class Translator {
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
+                .dBSystemId(dbInstance.dbSystemId())
                 .domain(domain)
                 .domainIAMRoleName(domainIAMRoleName)
                 .deletionProtection(dbInstance.deletionProtection())
