@@ -164,7 +164,6 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .storageThroughput(model.getStorageThroughput())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
@@ -442,7 +441,7 @@ public class Translator {
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
-        return ModifyDbInstanceRequest.builder()
+        final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .allocatedStorage(getAllocatedStorage(model))
@@ -454,8 +453,14 @@ public class Translator {
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
-                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
-                .build();
+                .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
+
+        if (StorageType.GP3.equals(StorageType.fromString(model.getStorageType()))) {
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.iops(model.getIops());
+            builder.storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static ModifyDbInstanceRequest updateAllocatedStorageRequest(final ResourceModel desiredModel) {
@@ -643,6 +648,7 @@ public class Translator {
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
+                .dBSystemId(dbInstance.dbSystemId())
                 .domain(domain)
                 .domainIAMRoleName(domainIAMRoleName)
                 .deletionProtection(dbInstance.deletionProtection())
