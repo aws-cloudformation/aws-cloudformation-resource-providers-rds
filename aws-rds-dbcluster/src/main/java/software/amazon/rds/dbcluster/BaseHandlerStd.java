@@ -102,6 +102,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     StorageQuotaExceededException.class,
                     SnapshotQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    DbClusterRoleAlreadyExistsException.class,
                     InvalidDbClusterStateException.class,
                     InvalidDbInstanceStateException.class,
                     InvalidDbSubnetGroupStateException.class,
@@ -116,13 +117,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     NetworkTypeNotSupportedException.class)
             .build();
 
-    protected static final ErrorRuleSet ADD_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet
+    protected static final ErrorRuleSet ADD_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleAlreadyExistsException.class)
             .build();
 
-    protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_ERROR_RULE_SET = ErrorRuleSet
+    protected static final ErrorRuleSet REMOVE_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleNotFoundException.class)
@@ -279,9 +280,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected ProgressEvent<ResourceModel, CallbackContext> updateAssociatedRoles(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
-            ProgressEvent<ResourceModel, CallbackContext> progress,
-            Collection<DBClusterRole> previousRoles,
-            Collection<DBClusterRole> desiredRoles
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Collection<DBClusterRole> previousRoles,
+            final Collection<DBClusterRole> desiredRoles,
+            final boolean isRollback
     ) {
         final Set<DBClusterRole> rolesToRemove = new LinkedHashSet<>(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
         final Set<DBClusterRole> rolesToAdd = new LinkedHashSet<>(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
@@ -290,15 +292,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         rolesToRemove.removeAll(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
 
         return progress
-                .then(p -> removeAssociatedRoles(proxy, rdsProxyClient, p, rolesToRemove))
-                .then(p -> addAssociatedRoles(proxy, rdsProxyClient, p, rolesToAdd));
+                .then(p -> removeAssociatedRoles(proxy, rdsProxyClient, p, rolesToRemove, isRollback))
+                .then(p -> addAssociatedRoles(proxy, rdsProxyClient, p, rolesToAdd, isRollback));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> addAssociatedRoles(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<DBClusterRole> roles
+            final Collection<DBClusterRole> roles,
+            final boolean isRollback
     ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
@@ -321,7 +324,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((addRoleRequest, exception, client, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            ADD_ASSOC_ROLES_ERROR_RULE_SET
+                            isRollback ? ADD_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET : DEFAULT_DB_CLUSTER_ERROR_RULE_SET
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -335,7 +338,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<DBClusterRole> roles
+            final Collection<DBClusterRole> roles,
+            final boolean isRollback
     ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
@@ -358,10 +362,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((removeRoleRequest, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            REMOVE_ASSOC_ROLES_ERROR_RULE_SET
+                            REMOVE_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET
                     ))
                     .success();
-            if (!progressEvent.isSuccess()) return progressEvent;
+            if (!progressEvent.isSuccess()) {
+                return progressEvent;
+            }
         }
         return ProgressEvent.progress(model, callbackContext);
     }

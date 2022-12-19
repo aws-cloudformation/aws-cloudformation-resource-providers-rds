@@ -85,7 +85,8 @@ public class UpdateHandler extends BaseHandlerStd {
                         rdsProxyClient,
                         progress,
                         request.getPreviousResourceState().getAssociatedRoles(),
-                        progress.getResourceModel().getAssociatedRoles()))
+                        progress.getResourceModel().getAssociatedRoles(),
+                        BooleanUtils.isTrue(request.getRollback())))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }

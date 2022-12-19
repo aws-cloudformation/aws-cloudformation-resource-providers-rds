@@ -81,7 +81,7 @@ public class CreateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles()))
+                .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles(), false))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
 
