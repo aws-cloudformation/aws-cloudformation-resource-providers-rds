@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBInstanceStatusInfo;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
+import software.amazon.awssdk.services.rds.model.MasterUserSecret;
 import software.amazon.awssdk.services.rds.model.PendingCloudwatchLogsExports;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProcessorFeature;
@@ -483,6 +484,36 @@ class BaseHandlerStdTest {
                                         .status("replicating")
                                         .build()
                         )
+                        .build()
+        )).isFalse();
+    }
+
+    @Test
+    void isMasterUserSecretStabilized_masterUserSecretIsNull() {
+        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+                DBInstance.builder()
+                        .build()
+        )).isTrue();
+    }
+
+    @Test
+    void isMasterUserSecretStabilized_masterUserSecretStatusActive() {
+        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+                DBInstance.builder()
+                        .masterUserSecret(MasterUserSecret.builder()
+                                .secretStatus("Active")
+                                .build())
+                        .build()
+        )).isTrue();
+    }
+
+    @Test
+    void isMasterUserSecretStabilized_masterUserSecretStatusCreating() {
+        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+                DBInstance.builder()
+                        .masterUserSecret(MasterUserSecret.builder()
+                                .secretStatus("Creating")
+                                .build())
                         .build()
         )).isFalse();
     }

@@ -472,6 +472,88 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.storageType()).isEqualTo("gp3");
     }
 
+    @Test
+    public void translateMasterUserSecret_sdkSecretNull() {
+        assertThat(Translator.translateMasterUserSecret(null))
+                .isNull();
+    }
+
+    @Test
+    public void translateMasterUserSecret_sdkSecretSet() {
+        final software.amazon.rds.dbinstance.MasterUserSecret secret = Translator.translateMasterUserSecret(
+                software.amazon.awssdk.services.rds.model.MasterUserSecret.builder()
+                .secretArn("arn")
+                .kmsKeyId("kmsKeyId")
+                .build());
+
+        assertThat(secret.getSecretArn()).isEqualTo("arn");
+        assertThat(secret.getKmsKeyId()).isEqualTo("kmsKeyId");
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromSetToUnset() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isFalse();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_explicitUnset() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(false)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isFalse();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToSet_withDefaultKey() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId(null).build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToSet_withSpecificKey() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("myKey").build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("myKey");
+    }
+
     // Stub methods to satisfy the interface. This is a 1-time thing.
 
     @Override

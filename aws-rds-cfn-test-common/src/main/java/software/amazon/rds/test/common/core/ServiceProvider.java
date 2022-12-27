@@ -9,7 +9,8 @@ public enum ServiceProvider {
     IAM("iam"),
     KMS("kms"),
     RDS("rds"),
-    SDK("sdk");
+    SDK("sdk"),
+    ASM("secretsmanager");
 
     private final String name;
 
@@ -22,13 +23,15 @@ public enum ServiceProvider {
         return this.name;
     }
 
-    private static final Map<String, ServiceProvider> SERVICE_CLIENT_CLASSES = ImmutableMap.of(
-            "Ec2Client", EC2,
-            "IamClient", IAM,
-            "KmsClient", KMS,
-            "RdsClient", RDS,
-            "SdkClient", SDK
-    );
+    private static final Map<String, ServiceProvider> SERVICE_CLIENT_CLASSES = ImmutableMap.<String, ServiceProvider>builder()
+            .put("Ec2Client", EC2)
+            .put("IamClient", IAM)
+            .put("KmsClient", KMS)
+            .put("RdsClient", RDS)
+            .put("SdkClient", SDK)
+            .put("AsmClient", ASM)
+            .build();
+
 
     public static ServiceProvider fromString(final String s) {
         for (final ServiceProvider provider : ServiceProvider.values()) {

@@ -73,6 +73,7 @@ import software.amazon.rds.common.printer.JsonPrinter;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
+    private static final String MASTER_USER_SECRET_ACTIVE = "active";
     public static final String STACK_NAME = "rds";
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
@@ -247,7 +248,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         assertNoDBClusterTerminalStatus(dbCluster);
 
         return isDBClusterAvailable(dbCluster) &&
-                isNoPendingChanges(dbCluster);
+                isNoPendingChanges(dbCluster) &&
+                isMasterUserSecretStabilized(dbCluster);
+    }
+
+    private static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
+        if (dbCluster.masterUserSecret() == null ||
+                CollectionUtils.isEmpty(dbCluster.dbClusterMembers())) {
+            return true;
+        }
+        return MASTER_USER_SECRET_ACTIVE.equalsIgnoreCase(dbCluster.masterUserSecret().secretStatus());
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(

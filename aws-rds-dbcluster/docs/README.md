@@ -37,10 +37,12 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
         "<a href="#enginemode" title="EngineMode">EngineMode</a>" : <i>String</i>,
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
+        "<a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>" : <i>Boolean</i>,
         "<a href="#iops" title="Iops">Iops</a>" : <i>Integer</i>,
         "<a href="#kmskeyid" title="KmsKeyId">KmsKeyId</a>" : <i>String</i>,
         "<a href="#masterusername" title="MasterUsername">MasterUsername</a>" : <i>String</i>,
         "<a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>" : <i>String</i>,
+        "<a href="#masterusersecret" title="MasterUserSecret">MasterUserSecret</a>" : <i><a href="masterusersecret.md">MasterUserSecret</a></i>,
         "<a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>" : <i>Integer</i>,
         "<a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>" : <i>String</i>,
         "<a href="#networktype" title="NetworkType">NetworkType</a>" : <i>String</i>,
@@ -100,10 +102,12 @@ Properties:
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
     <a href="#enginemode" title="EngineMode">EngineMode</a>: <i>String</i>
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
+    <a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>: <i>Boolean</i>
     <a href="#iops" title="Iops">Iops</a>: <i>Integer</i>
     <a href="#kmskeyid" title="KmsKeyId">KmsKeyId</a>: <i>String</i>
     <a href="#masterusername" title="MasterUsername">MasterUsername</a>: <i>String</i>
     <a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>: <i>String</i>
+    <a href="#masterusersecret" title="MasterUserSecret">MasterUserSecret</a>: <i><a href="masterusersecret.md">MasterUserSecret</a></i>
     <a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>: <i>Integer</i>
     <a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>: <i>String</i>
     <a href="#networktype" title="NetworkType">NetworkType</a>: <i>String</i>
@@ -392,6 +396,16 @@ _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### ManageMasterUserPassword
+
+A value that indicates whether to manage the master user password with AWS Secrets Manager.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### Iops
 
 The amount of Provisioned IOPS (input/output operations per second) to be initially allocated for each DB instance in the Multi-AZ DB cluster.
@@ -433,6 +447,14 @@ The master password for the DB instance.
 _Required_: No
 
 _Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### MasterUserSecret
+
+_Required_: No
+
+_Type_: <a href="masterusersecret.md">MasterUserSecret</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -700,3 +722,7 @@ Returns the <code>Port</code> value.
 #### Address
 
 Returns the <code>Address</code> value.
+
+#### SecretArn
+
+Returns the <code>SecretArn</code> value.

@@ -96,6 +96,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
         final ResourceModel expectedModel = ResourceModel.builder()
                 .associatedRoles(Collections.emptyList())
                 .enableCloudwatchLogsExports(Collections.emptyList())
+                .manageMasterUserPassword(false)
                 .processorFeatures(Collections.emptyList())
                 .tags(Collections.emptyList())
                 .dBSecurityGroups(Collections.emptyList())
