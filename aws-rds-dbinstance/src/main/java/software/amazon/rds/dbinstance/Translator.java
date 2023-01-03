@@ -193,10 +193,12 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUsername(model.getMasterUsername())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() == null ? null : model.getMasterUserSecret().getKmsKeyId())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
@@ -210,7 +212,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return CreateDbInstanceRequest.builder()
+        final CreateDbInstanceRequest.Builder builder = CreateDbInstanceRequest.builder()
                 .allocatedStorage(getAllocatedStorage(model))
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
@@ -229,14 +231,15 @@ public class Translator {
                 .domainIAMRoleName(model.getDomainIAMRoleName())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
-                .enablePerformanceInsights(model.getEnablePerformanceInsights())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .licenseModel(model.getLicenseModel())
                 .masterUsername(model.getMasterUsername())
                 .masterUserPassword(model.getMasterUserPassword())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() == null ? null : model.getMasterUserSecret().getKmsKeyId())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
@@ -244,7 +247,6 @@ public class Translator {
                 .ncharCharacterSetName(model.getNcharCharacterSetName())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
-                .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
                 .port(translatePortToSdk(model.getPort()))
                 .preferredBackupWindow(model.getPreferredBackupWindow())
@@ -259,8 +261,17 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .timezone(model.getTimezone())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        // Set PerformanceInsightsKMSKeyId only if EnablePerformanceInsights is true.
+        // The point is that it is a completely legitimate create from the CFN perspective and
+        // enabling performance insights would only require toggling EnablePerformanceInsights to true.
+        if (BooleanUtils.isTrue(model.getEnablePerformanceInsights())) {
+            builder.enablePerformanceInsights(model.getEnablePerformanceInsights());
+            builder.performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId());
+        }
+
+        return builder.build();
     }
 
     static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
@@ -326,7 +337,10 @@ public class Translator {
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbSecurityGroups(diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
+                .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
+                .manageMasterUserPassword(diff(previousModel.getManageMasterUserPassword(), desiredModel.getManageMasterUserPassword()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
+                .masterUserSecretKmsKeyId(diff(previousModel.getMasterUserSecret(), desiredModel.getMasterUserSecret()) != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null)
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
@@ -364,16 +378,15 @@ public class Translator {
                 .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
                 .domainIAMRoleName(diff(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enablePerformanceInsights(diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights()))
                 .licenseModel(diff(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .maxAllocatedStorage(diff(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
                 .monitoringInterval(diff(previousModel.getMonitoringInterval(), desiredModel.getMonitoringInterval()))
                 .monitoringRoleArn(diff(previousModel.getMonitoringRoleArn(), desiredModel.getMonitoringRoleArn()))
+                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
-                .performanceInsightsKMSKeyId(diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId()))
                 .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
@@ -403,6 +416,32 @@ public class Translator {
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
             builder.processorFeatures(translateProcessorFeaturesToSdk(desiredModel.getProcessorFeatures()));
             builder.useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures());
+        }
+
+        // EnablePerformanceInsights (EPI) and PerformanceInsightsKMSKeyId (PKI) are coupled parameters.
+        // The following logic stands:
+        // 0. If EPI or PKI are changed, provide the diff unconditionally.
+        // 1. if EPI is true, provide the desired PKI unconditionally.
+        // 2. if PKI is changed, provide the desired EPI unconditionally.
+        final Boolean enablePerformanceInsightsDiff = diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights());
+        final String performanceInsightsKMSKeyIdDiff = diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId());
+
+        if (enablePerformanceInsightsDiff != null || performanceInsightsKMSKeyIdDiff != null) {
+            builder.enablePerformanceInsights(enablePerformanceInsightsDiff);
+            builder.performanceInsightsKMSKeyId(performanceInsightsKMSKeyIdDiff);
+            if (BooleanUtils.isTrue(desiredModel.getEnablePerformanceInsights())) {
+                builder.performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKMSKeyId());
+            }
+            if (performanceInsightsKMSKeyIdDiff != null) {
+                builder.enablePerformanceInsights(desiredModel.getEnablePerformanceInsights());
+            }
+        }
+
+        if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
+            builder.manageMasterUserPassword(true);
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+        } else {
+            builder.manageMasterUserPassword(false);
         }
 
         return builder.build();
@@ -626,10 +665,12 @@ public class Translator {
                 .endpoint(endpoint)
                 .engine(dbInstance.engine())
                 .engineVersion(dbInstance.engineVersion())
+                .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .iops(dbInstance.iops())
                 .kmsKeyId(dbInstance.kmsKeyId())
                 .licenseModel(dbInstance.licenseModel())
                 .masterUsername(dbInstance.masterUsername())
+                .masterUserSecret(translateMasterUserSecret(dbInstance.masterUserSecret()))
                 .maxAllocatedStorage(dbInstance.maxAllocatedStorage())
                 .monitoringInterval(dbInstance.monitoringInterval())
                 .monitoringRoleArn(dbInstance.monitoringRoleArn())
@@ -799,5 +840,16 @@ public class Translator {
             allocatedStorage = Integer.parseInt(model.getAllocatedStorage());
         }
         return allocatedStorage;
+    }
+
+    public static MasterUserSecret translateMasterUserSecret(final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
+        if (sdkSecret == null) {
+            return null;
+        }
+
+        return MasterUserSecret.builder()
+                .secretArn(sdkSecret.secretArn())
+                .kmsKeyId(sdkSecret.kmsKeyId())
+                .build();
     }
 }

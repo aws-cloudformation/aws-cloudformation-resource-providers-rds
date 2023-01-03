@@ -461,6 +461,232 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.storageType()).isEqualTo("gp3");
     }
 
+    @Test
+    public void translateMasterUserSecret_sdkSecretNull() {
+        assertThat(Translator.translateMasterUserSecret(null))
+                .isNull();
+    }
+
+    @Test
+    public void translateMasterUserSecret_sdkSecretSet() {
+        final software.amazon.rds.dbinstance.MasterUserSecret secret = Translator.translateMasterUserSecret(
+                software.amazon.awssdk.services.rds.model.MasterUserSecret.builder()
+                .secretArn("arn")
+                .kmsKeyId("kmsKeyId")
+                .build());
+
+        assertThat(secret.getSecretArn()).isEqualTo("arn");
+        assertThat(secret.getKmsKeyId()).isEqualTo("kmsKeyId");
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromSetToUnset() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isFalse();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_explicitUnset() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(false)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isFalse();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToSet_withDefaultKey() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId(null).build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToSet_withSpecificKey() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("myKey").build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("myKey");
+    }
+
+    @Test
+    public void test_createDbInstanceRequest_SetPerformanceInsightsKMSKeyIdIfEnabled() {
+        final String kmsKeyId = "test-kms-key-id";
+        final CreateDbInstanceRequest request = Translator.createDbInstanceRequest(
+                ResourceModel.builder()
+                        .enablePerformanceInsights(true)
+                        .performanceInsightsKMSKeyId(kmsKeyId)
+                        .build(),
+                Tagging.TagSet.emptySet()
+        );
+        assertThat(request.enablePerformanceInsights()).isTrue();
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId);
+    }
+
+    @Test
+    public void test_createDbInstanceRequest_DoNotSetPerformanceInsightsKMSKeyIdIfDisabled() {
+        final String kmsKeyId = "test-kms-key-id";
+        final CreateDbInstanceRequest request = Translator.createDbInstanceRequest(
+                ResourceModel.builder()
+                        .enablePerformanceInsights(false)
+                        .performanceInsightsKMSKeyId(kmsKeyId)
+                        .build(),
+                Tagging.TagSet.emptySet()
+        );
+        assertThat(request.enablePerformanceInsights()).isNull();
+        assertThat(request.performanceInsightsKMSKeyId()).isNull();
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsEnabled() {
+        final String kmsKeyId = "test-kms-key-id";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isNull();
+        assertThat(request.performanceInsightsKMSKeyId()).isNull();
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsToggleDisabledToEnabled() {
+        final String kmsKeyId = "test-kms-key-id";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsToggleEnabledToDisabled() {
+        final String kmsKeyId = "test-kms-key-id";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isFalse();
+        assertThat(request.performanceInsightsKMSKeyId()).isNull();
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsEnabledChangeKMSKeyId() {
+        final String kmsKeyId1 = "test-kms-key-id-1";
+        final String kmsKeyId2 = "test-kms-key-id-2";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId1)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId2)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsDisabledChangeKMSKeyId() {
+        final String kmsKeyId1 = "test-kms-key-id-1";
+        final String kmsKeyId2 = "test-kms-key-id-2";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsKMSKeyId(kmsKeyId1)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsKMSKeyId(kmsKeyId2)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isFalse();
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsToggleEnabledToDisabledChangeKMSKeyId() {
+        final String kmsKeyId1 = "test-kms-key-id-1";
+        final String kmsKeyId2 = "test-kms-key-id-2";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId1)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsKMSKeyId(kmsKeyId2)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isFalse();
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsToggleDisabledToEnabledChangeKMSKeyId() {
+        final String kmsKeyId1 = "test-kms-key-id-1";
+        final String kmsKeyId2 = "test-kms-key-id-2";
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsKMSKeyId(kmsKeyId1)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId2)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
+    }
+
     // Stub methods to satisfy the interface. This is a 1-time thing.
 
     @Override
