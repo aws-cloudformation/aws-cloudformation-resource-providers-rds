@@ -212,7 +212,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return CreateDbInstanceRequest.builder()
+        final CreateDbInstanceRequest.Builder builder = CreateDbInstanceRequest.builder()
                 .allocatedStorage(getAllocatedStorage(model))
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
@@ -231,7 +231,6 @@ public class Translator {
                 .domainIAMRoleName(model.getDomainIAMRoleName())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
-                .enablePerformanceInsights(model.getEnablePerformanceInsights())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
                 .manageMasterUserPassword(model.getManageMasterUserPassword())
@@ -248,7 +247,6 @@ public class Translator {
                 .ncharCharacterSetName(model.getNcharCharacterSetName())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
-                .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
                 .port(translatePortToSdk(model.getPort()))
                 .preferredBackupWindow(model.getPreferredBackupWindow())
@@ -263,8 +261,17 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .timezone(model.getTimezone())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        // Set PerformanceInsightsKMSKeyId only if EnablePerformanceInsights is true.
+        // The point is that it is a completely legitimate create from the CFN perspective and
+        // enabling performance insights would only require toggling EnablePerformanceInsights to true.
+        if (BooleanUtils.isTrue(model.getEnablePerformanceInsights())) {
+            builder.enablePerformanceInsights(model.getEnablePerformanceInsights());
+            builder.performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId());
+        }
+
+        return builder.build();
     }
 
     static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
@@ -342,16 +349,10 @@ public class Translator {
                 .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
-        if (BooleanUtils.isTrue(isRollback)) {
-            builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
-            );
-            builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
-            );
-        } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
+        if (BooleanUtils.isNotTrue(isRollback)) {
+            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+            builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
+            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
         }
 
         return builder.build();
@@ -377,7 +378,6 @@ public class Translator {
                 .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
                 .domainIAMRoleName(diff(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enablePerformanceInsights(diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights()))
                 .licenseModel(diff(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .maxAllocatedStorage(diff(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
@@ -387,7 +387,6 @@ public class Translator {
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
-                .performanceInsightsKMSKeyId(diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId()))
                 .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
@@ -408,22 +407,34 @@ public class Translator {
             builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
         }
 
-        if (BooleanUtils.isTrue(isRollback)) {
-            builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
-            );
-            builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
-            );
-        } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
+        if (BooleanUtils.isNotTrue(isRollback)) {
+            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
+            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
             builder.processorFeatures(translateProcessorFeaturesToSdk(desiredModel.getProcessorFeatures()));
             builder.useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures());
+        }
+
+        // EnablePerformanceInsights (EPI) and PerformanceInsightsKMSKeyId (PKI) are coupled parameters.
+        // The following logic stands:
+        // 0. If EPI or PKI are changed, provide the diff unconditionally.
+        // 1. if EPI is true, provide the desired PKI unconditionally.
+        // 2. if PKI is changed, provide the desired EPI unconditionally.
+        final Boolean enablePerformanceInsightsDiff = diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights());
+        final String performanceInsightsKMSKeyIdDiff = diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId());
+
+        if (enablePerformanceInsightsDiff != null || performanceInsightsKMSKeyIdDiff != null) {
+            builder.enablePerformanceInsights(enablePerformanceInsightsDiff);
+            builder.performanceInsightsKMSKeyId(performanceInsightsKMSKeyIdDiff);
+            if (BooleanUtils.isTrue(desiredModel.getEnablePerformanceInsights())) {
+                builder.performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKMSKeyId());
+            }
+            if (performanceInsightsKMSKeyIdDiff != null) {
+                builder.enablePerformanceInsights(desiredModel.getEnablePerformanceInsights());
+            }
         }
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
@@ -814,26 +825,6 @@ public class Translator {
         return Optional.ofNullable(collection)
                 .map(Collection::stream)
                 .orElseGet(Stream::empty);
-    }
-
-    @VisibleForTesting
-    static boolean canUpdateAllocatedStorage(final String fromAllocatedStorage, final String toAllocatedStorage) {
-        if (fromAllocatedStorage == null || toAllocatedStorage == null) {
-            return true;
-        }
-        final int from, to;
-        try {
-            from = Integer.parseInt(fromAllocatedStorage);
-            to = Integer.parseInt(toAllocatedStorage);
-        } catch (NumberFormatException e) {
-            return true;
-        }
-        return to >= from;
-    }
-
-    @VisibleForTesting
-    static boolean canUpdateIops(final Integer fromIops, final Integer toIops) {
-        return fromIops == null || toIops == null || toIops >= fromIops;
     }
 
     @VisibleForTesting
