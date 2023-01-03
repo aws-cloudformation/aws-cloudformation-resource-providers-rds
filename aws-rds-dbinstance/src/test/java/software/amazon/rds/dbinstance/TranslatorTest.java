@@ -6,10 +6,10 @@ import java.util.Collection;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
@@ -88,7 +88,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
@@ -101,7 +101,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
-        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
@@ -114,7 +114,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE); // should stay unchanged
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
@@ -127,7 +127,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
-        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE); // should stay unchanged
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
@@ -192,7 +192,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        assertThat(request.iops()).isEqualTo(IOPS_INCR);
+        assertThat(request.iops()).isNull();
     }
 
     @Test
@@ -205,7 +205,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
-        assertThat(request.iops()).isEqualTo(IOPS_INCR);
+        assertThat(request.iops()).isNull();
     }
 
     @Test
@@ -218,7 +218,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
-        assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
+        assertThat(request.iops()).isNull();
     }
 
     @Test
@@ -231,7 +231,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final Boolean isRollback = true;
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previousModel, desiredModel, isRollback);
-        assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
+        assertThat(request.iops()).isNull();
     }
 
     @Test
@@ -445,17 +445,6 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
         assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
         assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
-    }
-
-    @Test
-    public void test_canUpdateAllocatedStorage_nullArg() {
-        assertThat(Translator.canUpdateAllocatedStorage(null, "42")).isTrue();
-        assertThat(Translator.canUpdateAllocatedStorage("42", null)).isTrue();
-    }
-
-    @Test
-    public void test_canUpdateAllocatedStorage_NumberFormatException() {
-        assertThat(Translator.canUpdateAllocatedStorage("123", "invalid")).isTrue();
     }
 
     @Test

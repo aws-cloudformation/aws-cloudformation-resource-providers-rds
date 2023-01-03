@@ -333,7 +333,6 @@ public class Translator {
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbSecurityGroups(diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
-                .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
@@ -343,16 +342,10 @@ public class Translator {
                 .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
-        if (BooleanUtils.isTrue(isRollback)) {
-            builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
-            );
-            builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
-            );
-        } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
+        if (BooleanUtils.isNotTrue(isRollback)) {
+            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+            builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
+            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
         }
 
         return builder.build();
@@ -406,17 +399,10 @@ public class Translator {
             builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
         }
 
-        if (BooleanUtils.isTrue(isRollback)) {
-            builder.allocatedStorage(
-                    canUpdateAllocatedStorage(previousModel.getAllocatedStorage(), desiredModel.getAllocatedStorage()) ? getAllocatedStorage(desiredModel) : getAllocatedStorage(previousModel)
-            );
-            builder.iops(
-                    canUpdateIops(previousModel.getIops(), desiredModel.getIops()) ? desiredModel.getIops() : previousModel.getIops()
-            );
-        } else {
-            builder.allocatedStorage(getAllocatedStorage(desiredModel));
-            builder.iops(desiredModel.getIops());
+        if (BooleanUtils.isNotTrue(isRollback)) {
+            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
+            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
@@ -822,26 +808,6 @@ public class Translator {
         return Optional.ofNullable(collection)
                 .map(Collection::stream)
                 .orElseGet(Stream::empty);
-    }
-
-    @VisibleForTesting
-    static boolean canUpdateAllocatedStorage(final String fromAllocatedStorage, final String toAllocatedStorage) {
-        if (fromAllocatedStorage == null || toAllocatedStorage == null) {
-            return true;
-        }
-        final int from, to;
-        try {
-            from = Integer.parseInt(fromAllocatedStorage);
-            to = Integer.parseInt(toAllocatedStorage);
-        } catch (NumberFormatException e) {
-            return true;
-        }
-        return to >= from;
-    }
-
-    @VisibleForTesting
-    static boolean canUpdateIops(final Integer fromIops, final Integer toIops) {
-        return fromIops == null || toIops == null || toIops >= fromIops;
     }
 
     @VisibleForTesting
