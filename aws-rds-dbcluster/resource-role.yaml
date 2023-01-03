@@ -48,6 +48,8 @@ Resources:
                 - "rds:RemoveTagsFromResource"
                 - "rds:RestoreDBClusterFromSnapshot"
                 - "rds:RestoreDBClusterToPointInTime"
+                - "secretsmanager:CreateSecret"
+                - "secretsmanager:TagResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

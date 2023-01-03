@@ -60,6 +60,8 @@ Resources:
                 - "rds:RemoveTagsFromResource"
                 - "rds:RestoreDBInstanceFromDBSnapshot"
                 - "rds:RestoreDBInstanceToPointInTime"
+                - "secretsmanager:CreateSecret"
+                - "secretsmanager:TagResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

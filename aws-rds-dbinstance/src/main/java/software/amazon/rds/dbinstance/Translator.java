@@ -193,10 +193,12 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUsername(model.getMasterUsername())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() == null ? null : model.getMasterUserSecret().getKmsKeyId())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
@@ -231,11 +233,13 @@ public class Translator {
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .licenseModel(model.getLicenseModel())
                 .masterUsername(model.getMasterUsername())
                 .masterUserPassword(model.getMasterUserPassword())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() == null ? null : model.getMasterUserSecret().getKmsKeyId())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
@@ -333,7 +337,10 @@ public class Translator {
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbSecurityGroups(diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
+                .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
+                .manageMasterUserPassword(diff(previousModel.getManageMasterUserPassword(), desiredModel.getManageMasterUserPassword()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
+                .masterUserSecretKmsKeyId(diff(previousModel.getMasterUserSecret(), desiredModel.getMasterUserSecret()) != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null)
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
@@ -376,6 +383,7 @@ public class Translator {
                 .maxAllocatedStorage(diff(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
                 .monitoringInterval(diff(previousModel.getMonitoringInterval(), desiredModel.getMonitoringInterval()))
                 .monitoringRoleArn(diff(previousModel.getMonitoringRoleArn(), desiredModel.getMonitoringRoleArn()))
+                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
@@ -427,6 +435,13 @@ public class Translator {
             if (performanceInsightsKMSKeyIdDiff != null) {
                 builder.enablePerformanceInsights(desiredModel.getEnablePerformanceInsights());
             }
+        }
+
+        if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
+            builder.manageMasterUserPassword(true);
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+        } else {
+            builder.manageMasterUserPassword(false);
         }
 
         return builder.build();
@@ -650,10 +665,12 @@ public class Translator {
                 .endpoint(endpoint)
                 .engine(dbInstance.engine())
                 .engineVersion(dbInstance.engineVersion())
+                .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .iops(dbInstance.iops())
                 .kmsKeyId(dbInstance.kmsKeyId())
                 .licenseModel(dbInstance.licenseModel())
                 .masterUsername(dbInstance.masterUsername())
+                .masterUserSecret(translateMasterUserSecret(dbInstance.masterUserSecret()))
                 .maxAllocatedStorage(dbInstance.maxAllocatedStorage())
                 .monitoringInterval(dbInstance.monitoringInterval())
                 .monitoringRoleArn(dbInstance.monitoringRoleArn())
@@ -823,5 +840,16 @@ public class Translator {
             allocatedStorage = Integer.parseInt(model.getAllocatedStorage());
         }
         return allocatedStorage;
+    }
+
+    public static MasterUserSecret translateMasterUserSecret(final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
+        if (sdkSecret == null) {
+            return null;
+        }
+
+        return MasterUserSecret.builder()
+                .secretArn(sdkSecret.secretArn())
+                .kmsKeyId(sdkSecret.kmsKeyId())
+                .build();
     }
 }

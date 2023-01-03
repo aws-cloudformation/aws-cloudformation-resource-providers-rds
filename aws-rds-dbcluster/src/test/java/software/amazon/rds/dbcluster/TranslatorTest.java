@@ -129,6 +129,69 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
         assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
     }
+@Test
+    public void translateManageMasterUserPassword_fromSetToUnset() {
+        final ResourceModel prev = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isFalse();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_explicitUnset() {
+        final ResourceModel prev = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(false)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isFalse();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToSet_withDefaultKey() {
+        final ResourceModel prev = RESOURCE_MODEL.toBuilder()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId(null).build())
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToSet_withSpecificKey() {
+        final ResourceModel prev = RESOURCE_MODEL.toBuilder()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("myKey").build())
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("myKey");
+    }
 
     @Test
     public void test_translateScalingConfigurationToSdk_null() {
