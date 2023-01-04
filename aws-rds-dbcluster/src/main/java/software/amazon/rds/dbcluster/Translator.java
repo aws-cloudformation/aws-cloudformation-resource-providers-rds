@@ -17,6 +17,7 @@ import org.apache.commons.collections.CollectionUtils;
 
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -65,10 +66,12 @@ public class Translator {
                 .engineMode(model.getEngineMode())
                 .engineVersion(model.getEngineVersion())
                 .globalClusterIdentifier(model.getGlobalClusterIdentifier())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUsername(model.getMasterUsername())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
                 .networkType(model.getNetworkType())
@@ -234,6 +237,13 @@ public class Translator {
             if (!desiredVpcSgIds.equals(previousVpcSgIds)) {
                 builder.vpcSecurityGroupIds(desiredModel.getVpcSecurityGroupIds());
             }
+        }
+
+        if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
+            builder.manageMasterUserPassword(true);
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+        } else {
+            builder.manageMasterUserPassword(false);
         }
 
         return builder.build();
@@ -438,9 +448,11 @@ public class Translator {
                 .engine(dbCluster.engine())
                 .engineMode(dbCluster.engineMode())
                 .engineVersion(dbCluster.engineVersion())
+                .manageMasterUserPassword(dbCluster.masterUserSecret() != null)
                 .iops(dbCluster.iops())
                 .kmsKeyId(dbCluster.kmsKeyId())
                 .masterUsername(dbCluster.masterUsername())
+                .masterUserSecret(translateMasterUserSecretFromSdk(dbCluster.masterUserSecret()))
                 .monitoringInterval(dbCluster.monitoringInterval())
                 .monitoringRoleArn(dbCluster.monitoringRoleArn())
                 .networkType(dbCluster.networkType())
@@ -503,5 +515,17 @@ public class Translator {
                         Filter.builder().name("vpc-id").values(vpcId).build(),
                         Filter.builder().name("group-name").values(groupName).build()
                 ).build();
+    }
+
+    public static MasterUserSecret translateMasterUserSecretFromSdk(
+            final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
+        if (sdkSecret == null) {
+            return null;
+        }
+
+        return MasterUserSecret.builder()
+                .secretArn(sdkSecret.secretArn())
+                .kmsKeyId(sdkSecret.kmsKeyId())
+                .build();
     }
 }

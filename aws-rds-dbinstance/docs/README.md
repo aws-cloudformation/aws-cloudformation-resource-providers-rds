@@ -41,11 +41,13 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#endpoint" title="Endpoint">Endpoint</a>" : <i><a href="endpoint.md">Endpoint</a></i>,
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
+        "<a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>" : <i>Boolean</i>,
         "<a href="#iops" title="Iops">Iops</a>" : <i>Integer</i>,
         "<a href="#kmskeyid" title="KmsKeyId">KmsKeyId</a>" : <i>String</i>,
         "<a href="#licensemodel" title="LicenseModel">LicenseModel</a>" : <i>String</i>,
         "<a href="#masterusername" title="MasterUsername">MasterUsername</a>" : <i>String</i>,
         "<a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>" : <i>String</i>,
+        "<a href="#masterusersecret" title="MasterUserSecret">MasterUserSecret</a>" : <i><a href="masterusersecret.md">MasterUserSecret</a></i>,
         "<a href="#maxallocatedstorage" title="MaxAllocatedStorage">MaxAllocatedStorage</a>" : <i>Integer</i>,
         "<a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>" : <i>Integer</i>,
         "<a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>" : <i>String</i>,
@@ -118,11 +120,13 @@ Properties:
     <a href="#endpoint" title="Endpoint">Endpoint</a>: <i><a href="endpoint.md">Endpoint</a></i>
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
+    <a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>: <i>Boolean</i>
     <a href="#iops" title="Iops">Iops</a>: <i>Integer</i>
     <a href="#kmskeyid" title="KmsKeyId">KmsKeyId</a>: <i>String</i>
     <a href="#licensemodel" title="LicenseModel">LicenseModel</a>: <i>String</i>
     <a href="#masterusername" title="MasterUsername">MasterUsername</a>: <i>String</i>
     <a href="#masteruserpassword" title="MasterUserPassword">MasterUserPassword</a>: <i>String</i>
+    <a href="#masterusersecret" title="MasterUserSecret">MasterUserSecret</a>: <i><a href="masterusersecret.md">MasterUserSecret</a></i>
     <a href="#maxallocatedstorage" title="MaxAllocatedStorage">MaxAllocatedStorage</a>: <i>Integer</i>
     <a href="#monitoringinterval" title="MonitoringInterval">MonitoringInterval</a>: <i>Integer</i>
     <a href="#monitoringrolearn" title="MonitoringRoleArn">MonitoringRoleArn</a>: <i>String</i>
@@ -473,6 +477,16 @@ _Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
+#### ManageMasterUserPassword
+
+A value that indicates whether to manage the master user password with AWS Secrets Manager.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### Iops
 
 The number of I/O operations per second (IOPS) that the database provisions.
@@ -526,6 +540,14 @@ The password for the master user.
 _Required_: No
 
 _Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### MasterUserSecret
+
+_Required_: No
+
+_Type_: <a href="masterusersecret.md">MasterUserSecret</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -876,3 +898,7 @@ The Amazon Resource Name (ARN) for the DB instance.
 #### DBSystemId
 
 The Oracle system ID (Oracle SID) for a container database (CDB). The Oracle SID is also the name of the CDB. This setting is valid for RDS Custom only.
+
+#### SecretArn
+
+Returns the <code>SecretArn</code> value.
