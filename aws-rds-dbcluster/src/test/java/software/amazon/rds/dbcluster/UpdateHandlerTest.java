@@ -45,6 +45,7 @@ import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.DbClusterRoleAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
@@ -151,6 +152,58 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_AddRoleAlreadyExistsExceptionNoRecoveryModeShouldFail() {
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenThrow(DbClusterRoleAlreadyExistsException.builder().message(ERROR_MSG).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(OLD_ROLE))
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
+                expectFailed(HandlerErrorCode.ResourceConflict)
+        );
+
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_AddRoleAlreadyExistsExceptionRecoveryModeShouldSucceed() {
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenThrow(DbClusterRoleAlreadyExistsException.builder().message(ERROR_MSG).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .rollback(true),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(OLD_ROLE))
+                        .build(),
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
     }
 
     @Test
