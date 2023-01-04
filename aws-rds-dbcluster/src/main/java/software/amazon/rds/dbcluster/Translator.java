@@ -243,10 +243,20 @@ public class Translator {
             builder.manageMasterUserPassword(true);
             builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
         } else {
-            builder.manageMasterUserPassword(false);
+            builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }
 
         return builder.build();
+    }
+
+    private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
+        if (null != desired.getManageMasterUserPassword()) {
+            return desired.getManageMasterUserPassword();
+        }
+        if (BooleanUtils.isTrue(previous.getManageMasterUserPassword()) && BooleanUtils.isNotTrue(desired.getManageMasterUserPassword())) {
+            return false;
+        }
+        return null;
     }
 
     static CloudwatchLogsExportConfiguration cloudwatchLogsExportConfiguration(

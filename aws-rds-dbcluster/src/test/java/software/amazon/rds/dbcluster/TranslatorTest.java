@@ -129,7 +129,24 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(model.getDomain()).isEqualTo(DOMAIN_NON_EMPTY);
         assertThat(model.getDomainIAMRoleName()).isEqualTo(DOMAIN_IAM_ROLE_NAME_NON_EMPTY);
     }
-@Test
+
+    @Test
+    public void translateManageMasterUserPassword_fromUnsetToUnset() {
+        final ResourceModel prev = RESOURCE_MODEL.toBuilder()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .masterUserPassword("password")
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isNull();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+        assertThat(request.masterUserPassword()).isNull();
+    }
+
+    @Test
     public void translateManageMasterUserPassword_fromSetToUnset() {
         final ResourceModel prev = RESOURCE_MODEL.toBuilder()
                 .manageMasterUserPassword(true)

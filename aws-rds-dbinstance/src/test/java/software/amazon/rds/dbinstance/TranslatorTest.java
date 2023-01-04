@@ -480,6 +480,22 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void translateManageMasterUserPassword_fromUnsetToUnset() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isNull();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+        assertThat(request.masterUserPassword()).isNull();
+    }
+
+    @Test
     public void translateManageMasterUserPassword_fromSetToUnset() {
         final ResourceModel prev = RESOURCE_MODEL_BLDR()
                 .manageMasterUserPassword(true)
