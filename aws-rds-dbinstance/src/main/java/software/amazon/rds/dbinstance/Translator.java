@@ -383,7 +383,6 @@ public class Translator {
                 .maxAllocatedStorage(diff(previousModel.getMaxAllocatedStorage(), desiredModel.getMaxAllocatedStorage()))
                 .monitoringInterval(diff(previousModel.getMonitoringInterval(), desiredModel.getMonitoringInterval()))
                 .monitoringRoleArn(diff(previousModel.getMonitoringRoleArn(), desiredModel.getMonitoringRoleArn()))
-                .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
@@ -441,10 +440,20 @@ public class Translator {
             builder.manageMasterUserPassword(true);
             builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
         } else {
-            builder.manageMasterUserPassword(false);
+            builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }
 
         return builder.build();
+    }
+
+    private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
+        if (null != desired.getManageMasterUserPassword()) {
+            return desired.getManageMasterUserPassword();
+        }
+        if (BooleanUtils.isTrue(previous.getManageMasterUserPassword()) && BooleanUtils.isNotTrue(desired.getManageMasterUserPassword())) {
+            return false;
+        }
+        return null;
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequestV12(final ResourceModel model) {
