@@ -106,6 +106,7 @@ import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
+    public static final String SECRET_STATUS_ACTIVE = "active";
     public static final String RESOURCE_IDENTIFIER = "dbinstance";
     public static final String STACK_NAME = "rds";
 
@@ -611,7 +612,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isNoPendingChanges(dbInstance) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
-                isPromotionTierUpdated(dbInstance, model);
+                isPromotionTierUpdated(dbInstance, model) &&
+                isMasterUserSecretStabilized(dbInstance);
     }
 
     protected boolean isDBInstanceStabilizedAfterReboot(
@@ -759,6 +761,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 model,
                 (roles) -> roles.noneMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()))
         );
+    }
+
+    protected boolean isMasterUserSecretStabilized(final DBInstance instance) {
+        if (instance.masterUserSecret() == null) {
+            return true;
+        }
+        return SECRET_STATUS_ACTIVE.equalsIgnoreCase(instance.masterUserSecret().secretStatus());
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateAssociatedRoles(
