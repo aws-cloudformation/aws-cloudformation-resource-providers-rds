@@ -234,7 +234,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isNoPendingChanges(final DBCluster dbCluster) {
         final ClusterPendingModifiedValues modifiedValues = dbCluster.pendingModifiedValues();
-
         return modifiedValues == null || (
                 modifiedValues.pendingCloudwatchLogsExports() == null &&
                         modifiedValues.dbClusterIdentifier() == null &&
