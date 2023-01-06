@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 
@@ -234,10 +235,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isNoPendingChanges(final DBCluster dbCluster) {
         final ClusterPendingModifiedValues modifiedValues = dbCluster.pendingModifiedValues();
+
         return modifiedValues == null || (
-                modifiedValues.masterUserPassword() == null &&
+                modifiedValues.pendingCloudwatchLogsExports() == null &&
+                        modifiedValues.dbClusterIdentifier() == null &&
+                        modifiedValues.masterUserPassword() == null &&
                         modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
-                        modifiedValues.engineVersion() == null);
+                        modifiedValues.engineVersion() == null &&
+                        modifiedValues.backupRetentionPeriod() == null &&
+                        modifiedValues.allocatedStorage() == null &&
+                        modifiedValues.iops() == null);
     }
 
     protected boolean isDBClusterStabilized(
