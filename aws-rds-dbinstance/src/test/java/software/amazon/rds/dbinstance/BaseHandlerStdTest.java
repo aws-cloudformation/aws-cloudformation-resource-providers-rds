@@ -377,6 +377,18 @@ class BaseHandlerStdTest {
     }
 
     @Test
+    void isNoPendingChanges_NonEmptyStorageThroughputReturnsFalse() {
+        Assertions.assertThat(handler.isNoPendingChanges(
+                DBInstance.builder()
+                        .pendingModifiedValues(
+                                PendingModifiedValues.builder()
+                                        .storageThroughput(42)
+                                        .build())
+                        .build()
+        )).isFalse();
+    }
+
+    @Test
     void isNoPendingChanges_NonEmptyReturnsFalse() {
         Assertions.assertThat(handler.isNoPendingChanges(
                 DBInstance.builder()
