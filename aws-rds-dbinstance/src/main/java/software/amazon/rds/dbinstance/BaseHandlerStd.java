@@ -612,7 +612,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 CollectionUtils.isNullOrEmpty(pending.processorFeatures()) &&
                 pending.iamDatabaseAuthenticationEnabled() == null &&
                 pending.automationMode() == null &&
-                pending.resumeFullAutomationModeTime() == null
+                pending.resumeFullAutomationModeTime() == null &&
+                pending.storageThroughput() == null
         );
     }
 
