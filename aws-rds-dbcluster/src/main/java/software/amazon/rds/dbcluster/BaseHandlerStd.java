@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 
@@ -148,7 +147,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     @Override
-    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+    public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
