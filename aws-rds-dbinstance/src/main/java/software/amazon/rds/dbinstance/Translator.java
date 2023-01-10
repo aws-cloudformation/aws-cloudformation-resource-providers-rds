@@ -217,6 +217,7 @@ public class Translator {
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .caCertificateIdentifier(model.getCACertificateIdentifier())
                 .characterSetName(model.getCharacterSetName())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
@@ -368,6 +369,8 @@ public class Translator {
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
                 .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
+                // always use desired model value for certificateRotationRestart
+                .certificateRotationRestart(desiredModel.getCertificateRotationRestart())
                 .caCertificateIdentifier(diff(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
                 .copyTagsToSnapshot(diff(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
                 .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
@@ -651,6 +654,7 @@ public class Translator {
                 .autoMinorVersionUpgrade(dbInstance.autoMinorVersionUpgrade())
                 .availabilityZone(dbInstance.availabilityZone())
                 .backupRetentionPeriod(dbInstance.backupRetentionPeriod())
+                .certificateDetails(translateCertificateDetailsFromSdk(dbInstance.certificateDetails()))
                 .cACertificateIdentifier(dbInstance.caCertificateIdentifier())
                 .characterSetName(dbInstance.characterSetName())
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
@@ -733,6 +737,13 @@ public class Translator {
         return vpcSecurityGroups == null ? null : vpcSecurityGroups.stream()
                 .map(software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership::vpcSecurityGroupId)
                 .collect(Collectors.toList());
+    }
+
+    public static CertificateDetails translateCertificateDetailsFromSdk(software.amazon.awssdk.services.rds.model.CertificateDetails certificateDetails) {
+        return certificateDetails == null ? null : CertificateDetails.builder()
+                .cAIdentifier(certificateDetails.caIdentifier())
+                .validTill(certificateDetails.validTill().toString()).
+                build();
     }
 
     public static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> sdkTags) {

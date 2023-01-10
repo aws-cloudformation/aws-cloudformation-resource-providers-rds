@@ -3,6 +3,21 @@
   "description": "The AWS::RDS::DBInstance resource creates an Amazon RDS DB instance.",
   "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
   "definitions": {
+    "CertificateDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "CAIdentifier": {
+          "type": "string",
+          "description": "The CA identifier of the CA certificate used for the DB instance's server certificate."
+        },
+        "ValidTill": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The expiration date of the DB instance\u2019s server certificate."
+        }
+      }
+    },
     "Endpoint": {
       "type": "object",
       "additionalProperties": false,
@@ -128,6 +143,14 @@
     "CACertificateIdentifier": {
       "type": "string",
       "description": "The identifier of the CA certificate for this DB instance."
+    },
+    "CertificateDetails": {
+      "$ref": "#/definitions/CertificateDetails",
+      "description": "Returns the details of the DB instance's server certificate."
+    },
+    "CertificateRotationRestart": {
+      "type": "boolean",
+      "description": "A value that indicates whether the DB instance is restarted when you rotate your SSL/TLS certificate.\nBy default, the DB instance is restarted when you rotate your SSL/TLS certificate. The certificate is not updated until the DB instance is restarted.\nIf you are using SSL/TLS to connect to the DB instance, follow the appropriate instructions for your DB engine to rotate your SSL/TLS certificate\nThis setting doesn't apply to RDS Custom."
     },
     "CharacterSetName": {
       "type": "string",
@@ -473,7 +496,8 @@
     "/properties/SourceDbiResourceId",
     "/properties/SourceRegion",
     "/properties/TdeCredentialPassword",
-    "/properties/UseLatestRestorableTime"
+    "/properties/UseLatestRestorableTime",
+    "/properties/CertificateRotationRestart"
   ],
   "readOnlyProperties": [
     "/properties/Endpoint/Address",
@@ -482,7 +506,9 @@
     "/properties/DbiResourceId",
     "/properties/DBInstanceArn",
     "/properties/DBSystemId",
-    "/properties/MasterUserSecret/SecretArn"
+    "/properties/MasterUserSecret/SecretArn",
+    "/properties/CertificateDetails/CAIdentifier",
+    "/properties/CertificateDetails/ValidTill"
   ],
   "primaryIdentifier": [
     "/properties/DBInstanceIdentifier"

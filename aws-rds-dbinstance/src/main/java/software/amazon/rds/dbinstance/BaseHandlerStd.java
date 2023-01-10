@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
+import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
@@ -177,6 +178,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBSnapshotNotFound,
                     ErrorCode.DBSubnetGroupNotFoundFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    CertificateNotFoundException.class,
                     DbClusterNotFoundException.class,
                     DbInstanceNotFoundException.class,
                     DbParameterGroupNotFoundException.class,
@@ -551,7 +553,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
-                isNoPendingChanges(dbInstance) &&
+                isNoPendingChanges(dbInstance, model) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isPromotionTierUpdated(dbInstance, model) &&
@@ -593,11 +595,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .allMatch(group -> VPCSecurityGroupStatus.Active.equalsString(group.status()));
     }
 
-    boolean isNoPendingChanges(final DBInstance dbInstance) {
+    boolean isNoPendingChanges(final DBInstance dbInstance, final ResourceModel model) {
         final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
         return (pending == null) || (pending.dbInstanceClass() == null &&
                 pending.allocatedStorage() == null &&
-                pending.caCertificateIdentifier() == null &&
+                (BooleanUtils.isNotTrue(model.getCertificateRotationRestart()) || pending.caCertificateIdentifier() == null) &&
                 pending.masterUserPassword() == null &&
                 pending.port() == null &&
                 pending.backupRetentionPeriod() == null &&

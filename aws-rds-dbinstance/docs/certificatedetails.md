@@ -1,4 +1,4 @@
-# AWS::RDS::DBInstance Endpoint
+# AWS::RDS::DBInstance CertificateDetails
 
 ## Syntax
 
