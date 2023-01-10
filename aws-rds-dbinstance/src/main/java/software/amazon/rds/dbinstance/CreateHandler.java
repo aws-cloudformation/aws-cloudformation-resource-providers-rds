@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -120,11 +121,13 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
                     if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
-                        return Commons.execOnce(progress, () ->
-                                                versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
-                                                        ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreateV12(pxy, request, pcl, prg),
-                                                        ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreate(pxy, request, pcl, prg)
-                                                )),
+                        return Commons.execOnce(progress, () -> {
+                                            progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
+                                            return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
+                                                    ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreateV12(pxy, request, pcl, prg),
+                                                    ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreate(pxy, request, pcl, prg)
+                                            )).then(p -> checkFailedEvents(rdsProxyClient.defaultClient(), logger, p, p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)));
+                                        },
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {
                                     if (ResourceModelHelper.shouldReboot(p.getResourceModel())) {
@@ -163,7 +166,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBInstance
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -190,7 +193,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBInstance
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -217,7 +220,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -244,7 +247,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBInstanceFromDBSnapshot
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -271,7 +274,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::restoreDBInstanceToPointInTime
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -298,7 +301,7 @@ public class CreateHandler extends BaseHandlerStd {
                         proxyInvocation.client()::createDBInstanceReadReplica
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -320,7 +323,7 @@ public class CreateHandler extends BaseHandlerStd {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -342,7 +345,7 @@ public class CreateHandler extends BaseHandlerStd {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
