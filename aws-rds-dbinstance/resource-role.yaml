@@ -53,6 +53,7 @@ Resources:
                 - "rds:DescribeDBInstances"
                 - "rds:DescribeDBParameterGroups"
                 - "rds:DescribeDBSnapshots"
+                - "rds:DescribeEvents"
                 - "rds:ModifyDBInstance"
                 - "rds:PromoteReadReplica"
                 - "rds:RebootDBInstance"

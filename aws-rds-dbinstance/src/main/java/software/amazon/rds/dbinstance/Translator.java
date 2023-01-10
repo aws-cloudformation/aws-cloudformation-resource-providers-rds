@@ -33,12 +33,14 @@ import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
@@ -597,6 +599,22 @@ public class Translator {
                 .dbParameterGroupFamily(dbParameterGroupFamily)
                 .engine(engine)
                 .engineVersion(engineVersion)
+                .build();
+    }
+
+    public static DescribeEventsRequest describeEventsRequest(
+            final SourceType sourceType,
+            final String sourceIdentifier,
+            final Collection<String> eventCategories,
+            final Instant startTime,
+            final Instant endTime
+    ) {
+        return DescribeEventsRequest.builder()
+                .eventCategories(eventCategories.toArray(new String[0]))
+                .sourceIdentifier(sourceIdentifier)
+                .sourceType(sourceType)
+                .startTime(startTime)
+                .endTime(endTime)
                 .build();
     }
 

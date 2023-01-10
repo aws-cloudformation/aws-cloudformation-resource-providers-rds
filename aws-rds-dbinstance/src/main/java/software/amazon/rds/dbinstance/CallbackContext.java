@@ -1,5 +1,12 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.joda.time.DateTime;
+
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.TaggingContext;
 
@@ -17,11 +24,14 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean allocatingStorage;
     private boolean readReplicaPromoted;
 
+    private Map<String, Long> timestamps;
+
     private TaggingContext taggingContext;
 
     public CallbackContext() {
         super();
         this.taggingContext = new TaggingContext();
+        this.timestamps = new HashMap<>();
     }
 
     @Override
@@ -35,5 +45,20 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
 
     public void setAddTagsComplete(final boolean addTagsComplete) {
         taggingContext.setAddTagsComplete(addTagsComplete);
+    }
+
+    public void timestamp(final String label, final Instant instant) {
+        timestamps.put(label, instant.getEpochSecond());
+    }
+
+    public void timestampOnce(final String label, final Instant instant) {
+        timestamps.computeIfAbsent(label, s -> instant.getEpochSecond());
+    }
+
+    public Instant getTimestamp(final String label) {
+        if (timestamps.containsKey(label)) {
+            return Instant.ofEpochSecond(timestamps.get(label));
+        }
+        return null;
     }
 }

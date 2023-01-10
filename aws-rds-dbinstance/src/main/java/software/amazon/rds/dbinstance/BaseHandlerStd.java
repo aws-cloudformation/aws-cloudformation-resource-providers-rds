@@ -1,7 +1,7 @@
 package software.amazon.rds.dbinstance;
 
 import java.time.Duration;
-import java.util.Arrays;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -12,13 +12,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
+import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -45,7 +47,9 @@ import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureExcep
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
@@ -62,6 +66,7 @@ import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
@@ -139,6 +144,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
+    protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
+
+    protected static final String EVENT_CATEGORY_NOTIFICATION = "notification";
+
     protected final HandlerConfig config;
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
@@ -153,6 +162,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
         return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
     };
+
+    //TODO: This list should be gone eventually. Event ID should be checked instead.
+    private static final List<Predicate<Event>> EVENT_FAIL_CHECKERS = ImmutableList.of(
+            (e) -> isEventMessageContains(e, "Failed to join a host to a domain"),
+            (e) -> isEventMessageContains(e, "Failed to join cluster instance"),
+            (e) -> isEventMessageContains(e, "Insufficient instance capacity for instance type"),
+            (e) -> isEventMessageContains(e, "Insufficient instance capacity for storage volume type"),
+            (e) -> isEventMessageContains(e, "RDS Custom couldn't modify the DB instance"),
+            (e) -> isEventMessageContains(e, "The DB engine version upgrade failed"),
+            (e) -> isEventMessageContains(e, "The instance could not be upgraded"),
+            (e) -> isEventMessageContains(e, "The storage volume limitation was exceeded"),
+            (e) -> isEventMessageContains(e, "The update of the replica mode failed"),
+            (e) -> isEventMessageContains(e, "Unable to modify database instance class"),
+            (e) -> isEventMessageContains(e, "Unable to modify the DB instance class because no IP addresses are available in the specified subnets"),
+            (e) -> isEventMessageContains(e, "You can't create the DB instance because of incompatible resources")
+    );
 
     protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -296,6 +321,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSnapshotAlreadyExistsException.class)
             .build();
 
+    protected static final ErrorRuleSet DESCRIBE_EVENTS_ERROR_RULE_SET = ErrorRuleSet
+            .extend(Commons.DEFAULT_ERROR_RULE_SET)
+            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    ErrorCode.AccessDenied,
+                    ErrorCode.AccessDeniedException,
+                    ErrorCode.NotAuthorized,
+                    ErrorCode.UnauthorizedOperation)
+            .build();
+
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -403,7 +437,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -429,7 +463,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         modifyRequest,
                         proxyInvocation.client()::modifyDBInstance
                 ))
-                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model))
+                .stabilize((modifyRequest, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -444,6 +478,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isRdsCustomOracleInstance(final ResourceModel model) {
         return RDS_CUSTOM_ORACLE_ENGINES.contains(model.getEngine());
+    }
+
+    protected List<Event> fetchEvents(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model,
+            final String eventType,
+            final Instant fetchSince
+    ) {
+        final DescribeEventsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeEventsRequest(
+                        SourceType.DB_INSTANCE,
+                        model.getDBInstanceIdentifier(),
+                        Collections.singletonList(eventType),
+                        fetchSince,
+                        Instant.now()
+                ),
+                rdsProxyClient.client()::describeEvents
+        );
+        return response.events();
+    }
+
+    protected boolean isFailureEvent(final Event event) {
+        return EVENT_FAIL_CHECKERS.stream().anyMatch(p -> p.test(event));
     }
 
     protected DBInstance fetchDBInstance(
@@ -542,7 +599,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isDBInstanceStabilizedAfterMutate(
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+            final ResourceModel model,
+            final CallbackContext context
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
@@ -914,5 +972,41 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             throw MISSING_METHOD_VERSION_EXCEPTION;
         }
         return methodVersions.get(apiVersion).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> checkFailedEvents(
+            final ProxyClient<RdsClient> rdsClient,
+            final Logger logger,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Instant fetchSince
+    ) {
+        try {
+            final List<Event> failures = fetchEvents(rdsClient, progress.getResourceModel(), EVENT_CATEGORY_NOTIFICATION, fetchSince)
+                    .stream()
+                    .filter(this::isFailureEvent)
+                    .collect(Collectors.toList());
+            if (!CollectionUtils.isNullOrEmpty(failures)) {
+                return ProgressEvent.failed(
+                        progress.getResourceModel(),
+                        progress.getCallbackContext(),
+                        HandlerErrorCode.GeneralServiceException,
+                        failures.get(0).message()
+                );
+            }
+        } catch (Exception e) {
+            logger.log(String.format("Failed to fetch events: %s", e.getMessage()));
+            return Commons.handleException(progress, e, DESCRIBE_EVENTS_ERROR_RULE_SET);
+        }
+        return progress;
+    }
+
+    private static boolean isEventMessageContains(final Event event, final String fragment) {
+        if (event != null) {
+            final String msg = event.message();
+            if (msg != null) {
+                return msg.contains(fragment);
+            }
+        }
+        return false;
     }
 }
