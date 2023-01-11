@@ -2,10 +2,11 @@ package software.amazon.rds.dbinstance.util;
 
 import java.util.List;
 
+import org.apache.commons.lang3.BooleanUtils;
+
 import com.amazonaws.util.StringUtils;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 
@@ -49,7 +50,7 @@ public final class ImmutabilityHelper {
 
     static boolean isAvailabilityZoneChangeMutable(final ResourceModel previous, final ResourceModel desired) {
         return Objects.equal(previous.getAvailabilityZone(), desired.getAvailabilityZone()) ||
-                (StringUtils.isNullOrEmpty(desired.getAvailabilityZone()) && desired.getMultiAZ());
+                (StringUtils.isNullOrEmpty(desired.getAvailabilityZone()) && BooleanUtils.isTrue(desired.getMultiAZ()));
     }
 
     private static boolean isReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
