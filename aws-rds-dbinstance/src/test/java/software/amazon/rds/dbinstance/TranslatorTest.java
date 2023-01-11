@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.Collection;
 
 import org.junit.jupiter.api.Assertions;
@@ -703,7 +704,28 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
     }
 
-    // Stub methods to satisfy the interface. This is a 1-time thing.
+    @Test
+    public void test_translateCertificateDetails_nullValue() {
+        final CertificateDetails certificateDetails = Translator.translateCertificateDetailsFromSdk(null);
+        assertThat(certificateDetails).isNull();
+    }
+
+    @Test
+    public void test_translateCertificateDetails_setValues() {
+        final Instant validTill = Instant.parse("2023-01-09T15:55:37.123Z");
+
+        final CertificateDetails certificateDetails = Translator.translateCertificateDetailsFromSdk(
+                software.amazon.awssdk.services.rds.model.CertificateDetails.builder()
+                        .caIdentifier("identifier")
+                        .validTill(validTill)
+                        .build());
+
+        assertThat(certificateDetails).isNotNull();
+        assertThat(certificateDetails.getCAIdentifier()).isEqualTo("identifier");
+        assertThat(certificateDetails.getValidTill()).isEqualTo("2023-01-09T15:55:37.123Z");
+    }
+
+        // Stub methods to satisfy the interface. This is a 1-time thing.
 
     @Override
     protected BaseHandlerStd getHandler() {

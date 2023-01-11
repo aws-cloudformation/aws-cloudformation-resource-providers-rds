@@ -25,7 +25,6 @@ public final class ResourceModelHelper {
         return (isReadReplica(model) ||
                 isRestoreFromSnapshot(model) ||
                 isRestoreFromClusterSnapshot(model) ||
-                isCertificateAuthorityApplied(model) ||
                 isRestoreToPointInTime(model)) &&
                 (
                         !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
@@ -48,10 +47,6 @@ public final class ResourceModelHelper {
         // But SourceDBInstanceAutomatedBackupsArn and DbiResourceId are also unique identifying parameters of RestoreToPointInTime
         return  BooleanUtils.isTrue(model.getUseLatestRestorableTime()) || StringUtils.hasValue(model.getRestoreTime())  ||
                 StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn()) || StringUtils.hasValue(model.getSourceDbiResourceId());
-    }
-
-    private static boolean isCertificateAuthorityApplied(final ResourceModel model) {
-        return StringUtils.hasValue(model.getCACertificateIdentifier());
     }
 
     public static boolean isReadReplica(final ResourceModel model) {

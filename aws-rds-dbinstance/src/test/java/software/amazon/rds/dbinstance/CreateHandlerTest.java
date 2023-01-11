@@ -40,6 +40,7 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
+import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
@@ -757,17 +758,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateNewInstance_ShouldUpdateAfterCreate_CACertificateIdentifier_Success() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenReturn(ModifyDbInstanceResponse.builder().build());
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
+    public void handleRequest_CreateNewInstance_ShouldNotUpdateAfterCreate_CACertificateIdentifier_Success() {
 
         final DBInstance dbInstance = DB_INSTANCE_BASE.toBuilder()
                 .caCertificateIdentifier(CA_CERTIFICATE_IDENTIFIER_NON_EMPTY)
                 .build();
         final CallbackContext context = new CallbackContext();
-        context.setCreated(true);
+        context.setCreated(false);
         context.setUpdated(false);
 
         test_handleRequest_base(
@@ -777,9 +774,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        ArgumentCaptor<CreateDbInstanceRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstance(createCaptor.capture());
+
+        final CreateDbInstanceRequest requestWithCertificate = createCaptor.getValue();
+        Assertions.assertThat(requestWithCertificate.caCertificateIdentifier()).isEqualTo(CA_CERTIFICATE_IDENTIFIER_NON_EMPTY);
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1354,7 +1354,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR()
                         .vPCSecurityGroups(Collections.emptyList())
-                        .cACertificateIdentifier("identifier")
+                        .dBClusterSnapshotIdentifier("identifier")
                         .build(),
                 expectSuccess()
         );
@@ -1446,13 +1446,14 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.ThrottlingException, HandlerErrorCode.Throttling),
                     // Put exception classes below
                     Arguments.of(AuthorizationNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
+                    Arguments.of(CertificateNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
+                    Arguments.of(DbClusterSnapshotNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
                     Arguments.of(DbInstanceAlreadyExistsException.builder().message(MSG_ALREADY_EXISTS_ERR).build(), HandlerErrorCode.AlreadyExists),
                     Arguments.of(DbSubnetGroupDoesNotCoverEnoughAZsException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(DomainNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
                     Arguments.of(InvalidSubnetException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.GeneralServiceException),
                     Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure),
-                    Arguments.of(StorageTypeNotSupportedException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
-                    Arguments.of(DbClusterSnapshotNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound)
+                    Arguments.of(StorageTypeNotSupportedException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest)
             );
         }
     }

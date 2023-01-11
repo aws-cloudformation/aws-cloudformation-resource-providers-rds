@@ -27,6 +27,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
+import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
@@ -202,6 +203,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBSnapshotNotFound,
                     ErrorCode.DBSubnetGroupNotFoundFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    CertificateNotFoundException.class,
                     DbClusterNotFoundException.class,
                     DbInstanceNotFoundException.class,
                     DbParameterGroupNotFoundException.class,
@@ -610,6 +612,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
                 isNoPendingChanges(dbInstance) &&
+                isCaCertificateChangesApplied(dbInstance, model) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isPromotionTierUpdated(dbInstance, model) &&
@@ -655,7 +658,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
         return (pending == null) || (pending.dbInstanceClass() == null &&
                 pending.allocatedStorage() == null &&
-                pending.caCertificateIdentifier() == null &&
                 pending.masterUserPassword() == null &&
                 pending.port() == null &&
                 pending.backupRetentionPeriod() == null &&
@@ -672,6 +674,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 pending.automationMode() == null &&
                 pending.resumeFullAutomationModeTime() == null
         );
+    }
+
+    boolean isCaCertificateChangesApplied(final DBInstance dbInstance, final ResourceModel model) {
+        final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
+        return pending == null ||
+                pending.caCertificateIdentifier() == null ||
+                BooleanUtils.isNotTrue(model.getCertificateRotationRestart());
     }
 
     boolean isDBParameterGroupNotApplying(final DBInstance dbInstance) {
