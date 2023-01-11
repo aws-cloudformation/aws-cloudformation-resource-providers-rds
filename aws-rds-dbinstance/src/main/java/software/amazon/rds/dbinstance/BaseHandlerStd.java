@@ -611,7 +611,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
-                isNoPendingChanges(dbInstance, model) &&
+                isNoPendingChanges(dbInstance) &&
+                isCaCertificateChangesApplied(dbInstance, model) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isPromotionTierUpdated(dbInstance, model) &&
@@ -653,11 +654,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .allMatch(group -> VPCSecurityGroupStatus.Active.equalsString(group.status()));
     }
 
-    boolean isNoPendingChanges(final DBInstance dbInstance, final ResourceModel model) {
+    boolean isNoPendingChanges(final DBInstance dbInstance) {
         final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
         return (pending == null) || (pending.dbInstanceClass() == null &&
                 pending.allocatedStorage() == null &&
-                (BooleanUtils.isNotTrue(model.getCertificateRotationRestart()) || pending.caCertificateIdentifier() == null) &&
                 pending.masterUserPassword() == null &&
                 pending.port() == null &&
                 pending.backupRetentionPeriod() == null &&
@@ -674,6 +674,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 pending.automationMode() == null &&
                 pending.resumeFullAutomationModeTime() == null
         );
+    }
+
+    boolean isCaCertificateChangesApplied(final DBInstance dbInstance, final ResourceModel model) {
+        final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
+        return pending == null ||
+                pending.caCertificateIdentifier() == null ||
+                BooleanUtils.isNotTrue(model.getCertificateRotationRestart());
     }
 
     boolean isDBParameterGroupNotApplying(final DBInstance dbInstance) {

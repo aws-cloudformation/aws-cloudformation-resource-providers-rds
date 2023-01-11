@@ -171,18 +171,16 @@ class BaseHandlerStdTest {
     @Test
     void isNoPendingChanges_NullPendingChangesReturnsTrue() {
         Assertions.assertThat(handler.isNoPendingChanges(
-                DBInstance.builder().build(),
-                null
+                DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isNoPendingChanges_EmptyPendingChangesReturnsTrue() {
         Assertions.assertThat(handler.isNoPendingChanges(
-                DBInstance.builder()
-                        .pendingModifiedValues(PendingModifiedValues.builder().build())
-                        .build(),
-                ResourceModel.builder().build()
+                        DBInstance.builder()
+                                .pendingModifiedValues(PendingModifiedValues.builder().build())
+                                .build()
         )).isTrue();
     }
 
@@ -194,14 +192,13 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .allocatedStorage(42)
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
     @Test
-    void isNoPendingChanges_NonEmptyCACertificateIdentifierReturnsFalse_WhenCertificateRotationRestartIsTrue() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+    void isCaCertificateChangesApplied_NonEmptyCACertificateIdentifierReturnsFalse_WhenCertificateRotationRestartIsTrue() {
+        Assertions.assertThat(handler.isCaCertificateChangesApplied(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -213,8 +210,8 @@ class BaseHandlerStdTest {
     }
 
     @Test
-    void isNoPendingChanges_NonEmptyCACertificateIdentifierReturnsTrue_WhenCertificateRotationRestartIsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+    void isCaCertificateChangesApplied_NonEmptyCACertificateIdentifierReturnsTrue_WhenCertificateRotationRestartIsFalse() {
+        Assertions.assertThat(handler.isCaCertificateChangesApplied(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -233,8 +230,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .masterUserPassword("password")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -246,8 +242,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .backupRetentionPeriod(42)
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -259,8 +254,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .multiAZ(true)
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -272,8 +266,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .engineVersion("1.2.3")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -285,8 +278,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .iops(42)
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -298,8 +290,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .dbInstanceIdentifier("dbinstance")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -311,8 +302,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .licenseModel("license model")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -324,8 +314,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .storageType("storage type")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -337,8 +326,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .dbSubnetGroupName("db-subnet-group-name")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -350,8 +338,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .pendingCloudwatchLogsExports(PendingCloudwatchLogsExports.builder().build())
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -363,8 +350,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .processorFeatures(Collections.emptyList())
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isTrue();
     }
 
@@ -376,8 +362,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .iamDatabaseAuthenticationEnabled(true)
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -389,8 +374,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .automationMode("automation mode")
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -402,8 +386,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .resumeFullAutomationModeTime(Instant.now())
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 
@@ -415,8 +398,7 @@ class BaseHandlerStdTest {
                                 PendingModifiedValues.builder()
                                         .processorFeatures(ProcessorFeature.builder().build())
                                         .build())
-                        .build(),
-                ResourceModel.builder().build()
+                        .build()
         )).isFalse();
     }
 

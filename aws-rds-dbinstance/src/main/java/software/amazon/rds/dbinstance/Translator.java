@@ -760,8 +760,8 @@ public class Translator {
     public static CertificateDetails translateCertificateDetailsFromSdk(software.amazon.awssdk.services.rds.model.CertificateDetails certificateDetails) {
         return certificateDetails == null ? null : CertificateDetails.builder()
                 .cAIdentifier(certificateDetails.caIdentifier())
-                .validTill(certificateDetails.validTill().toString()).
-                build();
+                .validTill(certificateDetails.validTill() == null ? null : certificateDetails.validTill().toString())
+                .build();
     }
 
     public static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> sdkTags) {
