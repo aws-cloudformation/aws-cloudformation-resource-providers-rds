@@ -804,13 +804,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
-
-        Assertions.assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(100);
-        Assertions.assertThat(modifyCaptor.getValue().iops()).isEqualTo(3000);
     }
 
     @Test
@@ -888,12 +883,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateReadReplica_AllocatedStorage_ShouldUpdate_Success() {
-        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
-                .thenReturn(ModifyDbInstanceResponse.builder().build());
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
-
+    public void handleRequest_CreateReadReplica_AllocatedStorage_ShouldNotUpdate_Success() {
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
         context.setUpdated(false);
@@ -910,9 +900,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test

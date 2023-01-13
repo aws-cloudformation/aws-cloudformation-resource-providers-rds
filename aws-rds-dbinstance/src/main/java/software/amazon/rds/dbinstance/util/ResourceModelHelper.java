@@ -11,11 +11,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class ResourceModelHelper {
-    private static final Set<StorageType> STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE = ImmutableSet.of(
-            StorageType.GP3,
-            StorageType.IO1
-    );
-
     private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
             "sqlserver-ee",
             "sqlserver-se"
@@ -28,7 +23,6 @@ public final class ResourceModelHelper {
                 isRestoreToPointInTime(model)) &&
                 (
                         !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
-                                StringUtils.hasValue(model.getAllocatedStorage()) ||
                                 StringUtils.hasValue(model.getCACertificateIdentifier()) ||
                                 StringUtils.hasValue(model.getDBParameterGroupName()) ||
                                 StringUtils.hasValue(model.getEngineVersion()) ||
@@ -59,10 +53,6 @@ public final class ResourceModelHelper {
 
     public static boolean isRestoreFromClusterSnapshot(final ResourceModel model) {
         return StringUtils.hasValue(model.getDBClusterSnapshotIdentifier());
-    }
-
-    public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
-        return !STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE.contains(StorageType.fromString(model.getStorageType())) && shouldUpdateAfterCreate(model);
     }
 
     public static boolean shouldReboot(final ResourceModel model) {
