@@ -82,10 +82,7 @@ private ProgressEvent<ResourceModel, CallbackContext> createDbClusterSnapshot(fi
                         exception,
                         DEFAULT_DB_SNAPSHOT_ERROR_RULE_SET))
                 .done((createRequest, createResponse, proxyInvocation, resourceModel, context) -> {
-                    CreateDbClusterSnapshotResponse a = createResponse;
-                    DBClusterSnapshot b = createResponse.dbClusterSnapshot();
-                    String c = createResponse.dbClusterSnapshot().dbClusterSnapshotArn();
-                    resourceModel.setDBClusterSnapshotArn(createResponse.dbClusterSnapshot().dbClusterSnapshotArn()); // Pretty sure this is the culprit
+                    resourceModel.setDBClusterSnapshotArn(createResponse.dbClusterSnapshot().dbClusterSnapshotArn());
                     return ProgressEvent.progress(resourceModel, context);
                 });
     }
