@@ -46,7 +46,7 @@ public class Translator {
             .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
             .dbClusterIdentifier(model.getDBClusterIdentifier())
             .tags(Tagging.translateTagsToSdk(tags))
-            .build(); // FIXME: Are we missing description? Is this some kind of general cfn thingy
+            .build();
   }
 
   public static DeleteDbClusterSnapshotRequest deleteDbClusterSnapshotRequest(final ResourceModel resourceModel) {

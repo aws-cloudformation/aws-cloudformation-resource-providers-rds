@@ -75,6 +75,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
             .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
             .dbClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
             .dbClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
+            .status("available")
             .build();
 
     TAG_LIST_EMPTY = ImmutableSet.of();

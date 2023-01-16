@@ -9,12 +9,15 @@ import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterEndpointResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotResponse;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupResponse;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
@@ -87,58 +90,18 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     @Test
     public void handleRequest_CreateDbCluster_Success() {
         when(proxyClient.client().createDBClusterSnapshot(any(CreateDbClusterSnapshotRequest.class)))
-                .thenReturn(CreateDbClusterSnapshotResponse.builder().build());
+                .thenReturn(CreateDbClusterSnapshotResponse.builder().dbClusterSnapshot(
+                        DBClusterSnapshot.builder().build()
+                ).build());
 
-        final DescribeDbClusterSnapshotsResponse describeDbClusterSnapshotsResponse = DescribeDbClusterSnapshotsResponse.builder()
-                .dbClusterSnapshots(DB_CLUSTER_SNAPSHOT_ACTIVE).build();
-        when(proxyClient.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class))).thenReturn(describeDbClusterSnapshotsResponse);
-
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder().build());
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
-                .desiredResourceState(RESOURCE_MODEL)
-                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
-                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
-                .build();
-//        System.out.println(String.format("proxy: \n%s\n", proxy.toString()));
-//        System.out.println(String.format("request: \n%s\n", request.toString()));
-//        System.out.println(String.format("CallbackContext: \n%s\n", new CallbackContext().toString()));
-//        System.out.println(String.format("proxyClient: \n%s\n", proxyClient.toString()));
-//        System.out.println(String.format("logger: \n%s\n", logger.toString()));
-//        System.out.println(String.format("handler: \n%s\n", handler.toString()));
-
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
 
         verify(proxyClient.client(), times(1)).createDBClusterSnapshot(any(CreateDbClusterSnapshotRequest.class));
-        verify(proxyClient.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
-        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(2)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
     }
-
-//    @Test
-//    public void handleRequest_CreateDbCluster_Success() {
-//        when(proxyClient.client().createDBClusterSnapshot(any(CreateDbClusterSnapshotRequest.class)))
-//                .thenReturn(CreateDbClusterSnapshotResponse.builder().build());
-//
-//        test_handleRequest_base(
-//                new CallbackContext(),
-//                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
-//                () -> RESOURCE_MODEL.toBuilder()
-////                        .associatedRoles(ImmutableList.of(ROLE))
-//                        .build(),
-//                expectSuccess()
-//        );
-//
-////        verify(proxyClient.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
-////        verify(proxyClient.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
-////        verify(proxyClient.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
-//    }
 }
