@@ -14,7 +14,7 @@ class Configuration extends BaseConfiguration {
         super("aws-rds-dbclusterparametergroup.json");
     }
 
-    public JSONObject resourceSchemaJSONObject() {
+    public JSONObject resourceSchemaJsonObject() {
         return new JSONObject(new JSONTokener(this.getClass().getClassLoader().getResourceAsStream(schemaFilename)));
     }
 
