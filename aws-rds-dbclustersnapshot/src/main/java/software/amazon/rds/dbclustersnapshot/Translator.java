@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -34,6 +35,14 @@ import java.util.stream.Stream;
  */
 
 public class Translator {
+  static DescribeDbClustersRequest describeDbClustersRequest(
+          final ResourceModel model
+  ) {
+    return DescribeDbClustersRequest.builder()
+            .dbClusterIdentifier(model.getDBClusterIdentifier())
+            .build();
+  }
+
   public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model) {
     return DescribeDbClusterSnapshotsRequest.builder()
             .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())

@@ -2,6 +2,8 @@ package software.amazon.rds.dbclustersnapshot;
 
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
@@ -9,7 +11,9 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
+import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -119,9 +123,48 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     return progress;
   }
 
+  protected DBCluster fetchDBCluster(
+          final ProxyClient<RdsClient> proxyClient,
+          final ResourceModel model
+  ) {
+    final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
+            Translator.describeDbClustersRequest(model),
+            proxyClient.client()::describeDBClusters
+    );
+    return response.dbClusters().get(0);
+  }
+
+  private void assertNoDBClusterTerminalStatus(final DBCluster dbCluster) throws CfnNotStabilizedException {
+    final DBClusterStatus status = DBClusterStatus.fromString(dbCluster.status());
+    if (status != null && status.isTerminal()) {
+      throw new CfnNotStabilizedException(new Exception("DBCluster is in state: " + status));
+    }
+  }
+
+  protected boolean isDBClusterAvailable(final DBCluster dbCluster) {
+    return DBClusterStatus.Available.equalsString(dbCluster.status());
+  }
+
+  protected boolean isNoPendingChanges(final DBCluster dbCluster) {
+    final ClusterPendingModifiedValues modifiedValues = dbCluster.pendingModifiedValues();
+    return modifiedValues == null || (
+            modifiedValues.masterUserPassword() == null &&
+                    modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
+                    modifiedValues.engineVersion() == null);
+  }
+
+  private boolean isDBClusterStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
+    final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+
+    assertNoDBClusterTerminalStatus(dbCluster);
+
+    return isDBClusterAvailable(dbCluster) &&
+            isNoPendingChanges(dbCluster);
+  }
+
   protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
     DBClusterSnapshot dbClusterSnapshot = fetchDBClusterSnapshot(model, proxyClient);
-    return dbClusterSnapshot.status().equals(AVAILABLE_STATE);
+    return isDBClusterStabilized(model, proxyClient) && dbClusterSnapshot.status().equals(AVAILABLE_STATE);
   }
 
   protected DBClusterSnapshot fetchDBClusterSnapshot(
