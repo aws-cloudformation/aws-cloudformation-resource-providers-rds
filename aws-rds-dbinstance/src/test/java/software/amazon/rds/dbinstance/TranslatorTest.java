@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequ
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
+import software.amazon.awssdk.services.rds.model.Endpoint;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
@@ -739,6 +740,17 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(certificateDetails).isNotNull();
         assertThat(certificateDetails.getCAIdentifier()).isEqualTo("identifier");
         assertThat(certificateDetails.getValidTill()).isEqualTo("2023-01-09T15:55:37.123Z");
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_port_getFromEndpoint() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .endpoint(Endpoint.builder().port(123).build())
+                .dbInstancePort(0)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getPort()).isEqualTo("123");
     }
 
         // Stub methods to satisfy the interface. This is a 1-time thing.
