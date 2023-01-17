@@ -82,13 +82,33 @@ public class ResourceModelHelperTest {
     }
 
     @Test
-    public void shouldUpdateAfterCreate_whenReadReplicaAndAllocatedStorage() {
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndMasterUserPassword() {
         final ResourceModel model = ResourceModel.builder()
-                .sourceDBInstanceIdentifier("identifier")
-                .allocatedStorage("100")
+                .dBSnapshotIdentifier("identifier")
+                .masterUserPassword("password")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenReadReplicaAndPreferredMaintenanceWindow() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("identifier")
+                .preferredMaintenanceWindow("window")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenReadReplicaAndMaxAllocatedStorage() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("identifier")
+                .maxAllocatedStorage(100)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 
     @Test
