@@ -17,10 +17,12 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotResponse;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupResponse;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
@@ -94,6 +96,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         DBClusterSnapshot.builder().build()
                 ).build());
 
+        when(proxyClient.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+                .thenReturn(DescribeDbClustersResponse.builder().dbClusters(DBCluster.builder().status("available").build()).build());
+
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
@@ -103,5 +108,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(proxyClient.client(), times(1)).createDBClusterSnapshot(any(CreateDbClusterSnapshotRequest.class));
         verify(proxyClient.client(), times(2)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+        verify(proxyClient.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 }

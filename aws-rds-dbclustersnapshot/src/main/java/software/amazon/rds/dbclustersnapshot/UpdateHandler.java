@@ -15,7 +15,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
 
-public class UpdateHandler extends BaseHandlerStd {
+public class UpdateHandler extends BaseHandlerStd { // FIXME: "rds:DescribeDBClusters" to be added to FAS
     private Logger logger;
     public UpdateHandler() { this(HandlerConfig.builder().build()); }
 

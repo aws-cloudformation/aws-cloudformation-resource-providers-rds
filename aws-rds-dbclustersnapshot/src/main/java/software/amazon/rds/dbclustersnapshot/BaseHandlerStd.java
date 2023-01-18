@@ -131,7 +131,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             Translator.describeDbClustersRequest(model),
             proxyClient.client()::describeDBClusters
     );
-    return response.dbClusters().get(0);
+    return response.dbClusters().get(0); // FIXME; It's very possible for this to be null and in that case we are stable!
   }
 
   private void assertNoDBClusterTerminalStatus(final DBCluster dbCluster) throws CfnNotStabilizedException {
