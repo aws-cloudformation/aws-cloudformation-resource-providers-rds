@@ -49,6 +49,12 @@ public class Translator {
             .build();
   }
 
+  public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final String nextToken) {
+    return DescribeDbClusterSnapshotsRequest.builder()
+            .marker(nextToken)
+            .build();
+  }
+
   public static CreateDbClusterSnapshotRequest createDbClusterSnapshotRequest(final ResourceModel model,
                                                                        final Tagging.TagSet tags) {
     return CreateDbClusterSnapshotRequest.builder()

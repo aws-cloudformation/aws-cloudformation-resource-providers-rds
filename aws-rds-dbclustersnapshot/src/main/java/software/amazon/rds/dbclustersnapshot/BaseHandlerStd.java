@@ -162,7 +162,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             isNoPendingChanges(dbCluster);
   }
 
-  protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
+  protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) { // FIXME: is this good isStabilized logic? stolen from DBCLuster. Maybe make it common
     DBClusterSnapshot dbClusterSnapshot = fetchDBClusterSnapshot(model, proxyClient);
     return isDBClusterStabilized(model, proxyClient) && dbClusterSnapshot.status().equals(AVAILABLE_STATE);
   }

@@ -4,6 +4,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -47,8 +50,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
 
   protected static final String ERROR_MSG = "error";
 
-  protected static final Set<Tag> TAG_LIST;
-  protected static final Set<Tag> TAG_LIST_EMPTY;
+  protected static final List<Tag> TAG_LIST;
+  protected static final List<Tag> TAG_LIST_EMPTY;
   protected static final Set<Tag> TAG_LIST_ALTER;
   protected static final Tagging.TagSet TAG_SET;
 
@@ -78,10 +81,12 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
             .status("available")
             .build();
 
-    TAG_LIST_EMPTY = ImmutableSet.of();
+    TAG_LIST_EMPTY = Collections.emptyList();
 
-    TAG_LIST = ImmutableSet.of(
-            Tag.builder().key("foo").value("bar").build()
+    TAG_LIST = Arrays.asList(
+            Tag.builder().key("foo-1").value("bar-1").build(),
+            Tag.builder().key("foo-2").value("bar-2").build(),
+            Tag.builder().key("foo-3").value("bar-3").build()
     );
 
     TAG_LIST_ALTER = ImmutableSet.of(
