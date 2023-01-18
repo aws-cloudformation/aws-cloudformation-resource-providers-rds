@@ -110,4 +110,26 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(proxyClient.client(), times(2)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
         verify(proxyClient.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
+
+    @Test
+    public void handleRequest_CreateDbCluster_NoClusters_Success() {
+        when(proxyClient.client().createDBClusterSnapshot(any(CreateDbClusterSnapshotRequest.class)))
+                .thenReturn(CreateDbClusterSnapshotResponse.builder().dbClusterSnapshot(
+                        DBClusterSnapshot.builder().build()
+                ).build());
+
+        when(proxyClient.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+                .thenReturn(DescribeDbClustersResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(proxyClient.client(), times(1)).createDBClusterSnapshot(any(CreateDbClusterSnapshotRequest.class));
+        verify(proxyClient.client(), times(2)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+        verify(proxyClient.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
 }

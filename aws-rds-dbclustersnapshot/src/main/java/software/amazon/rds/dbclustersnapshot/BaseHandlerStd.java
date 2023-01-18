@@ -154,15 +154,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
   }
 
   private boolean isDBClusterStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
-    final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+    // Catching the case where there are no living clusters associated with this snapshot
+    try {
+      final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
 
-    assertNoDBClusterTerminalStatus(dbCluster);
+      assertNoDBClusterTerminalStatus(dbCluster);
 
-    return isDBClusterAvailable(dbCluster) &&
-            isNoPendingChanges(dbCluster);
+      return isDBClusterAvailable(dbCluster) &&
+              isNoPendingChanges(dbCluster);
+    } catch (IndexOutOfBoundsException e) {
+      return true;
+    }
   }
 
-  protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) { // FIXME: is this good isStabilized logic? stolen from DBCLuster. Maybe make it common
+  protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
     DBClusterSnapshot dbClusterSnapshot = fetchDBClusterSnapshot(model, proxyClient);
     return isDBClusterStabilized(model, proxyClient) && dbClusterSnapshot.status().equals(AVAILABLE_STATE);
   }
