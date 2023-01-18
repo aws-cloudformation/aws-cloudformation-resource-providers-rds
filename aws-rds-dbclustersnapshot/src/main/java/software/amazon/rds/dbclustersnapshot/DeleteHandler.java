@@ -1,10 +1,7 @@
 package software.amazon.rds.dbclustersnapshot;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
-import software.amazon.awssdk.services.rds.model.DbClusterSnapshotAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;

@@ -2,8 +2,6 @@ package software.amazon.rds.dbclustersnapshot;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotResponse;
-import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
