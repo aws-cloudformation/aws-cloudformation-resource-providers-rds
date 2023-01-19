@@ -352,8 +352,8 @@ public class Translator {
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
             if (isIo1Storage(desiredModel)) {
-                builder.iops(desiredModel.getIops());
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
             } else {
                 builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
                 builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
@@ -416,8 +416,8 @@ public class Translator {
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
             if (isIo1Storage(desiredModel)) {
-                builder.iops(desiredModel.getIops());
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
             } else {
                 builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
                 builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
