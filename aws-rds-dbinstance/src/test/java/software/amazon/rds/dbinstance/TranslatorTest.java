@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequ
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
+import software.amazon.awssdk.services.rds.model.Endpoint;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
@@ -314,40 +315,56 @@ class TranslatorTest extends AbstractHandlerTest {
         Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"io1", "gp3"})
-    public void test_restoreFromSnapshotRequest_storageType_shouldBeSetOnUpdate(final String storageType) {
+    @Test
+    public void test_restoreFromSnapshotRequest_storageType_shouldBeSetOnUpdate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType(storageType)
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isNull();
+        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"io1", "gp3"})
-    public void test_restoreDbInstanceToPointInTimeRequest_shouldBeSetOnUpdate(final String storageType) {
+    @Test
+    public void test_restoreDbInstanceToPointInTimeRequest_shouldBeSetOnCreate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType(storageType)
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
                 .build();
 
         final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isNull();
+        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"io1", "gp3"})
-    public void test_restoreFromSnapshotRequestV12_shouldBeSetOnUpdate(final String storageType) {
+    @Test
+    public void test_restoreFromSnapshotRequestV12_shouldBeSetOnRestore() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType(storageType)
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
-        assertThat(request.storageType()).isNull();
+        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
+
     }
 
     @Test
@@ -449,7 +466,7 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_modifyAfterCreate_shouldSetGP3Parameters() {
+    public void test_modifyAfterCreate_shouldNotSetGP3Parameters() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .storageType("gp3")
                 .storageThroughput(100)
@@ -457,9 +474,9 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
-        assertThat(request.iops()).isEqualTo(200);
-        assertThat(request.storageThroughput()).isEqualTo(100);
-        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isNull();
+        assertThat(request.storageThroughput()).isNull();
+        assertThat(request.storageType()).isNull();
     }
 
     @Test
@@ -723,6 +740,17 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(certificateDetails).isNotNull();
         assertThat(certificateDetails.getCAIdentifier()).isEqualTo("identifier");
         assertThat(certificateDetails.getValidTill()).isEqualTo("2023-01-09T15:55:37.123Z");
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_port_getFromEndpoint() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .endpoint(Endpoint.builder().port(123).build())
+                .dbInstancePort(0)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getPort()).isEqualTo("123");
     }
 
     @Test

@@ -78,14 +78,34 @@ public class ResourceModelHelperTest {
                 .allocatedStorage("100")
                 .build();
 
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndMasterUserPassword() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .masterUserPassword("password")
+                .build();
+
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 
     @Test
-    public void shouldUpdateAfterCreate_whenReadReplicaAndAllocatedStorage() {
+    public void shouldUpdateAfterCreate_whenReadReplicaAndPreferredMaintenanceWindow() {
         final ResourceModel model = ResourceModel.builder()
                 .sourceDBInstanceIdentifier("identifier")
-                .allocatedStorage("100")
+                .preferredMaintenanceWindow("window")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenReadReplicaAndMaxAllocatedStorage() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("identifier")
+                .maxAllocatedStorage(100)
                 .build();
 
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
@@ -100,29 +120,6 @@ public class ResourceModelHelperTest {
                 .build();
 
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"gp3", "io1"})
-    public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageType_shouldBeSetOnModify(final String storageType) {
-        final ResourceModel model = ResourceModel.builder()
-                .storageType(storageType)
-                .allocatedStorage("100")
-                .dBSnapshotIdentifier("identifier")
-                .build();
-
-        assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isFalse();
-    }
-
-    @Test
-    public void shouldSetStorageTypeOnRestoreFromSnapshot_whenStorageTypeGP2() {
-        final ResourceModel model = ResourceModel.builder()
-                .dBSnapshotIdentifier("identifier")
-                .storageType("gp2")
-                .allocatedStorage("100")
-                .build();
-
-        assertThat(ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)).isTrue();
     }
 
     @Test
