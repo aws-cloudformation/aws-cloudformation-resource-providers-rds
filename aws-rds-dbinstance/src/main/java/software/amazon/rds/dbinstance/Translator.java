@@ -350,9 +350,14 @@ public class Translator {
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
         if (BooleanUtils.isNotTrue(isRollback)) {
-            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            if (isIo1Storage(desiredModel)) {
+                builder.iops(desiredModel.getIops());
+                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+            } else {
+                builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            }
         }
 
         return builder.build();
