@@ -753,7 +753,73 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(model.getPort()).isEqualTo("123");
     }
 
-        // Stub methods to satisfy the interface. This is a 1-time thing.
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io1").iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsImplicitIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType(null).iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType(null).iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
+    public void modifyDbInstanceRequestV12_shouldIncludeAllocatedStorage_ifStorageTypeIsIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io1").iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequestV12_shouldIncludeAllocatedStorage_ifStorageTypeIsImplicitIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType(null).iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType(null).iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequestV12_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isNull();
+    }
+
+    // Stub methods to satisfy the interface. This is a 1-time thing.
 
     @Override
     protected BaseHandlerStd getHandler() {

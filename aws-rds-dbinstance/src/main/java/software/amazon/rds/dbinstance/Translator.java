@@ -350,9 +350,14 @@ public class Translator {
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
         if (BooleanUtils.isNotTrue(isRollback)) {
-            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            if (isIo1Storage(desiredModel)) {
+                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
+            } else {
+                builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            }
         }
 
         return builder.build();
@@ -409,9 +414,14 @@ public class Translator {
         }
 
         if (BooleanUtils.isNotTrue(isRollback)) {
-            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            if (isIo1Storage(desiredModel)) {
+                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
+            } else {
+                builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            }
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
@@ -446,6 +456,11 @@ public class Translator {
         }
 
         return builder.build();
+    }
+
+    private static Boolean isIo1Storage(final ResourceModel model) {
+        return StorageType.IO1.toString().equalsIgnoreCase(model.getStorageType()) ||
+                (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
     }
 
     private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
