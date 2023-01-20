@@ -89,8 +89,8 @@ public class ResourceDriftTestHelper {
                 assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath);
                 continue;
             }
-            final String propertyTransform = propertyTransformMap.getString(propertyTransformPath);
-            if (propertyTransform != null) {
+            if (propertyTransformMap.has(propertyTransformPath)) {
+                final String propertyTransform = propertyTransformMap.getString(propertyTransformPath);
                 // $OR is a CFN-specific feature. We need to split the expression into or-expressions and test
                 // the results independently. The test passes if any of these alternative variants match.
                 final String[] orExprs = propertyTransform.split(PROPERTY_OR_SPLIT_REGEX);
