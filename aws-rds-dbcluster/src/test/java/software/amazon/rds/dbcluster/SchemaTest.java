@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import org.assertj.core.api.Assertions;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -102,6 +103,56 @@ public class SchemaTest {
                 .masterUserSecret(MasterUserSecret.builder()
                         .kmsKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
                         .build())
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_PreferredMaintenanceWindow_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .preferredMaintenanceWindow("Sat:06:01-Sat:08:01")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .preferredMaintenanceWindow("sat:06:01-sat:08:01")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_EnableHttpEndpoint_Serverless_Drifted() {
+        final ResourceModel input = ResourceModel.builder()
+                .enableHttpEndpoint(true)
+                .engineMode("serverless")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .enableHttpEndpoint(false)
+                .engineMode("serverless")
+                .build();
+        Assertions.assertThatThrownBy(() -> {
+            ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        }).isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    public void testDrift_EnableHttpEndpoint_Provisioned() {
+        final ResourceModel input = ResourceModel.builder()
+                .enableHttpEndpoint(true)
+                .engineMode("provisioned")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .enableHttpEndpoint(false)
+                .engineMode("provisioned")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_EnableHttpEndpoint_NoEngineMode() {
+        final ResourceModel input = ResourceModel.builder()
+                .enableHttpEndpoint(true)
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .enableHttpEndpoint(false)
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
