@@ -917,13 +917,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final ResourceModel model = progress.getResourceModel();
         if (StringUtils.isEmpty(model.getEngine())) {
-            if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
-                try {
-                    final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-                    model.setEngine(dbInstance.engine());
-                } catch (Exception e) {
-                    return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
-                }
+            try {
+                final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+                model.setEngine(dbInstance.engine());
+            } catch (Exception e) {
+                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
             }
         }
         return progress;

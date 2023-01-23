@@ -74,8 +74,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return CreateDbInstanceReadReplicaRequest.builder()
-                .allocatedStorage(getAllocatedStorage(model))
+        final CreateDbInstanceReadReplicaRequest.Builder builder = CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
@@ -88,7 +87,6 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .enablePerformanceInsights(model.getEnablePerformanceInsights())
-                .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
@@ -103,19 +101,23 @@ public class Translator {
                 .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
-                .storageThroughput(model.getStorageThroughput())
-                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequestV12(
             final ResourceModel model
     ) {
-        return RestoreDbInstanceFromDbSnapshotRequest.builder()
-                .allocatedStorage(getAllocatedStorage(model))
+        final RestoreDbInstanceFromDbSnapshotRequest.Builder builder = RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
@@ -132,16 +134,22 @@ public class Translator {
                 .optionGroupName(model.getOptionGroupName())
                 .port(translatePortToSdk(model.getPort()))
                 .storageType(model.getStorageType())
-                .storageThroughput(model.getStorageThroughput())
-                .build();
+                .storageThroughput(model.getStorageThroughput());
+
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return RestoreDbInstanceFromDbSnapshotRequest.builder()
-                .allocatedStorage(getAllocatedStorage(model))
+        final RestoreDbInstanceFromDbSnapshotRequest.Builder builder = RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
@@ -158,7 +166,6 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
@@ -170,10 +177,15 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .storageType(model.getStorageType())
-                .storageThroughput(model.getStorageThroughput())
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static CreateDbInstanceRequest createDbInstanceRequestV12(
@@ -282,8 +294,7 @@ public class Translator {
     ) {
         final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? ZonedDateTime.parse(model.getRestoreTime()).toInstant() : null;
 
-        return RestoreDbInstanceToPointInTimeRequest.builder()
-                .allocatedStorage(getAllocatedStorage(model))
+        final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
@@ -298,7 +309,6 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .multiAZ(model.getMultiAZ())
@@ -317,10 +327,15 @@ public class Translator {
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .storageType(model.getStorageType())
-                .storageThroughput(model.getStorageThroughput())
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static ModifyDbInstanceRequest modifyDbInstanceRequestV12(
@@ -500,6 +515,13 @@ public class Translator {
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
+
+        if (ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
