@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class ResourceModelHelper {
+    private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
+
     private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
             "sqlserver-ee",
             "sqlserver-se"
@@ -32,8 +34,15 @@ public final class ResourceModelHelper {
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0
+                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
+                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage()))
                 );
+    }
+
+    public static boolean isSqlServer(final ResourceModel model) {
+        final String engine = model.getEngine();
+        // treat unknown engines as SQLServer
+        return engine == null || engine.startsWith(SQLSERVER_ENGINE_PREFIX);
     }
 
     public static boolean isRestoreToPointInTime(final ResourceModel model) {

@@ -75,6 +75,7 @@ public class ResourceModelHelperTest {
     public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndAllocatedStorage() {
         final ResourceModel model = ResourceModel.builder()
                 .dBSnapshotIdentifier("identifier")
+                .engine("postgresql")
                 .allocatedStorage("100")
                 .build();
 
@@ -127,6 +128,17 @@ public class ResourceModelHelperTest {
         final ResourceModel model = ResourceModel.builder()
                 .dBSnapshotIdentifier("identifier")
                 .storageThroughput(100)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenSqlServerAndAllocatedStorage() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .allocatedStorage("100")
+                .engine("sqlserver")
                 .build();
 
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
