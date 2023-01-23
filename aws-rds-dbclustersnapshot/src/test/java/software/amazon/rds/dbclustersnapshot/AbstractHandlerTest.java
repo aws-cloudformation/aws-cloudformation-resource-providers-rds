@@ -5,10 +5,14 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
@@ -59,6 +63,12 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
           .delay(Duration.ofSeconds(1L))
           .timeout(Duration.ofSeconds(10L))
           .build();
+
+  public static Map<String, String> translateTagsToRequest(final Collection<Tag> tags) {
+    return Optional.ofNullable(tags).orElse(Collections.emptyList())
+            .stream()
+            .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+  }
 
   static {
     System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");

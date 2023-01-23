@@ -1,11 +1,15 @@
 package software.amazon.rds.dbclustersnapshot;
 
 import java.time.Duration;
+import java.util.Map;
 
 import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import org.junit.jupiter.api.AfterEach;
@@ -17,8 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.test.common.core.HandlerName;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -74,14 +80,60 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_SimpleSuccess() {
         expectServiceInvocation = false;
 
+//        final CallbackContext context = new CallbackContext();
+//        test_handleRequest_base(
+//                context,
+//                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
+//                null,
+//                () -> RESOURCE_MODEL,
+//                () -> RESOURCE_MODEL,
+//                expectFailed(HandlerErrorCode.NotUpdatable)
+//        );
+    }
+
+    @Test
+    public void handleRequest_AddTagToResource() {
         final CallbackContext context = new CallbackContext();
+
+        final Map<String, String> previousTags = translateTagsToRequest(TAG_LIST);
+        final Map<String, String> desiredTags = translateTagsToRequest(TAG_LIST);
+        desiredTags.put("newKey", "newValue");
+
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder().rollback(true),
-                null,
-                () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL,
-                expectFailed(HandlerErrorCode.NotUpdatable)
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(previousTags)
+                        .desiredResourceTags(desiredTags),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().build(),
+                () -> RESOURCE_MODEL.toBuilder().build(),
+                expectSuccess()
         );
+
+        verify(rdsClient, times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+        verify(rdsClient, times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RemoveTagFromResource() {
+        final CallbackContext context = new CallbackContext();
+
+        final Map<String, String> previousTags = translateTagsToRequest(TAG_LIST);
+        previousTags.put("newKey", "newValue");
+        final Map<String, String> desiredTags = translateTagsToRequest(TAG_LIST);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(previousTags)
+                        .desiredResourceTags(desiredTags),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().build(),
+                () -> RESOURCE_MODEL.toBuilder().build(),
+                expectSuccess()
+        );
+
+        verify(rdsClient, times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+        verify(rdsClient, times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 }

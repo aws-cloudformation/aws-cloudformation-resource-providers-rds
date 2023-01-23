@@ -36,6 +36,7 @@ Resources:
                 - "rds:DescribeDBClusterSnapshots"
                 - "rds:DescribeDBClusters"
                 - "rds:ListTagsForResource"
+                - "rds:RemoveTagsFromResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

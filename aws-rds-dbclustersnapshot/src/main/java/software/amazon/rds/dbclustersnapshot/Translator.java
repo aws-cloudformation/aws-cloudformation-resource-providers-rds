@@ -8,9 +8,11 @@ import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterSnapshotAttributeRequest;
 import software.amazon.rds.common.handler.Tagging;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +64,12 @@ public class Translator {
             .build();
   }
 
+//  public static ModifyDbClusterSnapshotAttributeRequest modifyDbClusterSnapshotAttributeRequest(final ResourceModel resourceModel) {
+//    ModifyDbClusterSnapshotAttributeRequest.builder().
+//            .build();
+//    return null;
+//  }
+
   public static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final List<Tag> tags) {
     return streamOfOrEmpty(tags)
             .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
@@ -93,6 +101,9 @@ public class Translator {
             .tags(translateToModel(dbClusterSnapshotSnapshot.tagList()))
             .build();
   }
+
+  // FIXME: look at the nits on the DBSnapshot PR
+  // FIXME: look at coverage & turn coverage on!
 
 
 

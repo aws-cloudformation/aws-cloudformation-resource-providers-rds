@@ -81,7 +81,11 @@
       ]
     },
     "update": {
-      "permissions": []
+      "permissions": [
+        "rds:AddTagsToResource",
+        "rds:DescribeDBClusterSnapshots",
+        "rds:RemoveTagsFromResource"
+      ]
     },
     "delete": {
       "permissions": [
