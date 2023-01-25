@@ -3,6 +3,7 @@ package software.amazon.rds.common.handler;
 import java.util.function.Function;
 
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -33,6 +34,7 @@ public final class Commons {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     KmsKeyNotAccessibleException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
+                    SdkServiceException.class,
                     SdkClientException.class)
             .build();
 
