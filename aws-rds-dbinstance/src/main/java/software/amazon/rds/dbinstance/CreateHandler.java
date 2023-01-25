@@ -9,7 +9,9 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -84,10 +86,28 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
+                        if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                            try {
+                                progress.getResourceModel().setEngine(
+                                        fetchEngineForRestoreToPointInTime(rdsProxyClient, model, progress)
+                                );
+                            } catch (Exception e) {
+                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+                            }
+                        }
                         // restoreDBInstanceToPointInTime is not a versioned call.
                         return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
+                        if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                            try {
+                               final DBInstance source = fetchDBInstanceByDBInstanceIdentifier(rdsProxyClient.defaultClient(),
+                                       model.getSourceDBInstanceIdentifier());
+                               progress.getResourceModel().setEngine(source.engine());
+                            } catch (Exception e) {
+                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+                            }
+                        }
                         // createDBInstanceReadReplica is not a versioned call.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
@@ -97,7 +117,18 @@ public class CreateHandler extends BaseHandlerStd {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
                                 final String engine = snapshot.engine();
+                                if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                                    progress.getResourceModel().setEngine(engine);
+                                }
                                 progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
+                            } catch (Exception e) {
+                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+                            }
+                        }
+                        if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                            try {
+                                progress.getResourceModel().setEngine(
+                                        fetchEngineForRestoreFromSnapshot(rdsProxyClient, progress));
                             } catch (Exception e) {
                                 return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
                             }
@@ -119,7 +150,6 @@ public class CreateHandler extends BaseHandlerStd {
                             .build();
                     return updateTags(proxy, rdsProxyClient.defaultClient(), progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
-                .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
                     if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(progress, () -> {
@@ -143,6 +173,32 @@ public class CreateHandler extends BaseHandlerStd {
                                 updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
+    }
+
+    private String fetchEngineForRestoreFromSnapshot(VersionedProxyClient<RdsClient> rdsProxyClient, ProgressEvent<ResourceModel, CallbackContext> progress) {
+        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel())) {
+            final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), progress.getResourceModel());
+            return snapshot.engine();
+        } else {
+            final DBClusterSnapshot snapshot = fetchDBClusterSnapshot(rdsProxyClient.defaultClient(), progress.getResourceModel());
+            return snapshot.engine();
+        }
+    }
+
+    private String fetchEngineForRestoreToPointInTime(VersionedProxyClient<RdsClient> rdsProxyClient, ResourceModel model, ProgressEvent<ResourceModel, CallbackContext> progress) {
+        if (!StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDBInstanceIdentifier())) {
+            final DBInstance source = fetchDBInstanceByDBInstanceIdentifier(rdsProxyClient.defaultClient(),
+                    model.getSourceDBInstanceIdentifier());
+            return source.engine();
+        } else if (!StringUtils.isNullOrEmpty(progress.getResourceModel().getSourceDbiResourceId())) {
+            final DBInstance source = fetchDBInstanceByDbiResourceId(rdsProxyClient.defaultClient(),
+                    model.getSourceDBInstanceIdentifier());
+            return source.engine();
+        } else {
+            final DBInstanceAutomatedBackup backup = fetchAutomaticBackup(rdsProxyClient.defaultClient(),
+                    model.getSourceDBInstanceAutomatedBackupsArn());
+            return backup.engine();
+        }
     }
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
@@ -290,6 +346,12 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        final ResourceModel resourceModel = progress.getResourceModel();
+        if (StringUtils.isNullOrEmpty(resourceModel.getEngine())) {
+            final DBInstance sourceInstance = fetchDBInstance(rdsProxyClient,
+                    ResourceModel.builder().dBInstanceIdentifier(resourceModel.getSourceDBInstanceIdentifier()).build());
+            resourceModel.setEngine(sourceInstance.engine());
+        }
         return proxy.initiate(
                         "rds::create-db-instance-read-replica",
                         rdsProxyClient,

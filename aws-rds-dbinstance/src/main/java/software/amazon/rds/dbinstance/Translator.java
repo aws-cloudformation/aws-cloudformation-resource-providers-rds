@@ -28,8 +28,11 @@ import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfigurati
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
@@ -46,9 +49,29 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class Translator {
+    final static String DBI_RESOURCE_ID_FILTER = "dbi-resource-id";
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final ResourceModel model) {
         return DescribeDbInstancesRequest.builder()
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
+                .build();
+    }
+
+    public static DescribeDbInstancesRequest describeDbInstancesRequestByDBInstanceIdentifier(final String dbInstanceIdentifier) {
+        return DescribeDbInstancesRequest.builder()
+                .dbInstanceIdentifier(dbInstanceIdentifier)
+                .build();
+    }
+    public static DescribeDbInstancesRequest describeDbInstancesRequestByDbiResourceId(final String dbiResourceId) {
+        return DescribeDbInstancesRequest.builder()
+                .filters(software.amazon.awssdk.services.rds.model.Filter.builder()
+                        .name(DBI_RESOURCE_ID_FILTER)
+                        .values(dbiResourceId).build())
+                .build();
+    }
+
+    public static DescribeDbInstanceAutomatedBackupsRequest describeDbInstanceAutomatedBackups(final String automaticBackupArn) {
+        return DescribeDbInstanceAutomatedBackupsRequest.builder()
+                .dbInstanceAutomatedBackupsArn(automaticBackupArn)
                 .build();
     }
 
@@ -67,6 +90,12 @@ public class Translator {
     public static DescribeDbSnapshotsRequest describeDbSnapshotsRequest(final ResourceModel model) {
         return DescribeDbSnapshotsRequest.builder()
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
+                .build();
+    }
+
+    public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model) {
+        return DescribeDbClusterSnapshotsRequest.builder()
+                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .build();
     }
 

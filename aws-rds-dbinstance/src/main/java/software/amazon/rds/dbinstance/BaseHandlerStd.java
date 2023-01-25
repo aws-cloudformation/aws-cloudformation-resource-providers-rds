@@ -28,7 +28,9 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
 import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
@@ -44,7 +46,9 @@ import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
@@ -102,7 +106,6 @@ import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.dbinstance.status.ReadReplicaStatus;
 import software.amazon.rds.dbinstance.status.VPCSecurityGroupStatus;
-import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -515,6 +518,39 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return response.dbInstances().get(0);
     }
 
+    protected DBInstance fetchDBInstanceByDBInstanceIdentifier(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String dbInstanceIdentifier
+    ) {
+        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstancesRequestByDBInstanceIdentifier(dbInstanceIdentifier),
+                rdsProxyClient.client()::describeDBInstances
+        );
+        return response.dbInstances().get(0);
+    }
+
+    protected DBInstance fetchDBInstanceByDbiResourceId(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String dbiResourceId
+    ) {
+        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstancesRequestByDbiResourceId(dbiResourceId),
+                rdsProxyClient.client()::describeDBInstances
+        );
+        return response.dbInstances().get(0);
+    }
+
+    protected DBInstanceAutomatedBackup fetchAutomaticBackup(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String arn
+    ) {
+        final DescribeDbInstanceAutomatedBackupsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstanceAutomatedBackups(arn),
+                rdsProxyClient.client()::describeDBInstanceAutomatedBackups
+        );
+        return response.dbInstanceAutomatedBackups().get(0);
+    }
+
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
@@ -536,6 +572,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         );
         return response.dbSnapshots().get(0);
     }
+
+    protected DBClusterSnapshot fetchDBClusterSnapshot(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbClusterSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbClusterSnapshotsRequest(model),
+                rdsProxyClient.client()::describeDBClusterSnapshots
+        );
+        return response.dbClusterSnapshots().get(0);
+    }
+
 
     protected SecurityGroup fetchSecurityGroup(
             final ProxyClient<Ec2Client> ec2ProxyClient,
