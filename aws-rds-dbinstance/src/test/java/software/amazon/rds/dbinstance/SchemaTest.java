@@ -1,0 +1,156 @@
+package software.amazon.rds.dbinstance;
+
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
+
+import software.amazon.rds.test.common.schema.ResourceDriftTestHelper;
+
+public class SchemaTest {
+
+    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+
+    @Test
+    public void testDrift_DBClusterIdentifier_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBClusterIdentifier("DBClusterIdentifier")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBClusterIdentifier("dbclusteridentifier")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_DBClusterSnapshotIdentifier_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBClusterIdentifier("DBClusterSnapshotIdentifier")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBClusterIdentifier("dbclustersnapshotidentifier")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_DBInstanceIdentifier_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBInstanceIdentifier("DBInstanceIdentifier")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBInstanceIdentifier("dbinstanceidentifier")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_DBParameterGroupName_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBParameterGroupName("DBParameterGroupName")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBParameterGroupName("dbparametergroupname")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_DBSubnetGroupName_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBSubnetGroupName("DBSubnetGroupName")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBSubnetGroupName("dbsubnetgroupname")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_DBSnapshotIdentifier_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBSnapshotIdentifier("DBSnapshotIdentifier")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBSnapshotIdentifier("dbsnapshotidentifier")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_OptionGroupName_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .optionGroupName("OptionGroupName")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .optionGroupName("optiongroupname")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_SourceDBInstanceAutomatedBackupsArn_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .optionGroupName("SourceDBInstanceAutomatedBackupsArn")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .optionGroupName("sourcedbinstanceautomatedbackupsarn")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_SourceDBInstanceIdentifier_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("SourceDBInstanceIdentifier")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("sourcedbinstanceidentifier")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_KmsKeyId_ExpandArn() {
+        final ResourceModel input = ResourceModel.builder()
+                .kmsKeyId("test-kms-key-id")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .kmsKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_PerformanceInsightsKMSKeyId_ExpandArn() {
+        final ResourceModel input = ResourceModel.builder()
+                .performanceInsightsKMSKeyId("test-kms-key-id")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .performanceInsightsKMSKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_MasterUserSecret_KmsKeyId_ExpandArn() {
+        final ResourceModel input = ResourceModel.builder()
+                .masterUserSecret(MasterUserSecret.builder()
+                        .kmsKeyId("test-kms-key-id")
+                        .build())
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .masterUserSecret(MasterUserSecret.builder()
+                        .kmsKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
+                        .build())
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+}

@@ -178,9 +178,9 @@ class BaseHandlerStdTest {
     @Test
     void isNoPendingChanges_EmptyPendingChangesReturnsTrue() {
         Assertions.assertThat(handler.isNoPendingChanges(
-                DBInstance.builder()
-                        .pendingModifiedValues(PendingModifiedValues.builder().build())
-                        .build()
+                        DBInstance.builder()
+                                .pendingModifiedValues(PendingModifiedValues.builder().build())
+                                .build()
         )).isTrue();
     }
 
@@ -197,15 +197,29 @@ class BaseHandlerStdTest {
     }
 
     @Test
-    void isNoPendingChanges_NonEmptyCACertificateIdentifierReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+    void isCaCertificateChangesApplied_NonEmptyCACertificateIdentifierReturnsFalse_WhenCertificateRotationRestartIsTrue() {
+        Assertions.assertThat(handler.isCaCertificateChangesApplied(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
                                         .caCertificateIdentifier("certificate")
                                         .build())
-                        .build()
+                        .build(),
+                ResourceModel.builder().certificateRotationRestart(true).build()
         )).isFalse();
+    }
+
+    @Test
+    void isCaCertificateChangesApplied_NonEmptyCACertificateIdentifierReturnsTrue_WhenCertificateRotationRestartIsFalse() {
+        Assertions.assertThat(handler.isCaCertificateChangesApplied(
+                DBInstance.builder()
+                        .pendingModifiedValues(
+                                PendingModifiedValues.builder()
+                                        .caCertificateIdentifier("certificate")
+                                        .build())
+                        .build(),
+                ResourceModel.builder().certificateRotationRestart(false).build()
+        )).isTrue();
     }
 
     @Test

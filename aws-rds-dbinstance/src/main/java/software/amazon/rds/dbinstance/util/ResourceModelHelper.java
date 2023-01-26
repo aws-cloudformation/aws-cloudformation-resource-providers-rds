@@ -11,10 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class ResourceModelHelper {
-    private static final Set<StorageType> STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE = ImmutableSet.of(
-            StorageType.GP3,
-            StorageType.IO1
-    );
+    private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
 
     private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
             "sqlserver-ee",
@@ -25,11 +22,9 @@ public final class ResourceModelHelper {
         return (isReadReplica(model) ||
                 isRestoreFromSnapshot(model) ||
                 isRestoreFromClusterSnapshot(model) ||
-                isCertificateAuthorityApplied(model) ||
                 isRestoreToPointInTime(model)) &&
                 (
                         !CollectionUtils.isNullOrEmpty(model.getDBSecurityGroups()) ||
-                                StringUtils.hasValue(model.getAllocatedStorage()) ||
                                 StringUtils.hasValue(model.getCACertificateIdentifier()) ||
                                 StringUtils.hasValue(model.getDBParameterGroupName()) ||
                                 StringUtils.hasValue(model.getEngineVersion()) ||
@@ -39,8 +34,15 @@ public final class ResourceModelHelper {
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0
+                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
+                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage()))
                 );
+    }
+
+    public static boolean isSqlServer(final ResourceModel model) {
+        final String engine = model.getEngine();
+        // treat unknown engines as SQLServer
+        return engine == null || engine.startsWith(SQLSERVER_ENGINE_PREFIX);
     }
 
     public static boolean isRestoreToPointInTime(final ResourceModel model) {
@@ -48,10 +50,6 @@ public final class ResourceModelHelper {
         // But SourceDBInstanceAutomatedBackupsArn and DbiResourceId are also unique identifying parameters of RestoreToPointInTime
         return  BooleanUtils.isTrue(model.getUseLatestRestorableTime()) || StringUtils.hasValue(model.getRestoreTime())  ||
                 StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn()) || StringUtils.hasValue(model.getSourceDbiResourceId());
-    }
-
-    private static boolean isCertificateAuthorityApplied(final ResourceModel model) {
-        return StringUtils.hasValue(model.getCACertificateIdentifier());
     }
 
     public static boolean isReadReplica(final ResourceModel model) {
@@ -64,10 +62,6 @@ public final class ResourceModelHelper {
 
     public static boolean isRestoreFromClusterSnapshot(final ResourceModel model) {
         return StringUtils.hasValue(model.getDBClusterSnapshotIdentifier());
-    }
-
-    public static boolean shouldSetStorageTypeOnRestoreFromSnapshot(final ResourceModel model) {
-        return !STORAGE_TYPES_SET_ON_MODIFY_AFTER_CREATE.contains(StorageType.fromString(model.getStorageType())) && shouldUpdateAfterCreate(model);
     }
 
     public static boolean shouldReboot(final ResourceModel model) {

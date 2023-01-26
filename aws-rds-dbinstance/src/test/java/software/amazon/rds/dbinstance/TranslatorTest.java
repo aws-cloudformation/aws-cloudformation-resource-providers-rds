@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.Collection;
 
 import org.junit.jupiter.api.Assertions;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequ
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
+import software.amazon.awssdk.services.rds.model.Endpoint;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
@@ -313,40 +315,56 @@ class TranslatorTest extends AbstractHandlerTest {
         Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"io1", "gp3"})
-    public void test_restoreFromSnapshotRequest_storageType_shouldBeSetOnUpdate(final String storageType) {
+    @Test
+    public void test_restoreFromSnapshotRequest_storageType_shouldBeSetOnUpdate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType(storageType)
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isNull();
+        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"io1", "gp3"})
-    public void test_restoreDbInstanceToPointInTimeRequest_shouldBeSetOnUpdate(final String storageType) {
+    @Test
+    public void test_restoreDbInstanceToPointInTimeRequest_shouldBeSetOnCreate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType(storageType)
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
                 .build();
 
         final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isNull();
+        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"io1", "gp3"})
-    public void test_restoreFromSnapshotRequestV12_shouldBeSetOnUpdate(final String storageType) {
+    @Test
+    public void test_restoreFromSnapshotRequestV12_shouldBeSetOnRestore() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
-                .storageType(storageType)
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
-        assertThat(request.storageType()).isNull();
+        assertThat(request.storageType()).isEqualTo("gp3");
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
+
     }
 
     @Test
@@ -448,11 +466,26 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_modifyAfterCreate_shouldSetGP3Parameters() {
+    public void test_modifyAfterCreate_shouldNotSetGP3Parameters() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .storageType("gp3")
                 .storageThroughput(100)
                 .iops(200)
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.iops()).isNull();
+        assertThat(request.storageThroughput()).isNull();
+        assertThat(request.storageType()).isNull();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetGP3ParametersForSqlServer() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .storageType("gp3")
+                .storageThroughput(100)
+                .iops(200)
+                .engine("sqlserver-ee")
                 .build();
 
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
@@ -701,6 +734,104 @@ class TranslatorTest extends AbstractHandlerTest {
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
         assertThat(request.enablePerformanceInsights()).isTrue();
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
+    }
+
+    @Test
+    public void test_translateCertificateDetails_nullValue() {
+        final CertificateDetails certificateDetails = Translator.translateCertificateDetailsFromSdk(null);
+        assertThat(certificateDetails).isNull();
+    }
+
+    @Test
+    public void test_translateCertificateDetails_setValues() {
+        final Instant validTill = Instant.parse("2023-01-09T15:55:37.123Z");
+
+        final CertificateDetails certificateDetails = Translator.translateCertificateDetailsFromSdk(
+                software.amazon.awssdk.services.rds.model.CertificateDetails.builder()
+                        .caIdentifier("identifier")
+                        .validTill(validTill)
+                        .build());
+
+        assertThat(certificateDetails).isNotNull();
+        assertThat(certificateDetails.getCAIdentifier()).isEqualTo("identifier");
+        assertThat(certificateDetails.getValidTill()).isEqualTo("2023-01-09T15:55:37.123Z");
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_port_getFromEndpoint() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .endpoint(Endpoint.builder().port(123).build())
+                .dbInstancePort(0)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getPort()).isEqualTo("123");
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io1").iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsImplicitIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType(null).iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType(null).iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
+    public void modifyDbInstanceRequestV12_shouldIncludeAllocatedStorage_ifStorageTypeIsIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io1").iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequestV12_shouldIncludeAllocatedStorage_ifStorageTypeIsImplicitIo1_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType(null).iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType(null).iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequestV12_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

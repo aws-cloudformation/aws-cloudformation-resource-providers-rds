@@ -74,7 +74,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return CreateDbInstanceReadReplicaRequest.builder()
+        final CreateDbInstanceReadReplicaRequest.Builder builder = CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
@@ -87,7 +87,6 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .enablePerformanceInsights(model.getEnablePerformanceInsights())
-                .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
@@ -102,12 +101,17 @@ public class Translator {
                 .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
-                .storageThroughput(model.getStorageThroughput())
-                .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
-                .build();
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
+        }
+        return builder.build();
     }
 
     public static RestoreDbInstanceFromDbSnapshotRequest restoreDbInstanceFromSnapshotRequestV12(
@@ -123,16 +127,21 @@ public class Translator {
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
+                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
-                .port(translatePortToSdk(model.getPort()));
+                .port(translatePortToSdk(model.getPort()))
+                .storageType(model.getStorageType())
+                .storageThroughput(model.getStorageThroughput());
 
-        if (ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)) {
-            builder.storageType(model.getStorageType());
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
         }
-
         return builder.build();
     }
 
@@ -170,10 +179,12 @@ public class Translator {
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)) {
-            builder.storageType(model.getStorageType());
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
         }
-
         return builder.build();
     }
 
@@ -219,6 +230,7 @@ public class Translator {
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .caCertificateIdentifier(model.getCACertificateIdentifier())
                 .characterSetName(model.getCharacterSetName())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
@@ -297,7 +309,6 @@ public class Translator {
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .multiAZ(model.getMultiAZ())
@@ -318,10 +329,12 @@ public class Translator {
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (ResourceModelHelper.shouldSetStorageTypeOnRestoreFromSnapshot(model)) {
-            builder.storageType(model.getStorageType());
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model))
+                    .iops(model.getIops())
+                    .storageThroughput(model.getStorageThroughput())
+                    .storageType(model.getStorageType());
         }
-
         return builder.build();
     }
 
@@ -352,9 +365,14 @@ public class Translator {
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
 
         if (BooleanUtils.isNotTrue(isRollback)) {
-            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            if (isIo1Storage(desiredModel)) {
+                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
+            } else {
+                builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            }
         }
 
         return builder.build();
@@ -370,6 +388,8 @@ public class Translator {
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
                 .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
+                // always use desired model value for certificateRotationRestart
+                .certificateRotationRestart(desiredModel.getCertificateRotationRestart())
                 .caCertificateIdentifier(diff(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
                 .copyTagsToSnapshot(diff(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
                 .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
@@ -409,9 +429,14 @@ public class Translator {
         }
 
         if (BooleanUtils.isNotTrue(isRollback)) {
-            builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            if (isIo1Storage(desiredModel)) {
+                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                builder.iops(desiredModel.getIops());
+            } else {
+                builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(diff(previousModel.getIops(), desiredModel.getIops()));
+            }
         }
 
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
@@ -448,6 +473,11 @@ public class Translator {
         return builder.build();
     }
 
+    private static Boolean isIo1Storage(final ResourceModel model) {
+        return StorageType.IO1.toString().equalsIgnoreCase(model.getStorageType()) ||
+                (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
+    }
+
     private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
         if (null != desired.getManageMasterUserPassword()) {
             return desired.getManageMasterUserPassword();
@@ -462,7 +492,6 @@ public class Translator {
         return ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
-                .allocatedStorage(getAllocatedStorage(model))
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .dbSecurityGroups(model.getDBSecurityGroups())
@@ -478,20 +507,19 @@ public class Translator {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
-                .allocatedStorage(getAllocatedStorage(model))
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .caCertificateIdentifier(model.getCACertificateIdentifier())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .engineVersion(model.getEngineVersion())
-                .iops(model.getIops())
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
-        if (StorageType.GP3.equals(StorageType.fromString(model.getStorageType()))) {
-            builder.storageThroughput(model.getStorageThroughput());
+        if (ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
             builder.storageType(model.getStorageType());
         }
         return builder.build();
@@ -669,6 +697,7 @@ public class Translator {
                 .autoMinorVersionUpgrade(dbInstance.autoMinorVersionUpgrade())
                 .availabilityZone(dbInstance.availabilityZone())
                 .backupRetentionPeriod(dbInstance.backupRetentionPeriod())
+                .certificateDetails(translateCertificateDetailsFromSdk(dbInstance.certificateDetails()))
                 .cACertificateIdentifier(dbInstance.caCertificateIdentifier())
                 .characterSetName(dbInstance.characterSetName())
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
@@ -751,6 +780,13 @@ public class Translator {
         return vpcSecurityGroups == null ? null : vpcSecurityGroups.stream()
                 .map(software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership::vpcSecurityGroupId)
                 .collect(Collectors.toList());
+    }
+
+    public static CertificateDetails translateCertificateDetailsFromSdk(software.amazon.awssdk.services.rds.model.CertificateDetails certificateDetails) {
+        return certificateDetails == null ? null : CertificateDetails.builder()
+                .cAIdentifier(certificateDetails.caIdentifier())
+                .validTill(certificateDetails.validTill() == null ? null : certificateDetails.validTill().toString())
+                .build();
     }
 
     public static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> sdkTags) {

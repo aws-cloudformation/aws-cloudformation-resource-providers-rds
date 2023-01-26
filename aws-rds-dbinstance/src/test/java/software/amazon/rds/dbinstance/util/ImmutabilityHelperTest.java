@@ -237,4 +237,30 @@ class ImmutabilityHelperTest {
             assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
         }
     }
+
+    @Test
+    public void test_isAvailabilityZoneMutable_RemoveAvailabilityZoneAttributeMultiAZ() {
+        final ResourceModel previous = ResourceModel.builder()
+                .availabilityZone("test-availability-zone")
+                .multiAZ(true)
+                .build();
+        final ResourceModel desired = ResourceModel.builder()
+                .availabilityZone(null)
+                .multiAZ(true)
+                .build();
+        assertThat(ImmutabilityHelper.isAvailabilityZoneChangeMutable(previous, desired)).isTrue();
+    }
+
+    @Test
+    public void test_isAvailabilityZoneMutable_RemoveAvailabilityZoneAttributeNoMultiAZ() {
+        final ResourceModel previous = ResourceModel.builder()
+                .availabilityZone("test-availability-zone")
+                .multiAZ(null)
+                .build();
+        final ResourceModel desired = ResourceModel.builder()
+                .availabilityZone(null)
+                .multiAZ(null)
+                .build();
+        assertThat(ImmutabilityHelper.isAvailabilityZoneChangeMutable(previous, desired)).isFalse();
+    }
 }

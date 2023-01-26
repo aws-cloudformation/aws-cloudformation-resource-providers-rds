@@ -20,13 +20,13 @@ import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableList;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
+import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
@@ -165,18 +165,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     //TODO: This list should be gone eventually. Event ID should be checked instead.
     private static final List<Predicate<Event>> EVENT_FAIL_CHECKERS = ImmutableList.of(
-            (e) -> isEventMessageContains(e, "Failed to join a host to a domain"),
-            (e) -> isEventMessageContains(e, "Failed to join cluster instance"),
-            (e) -> isEventMessageContains(e, "Insufficient instance capacity for instance type"),
-            (e) -> isEventMessageContains(e, "Insufficient instance capacity for storage volume type"),
-            (e) -> isEventMessageContains(e, "RDS Custom couldn't modify the DB instance"),
-            (e) -> isEventMessageContains(e, "The DB engine version upgrade failed"),
-            (e) -> isEventMessageContains(e, "The instance could not be upgraded"),
-            (e) -> isEventMessageContains(e, "The storage volume limitation was exceeded"),
-            (e) -> isEventMessageContains(e, "The update of the replica mode failed"),
-            (e) -> isEventMessageContains(e, "Unable to modify database instance class"),
-            (e) -> isEventMessageContains(e, "Unable to modify the DB instance class because no IP addresses are available in the specified subnets"),
-            (e) -> isEventMessageContains(e, "You can't create the DB instance because of incompatible resources")
+            (e) -> isEventMessageContains(e, "failed to join a host to a domain"),
+            (e) -> isEventMessageContains(e, "failed to join cluster instance"),
+            (e) -> isEventMessageContains(e, "insufficient instance capacity"),
+            (e) -> isEventMessageContains(e, "rds custom couldn't modify the db instance"),
+            (e) -> isEventMessageContains(e, "the db engine version upgrade failed"),
+            (e) -> isEventMessageContains(e, "the instance could not be upgraded"),
+            (e) -> isEventMessageContains(e, "the storage volume limitation was exceeded"),
+            (e) -> isEventMessageContains(e, "the update of the replica mode failed"),
+            (e) -> isEventMessageContains(e, "unable to modify database instance class"),
+            (e) -> isEventMessageContains(e, "unable to modify the db instance class"),
+            (e) -> isEventMessageContains(e, "you can't create the db instance"),
+            (e) -> isEventMessageContains(e, "instance is in a state that cannot be upgraded")
     );
 
     protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
@@ -202,6 +202,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBSnapshotNotFound,
                     ErrorCode.DBSubnetGroupNotFoundFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    CertificateNotFoundException.class,
                     DbClusterNotFoundException.class,
                     DbInstanceNotFoundException.class,
                     DbParameterGroupNotFoundException.class,
@@ -610,6 +611,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
                 isNoPendingChanges(dbInstance) &&
+                isCaCertificateChangesApplied(dbInstance, model) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isPromotionTierUpdated(dbInstance, model) &&
@@ -655,7 +657,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
         return (pending == null) || (pending.dbInstanceClass() == null &&
                 pending.allocatedStorage() == null &&
-                pending.caCertificateIdentifier() == null &&
                 pending.masterUserPassword() == null &&
                 pending.port() == null &&
                 pending.backupRetentionPeriod() == null &&
@@ -672,6 +673,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 pending.automationMode() == null &&
                 pending.resumeFullAutomationModeTime() == null
         );
+    }
+
+    boolean isCaCertificateChangesApplied(final DBInstance dbInstance, final ResourceModel model) {
+        final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
+        return pending == null ||
+                pending.caCertificateIdentifier() == null ||
+                BooleanUtils.isNotTrue(model.getCertificateRotationRestart());
     }
 
     boolean isDBParameterGroupNotApplying(final DBInstance dbInstance) {
@@ -909,13 +917,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final ResourceModel model = progress.getResourceModel();
         if (StringUtils.isEmpty(model.getEngine())) {
-            if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
-                try {
-                    final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-                    model.setEngine(dbInstance.engine());
-                } catch (Exception e) {
-                    return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
-                }
+            try {
+                final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+                model.setEngine(dbInstance.engine());
+            } catch (Exception e) {
+                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
             }
         }
         return progress;
@@ -1004,7 +1010,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         if (event != null) {
             final String msg = event.message();
             if (msg != null) {
-                return msg.contains(fragment);
+                return msg.toLowerCase(Locale.getDefault())
+                        .contains(fragment.toLowerCase(Locale.getDefault()));
             }
         }
         return false;

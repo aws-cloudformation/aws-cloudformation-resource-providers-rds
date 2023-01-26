@@ -9,6 +9,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
