@@ -126,9 +126,10 @@ public class ResourceDriftTestHelper {
 
                     // JSONata would return a string evaluation result in quotes, e.g "\"result\"", we need to strip it.
                     final String transformedVal = altInputFieldVal.toString().replaceAll("^\"|\"$", "");
+
                     // Add regexp anchors to avoid loose comparisons.
                     final Pattern pattern = Pattern.compile("^" + transformedVal + "$");
-                    if (pattern.matcher((String) outputFieldVal).matches()) {
+                    if (transformedVal.equals(outputFieldVal) || pattern.matcher((String) outputFieldVal).matches()) {
                         continue NextField;
                     }
                 }
