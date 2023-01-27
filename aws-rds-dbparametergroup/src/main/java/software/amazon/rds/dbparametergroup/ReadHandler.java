@@ -25,24 +25,24 @@ public class ReadHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger requestLogger
+            final RequestLogger logger
     ) {
         return proxy.initiate("rds::read-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
                 .backoffDelay(config.getBackoff())
-                .makeServiceCall((describeDbParameterGroupsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeDbParameterGroupsRequest, proxyInvocation.client()::describeDBParameterGroups))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
+                .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeRequest, proxyInvocation.client()::describeDBParameterGroups))
+                .handleError((describeRequest, exception, client, model, ctx) ->
                         Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
+                                ProgressEvent.progress(model, ctx),
                                 exception,
-                                SOFT_FAIL_NPROGRESS_TAGGING_ERROR_RULE_SET
+                                SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET
                         ))
-                .done((describeDbParameterGroupsRequest, describeDbParameterGroupsResponse, proxyInvocation, model, context) -> {
+                .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     try {
-                        final DBParameterGroup dBParameterGroup = describeDbParameterGroupsResponse.dbParameterGroups().stream().findFirst().get();
+                        final DBParameterGroup dBParameterGroup = describeResponse.dbParameterGroups().stream().findFirst().get();
                         context.setDbParameterGroupArn(dBParameterGroup.dbParameterGroupArn());
                         return ProgressEvent.progress(Translator.translateFromDBParameterGroup(dBParameterGroup), context);
                     } catch (Exception exception) {
@@ -58,12 +58,13 @@ public class ReadHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> readTags(
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress) {
-        ResourceModel model = progress.getResourceModel();
-        CallbackContext context = progress.getCallbackContext();
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext context = progress.getCallbackContext();
         try {
-            String arn = progress.getCallbackContext().getDbParameterGroupArn();
-            List<software.amazon.rds.dbparametergroup.Tag> resourceTags = Translator.translateTags(Tagging.listTagsForResource(proxyClient, arn));
+            final String arn = progress.getCallbackContext().getDbParameterGroupArn();
+            final List<software.amazon.rds.dbparametergroup.Tag> resourceTags = Translator.translateTags(Tagging.listTagsForResource(proxyClient, arn));
             model.setTags(resourceTags);
         } catch (Exception exception) {
             return Commons.handleException(
@@ -74,5 +75,4 @@ public class ReadHandler extends BaseHandlerStd {
         }
         return ProgressEvent.success(model, context);
     }
-
 }

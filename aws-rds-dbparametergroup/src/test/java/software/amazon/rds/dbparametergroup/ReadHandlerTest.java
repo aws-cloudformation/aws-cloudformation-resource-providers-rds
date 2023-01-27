@@ -70,16 +70,16 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder().dbParameterGroups(DB_PARAMETER_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().tagList(Tag.builder().key("Key").value("Value").build()).build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(DB_PARAMETER_GROUP_ACTIVE).build());
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().tagList(Tag.builder().key("Key").value("Value").build()).build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL_WITH_TAGS)
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -94,16 +94,16 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleNotFound() {
-        DbParameterGroupNotFoundException dbParameterGroupNotFoundException = DbParameterGroupNotFoundException.builder()
-                .awsErrorDetails(AwsErrorDetails.builder().build()).build();
-
-        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenThrow(dbParameterGroupNotFoundException);
+        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenThrow(DbParameterGroupNotFoundException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder().build())
+                        .build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -116,15 +116,14 @@ public class ReadHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleException() {
-        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenThrow(
-                InvalidParameterException.class
-        );
+        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenThrow(InvalidParameterException.class);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
