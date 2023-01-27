@@ -61,8 +61,8 @@ public class ListHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder().build();
-        when(proxyRdsClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+        when(proxyRdsClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().build());
         final ResourceModel model = ResourceModel.builder().build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
@@ -70,7 +70,7 @@ public class ListHandlerTest extends AbstractTestBase {
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+                handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);

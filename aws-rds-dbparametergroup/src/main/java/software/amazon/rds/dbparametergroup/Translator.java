@@ -3,7 +3,6 @@ package software.amazon.rds.dbparametergroup;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -16,6 +15,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
+import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.ModifyDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.ResetDbParameterGroupRequest;
@@ -26,6 +26,7 @@ public class Translator {
 
     public static final String RDS = "rds";
     public static final String RESOURCE_PREFIX = "pg:";
+    public static final String FILTER_PARAMETER_NAME = "parameter-name";
 
     static CreateDbParameterGroupRequest createDbParameterGroupRequest(
             final ResourceModel model,
@@ -51,17 +52,34 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbParametersRequest describeDbParametersRequest(final ResourceModel model, final String marker) {
+    public static DescribeDbParametersRequest describeDbParametersRequest(
+            final String dbParameterGroupName,
+            final Collection<String> paramNames,
+            final String marker
+    ) {
         return DescribeDbParametersRequest.builder()
                 .marker(marker)
-                .dbParameterGroupName(model.getDBParameterGroupName())
+                .dbParameterGroupName(dbParameterGroupName)
+                .filters(Filter.builder()
+                        .name(FILTER_PARAMETER_NAME)
+                        .values(paramNames)
+                        .build())
                 .build();
     }
 
-    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(final ResourceModel model, final String marker) {
+    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(
+            final String dbParameterGroupFamily,
+            final Collection<String> paramNames,
+            final String marker
+    ) {
         return DescribeEngineDefaultParametersRequest.builder()
                 .marker(marker)
-                .dbParameterGroupFamily(model.getFamily())
+                .dbParameterGroupFamily(dbParameterGroupFamily)
+                .filters(Filter.builder()
+                        .name(FILTER_PARAMETER_NAME)
+                        .values(paramNames)
+                        .build()
+                )
                 .build();
     }
 
@@ -99,16 +117,10 @@ public class Translator {
             final String newValue,
             final Parameter parameter
     ) {
-        final Parameter.Builder param = parameter.toBuilder()
+        return parameter.toBuilder()
                 .parameterValue(newValue)
-                .applyMethod(getParameterApplyMethod(parameter));
-        return param.build();
-    }
-
-    static Map<String, String> translateTagsFromSdk(Collection<Tag> tags) {
-        return Optional.ofNullable(tags).orElse(Collections.emptyList())
-                .stream()
-                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+                .applyMethod(getParameterApplyMethod(parameter))
+                .build();
     }
 
     public static List<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Collection<Tag> tags) {

@@ -1,12 +1,7 @@
 package software.amazon.rds.dbparametergroup;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.json.JSONObject;
 import org.json.JSONTokener;
-
-import com.amazonaws.util.CollectionUtils;
 
 class Configuration extends BaseConfiguration {
 
