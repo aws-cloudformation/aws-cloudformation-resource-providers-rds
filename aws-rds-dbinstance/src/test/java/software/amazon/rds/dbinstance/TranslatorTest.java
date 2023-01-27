@@ -791,6 +791,28 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsGp3_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("gp3").iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("gp3").iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeIops_ifStorageTypeIsGp3_andAllocatedStorageOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("gp3").allocatedStorage(ALLOCATED_STORAGE.toString()).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("gp3").allocatedStorage(ALLOCATED_STORAGE_INCR.toString()).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+    }
+
+    @Test
     public void modifyDbInstanceRequest_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
