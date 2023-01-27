@@ -366,7 +366,7 @@ public class Translator {
 
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            if (isIo1Storage(desiredModel)) {
+            if (isProvisionedIoStorage(desiredModel)) {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
                 builder.iops(desiredModel.getIops());
             } else {
@@ -430,7 +430,7 @@ public class Translator {
 
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            if (isIo1Storage(desiredModel)) {
+            if (isProvisionedIoStorage(desiredModel)) {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
                 builder.iops(desiredModel.getIops());
             } else {
@@ -471,6 +471,14 @@ public class Translator {
         }
 
         return builder.build();
+    }
+
+    private static Boolean isProvisionedIoStorage(final ResourceModel model) {
+        return isIo1Storage(model) || isGp3Storage(model);
+    }
+
+    private static Boolean isGp3Storage(final ResourceModel model) {
+        return StorageType.GP3.toString().equalsIgnoreCase(model.getStorageType());
     }
 
     private static Boolean isIo1Storage(final ResourceModel model) {
