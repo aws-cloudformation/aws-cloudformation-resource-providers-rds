@@ -56,7 +56,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_SimpleSuccess() { // FIXME: Actually do something
         final ReadHandler handler = new ReadHandler();
 
         final ResourceModel model = ResourceModel.builder().build();

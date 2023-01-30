@@ -89,7 +89,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
         final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
                 new CallbackContext(),
                 null,
-                () -> RESOURCE_MODEL.toBuilder().tags(TAG_LIST).build(),
+                () -> RESOURCE_MODEL().toBuilder().tags(TAG_LIST).build(),
                 expectSuccess()
         );
 

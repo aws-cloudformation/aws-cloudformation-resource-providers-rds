@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclustersnapshot;
 
-import org.apache.commons.lang3.BooleanUtils;
+import com.amazonaws.util.StringUtils;
+import com.google.common.base.Objects;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -8,7 +9,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 
@@ -25,6 +25,7 @@ public class UpdateHandler extends BaseHandlerStd { // FIXME: "rds:DescribeDBClu
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
+        ResourceModel a = request.getPreviousResourceState();
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
@@ -37,16 +38,32 @@ public class UpdateHandler extends BaseHandlerStd { // FIXME: "rds:DescribeDBClu
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
-        final ResourceModel desiredResourceState = request.getDesiredResourceState();
-
-        return ProgressEvent.progress(desiredResourceState, callbackContext)
+        return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 // FIXME: Add the update for modifyDBClusterSnapshotAttribute
+                .then(progress -> assertChangeIsMutable(progress, callbackContext, request.getPreviousResourceState(), request.getDesiredResourceState()))
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
-    private final boolean isChangeMutable(ResourceModel previousResourceState, ResourceModel desiredResourceState) {
-        // FIXME: To be filled out for conditionally updatable properties as part of CopyDBClusterSnapshot
-        return true;
+    private boolean isSourceClusterSnapshotIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getSourceDBClusterSnapshotIdentifier(), desired.getSourceDBClusterSnapshotIdentifier()) ||
+                StringUtils.isNullOrEmpty(desired.getSourceDBClusterSnapshotIdentifier());
+    }
+
+    private final ProgressEvent<ResourceModel, CallbackContext> assertChangeIsMutable(
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            CallbackContext callbackContext,
+            ResourceModel previousResourceState,
+            ResourceModel desiredResourceState
+    ) {
+        if (isSourceClusterSnapshotIdentifierMutable(previousResourceState, desiredResourceState)) {
+            return progress;
+        }
+        return ProgressEvent.failed(
+                desiredResourceState,
+                callbackContext,
+                HandlerErrorCode.NotUpdatable,
+                "Resource is immutable"
+        );
     }
 }

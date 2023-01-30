@@ -12,8 +12,9 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "AWS::RDS::DBClusterSnapshot",
     "Properties" : {
-        "<a href="#dbclustersnapshotidentifier" title="DBClusterSnapshotIdentifier">DBClusterSnapshotIdentifier</a>" : <i>String</i>,
         "<a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>" : <i>String</i>,
+        "<a href="#dbclustersnapshotidentifier" title="DBClusterSnapshotIdentifier">DBClusterSnapshotIdentifier</a>" : <i>String</i>,
+        "<a href="#sourcedbclustersnapshotidentifier" title="SourceDBClusterSnapshotIdentifier">SourceDBClusterSnapshotIdentifier</a>" : <i>String</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>
     }
 }
@@ -24,13 +25,26 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::RDS::DBClusterSnapshot
 Properties:
-    <a href="#dbclustersnapshotidentifier" title="DBClusterSnapshotIdentifier">DBClusterSnapshotIdentifier</a>: <i>String</i>
     <a href="#dbclusteridentifier" title="DBClusterIdentifier">DBClusterIdentifier</a>: <i>String</i>
+    <a href="#dbclustersnapshotidentifier" title="DBClusterSnapshotIdentifier">DBClusterSnapshotIdentifier</a>: <i>String</i>
+    <a href="#sourcedbclustersnapshotidentifier" title="SourceDBClusterSnapshotIdentifier">SourceDBClusterSnapshotIdentifier</a>: <i>String</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
 </pre>
 
 ## Properties
+
+#### DBClusterIdentifier
+
+A name for the DB instance.; FIXME: Look at pattern!
+
+_Required_: Yes
+
+_Type_: String
+
+_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### DBClusterSnapshotIdentifier
 
@@ -44,17 +58,15 @@ _Pattern_: <code>^$|^[a-z]{1}(?:[:-]?[a-z0-9]){0,254}$</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
-#### DBClusterIdentifier
+#### SourceDBClusterSnapshotIdentifier
 
-A name for the DB instance.; FIXME: Look at pattern!
+FIXME
 
-_Required_: Yes
+_Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$</code>
-
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### Tags
 

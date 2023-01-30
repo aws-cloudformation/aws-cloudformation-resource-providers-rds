@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
@@ -48,12 +47,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
   protected static final String DB_CLUSTER_SNAPSHOT_ARN = "arn:aws:rds:us-east-1:608777835420:cluster-snapshot:db-cluster-snapshot-arn";
   protected static final String DB_CLUSTER_SNAPSHOT_IDENTIFIER = "db-cluster-snapshot-identifier";
 
-  protected static final ResourceModel RESOURCE_MODEL;
-
-  protected static final DBClusterSnapshot DB_CLUSTER_SNAPSHOT_ACTIVE;
-
-  protected static final String ERROR_MSG = "error";
-
   protected static final List<Tag> TAG_LIST;
   protected static final List<Tag> TAG_LIST_EMPTY;
   protected static final Set<Tag> TAG_LIST_ALTER;
@@ -69,27 +62,31 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterSnap
             .stream()
             .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
   }
+  public static ResourceModel RESOURCE_MODEL() {
+    return ResourceModel.builder()
+            .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+            .dBClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
+            .dBClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
+            .build();
+  }
+
+  public static DBClusterSnapshot DB_CLUSTER_SNAPSHOT_ACTIVE() {
+    return DBClusterSnapshot.builder()
+            .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+            .dbClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
+            .dbClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
+            .status("available")
+            .build();
+  }
 
   static {
+
     System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
     System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "HH:mm:ss:SSS Z");
     MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
 
     delegate = LoggerFactory.getLogger("testing");
     logger = new LoggerProxy();
-
-    RESOURCE_MODEL = ResourceModel.builder()
-            .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
-            .dBClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
-            .dBClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
-            .build();
-
-    DB_CLUSTER_SNAPSHOT_ACTIVE = DBClusterSnapshot.builder()
-            .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
-            .dbClusterSnapshotArn(DB_CLUSTER_SNAPSHOT_ARN)
-            .dbClusterSnapshotIdentifier(DB_CLUSTER_SNAPSHOT_IDENTIFIER)
-            .status("available")
-            .build();
 
     TAG_LIST_EMPTY = Collections.emptyList();
 

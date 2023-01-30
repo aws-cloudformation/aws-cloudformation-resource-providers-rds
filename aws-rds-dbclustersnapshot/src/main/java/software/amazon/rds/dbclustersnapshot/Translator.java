@@ -3,6 +3,7 @@ package software.amazon.rds.dbclustersnapshot;
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.services.rds.model.CopyDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterSnapshotRequest;
@@ -58,6 +59,14 @@ public class Translator {
             .build();
   }
 
+  public static CopyDbClusterSnapshotRequest copyDbClusterSnapshotRequest(final ResourceModel model,
+                                                                            final Tagging.TagSet tags) {
+    return CopyDbClusterSnapshotRequest.builder()
+            .sourceDBClusterSnapshotIdentifier(model.getSourceDBClusterSnapshotIdentifier())
+            .targetDBClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
+            .build();
+  }
+
   public static DeleteDbClusterSnapshotRequest deleteDbClusterSnapshotRequest(final ResourceModel resourceModel) {
     return DeleteDbClusterSnapshotRequest.builder()
             .dbClusterSnapshotIdentifier(resourceModel.getDBClusterSnapshotIdentifier())
@@ -104,6 +113,7 @@ public class Translator {
 
   // FIXME: look at the nits on the DBSnapshot PR
   // FIXME: look at coverage & turn coverage on!
+  // FIXME: look at drift in general but especially on the modify property
 
 
 

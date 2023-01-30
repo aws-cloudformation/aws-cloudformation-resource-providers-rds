@@ -56,7 +56,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_SimpleSuccess() { // FIXME: Actually do something
         final DeleteHandler handler = new DeleteHandler();
 
         final ResourceModel model = ResourceModel.builder().build();

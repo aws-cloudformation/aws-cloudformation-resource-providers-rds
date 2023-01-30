@@ -2,14 +2,18 @@ package software.amazon.rds.dbclustersnapshot;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableList;
 import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import org.junit.jupiter.api.AfterEach;
@@ -104,9 +108,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(previousTags)
                         .desiredResourceTags(desiredTags),
-                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
-                () -> RESOURCE_MODEL.toBuilder().build(),
-                () -> RESOURCE_MODEL.toBuilder().build(),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE(),
+                () -> RESOURCE_MODEL().toBuilder().build(),
+                () -> RESOURCE_MODEL().toBuilder().build(),
                 expectSuccess()
         );
 
@@ -127,13 +131,81 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(previousTags)
                         .desiredResourceTags(desiredTags),
-                () -> DB_CLUSTER_SNAPSHOT_ACTIVE,
-                () -> RESOURCE_MODEL.toBuilder().build(),
-                () -> RESOURCE_MODEL.toBuilder().build(),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE(),
+                () -> RESOURCE_MODEL().toBuilder().build(),
+                () -> RESOURCE_MODEL().toBuilder().build(),
                 expectSuccess()
         );
 
         verify(rdsClient, times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
         verify(rdsClient, times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_AddSourceClusterSnapshotIdentifier() {
+        expectServiceInvocation = false;
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier(null)
+                        .build(),
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier("source-db-cluster-snapshot-identifier")
+                        .build(),
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_RemoveClusterSnapshotIdentifier() {
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE(),
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier("source-db-cluster-snapshot-identifier")
+                        .build(),
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier(null)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsClient, times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ChangeSourceClusterSnapshotIdentifier() {
+        expectServiceInvocation = false;
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier("source-db-cluster-snapshot-identifier")
+                        .build(),
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier("changed-source-db-cluster-snapshot-identifier")
+                        .build(),
+                expectFailed(HandlerErrorCode.NotUpdatable)
+        );
+    }
+
+    @Test
+    public void handleRequest_NoChangeSourceClusterSnapshotIdentifier() {
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_CLUSTER_SNAPSHOT_ACTIVE(),
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier("source-db-cluster-snapshot-identifier")
+                        .build(),
+                () -> RESOURCE_MODEL().toBuilder()
+                        .sourceDBClusterSnapshotIdentifier("source-db-cluster-snapshot-identifier")
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsClient, times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
     }
 }

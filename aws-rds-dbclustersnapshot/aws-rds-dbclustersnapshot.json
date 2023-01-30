@@ -27,11 +27,6 @@
     }
   },
   "properties": {
-    "DBClusterSnapshotIdentifier": {
-      "type": "string",
-      "description": "The identifier for the DB snapshot. This parameter is stored as a lowercase string.; FIXME: Look at pattern!",
-      "pattern": "^$|^[a-z]{1}(?:[:-]?[a-z0-9]){0,254}$"
-    },
     "DBClusterIdentifier": {
       "type": "string",
       "description": "A name for the DB instance.; FIXME: Look at pattern!",
@@ -40,6 +35,15 @@
     "DBClusterSnapshotArn": {
       "type": "string",
       "description": "The Amazon Resource Name (ARN) for the snapshot."
+    },
+    "DBClusterSnapshotIdentifier": {
+      "type": "string",
+      "description": "The identifier for the DB snapshot. This parameter is stored as a lowercase string.; FIXME: Look at pattern!",
+      "pattern": "^$|^[a-z]{1}(?:[:-]?[a-z0-9]){0,254}$"
+    },
+    "SourceDBClusterSnapshotIdentifier": {
+      "type": "string",
+      "description": "FIXME"
     },
     "Tags": {
       "description": "An array of key-value pairs to apply to this resource.; FIXME: Probably look here",
@@ -52,15 +56,18 @@
     }
   },
   "additionalProperties": false,
-  "required": [
-    "DBClusterIdentifier"
-  ],
   "readOnlyProperties": [
     "/properties/DBClusterSnapshotArn"
   ],
   "createOnlyProperties": [
     "/properties/DBClusterIdentifier",
     "/properties/DBClusterSnapshotIdentifier"
+  ],
+  "conditionalCreateOnlyProperties": [
+    "/properties/SourceDBClusterSnapshotIdentifier"
+  ],
+  "required": [
+    "DBClusterIdentifier"
   ],
   "primaryIdentifier": [
     "/properties/DBClusterSnapshotIdentifier"
@@ -69,6 +76,7 @@
     "create": {
       "permissions": [
         "rds:AddTagsToResource",
+        "rds:CopyDBClusterSnapshot",
         "rds:CreateDBClusterSnapshot",
         "rds:DescribeDBClusters",
         "rds:DescribeDBClusterSnapshots"
