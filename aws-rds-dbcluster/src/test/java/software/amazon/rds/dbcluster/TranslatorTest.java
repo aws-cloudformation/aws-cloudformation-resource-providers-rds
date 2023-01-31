@@ -263,7 +263,7 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_modifyAfterCreate_when_manageMasterUserPasswordIsTrue_withImplicitDefaults() {
+    public void test_modifyAfterCreateWhenManageMasterUserPasswordIsTrueWithImplicitDefaults() {
         final ResourceModel desired = RESOURCE_MODEL.toBuilder()
                 .manageMasterUserPassword(true)
                 .build();
@@ -272,6 +272,27 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void translateMasterUserSecretFromSdkTranslatesFields() {
+        final software.amazon.awssdk.services.rds.model.MasterUserSecret masterUserSecret = software.amazon.awssdk.services.rds.model.MasterUserSecret.builder()
+                .secretArn("secret-arn")
+                .kmsKeyId("key")
+                .build();
+
+        final MasterUserSecret translated = Translator.translateMasterUserSecretFromSdk(masterUserSecret);
+
+        assertThat(translated.getSecretArn()).isEqualTo("secret-arn");
+        assertThat(translated.getKmsKeyId()).isEqualTo("key");
+    }
+
+    @Test
+    public void translateMasterUserSecretFromSdkTranslatesNullValue() {
+        final MasterUserSecret translated = Translator.translateMasterUserSecretFromSdk(null);
+        assertThat(translated).isNotNull();
+        assertThat(translated.getSecretArn()).isNull();
+        assertThat(translated.getKmsKeyId()).isNull();
     }
 
     @Override

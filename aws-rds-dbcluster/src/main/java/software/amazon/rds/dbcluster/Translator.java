@@ -530,7 +530,7 @@ public class Translator {
     public static MasterUserSecret translateMasterUserSecretFromSdk(
             final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
         if (sdkSecret == null) {
-            return null;
+            return MasterUserSecret.builder().build();
         }
 
         return MasterUserSecret.builder()
