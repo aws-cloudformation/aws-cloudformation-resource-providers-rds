@@ -97,6 +97,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                 .associatedRoles(Collections.emptyList())
                 .enableCloudwatchLogsExports(Collections.emptyList())
                 .manageMasterUserPassword(false)
+                .masterUserSecret(MasterUserSecret.builder().build())
                 .processorFeatures(Collections.emptyList())
                 .tags(Collections.emptyList())
                 .dBSecurityGroups(Collections.emptyList())

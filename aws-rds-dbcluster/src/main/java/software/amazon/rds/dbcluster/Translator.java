@@ -241,7 +241,7 @@ public class Translator {
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
             builder.manageMasterUserPassword(true);
-            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret() != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null);
         } else {
             builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }

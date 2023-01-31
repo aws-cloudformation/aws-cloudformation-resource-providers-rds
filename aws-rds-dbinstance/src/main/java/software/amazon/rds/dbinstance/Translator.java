@@ -519,6 +519,9 @@ public class Translator {
                 .caCertificateIdentifier(model.getCACertificateIdentifier())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .engineVersion(model.getEngineVersion())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
+                .masterUserPassword(model.getMasterUserPassword())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId(): null)
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
@@ -915,7 +918,7 @@ public class Translator {
 
     public static MasterUserSecret translateMasterUserSecret(final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
         if (sdkSecret == null) {
-            return null;
+            return MasterUserSecret.builder().build();
         }
 
         return MasterUserSecret.builder()

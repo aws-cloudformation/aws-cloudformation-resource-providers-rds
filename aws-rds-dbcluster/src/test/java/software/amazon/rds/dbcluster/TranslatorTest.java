@@ -262,6 +262,18 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(result.getSecondsUntilAutoPause()).isEqualTo(config.secondsUntilAutoPause());
     }
 
+    @Test
+    public void test_modifyAfterCreate_when_manageMasterUserPasswordIsTrue_withImplicitDefaults() {
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(true)
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(desired, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
     @Override
     protected BaseHandlerStd getHandler() {
         return null;

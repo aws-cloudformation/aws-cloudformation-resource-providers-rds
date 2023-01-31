@@ -35,7 +35,8 @@ public final class ResourceModelHelper {
                                 Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
-                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage()))
+                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
+                                BooleanUtils.isTrue(model.getManageMasterUserPassword())
                 );
     }
 

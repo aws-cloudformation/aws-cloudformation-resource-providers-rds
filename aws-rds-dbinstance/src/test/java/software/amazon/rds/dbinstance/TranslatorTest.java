@@ -495,9 +495,9 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateMasterUserSecret_sdkSecretNull() {
+    public void translateMasterUserSecret_sdkSecretEmpty() {
         assertThat(Translator.translateMasterUserSecret(null))
-                .isNull();
+                .isEqualTo(MasterUserSecret.builder().build());
     }
 
     @Test
@@ -854,6 +854,19 @@ class TranslatorTest extends AbstractHandlerTest {
 
         assertThat(request.iops()).isEqualTo(1200);
         assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetManageMasterUserPasswordFields() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("kms-key").build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("kms-key");
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
