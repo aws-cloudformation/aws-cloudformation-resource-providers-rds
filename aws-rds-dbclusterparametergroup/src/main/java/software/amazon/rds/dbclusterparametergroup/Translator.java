@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.collections.MapUtils;
+import org.apache.commons.collections.CollectionUtils;
 
 import com.amazonaws.arn.Arn;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
@@ -31,8 +31,10 @@ public class Translator {
     public static final String RESOURCE_PREFIX = "cluster-pg:";
     public static final String FILTER_PARAMETER_NAME = "parameter-name";
 
-    static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(final ResourceModel model,
-                                                                                     final Tagging.TagSet tags) {
+    static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tags
+    ) {
         return CreateDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .dbParameterGroupFamily(model.getFamily())
@@ -41,15 +43,19 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbClusterParametersRequest describeDbClusterParametersFilteredRequest(final ResourceModel model, final String marker) {
-        if (MapUtils.isEmpty(model.getParameters())) {
-            throw new CfnInternalFailureException(new Exception("Model parameters should not be empty"));
+    static DescribeDbClusterParametersRequest describeDbClusterParametersFilteredRequest(
+            final ResourceModel model,
+            final List<String> parameterNames,
+            final String marker
+    ) {
+        if (CollectionUtils.isEmpty(parameterNames)) {
+            throw new CfnInternalFailureException(new Exception("Parameter names should not be empty"));
         }
         return DescribeDbClusterParametersRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .filters(Filter.builder()
                         .name(FILTER_PARAMETER_NAME)
-                        .values(model.getParameters().keySet())
+                        .values(parameterNames)
                         .build())
                 .marker(marker)
                 .build();
@@ -77,8 +83,10 @@ public class Translator {
                 .build();
     }
 
-    static ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest(final ResourceModel model,
-                                                                                     final Collection<Parameter> parameters) {
+    static ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest(
+            final ResourceModel model,
+            final Collection<Parameter> parameters
+    ) {
         return ModifyDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .parameters(parameters)
@@ -110,8 +118,7 @@ public class Translator {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    public static Parameter buildParameterWithNewValue(final String newValue,
-                                                       final Parameter parameter) {
+    public static Parameter buildParameterWithNewValue(final String newValue, final Parameter parameter) {
         final Parameter.Builder param = parameter.toBuilder()
                 .parameterValue(newValue);
 
@@ -130,7 +137,7 @@ public class Translator {
     }
 
     public static Arn buildClusterParameterGroupArn(final ResourceHandlerRequest<ResourceModel> request) {
-        String resource = RESOURCE_PREFIX + request.getDesiredResourceState().getDBClusterParameterGroupName();
+        final String resource = RESOURCE_PREFIX + request.getDesiredResourceState().getDBClusterParameterGroupName();
         return Arn.builder()
                 .withPartition(request.getAwsPartition())
                 .withRegion(request.getRegion())
