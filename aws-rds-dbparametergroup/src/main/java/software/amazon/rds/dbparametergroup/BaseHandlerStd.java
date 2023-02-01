@@ -1,23 +1,24 @@
 package software.amazon.rds.dbparametergroup;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.amazonaws.util.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.DescribeDbParametersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
 import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -65,9 +66,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.AccessDeniedException)
             .build();
 
-    protected static int MAX_LENGTH_GROUP_NAME = 255;
+    protected static final int MAX_LENGTH_GROUP_NAME = 255;
     protected static final int NO_CALLBACK_DELAY = 0;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
+
+    protected static final int MAX_PARAMETER_FILTER_SIZE = 100;
+    protected static final int MAX_PARAMETER_DESCRIBE_DEPTH = 20;
 
     protected static final String RESOURCE_IDENTIFIER = "dbparametergroup";
     protected static final String STACK_NAME = "rds";
@@ -178,9 +182,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return ProgressEvent.progress(model, context)
-                .then(p -> describeDefaultEngineParameters(proxy, proxyClient, p, paramNames, defaultParams, null, logger))
+                .then(p -> describeDefaultEngineParameters(proxy, proxyClient, p, new ArrayList<>(paramNames), defaultParams, logger))
                 .then(p -> validateModelParameters(p, defaultParams, logger))
-                .then(p -> describeCurrentDBParameters(p, paramNames, currentParams, proxy, proxyClient, null, logger))
+                .then(p -> describeCurrentDBParameters(p, new ArrayList<>(paramNames), currentParams, proxy, proxyClient, logger))
                 .then(p -> resetParameters(p, defaultParams, currentParams, proxy, proxyClient, logger))
                 .then(p -> modifyParameters(proxy, proxyClient, p, currentParams, logger));
     }
@@ -207,7 +211,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(p -> describeDefaultEngineParameters(proxy, proxyClient, p, paramNames, defaultParams, null, logger))
+                .then(p -> describeDefaultEngineParameters(proxy, proxyClient, p, new ArrayList<>(paramNames), defaultParams, logger))
                 .then(p -> validateModelParameters(p, defaultParams, logger))
                 .then(p -> modifyParameters(proxy, proxyClient, p, defaultParams, logger));
     }
@@ -381,63 +385,95 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBParameters(
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<String> paramNames,
+            final List<String> paramNames,
             final Map<String, Parameter> currentParams,
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final String marker,
             final RequestLogger logger
     ) {
-        return proxy.initiate("rds::describe-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest((resourceModel) -> Translator.describeDbParametersRequest(resourceModel.getDBParameterGroupName(), paramNames, marker))
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::describeDBParameters))
-                .handleError((request, exception, client, model, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(model, ctx),
-                                exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
-                        ))
-                .done((request, response, proxyInvocation, model, context) -> {
-                    currentParams.putAll(response.parameters().stream()
-                            .collect(Collectors.toMap(Parameter::parameterName, Function.identity())));
-                    if (StringUtils.isNullOrEmpty(response.marker())) {
-                        return ProgressEvent.progress(model, context);
+        for (final List<String> paramNamePartition : Lists.partition(paramNames, MAX_PARAMETER_FILTER_SIZE)) {
+            String marker = null;
+            try {
+                int page = 1;
+                do {
+                    if (page > MAX_PARAMETER_DESCRIBE_DEPTH) {
+                        return ProgressEvent.failed(
+                                progress.getResourceModel(),
+                                progress.getCallbackContext(),
+                                HandlerErrorCode.InvalidRequest,
+                                "Max DescribeDbParameters response page reached."
+                        );
                     }
-                    return ProgressEvent.progress(model, context)
-                            .then(p -> describeCurrentDBParameters(p, paramNames, currentParams, proxy, proxyClient, response.marker(), logger));
-                });
+                    final DescribeDbParametersResponse response = fetchDbParameters(proxyClient, progress.getResourceModel(), paramNamePartition, marker);
+                    for (final Parameter parameter : response.parameters()) {
+                        currentParams.put(parameter.parameterName(), parameter);
+                    }
+                    marker = response.marker();
+                    page++;
+                } while (marker != null);
+            } catch (Exception e) {
+                return Commons.handleException(progress, e, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+            }
+        }
+        return progress;
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> describeDefaultEngineParameters(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<String> paramNames,
+            final List<String> paramNames,
             final Map<String, Parameter> defaultParams,
-            final String marker,
             final RequestLogger logger
     ) {
-        return proxy.initiate("rds::default-engine-db-parameters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest((model) -> Translator.describeEngineDefaultParametersRequest(model.getFamily(), paramNames, marker))
-                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::describeEngineDefaultParameters))
-                .handleError((request, exception, client, resourceModel, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
-                        ))
-                .done((request, response, proxyInvocation, resourceModel, context) -> {
-                    defaultParams.putAll(response.engineDefaults().parameters().stream()
-                            .collect(Collectors.toMap(Parameter::parameterName, Function.identity())));
-
-                    final String nextMarker = response.engineDefaults().marker();
-
-                    if (StringUtils.isNullOrEmpty(nextMarker)) {
-                        return ProgressEvent.progress(resourceModel, context);
+        for (final List<String> paramNamePartition : Lists.partition(paramNames, MAX_PARAMETER_FILTER_SIZE)) {
+            String marker = null;
+            try {
+                int page = 1;
+                do {
+                    if (page > MAX_PARAMETER_DESCRIBE_DEPTH) {
+                        return ProgressEvent.failed(
+                                progress.getResourceModel(),
+                                progress.getCallbackContext(),
+                                HandlerErrorCode.InvalidRequest,
+                                "Max DescribeEngineDefaultParameters response page reached."
+                        );
                     }
+                    final DescribeEngineDefaultParametersResponse response = fetchEngineDefaultParameters(proxyClient, progress.getResourceModel(), paramNamePartition, marker);
+                    for (final Parameter parameter : response.engineDefaults().parameters()) {
+                        defaultParams.put(parameter.parameterName(), parameter);
+                    }
+                    marker = response.engineDefaults().marker();
+                    page++;
+                } while (marker != null);
+            } catch (Exception e) {
+                return Commons.handleException(progress, e, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+            }
+        }
+        return progress;
+    }
 
-                    return ProgressEvent.progress(resourceModel, context)
-                            .then(p -> describeDefaultEngineParameters(proxy, proxyClient, p, paramNames, defaultParams, nextMarker, logger));
-                });
+    private DescribeDbParametersResponse fetchDbParameters(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model,
+            final List<String> parameterNames,
+            final String marker
+    ) {
+        return proxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbParametersRequest(model.getDBParameterGroupName(), parameterNames, marker),
+                proxyClient.client()::describeDBParameters
+        );
+    }
+
+    private DescribeEngineDefaultParametersResponse fetchEngineDefaultParameters(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model,
+            final List<String> parameterNames,
+            final String marker
+    ) {
+        return proxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeEngineDefaultParametersRequest(model.getFamily(), parameterNames, marker),
+                proxyClient.client()::describeEngineDefaultParameters
+        );
     }
 }
