@@ -143,4 +143,15 @@ public class ResourceModelHelperTest {
 
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndManageMasterUserPassword() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .manageMasterUserPassword(true)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
 }
