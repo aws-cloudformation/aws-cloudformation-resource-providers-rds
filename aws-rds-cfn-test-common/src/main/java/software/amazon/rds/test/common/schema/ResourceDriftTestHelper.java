@@ -44,6 +44,16 @@ public class ResourceDriftTestHelper {
             final JSONObject resourceSchema,
             final String basePath
     ) {
+        assertResourceNotDrifted(input, output, resourceSchema, basePath, null);
+    }
+
+    public static void assertResourceNotDrifted(
+            final Object input,
+            final Object output,
+            final JSONObject resourceSchema,
+            final String basePath,
+            final JsonNode rootNode
+    ) {
         if (input == null || output == null) {
             Assertions.assertThat(input).isEqualTo(output);
             return;
@@ -61,6 +71,7 @@ public class ResourceDriftTestHelper {
         } catch (JsonProcessingException e) {
             Assertions.fail(e.getMessage());
         }
+        final JsonNode root = rootNode != null ? rootNode : inputJsonNode;
 
         final Field[] fields = input.getClass().getDeclaredFields();
 
@@ -86,7 +97,7 @@ public class ResourceDriftTestHelper {
             }
             final String propertyTransformPath = basePath + PROPERTY_PATH_SEPARATOR + fieldName;
             if (!primitiveTypes.contains(field.getType())) {
-                assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath);
+                assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath, root);
                 continue;
             }
             if (propertyTransformMap.has(propertyTransformPath)) {
@@ -98,7 +109,7 @@ public class ResourceDriftTestHelper {
                     JsonNode altInputFieldVal = null;
                     try {
                         final Expressions compiledExpr = Expressions.parse(expr);
-                        altInputFieldVal = compiledExpr.evaluate(inputJsonNode);
+                        altInputFieldVal = compiledExpr.evaluate(root);
                     } catch (ParseException | IOException | EvaluateException e) {
                         Assertions.fail(e.getMessage());
                     }
