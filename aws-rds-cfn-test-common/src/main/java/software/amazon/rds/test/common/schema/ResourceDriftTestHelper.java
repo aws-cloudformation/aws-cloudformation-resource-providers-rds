@@ -63,15 +63,16 @@ public class ResourceDriftTestHelper {
         final JSONObject propertyTransformMap = resourceSchema.getJSONObject("propertyTransform");
         final ObjectMapper objectMapper = new ObjectMapper();
 
-        JsonNode inputJsonNode = null;
-        try {
-            // JSONata accepts JsonNode as an input. The easiest way to get a JsonNode from an object
-            // is to convert it to a string and parse immediately.
-            inputJsonNode = objectMapper.readTree(objectMapper.writeValueAsString(input));
-        } catch (JsonProcessingException e) {
-            Assertions.fail(e.getMessage());
+        JsonNode root = rootNode;
+        if (root == null) {
+            try {
+                // JSONata accepts JsonNode as an input. The easiest way to get a JsonNode from an object
+                // is to convert it to a string and parse immediately.
+                root = objectMapper.readTree(objectMapper.writeValueAsString(input));
+            } catch (JsonProcessingException e) {
+                Assertions.fail(e.getMessage());
+            }
         }
-        final JsonNode root = rootNode != null ? rootNode : inputJsonNode;
 
         final Field[] fields = input.getClass().getDeclaredFields();
 
