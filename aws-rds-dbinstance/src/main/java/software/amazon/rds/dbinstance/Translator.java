@@ -152,6 +152,7 @@ public class Translator {
         final RestoreDbInstanceFromDbSnapshotRequest.Builder builder = RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())

@@ -7,8 +7,6 @@ import java.util.Collection;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -867,6 +865,29 @@ class TranslatorTest extends AbstractHandlerTest {
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("kms-key");
+    }
+
+    @Test
+    public void test_restoreDbInstanceFromSnapshot_shouldKeepCopyTagsToSnapshotEmptyIfUnset() {
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(
+                model,
+                Tagging.TagSet.emptySet()
+        );
+        assertThat(request.copyTagsToSnapshot()).isNull();
+    }
+
+    @Test
+    public void test_restoreDbInstanceFromSnapshot_shouldSetCopyTagsToSnapshot() {
+        final ResourceModel model = ResourceModel.builder()
+                .copyTagsToSnapshot(true)
+                .build();
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(
+                model,
+                Tagging.TagSet.emptySet()
+        );
+        assertThat(request.copyTagsToSnapshot()).isTrue();
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.
