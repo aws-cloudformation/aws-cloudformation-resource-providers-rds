@@ -98,14 +98,15 @@ public class Translator {
             final DBEngineVersion engineVersion
     ) {
         return ResourceModel.builder()
+                .dBEngineVersionArn(engineVersion.dbEngineVersionArn())
                 .databaseInstallationFilesS3BucketName(engineVersion.databaseInstallationFilesS3BucketName())
                 .databaseInstallationFilesS3Prefix(engineVersion.databaseInstallationFilesS3Prefix())
                 .description(engineVersion.dbEngineVersionDescription())
                 .engine(engineVersion.engine())
                 .engineVersion(engineVersion.engineVersion())
                 .kMSKeyId(engineVersion.kmsKeyId())
+                .status(engineVersion.status())
                 .tags(translateTagsFromSdk(engineVersion.tagList()))
-                .dBEngineVersionArn(engineVersion.dbEngineVersionArn())
                 .build();
     }
 
