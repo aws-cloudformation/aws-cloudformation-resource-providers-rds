@@ -490,6 +490,7 @@
     "/properties/TdeCredentialPassword"
   ],
   "writeOnlyProperties": [
+    "/properties/AllowMajorVersionUpgrade",
     "/properties/CertificateRotationRestart",
     "/properties/DBSnapshotIdentifier",
     "/properties/DeleteAutomatedBackups",
