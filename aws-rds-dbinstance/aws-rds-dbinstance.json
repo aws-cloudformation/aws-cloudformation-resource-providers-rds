@@ -490,7 +490,9 @@
     "/properties/TdeCredentialPassword"
   ],
   "writeOnlyProperties": [
+    "/properties/CertificateRotationRestart",
     "/properties/DBSnapshotIdentifier",
+    "/properties/DeleteAutomatedBackups",
     "/properties/MasterUserPassword",
     "/properties/Port",
     "/properties/RestoreTime",
@@ -499,8 +501,7 @@
     "/properties/SourceDbiResourceId",
     "/properties/SourceRegion",
     "/properties/TdeCredentialPassword",
-    "/properties/UseLatestRestorableTime",
-    "/properties/CertificateRotationRestart"
+    "/properties/UseLatestRestorableTime"
   ],
   "readOnlyProperties": [
     "/properties/Endpoint/Address",
