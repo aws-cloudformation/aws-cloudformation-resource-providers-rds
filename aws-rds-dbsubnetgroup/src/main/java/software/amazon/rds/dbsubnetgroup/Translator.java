@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.amazonaws.arn.Arn;
 import com.amazonaws.util.CollectionUtils;
+import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.model.CreateDbSubnetGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbSubnetGroupRequest;
@@ -30,7 +31,7 @@ public class Translator {
         return CreateDbSubnetGroupRequest.builder()
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .dbSubnetGroupDescription(model.getDBSubnetGroupDescription())
-                .subnetIds(model.getSubnetIds().stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)))
+                .subnetIds(model.getSubnetIds().stream().map(StringUtils::trim).sorted().collect(Collectors.toCollection(LinkedHashSet::new)))
                 .tags(Tagging.translateTagsToSdk(tags)).build();
     }
 
@@ -50,7 +51,7 @@ public class Translator {
         return ModifyDbSubnetGroupRequest.builder()
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .dbSubnetGroupDescription(model.getDBSubnetGroupDescription())
-                .subnetIds(model.getSubnetIds().stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)))
+                .subnetIds(model.getSubnetIds().stream().map(StringUtils::trim).sorted().collect(Collectors.toCollection(LinkedHashSet::new)))
                 .build();
     }
 
