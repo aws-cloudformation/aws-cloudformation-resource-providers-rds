@@ -17,12 +17,14 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.Endpoint;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
 
 class TranslatorTest extends AbstractHandlerTest {
 
@@ -464,6 +466,26 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_translateDbInstanceFromSdkBuilder_noOptionGroupNameForEmptyOptionGroupMembership() {
+        final DBInstance instance = DBInstance.builder()
+                .build();
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
+        assertThat(model.getOptionGroupName()).isNull();
+    }
+
+    @Test
+    public void test_translateDbInstanceFromSdkBuilder_setOptionGroupFromOptionGroupMembership() {
+        final String optionGroupName = TestUtils.randomString(32, TestUtils.ALPHA);
+        final DBInstance instance = DBInstance.builder()
+                .optionGroupMemberships(
+                        OptionGroupMembership.builder().optionGroupName(optionGroupName).build()
+                )
+                .build();
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
+        assertThat(model.getOptionGroupName()).isEqualTo(optionGroupName);
+    }
+
+    @Test
     public void test_modifyAfterCreate_shouldNotSetGP3Parameters() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .storageType("gp3")
@@ -502,9 +524,9 @@ class TranslatorTest extends AbstractHandlerTest {
     public void translateMasterUserSecret_sdkSecretSet() {
         final software.amazon.rds.dbinstance.MasterUserSecret secret = Translator.translateMasterUserSecret(
                 software.amazon.awssdk.services.rds.model.MasterUserSecret.builder()
-                .secretArn("arn")
-                .kmsKeyId("kmsKeyId")
-                .build());
+                        .secretArn("arn")
+                        .kmsKeyId("kmsKeyId")
+                        .build());
 
         assertThat(secret.getSecretArn()).isEqualTo("arn");
         assertThat(secret.getKmsKeyId()).isEqualTo("kmsKeyId");

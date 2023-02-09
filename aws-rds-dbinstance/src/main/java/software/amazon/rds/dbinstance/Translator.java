@@ -703,6 +703,11 @@ public class Translator {
             domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
         }
 
+        String optionGroupName = null;
+        if (CollectionUtils.isNotEmpty(dbInstance.optionGroupMemberships())) {
+            optionGroupName = dbInstance.optionGroupMemberships().get(0).optionGroupName();
+        }
+
         return ResourceModel.builder()
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
@@ -745,6 +750,7 @@ public class Translator {
                 .multiAZ(dbInstance.multiAZ())
                 .ncharCharacterSetName(dbInstance.ncharCharacterSetName())
                 .networkType(dbInstance.networkType())
+                .optionGroupName(optionGroupName)
                 .performanceInsightsKMSKeyId(dbInstance.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbInstance.performanceInsightsRetentionPeriod())
                 .port(port == null ? null : port.toString())
