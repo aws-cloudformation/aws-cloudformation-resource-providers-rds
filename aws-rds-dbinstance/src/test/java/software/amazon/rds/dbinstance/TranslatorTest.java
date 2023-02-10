@@ -1,16 +1,8 @@
 package software.amazon.rds.dbinstance;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Instant;
-import java.util.Collection;
-
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
@@ -19,12 +11,19 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.Endpoint;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.core.TestUtils;
+
+import java.time.Instant;
+import java.util.Collection;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class TranslatorTest extends AbstractHandlerTest {
 
@@ -466,6 +465,26 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_translateDbInstanceFromSdkBuilder_noOptionGroupNameForEmptyOptionGroupMembership() {
+        final DBInstance instance = DBInstance.builder()
+                .build();
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
+        assertThat(model.getOptionGroupName()).isNull();
+    }
+
+    @Test
+    public void test_translateDbInstanceFromSdkBuilder_setOptionGroupFromOptionGroupMembership() {
+        final String optionGroupName = TestUtils.randomString(32, TestUtils.ALPHA);
+        final DBInstance instance = DBInstance.builder()
+                .optionGroupMemberships(
+                        OptionGroupMembership.builder().optionGroupName(optionGroupName).build()
+                )
+                .build();
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(instance);
+        assertThat(model.getOptionGroupName()).isEqualTo(optionGroupName);
+    }
+
+    @Test
     public void test_modifyAfterCreate_shouldNotSetGP3Parameters() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .storageType("gp3")
@@ -495,18 +514,18 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateMasterUserSecret_sdkSecretNull() {
+    public void translateMasterUserSecret_sdkSecretEmpty() {
         assertThat(Translator.translateMasterUserSecret(null))
-                .isNull();
+                .isEqualTo(MasterUserSecret.builder().build());
     }
 
     @Test
     public void translateMasterUserSecret_sdkSecretSet() {
         final software.amazon.rds.dbinstance.MasterUserSecret secret = Translator.translateMasterUserSecret(
                 software.amazon.awssdk.services.rds.model.MasterUserSecret.builder()
-                .secretArn("arn")
-                .kmsKeyId("kmsKeyId")
-                .build());
+                        .secretArn("arn")
+                        .kmsKeyId("kmsKeyId")
+                        .build());
 
         assertThat(secret.getSecretArn()).isEqualTo("arn");
         assertThat(secret.getKmsKeyId()).isEqualTo("kmsKeyId");
@@ -791,6 +810,28 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsGp3_andIopsOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("gp3").iops(1000).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("gp3").iops(1200).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1200);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeIops_ifStorageTypeIsGp3_andAllocatedStorageOnlyChanged() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("gp3").allocatedStorage(ALLOCATED_STORAGE.toString()).build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("gp3").allocatedStorage(ALLOCATED_STORAGE_INCR.toString()).build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+    }
+
+    @Test
     public void modifyDbInstanceRequest_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
@@ -832,6 +873,42 @@ class TranslatorTest extends AbstractHandlerTest {
 
         assertThat(request.iops()).isEqualTo(1200);
         assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetManageMasterUserPasswordFields() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .dBSnapshotIdentifier("snapshot")
+                .manageMasterUserPassword(true)
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("kms-key").build())
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("kms-key");
+    }
+
+    @Test
+    public void test_restoreDbInstanceFromSnapshot_shouldKeepCopyTagsToSnapshotEmptyIfUnset() {
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(
+                model,
+                Tagging.TagSet.emptySet()
+        );
+        assertThat(request.copyTagsToSnapshot()).isNull();
+    }
+
+    @Test
+    public void test_restoreDbInstanceFromSnapshot_shouldSetCopyTagsToSnapshot() {
+        final ResourceModel model = ResourceModel.builder()
+                .copyTagsToSnapshot(true)
+                .build();
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(
+                model,
+                Tagging.TagSet.emptySet()
+        );
+        assertThat(request.copyTagsToSnapshot()).isTrue();
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

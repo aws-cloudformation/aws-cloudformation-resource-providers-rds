@@ -14,7 +14,7 @@ class ResourceDriftTestHelperTest {
             "\"/properties/BoolProperty\": \"BoolProperty or true\"," +
             "\"/properties/IntegerProperty\": \"IntegerProperty * IntegerProperty\"," +
             "\"/properties/StringProperty\": \"$lowercase(StringProperty)\"," +
-            "\"/properties/NestedObject/StringProperty\": \"$join([StringProperty, '-pass'])\"" +
+            "\"/properties/NestedObject/StringProperty\": \"$join([NestedObject.StringProperty, '-pass'])\"" +
             "}" +
             "}");
 

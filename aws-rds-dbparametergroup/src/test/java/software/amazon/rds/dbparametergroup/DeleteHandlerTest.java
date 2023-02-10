@@ -67,11 +67,12 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        final DeleteDbParameterGroupResponse deleteDBParameterGroupResponse = DeleteDbParameterGroupResponse.builder().build();
-        when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class))).thenReturn(deleteDBParameterGroupResponse);
+        when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class)))
+                .thenReturn(DeleteDbParameterGroupResponse.builder().build());
+
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -97,7 +98,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
                         .build())
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -110,7 +111,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleInvalid() {
-        final DeleteDbParameterGroupResponse deleteDBParameterGroupResponse = DeleteDbParameterGroupResponse.builder().build();
         when(rdsClient.deleteDBParameterGroup(any(DeleteDbParameterGroupRequest.class)))
                 .thenThrow(InvalidParameterException.class);
 
@@ -119,7 +119,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
                         .build())
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);

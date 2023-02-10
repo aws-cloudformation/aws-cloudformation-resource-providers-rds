@@ -58,7 +58,6 @@ public class CreateHandlerTest extends AbstractTestBase {
     RdsClient rdsClient;
 
     private CreateHandler handler;
-    private CreateDbParameterGroupResponse createDbParameterGroupResponse;
 
     @Override
     public HandlerName getHandlerName() {
@@ -104,7 +103,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, callbackContext, proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, callbackContext, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -134,7 +133,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESET_RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
@@ -154,14 +153,14 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         mockDescribeDBParameterGroup();
 
-        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
-        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class)))
+                .thenReturn(ModifyDbParameterGroupResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESET_RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
@@ -177,8 +176,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleFailWithAccessDenied() {
         final String message = "AccessDenied on create request";
-        final CreateDbParameterGroupResponse createDbParameterGroupResponse = CreateDbParameterGroupResponse
-                .builder().dbParameterGroup(DB_PARAMETER_GROUP_ACTIVE).build();
+
         when(rdsClient.createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
                 .thenThrow(AwsServiceException.builder()
                         .awsErrorDetails(AwsErrorDetails.builder().errorMessage(message).errorCode("AccessDenied").build())
@@ -194,7 +192,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId("StackId")
                 .logicalResourceIdentifier("logicalId").build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -213,7 +211,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
-            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+            handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
         } catch (CfnInvalidRequestException e) {
             assertThat(e.getMessage()).isEqualTo("Invalid request provided: Unmodifiable DB Parameter: param1");
         }
@@ -224,14 +222,15 @@ public class CreateHandlerTest extends AbstractTestBase {
     @Test
     public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
         mockCreateCall();
-        when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
+        when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
+                .thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
         try {
-            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+            handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
         } catch (CfnInvalidRequestException e) {
             assertThat(e.getMessage()).isEqualTo("Invalid request provided: Invalid / Unsupported DB Parameter: param1");
         }
@@ -242,9 +241,8 @@ public class CreateHandlerTest extends AbstractTestBase {
 
     @Test
     public void handleRequest_SimpleSuccessAlreadyExists() {
-        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenThrow(
-                DbParameterGroupAlreadyExistsException.class
-        );
+        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
+                .thenThrow(DbParameterGroupAlreadyExistsException.class);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
@@ -252,7 +250,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .clientRequestToken(getClientRequestToken())
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -277,7 +275,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceState(RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -297,7 +295,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .desiredResourceState(RESOURCE_MODEL)
                 .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -310,15 +308,15 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     private void mockDescribeDBParameterGroup() {
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder().dbParameterGroups(DB_PARAMETER_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(DB_PARAMETER_GROUP_ACTIVE).build());
 
         final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
     }
 
     private void mockCreateCall() {
-        createDbParameterGroupResponse = CreateDbParameterGroupResponse.builder().dbParameterGroup(DBParameterGroup.builder().dbParameterGroupArn("arn").build()).build();
-        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class))).thenReturn(createDbParameterGroupResponse);
+        when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
+                .thenReturn(CreateDbParameterGroupResponse.builder().dbParameterGroup(DBParameterGroup.builder().dbParameterGroupArn("arn").build()).build());
     }
 }

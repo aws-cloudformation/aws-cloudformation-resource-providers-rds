@@ -241,7 +241,7 @@ public class Translator {
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
             builder.manageMasterUserPassword(true);
-            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret() != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null);
         } else {
             builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }
@@ -530,7 +530,7 @@ public class Translator {
     public static MasterUserSecret translateMasterUserSecretFromSdk(
             final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
         if (sdkSecret == null) {
-            return null;
+            return MasterUserSecret.builder().build();
         }
 
         return MasterUserSecret.builder()

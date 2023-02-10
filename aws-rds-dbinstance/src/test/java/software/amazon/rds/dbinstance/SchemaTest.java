@@ -1,6 +1,7 @@
 package software.amazon.rds.dbinstance;
 
 import org.json.JSONObject;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import software.amazon.rds.test.common.schema.ResourceDriftTestHelper;
@@ -152,5 +153,40 @@ public class SchemaTest {
                         .build())
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_EngineVersion_MajorVersionOnly() {
+        final ResourceModel input = ResourceModel.builder()
+                .engineVersion("5")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .engineVersion("5.6.40")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_EngineVersion_MajorAndMinorVersion() {
+        final ResourceModel input = ResourceModel.builder()
+                .engineVersion("5.6")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .engineVersion("5.6.40")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_EngineVersion_MinorMismatch_ShouldDrift() {
+        final ResourceModel input = ResourceModel.builder()
+                .engineVersion("5.6")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .engineVersion("5.7.40")
+                .build();
+        Assertions.assertThatThrownBy(() -> {
+            ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        }).isInstanceOf(AssertionError.class);
     }
 }

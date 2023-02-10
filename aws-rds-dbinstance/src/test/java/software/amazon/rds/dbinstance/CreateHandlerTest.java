@@ -1,21 +1,8 @@
 package software.amazon.rds.dbinstance;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import lombok.Getter;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,13 +14,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.google.common.collect.Iterables;
-import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -90,6 +72,21 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
+
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractHandlerTest {

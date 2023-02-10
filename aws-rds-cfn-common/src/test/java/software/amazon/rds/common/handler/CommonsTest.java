@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
@@ -82,6 +83,13 @@ public class CommonsTest {
     @Test
     public void handle_SdkClientException() {
         final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(SdkClientException.builder().build());
+        assertThat(status).isInstanceOf(HandlerErrorStatus.class);
+        assertThat(((HandlerErrorStatus) status).getHandlerErrorCode()).isEqualTo(HandlerErrorCode.ServiceInternalError);
+    }
+
+    @Test
+    public void handle_SdkServiceException() {
+        final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(SdkServiceException.builder().build());
         assertThat(status).isInstanceOf(HandlerErrorStatus.class);
         assertThat(((HandlerErrorStatus) status).getHandlerErrorCode()).isEqualTo(HandlerErrorCode.ServiceInternalError);
     }

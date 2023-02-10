@@ -21,10 +21,10 @@ public class DeleteHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger requestLogger) {
+            final RequestLogger logger) {
         return proxy.initiate("rds::delete-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbParameterGroupRequest)
                 .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBParameterGroup))

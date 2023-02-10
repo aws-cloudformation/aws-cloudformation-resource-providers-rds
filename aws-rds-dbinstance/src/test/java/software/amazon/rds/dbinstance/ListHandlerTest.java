@@ -1,24 +1,12 @@
 package software.amazon.rds.dbinstance;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.Collections;
-
+import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import lombok.Getter;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
@@ -28,6 +16,17 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
+
+import java.time.Duration;
+import java.util.Collections;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractHandlerTest {
@@ -97,6 +96,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                 .associatedRoles(Collections.emptyList())
                 .enableCloudwatchLogsExports(Collections.emptyList())
                 .manageMasterUserPassword(false)
+                .masterUserSecret(MasterUserSecret.builder().build())
                 .processorFeatures(Collections.emptyList())
                 .tags(Collections.emptyList())
                 .dBSecurityGroups(Collections.emptyList())

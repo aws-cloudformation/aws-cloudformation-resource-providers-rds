@@ -1,6 +1,33 @@
 package software.amazon.rds.dbinstance;
 
-import static software.amazon.rds.common.util.DifferenceUtils.diff;
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
+import software.amazon.awssdk.services.ec2.model.Filter;
+import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
+import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.SourceType;
+import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -17,36 +44,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
-
-import com.google.common.annotations.VisibleForTesting;
-import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
-import software.amazon.awssdk.services.ec2.model.Filter;
-import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
-import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
-import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
-import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
-import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
-import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
-import software.amazon.awssdk.services.rds.model.SourceType;
-import software.amazon.awssdk.utils.StringUtils;
-import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.dbinstance.util.ResourceModelHelper;
+import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 public class Translator {
     final static String DBI_RESOURCE_ID_FILTER = "dbi-resource-id";
@@ -181,6 +179,7 @@ public class Translator {
         final RestoreDbInstanceFromDbSnapshotRequest.Builder builder = RestoreDbInstanceFromDbSnapshotRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -395,7 +394,7 @@ public class Translator {
 
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            if (isIo1Storage(desiredModel)) {
+            if (isProvisionedIoStorage(desiredModel)) {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
                 builder.iops(desiredModel.getIops());
             } else {
@@ -459,7 +458,7 @@ public class Translator {
 
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
-            if (isIo1Storage(desiredModel)) {
+            if (isProvisionedIoStorage(desiredModel)) {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
                 builder.iops(desiredModel.getIops());
             } else {
@@ -502,6 +501,14 @@ public class Translator {
         return builder.build();
     }
 
+    private static Boolean isProvisionedIoStorage(final ResourceModel model) {
+        return isIo1Storage(model) || isGp3Storage(model);
+    }
+
+    private static Boolean isGp3Storage(final ResourceModel model) {
+        return StorageType.GP3.toString().equalsIgnoreCase(model.getStorageType());
+    }
+
     private static Boolean isIo1Storage(final ResourceModel model) {
         return StorageType.IO1.toString().equalsIgnoreCase(model.getStorageType()) ||
                 (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
@@ -540,6 +547,9 @@ public class Translator {
                 .caCertificateIdentifier(model.getCACertificateIdentifier())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .engineVersion(model.getEngineVersion())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
+                .masterUserPassword(model.getMasterUserPassword())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId(): null)
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
@@ -720,6 +730,11 @@ public class Translator {
             domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
         }
 
+        String optionGroupName = null;
+        if (CollectionUtils.isNotEmpty(dbInstance.optionGroupMemberships())) {
+            optionGroupName = dbInstance.optionGroupMemberships().get(0).optionGroupName();
+        }
+
         return ResourceModel.builder()
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
@@ -762,6 +777,7 @@ public class Translator {
                 .multiAZ(dbInstance.multiAZ())
                 .ncharCharacterSetName(dbInstance.ncharCharacterSetName())
                 .networkType(dbInstance.networkType())
+                .optionGroupName(optionGroupName)
                 .performanceInsightsKMSKeyId(dbInstance.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbInstance.performanceInsightsRetentionPeriod())
                 .port(port == null ? null : port.toString())
@@ -936,7 +952,7 @@ public class Translator {
 
     public static MasterUserSecret translateMasterUserSecret(final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
         if (sdkSecret == null) {
-            return null;
+            return MasterUserSecret.builder().build();
         }
 
         return MasterUserSecret.builder()

@@ -110,17 +110,16 @@ public class UpdateHandlerTest extends AbstractTestBase {
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
-                .dbParameterGroups(simpleDbParameterGroup).build();
-        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(simpleDbParameterGroup).build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
 
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, updateParamsRequest, callbackContext, proxyRdsClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, updateParamsRequest, callbackContext, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -141,24 +140,24 @@ public class UpdateHandlerTest extends AbstractTestBase {
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
-                .dbParameterGroups(simpleDbParameterGroup).build();
-        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(simpleDbParameterGroup).build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
 
         mockDescribeDbParametersResponse(proxyRdsClient, "static", "dynamic", true, true, false);
 
-        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
-        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class)))
+                .thenReturn(ModifyDbParameterGroupResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .previousResourceState(previousResourceModel)
                 .desiredResourceState(RESET_RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
@@ -179,24 +178,23 @@ public class UpdateHandlerTest extends AbstractTestBase {
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
-                .dbParameterGroups(simpleDbParameterGroup).build();
-        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(simpleDbParameterGroup).build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
 
         mockDescribeDbParametersResponse(proxyRdsClient, "static", "dynamic", true, true, true);
 
-        final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
-        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
+        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class)))
+                .thenReturn(ModifyDbParameterGroupResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(getClientRequestToken())
                 .previousResourceState(previousResourceModel)
                 .desiredResourceState(RESET_RESOURCE_MODEL)
                 .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, EMPTY_REQUEST_LOGGER);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getCallbackContext()).isNotNull();
@@ -211,7 +209,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(rdsClient, times(2)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
-
     @Test
     public void handleRequest_SimpleSuccessSameParams() {
         final UpdateHandler handler = new UpdateHandler();
@@ -219,16 +216,16 @@ public class UpdateHandlerTest extends AbstractTestBase {
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
-        final DescribeDbParameterGroupsResponse describeDbParameterGroupsResponse = DescribeDbParameterGroupsResponse.builder()
-                .dbParameterGroups(simpleDbParameterGroup).build();
-        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class))).thenReturn(describeDbParameterGroupsResponse);
+        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(simpleDbParameterGroup).build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
-        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
-        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, sameParamsRequest, callbackContext, proxyRdsClient, EMPTY_REQUEST_LOGGER);
+        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, sameParamsRequest, callbackContext, EMPTY_REQUEST_LOGGER);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);

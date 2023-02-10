@@ -44,6 +44,25 @@ public class ResourceDriftTestHelper {
             final JSONObject resourceSchema,
             final String basePath
     ) {
+        JsonNode rootNode = null;
+        final ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            // JSONata accepts JsonNode as an input. The easiest way to get a JsonNode from an object
+            // is to convert it to a string and parse immediately.
+            rootNode = objectMapper.readTree(objectMapper.writeValueAsString(input));
+        } catch (JsonProcessingException e) {
+            Assertions.fail(e.getMessage());
+        }
+        assertResourceNotDrifted(input, output, resourceSchema, basePath, rootNode);
+    }
+
+    public static void assertResourceNotDrifted(
+            final Object input,
+            final Object output,
+            final JSONObject resourceSchema,
+            final String basePath,
+            final JsonNode rootNode
+    ) {
         if (input == null || output == null) {
             Assertions.assertThat(input).isEqualTo(output);
             return;
@@ -51,16 +70,6 @@ public class ResourceDriftTestHelper {
         Assertions.assertThat(input).hasSameClassAs(output);
 
         final JSONObject propertyTransformMap = resourceSchema.getJSONObject("propertyTransform");
-        final ObjectMapper objectMapper = new ObjectMapper();
-
-        JsonNode inputJsonNode = null;
-        try {
-            // JSONata accepts JsonNode as an input. The easiest way to get a JsonNode from an object
-            // is to convert it to a string and parse immediately.
-            inputJsonNode = objectMapper.readTree(objectMapper.writeValueAsString(input));
-        } catch (JsonProcessingException e) {
-            Assertions.fail(e.getMessage());
-        }
 
         final Field[] fields = input.getClass().getDeclaredFields();
 
@@ -86,11 +95,11 @@ public class ResourceDriftTestHelper {
             }
             final String propertyTransformPath = basePath + PROPERTY_PATH_SEPARATOR + fieldName;
             if (!primitiveTypes.contains(field.getType())) {
-                assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath);
+                assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath, rootNode);
                 continue;
             }
-            final String propertyTransform = propertyTransformMap.getString(propertyTransformPath);
-            if (propertyTransform != null) {
+            if (propertyTransformMap.has(propertyTransformPath)) {
+                final String propertyTransform = propertyTransformMap.getString(propertyTransformPath);
                 // $OR is a CFN-specific feature. We need to split the expression into or-expressions and test
                 // the results independently. The test passes if any of these alternative variants match.
                 final String[] orExprs = propertyTransform.split(PROPERTY_OR_SPLIT_REGEX);
@@ -98,7 +107,7 @@ public class ResourceDriftTestHelper {
                     JsonNode altInputFieldVal = null;
                     try {
                         final Expressions compiledExpr = Expressions.parse(expr);
-                        altInputFieldVal = compiledExpr.evaluate(inputJsonNode);
+                        altInputFieldVal = compiledExpr.evaluate(rootNode);
                     } catch (ParseException | IOException | EvaluateException e) {
                         Assertions.fail(e.getMessage());
                     }
@@ -126,9 +135,10 @@ public class ResourceDriftTestHelper {
 
                     // JSONata would return a string evaluation result in quotes, e.g "\"result\"", we need to strip it.
                     final String transformedVal = altInputFieldVal.toString().replaceAll("^\"|\"$", "");
+
                     // Add regexp anchors to avoid loose comparisons.
                     final Pattern pattern = Pattern.compile("^" + transformedVal + "$");
-                    if (pattern.matcher((String) outputFieldVal).matches()) {
+                    if (transformedVal.equals(outputFieldVal) || pattern.matcher((String) outputFieldVal).matches()) {
                         continue NextField;
                     }
                 }

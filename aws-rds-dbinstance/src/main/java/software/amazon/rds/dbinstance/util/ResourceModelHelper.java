@@ -32,7 +32,8 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getPreferredBackupWindow()) ||
                                 StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
-                                (isSqlServer(model) && isStorageParameterUpdate(model))
+                                (isSqlServer(model) && isStorageParameterUpdate(model)) ||
+                                BooleanUtils.isTrue(model.getManageMasterUserPassword())
                 );
     }
 
