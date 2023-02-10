@@ -44,7 +44,16 @@ public class ResourceDriftTestHelper {
             final JSONObject resourceSchema,
             final String basePath
     ) {
-        assertResourceNotDrifted(input, output, resourceSchema, basePath, null);
+        JsonNode rootNode = null;
+        final ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            // JSONata accepts JsonNode as an input. The easiest way to get a JsonNode from an object
+            // is to convert it to a string and parse immediately.
+            rootNode = objectMapper.readTree(objectMapper.writeValueAsString(input));
+        } catch (JsonProcessingException e) {
+            Assertions.fail(e.getMessage());
+        }
+        assertResourceNotDrifted(input, output, resourceSchema, basePath, rootNode);
     }
 
     public static void assertResourceNotDrifted(
@@ -61,18 +70,6 @@ public class ResourceDriftTestHelper {
         Assertions.assertThat(input).hasSameClassAs(output);
 
         final JSONObject propertyTransformMap = resourceSchema.getJSONObject("propertyTransform");
-        final ObjectMapper objectMapper = new ObjectMapper();
-
-        JsonNode root = rootNode;
-        if (root == null) {
-            try {
-                // JSONata accepts JsonNode as an input. The easiest way to get a JsonNode from an object
-                // is to convert it to a string and parse immediately.
-                root = objectMapper.readTree(objectMapper.writeValueAsString(input));
-            } catch (JsonProcessingException e) {
-                Assertions.fail(e.getMessage());
-            }
-        }
 
         final Field[] fields = input.getClass().getDeclaredFields();
 
@@ -98,7 +95,7 @@ public class ResourceDriftTestHelper {
             }
             final String propertyTransformPath = basePath + PROPERTY_PATH_SEPARATOR + fieldName;
             if (!primitiveTypes.contains(field.getType())) {
-                assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath, root);
+                assertResourceNotDrifted(inputFieldVal, outputFieldVal, resourceSchema, propertyTransformPath, rootNode);
                 continue;
             }
             if (propertyTransformMap.has(propertyTransformPath)) {
@@ -110,7 +107,7 @@ public class ResourceDriftTestHelper {
                     JsonNode altInputFieldVal = null;
                     try {
                         final Expressions compiledExpr = Expressions.parse(expr);
-                        altInputFieldVal = compiledExpr.evaluate(root);
+                        altInputFieldVal = compiledExpr.evaluate(rootNode);
                     } catch (ParseException | IOException | EvaluateException e) {
                         Assertions.fail(e.getMessage());
                     }
