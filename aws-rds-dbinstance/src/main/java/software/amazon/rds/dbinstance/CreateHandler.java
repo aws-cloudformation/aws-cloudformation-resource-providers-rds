@@ -346,12 +346,6 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
-        final ResourceModel resourceModel = progress.getResourceModel();
-        if (StringUtils.isNullOrEmpty(resourceModel.getEngine())) {
-            final DBInstance sourceInstance = fetchDBInstance(rdsProxyClient,
-                    ResourceModel.builder().dBInstanceIdentifier(resourceModel.getSourceDBInstanceIdentifier()).build());
-            resourceModel.setEngine(sourceInstance.engine());
-        }
         return proxy.initiate(
                         "rds::create-db-instance-read-replica",
                         rdsProxyClient,

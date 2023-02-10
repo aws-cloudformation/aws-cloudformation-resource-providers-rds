@@ -27,7 +27,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.Iterables;
@@ -46,12 +48,18 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequ
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
@@ -800,7 +808,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> dbInstance,
-                () -> Translator.translateDbInstanceFromSdk(dbInstance).toBuilder().dBSnapshotIdentifier("snapshot").build(),
+                () -> Translator.translateDbInstanceFromSdk(dbInstance).toBuilder().engine("sqlserver").dBSnapshotIdentifier("snapshot").build(),
                 expectSuccess()
         );
 
@@ -1847,22 +1855,383 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_CreateReadReplica_ShouldGetEngineFromSource() {
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
+                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
-        context.setUpdated(true);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Queue<DBInstance> describes = new ConcurrentLinkedQueue<>(
+                ImmutableList.of(DBInstance.builder().dbInstanceIdentifier("source").engine("sqlserver").build(),
+                        DB_INSTANCE_ACTIVE,
+                        DB_INSTANCE_ACTIVE,
+                        DB_INSTANCE_ACTIVE)
+        );
+
+        test_handleRequest_base(
+                context,
+                describes::remove,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBInstanceIdentifier("source")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        ArgumentCaptor<CreateDbInstanceReadReplicaRequest> createReadReplicaCaptor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(createReadReplicaCaptor.capture());
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+
+
+        final CreateDbInstanceReadReplicaRequest readReplicaRequest = createReadReplicaCaptor.getValue();
+        Assertions.assertThat(readReplicaRequest.allocatedStorage()).isNull();
+        Assertions.assertThat(readReplicaRequest.iops()).isNull();
+        Assertions.assertThat(readReplicaRequest.storageThroughput()).isNull();
+        Assertions.assertThat(readReplicaRequest.storageType()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RestoreFromSnapshot_ShouldGetEngineFromSource_SqlServer() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder().dbSnapshots(DBSnapshot.builder().engine("sqlserver").build()).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
 
         test_handleRequest_base(
                 context,
                 () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_BLDR().sourceDBInstanceIdentifier("source").build(),
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBSnapshotIdentifier("identifier")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreDbInstanceFromDbSnapshotRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.capture());
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+
+        final RestoreDbInstanceFromDbSnapshotRequest restoreRequest = restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreRequest.allocatedStorage()).isNull();
+        Assertions.assertThat(restoreRequest.iops()).isNull();
+        Assertions.assertThat(restoreRequest.storageThroughput()).isNull();
+        Assertions.assertThat(restoreRequest.storageType()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RestoreFromSnapshot_ShouldGetEngineFromSource_MySql() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder().dbSnapshots(DBSnapshot.builder().engine("mysql").build()).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBSnapshotIdentifier("identifier")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreDbInstanceFromDbSnapshotRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.capture());
+
+        final RestoreDbInstanceFromDbSnapshotRequest restoreRequest = restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreRequest.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(restoreRequest.iops()).isEqualTo(IOPS_DEFAULT);
+        Assertions.assertThat(restoreRequest.storageThroughput()).isEqualTo(STORAGE_THROUGHPUT_DEFAULT);
+        Assertions.assertThat(restoreRequest.storageType()).isEqualTo(STORAGE_TYPE_STANDARD);
+    }
+
+    @Test
+    public void handleRequest_RestoreFromClusterSnapshot_ShouldGetEngineFromSource_SqlServer() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder().engine("sqlserver").build()).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBClusterSnapshotIdentifier("identifier")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreDbInstanceFromDbSnapshotRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.capture());
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+
+        final RestoreDbInstanceFromDbSnapshotRequest restoreRequest = restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreRequest.allocatedStorage()).isNull();
+        Assertions.assertThat(restoreRequest.iops()).isNull();
+        Assertions.assertThat(restoreRequest.storageThroughput()).isNull();
+        Assertions.assertThat(restoreRequest.storageType()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RestoreFromClusterSnapshot_ShouldGetEngineFromSource_MySql() {
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder().engine("mysql").build()).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBClusterSnapshotIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreDbInstanceFromDbSnapshotRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.capture());
+
+        final RestoreDbInstanceFromDbSnapshotRequest restoreRequest = restoreDbInstanceFromDbSnapshotRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreRequest.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(restoreRequest.iops()).isEqualTo(IOPS_DEFAULT);
+        Assertions.assertThat(restoreRequest.storageThroughput()).isEqualTo(STORAGE_THROUGHPUT_DEFAULT);
+        Assertions.assertThat(restoreRequest.storageType()).isEqualTo(STORAGE_TYPE_STANDARD);
+    }
+
+    @Test
+    public void handleRequest_RestoreToPointInTime_DBInstanceIdentifier_ShouldGetEngineFromSource_SqlServer() {
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbInstanceToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Queue<DBInstance> describes = new ConcurrentLinkedQueue<>(
+                ImmutableList.of(DBInstance.builder().dbInstanceIdentifier("source").engine("sqlserver").build(),
+                        DB_INSTANCE_ACTIVE,
+                        DB_INSTANCE_ACTIVE,
+                        DB_INSTANCE_ACTIVE)
+        );
+
+        test_handleRequest_base(
+                context,
+                describes::remove,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBInstanceIdentifier("source")
+                        .restoreTime("2023-01-01T00:00:00.00Z")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> restoreDbInstanceToPointInTimeRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(restoreDbInstanceToPointInTimeRequestArgumentCaptor.capture());
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+
+
+        final RestoreDbInstanceToPointInTimeRequest readReplicaRequest = restoreDbInstanceToPointInTimeRequestArgumentCaptor.getValue();
+        Assertions.assertThat(readReplicaRequest.allocatedStorage()).isNull();
+        Assertions.assertThat(readReplicaRequest.iops()).isNull();
+        Assertions.assertThat(readReplicaRequest.storageThroughput()).isNull();
+        Assertions.assertThat(readReplicaRequest.storageType()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RestoreToPointInTime_DBInstanceIdentifier_ShouldGetEngineFromSource_MySQL() {
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbInstanceToPointInTimeResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final Queue<DBInstance> describes = new ConcurrentLinkedQueue<>(
+                ImmutableList.of(DBInstance.builder().dbInstanceIdentifier("source").engine("mysql").build(),
+                        DB_INSTANCE_ACTIVE,
+                        DB_INSTANCE_ACTIVE)
+        );
+
+        test_handleRequest_base(
+                context,
+                describes::remove,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBInstanceIdentifier("source")
+                        .restoreTime("2023-01-01T00:00:00.00Z")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> restoreDbInstanceToPointInTimeRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(restoreDbInstanceToPointInTimeRequestArgumentCaptor.capture());
+
+        final RestoreDbInstanceToPointInTimeRequest restoreToPointInTimeRequest = restoreDbInstanceToPointInTimeRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreToPointInTimeRequest.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(restoreToPointInTimeRequest.iops()).isEqualTo(IOPS_DEFAULT);
+        Assertions.assertThat(restoreToPointInTimeRequest.storageThroughput()).isEqualTo(STORAGE_THROUGHPUT_DEFAULT);
+        Assertions.assertThat(restoreToPointInTimeRequest.storageType()).isEqualTo(STORAGE_TYPE_STANDARD);
+    }
+
+    @Test
+    public void handleRequest_RestoreToPointInTime_AutomatedBackup_ShouldGetEngineFromSource_SqlServer() {
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbInstanceToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class)))
+                .thenReturn(DescribeDbInstanceAutomatedBackupsResponse.builder().dbInstanceAutomatedBackups(
+                        DBInstanceAutomatedBackup.builder().engine("sqlserver").build()
+                ).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().engine("").sourceDBInstanceAutomatedBackupsArn("arn").restoreTime("2023-01-01T00:00:00.00Z").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> restoreDbInstanceToPointInTimeRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(restoreDbInstanceToPointInTimeRequestArgumentCaptor.capture());
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class));
+
+        final RestoreDbInstanceToPointInTimeRequest restoreToPointInTimeRequest = restoreDbInstanceToPointInTimeRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreToPointInTimeRequest.allocatedStorage()).isNull();
+        Assertions.assertThat(restoreToPointInTimeRequest.iops()).isNull();
+        Assertions.assertThat(restoreToPointInTimeRequest.storageThroughput()).isNull();
+        Assertions.assertThat(restoreToPointInTimeRequest.storageType()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RestoreToPointInTime_AutomatedBackup_ShouldGetEngineFromSource_MySql() {
+        when(rdsProxy.client().restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbInstanceToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class)))
+                .thenReturn(DescribeDbInstanceAutomatedBackupsResponse.builder().dbInstanceAutomatedBackups(
+                        DBInstanceAutomatedBackup.builder().engine("mysql").build()
+                ).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .engine("")
+                        .sourceDBInstanceAutomatedBackupsArn("arn")
+                        .restoreTime("2023-01-01T00:00:00.00Z")
+                        .iops(IOPS_DEFAULT)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .storageType(STORAGE_TYPE_STANDARD)
+                        .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> restoreDbInstanceToPointInTimeRequestArgumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(restoreDbInstanceToPointInTimeRequestArgumentCaptor.capture());
+        verify(rdsProxy.client(), times(1)).describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class));
+
+        final RestoreDbInstanceToPointInTimeRequest restoreToPointInTimeRequest = restoreDbInstanceToPointInTimeRequestArgumentCaptor.getValue();
+        Assertions.assertThat(restoreToPointInTimeRequest.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(restoreToPointInTimeRequest.iops()).isEqualTo(IOPS_DEFAULT);
+        Assertions.assertThat(restoreToPointInTimeRequest.storageThroughput()).isEqualTo(STORAGE_THROUGHPUT_DEFAULT);
+        Assertions.assertThat(restoreToPointInTimeRequest.storageType()).isEqualTo(STORAGE_TYPE_STANDARD);
     }
 }

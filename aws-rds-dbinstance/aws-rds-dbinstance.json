@@ -537,6 +537,8 @@
         "rds:CreateDBInstanceReadReplica",
         "rds:DescribeDBInstances",
         "rds:DescribeDBSnapshots",
+        "rds:DescribeDBClusterSnapshots",
+        "rds:DescribeDBInstanceAutomatedBackups",
         "rds:DescribeEvents",
         "rds:ModifyDBInstance",
         "rds:RebootDBInstance",

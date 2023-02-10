@@ -167,6 +167,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String SOURCE_REGION_EMPTY = null;
     protected static final Boolean STORAGE_ENCRYPTED_YES = true;
     protected static final Boolean STORAGE_ENCRYPTED_NO = false;
+    protected static final Integer STORAGE_THROUGHPUT_DEFAULT = 100;
     protected static final String STORAGE_TYPE_STANDARD = "standard";
     protected static final String STORAGE_TYPE_GP2 = "gp2";
     protected static final String STORAGE_TYPE_IO1 = "io1";
@@ -636,6 +637,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .sourceRegion(SOURCE_REGION_EMPTY)
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .storageType(STORAGE_TYPE_STANDARD)
+                .storageThroughput(STORAGE_THROUGHPUT_DEFAULT)
                 .tags(TAG_LIST)
                 .timezone(TIMEZONE_DEFAULT)
                 .useDefaultProcessorFeatures(USE_DEFAULT_PROCESSOR_FEATURES_YES)
