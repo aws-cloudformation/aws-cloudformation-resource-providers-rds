@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.mockito.internal.util.collections.Sets;
+import org.mockito.stubbing.OngoingStubbing;
 
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
@@ -36,6 +38,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
+import software.amazon.rds.test.common.verification.AccessPermissionAlias;
 import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
 public abstract class AbstractTestBase {
@@ -103,17 +106,17 @@ public abstract class AbstractTestBase {
 
     private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
 
-    public void verifyAccessPermissions(final Object mock) {
+    public void verifyAccessPermissions(final Object mock, final AccessPermissionAlias... aliases) {
         new AccessPermissionVerificationMode()
                 .withDefaultPermissions()
                 .withSchemaPermissions(resourceSchema, getHandlerName())
+                .withAliases(aliases)
                 .verify(TestUtils.getVerificationData(mock));
     }
 
     static Map<String, String> translateTagsToMap(final Set<Tag> tags) {
         return tags.stream()
                 .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
-
     }
 
     static String getClientRequestToken() {
@@ -163,12 +166,33 @@ public abstract class AbstractTestBase {
         };
     }
 
-    void mockDescribeDbParametersResponse(ProxyClient<RdsClient> proxyClient,
-                                          String firstParamApplyType,
-                                          String secondParamApplyType,
-                                          boolean isModifiable,
-                                          boolean mockDescribeParameters,
-                                          boolean isPaginated) {
+    protected void expectEmptyDescribeParametersResponse(final ProxyClient<RdsClient> proxyClient) {
+        when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
+                .thenReturn(DescribeDbParametersResponse.builder().build());
+        when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
+                .thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
+    }
+
+    void mockDescribeDbParametersResponse(
+            final ProxyClient<RdsClient> proxyClient,
+            final String firstParamApplyType,
+            final String secondParamApplyType,
+            final boolean isModifiable,
+            final boolean mockDescribeParameters,
+            final boolean isPaginated
+    ) {
+        mockDescribeDbParametersResponse(proxyClient, firstParamApplyType, secondParamApplyType, isModifiable, mockDescribeParameters, isPaginated, 1);
+    }
+
+    void mockDescribeDbParametersResponse(
+            final ProxyClient<RdsClient> proxyClient,
+            final String firstParamApplyType,
+            final String secondParamApplyType,
+            final boolean isModifiable,
+            final boolean mockDescribeParameters,
+            final boolean isPaginated,
+            final int nTimes
+    ) {
         Parameter param1 = Parameter.builder()
                 .parameterName("param1")
                 .parameterValue("system_value")
@@ -201,7 +225,6 @@ public abstract class AbstractTestBase {
                 .applyType(secondParamApplyType)
                 .build();
 
-
         final DescribeEngineDefaultParametersResponse describeEngineDefaultParametersResponse = DescribeEngineDefaultParametersResponse.builder()
                 .engineDefaults(EngineDefaults.builder()
                         .parameters(defaultParam1, param2, param4)
@@ -209,35 +232,65 @@ public abstract class AbstractTestBase {
                 ).build();
 
         if (!isPaginated) {
-            when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))).thenReturn(describeEngineDefaultParametersResponse);
+            repeatedly(
+                    when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))),
+                    (st) -> st.thenReturn(describeEngineDefaultParametersResponse),
+                    nTimes
+            );
         } else {
-
             final DescribeEngineDefaultParametersResponse firstPage = DescribeEngineDefaultParametersResponse.builder()
                     .engineDefaults(EngineDefaults.builder()
                             .parameters(defaultParam1, param2, param4)
                             .marker("marker")
                             .build()
                     ).build();
-
-            when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
-                    .thenReturn(firstPage)
-                    .thenReturn(describeEngineDefaultParametersResponse);
-
+            repeatedly(
+                    when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class))),
+                    (st) -> st.thenReturn(firstPage).thenReturn(describeEngineDefaultParametersResponse),
+                    nTimes
+            );
         }
-        if (!mockDescribeParameters)
+        if (!mockDescribeParameters) {
             return;
-
-        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder().marker(null)
-                .parameters(param1, param2, param3).build();
-        if (!isPaginated) {
-            when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))).thenReturn(describeDbParametersResponse);
-        } else {
-            final DescribeDbParametersResponse firstPage = DescribeDbParametersResponse.builder().marker("marker")
-                    .parameters(param1, param2, param3).build();
-
-            when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
-                    .thenReturn(firstPage)
-                    .thenReturn(describeDbParametersResponse);
         }
+
+        final DescribeDbParametersResponse describeDbParametersResponse = DescribeDbParametersResponse.builder()
+                .marker(null)
+                .parameters(param1, param2, param3)
+                .build();
+
+        if (!isPaginated) {
+            repeatedly(
+                    when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))),
+                    (st) -> st.thenReturn(describeDbParametersResponse),
+                    nTimes
+            );
+        } else {
+            final DescribeDbParametersResponse firstPage = DescribeDbParametersResponse.builder()
+                    .marker("marker")
+                    .parameters(param1, param2, param3)
+                    .build();
+            repeatedly(
+                    when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class))),
+                    (st) -> st.thenReturn(firstPage).thenReturn(describeDbParametersResponse),
+                    nTimes
+            );
+        }
+    }
+
+    private <T> OngoingStubbing<T> repeatedly(
+            final OngoingStubbing<T> base,
+            final Function<OngoingStubbing<T>, OngoingStubbing<T>> then,
+            final int nTimes
+    ) {
+        OngoingStubbing<T> cur = base;
+        for (int it = 0; it < nTimes; it++) {
+            cur = then.apply(cur);
+        }
+        return cur;
+    }
+
+    protected final <T> Iterator<T> responseIterator(final T response) {
+        return Collections.singletonList(response).iterator();
     }
 }

@@ -2,12 +2,15 @@ package software.amazon.rds.dbparametergroup;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.amazonaws.arn.Arn;
 import com.amazonaws.util.CollectionUtils;
+import lombok.NonNull;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
@@ -52,34 +55,34 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbParametersRequest describeDbParametersRequest(
-            final String dbParameterGroupName,
-            final Collection<String> paramNames,
-            final String marker
-    ) {
-        return DescribeDbParametersRequest.builder()
-                .marker(marker)
-                .dbParameterGroupName(dbParameterGroupName)
-                .filters(Filter.builder()
-                        .name(FILTER_PARAMETER_NAME)
-                        .values(paramNames)
-                        .build())
+    static Filter filterByParameterNames(final Collection<String> paramNames) {
+        return Filter.builder()
+                .name(FILTER_PARAMETER_NAME)
+                .values(paramNames)
                 .build();
     }
 
-    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequest(
+    public static DescribeDbParametersRequest describeDbParametersRequestWithFilters(
+            final String dbParameterGroupName,
+            final Filter[] filters,
+            final String marker
+    ) {
+        return DescribeDbParametersRequest.builder()
+                .dbParameterGroupName(dbParameterGroupName)
+                .filters(filters)
+                .marker(marker)
+                .build();
+    }
+
+    public static DescribeEngineDefaultParametersRequest describeEngineDefaultParametersRequestWithFilters(
             final String dbParameterGroupFamily,
-            final Collection<String> paramNames,
+            final Filter[] filters,
             final String marker
     ) {
         return DescribeEngineDefaultParametersRequest.builder()
-                .marker(marker)
                 .dbParameterGroupFamily(dbParameterGroupFamily)
-                .filters(Filter.builder()
-                        .name(FILTER_PARAMETER_NAME)
-                        .values(paramNames)
-                        .build()
-                )
+                .filters(filters)
+                .marker(marker)
                 .build();
     }
 
@@ -161,6 +164,15 @@ public class Translator {
                 .withAccountId(request.getAwsAccountId())
                 .withResource(resource)
                 .build();
+    }
+
+    static Map<String, Object> translateParametersFromSdk(@NonNull final Map<String, Parameter> parameters) {
+        final Map<String, Object> result = new HashMap<>();
+        for (final Map.Entry<String, Parameter> kv : parameters.entrySet()) {
+            result.put(kv.getKey(), kv.getValue().parameterValue());
+        }
+
+        return result;
     }
 
     private static ApplyMethod getParameterApplyMethod(final Parameter parameter) {
