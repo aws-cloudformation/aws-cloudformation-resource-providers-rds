@@ -515,13 +515,13 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateMasterUserSecret_sdkSecretEmpty() {
+    public void test_translateMasterUserSecret_sdkSecretEmpty() {
         assertThat(Translator.translateMasterUserSecret(null))
                 .isEqualTo(MasterUserSecret.builder().build());
     }
 
     @Test
-    public void translateMasterUserSecret_sdkSecretSet() {
+    public void test_translateMasterUserSecret_sdkSecretSet() {
         final software.amazon.rds.dbinstance.MasterUserSecret secret = Translator.translateMasterUserSecret(
                 software.amazon.awssdk.services.rds.model.MasterUserSecret.builder()
                         .secretArn("arn")
@@ -533,7 +533,7 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateManageMasterUserPassword_fromUnsetToUnset() {
+    public void test_translateManageMasterUserPassword_fromUnsetToUnset() {
         final ResourceModel prev = RESOURCE_MODEL_BLDR()
                 .masterUserPassword("password")
                 .build();
@@ -549,7 +549,7 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateManageMasterUserPassword_fromSetToUnset() {
+    public void test_translateManageMasterUserPassword_fromSetToUnset() {
         final ResourceModel prev = RESOURCE_MODEL_BLDR()
                 .manageMasterUserPassword(true)
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
@@ -564,7 +564,7 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateManageMasterUserPassword_explicitUnset() {
+    public void test_translateManageMasterUserPassword_explicitUnset() {
         final ResourceModel prev = RESOURCE_MODEL_BLDR()
                 .manageMasterUserPassword(true)
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
@@ -581,7 +581,7 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateManageMasterUserPassword_fromUnsetToSet_withDefaultKey() {
+    public void test_translateManageMasterUserPassword_fromUnsetToSet_withDefaultKey() {
         final ResourceModel prev = RESOURCE_MODEL_BLDR()
                 .masterUserPassword("password")
                 .build();
@@ -597,7 +597,23 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void translateManageMasterUserPassword_fromUnsetToSet_withSpecificKey() {
+    public void test_translateManageMasterUserPassword_fromUnsetToSet_emptyMasterUserSecret() {
+        final ResourceModel prev = RESOURCE_MODEL_BLDR()
+                .masterUserPassword("password")
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .manageMasterUserPassword(true)
+                .masterUserSecret(null)
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isTrue();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
+    public void test_translateManageMasterUserPassword_fromUnsetToSet_withSpecificKey() {
         final ResourceModel prev = RESOURCE_MODEL_BLDR()
                 .masterUserPassword("password")
                 .build();
