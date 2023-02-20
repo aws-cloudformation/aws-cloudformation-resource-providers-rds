@@ -191,4 +191,16 @@ public class SchemaTest {
             ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
         }).isInstanceOf(AssertionError.class);
     }
+
+    @Test
+    public void testDrift_Engine_CaseMismatch_ShouldNotDrift() {
+        final ResourceModel input = ResourceModel.builder()
+                .engine("aurora-MySQL")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .engine("aurora-mysql")
+                .build();
+
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
 }
