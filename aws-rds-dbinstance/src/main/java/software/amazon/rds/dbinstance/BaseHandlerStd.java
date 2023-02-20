@@ -614,7 +614,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isCaCertificateChangesApplied(dbInstance, model) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
-                isPromotionTierUpdated(dbInstance, model) &&
                 isMasterUserSecretStabilized(dbInstance);
     }
 
@@ -634,10 +633,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     boolean isDBInstanceAvailable(final DBInstance dbInstance) {
         return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
-    }
-
-    boolean isPromotionTierUpdated(final DBInstance dbInstance, final ResourceModel model) {
-        return model.getPromotionTier() == null || model.getPromotionTier().equals(dbInstance.promotionTier());
     }
 
     boolean isDomainMembershipsJoined(final DBInstance dbInstance) {

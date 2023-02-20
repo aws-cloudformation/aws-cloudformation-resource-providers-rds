@@ -407,7 +407,7 @@ public class Translator {
                 .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
-                .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .promotionTier(desiredModel.getPromotionTier()) // promotion tier is set unconditionally
                 .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()))
                 .storageThroughput(diff(previousModel.getStorageThroughput(), desiredModel.getStorageThroughput()))
