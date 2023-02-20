@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -35,7 +35,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
     public FilteredJsonPrinter(String... filterFields) {
         this.filterFields = filterFields;
         mapper = new ObjectMapper()
-                .setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE)
+                .setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         mapper.registerModule(new JavaTimeModule());
