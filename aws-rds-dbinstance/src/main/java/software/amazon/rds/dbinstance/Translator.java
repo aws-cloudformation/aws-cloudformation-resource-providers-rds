@@ -354,16 +354,11 @@ public class Translator {
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbSecurityGroups(diff(previousModel.getDBSecurityGroups(), desiredModel.getDBSecurityGroups()))
                 .engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))
-                .manageMasterUserPassword(diff(previousModel.getManageMasterUserPassword(), desiredModel.getManageMasterUserPassword()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
-                .masterUserSecretKmsKeyId(diff(previousModel.getMasterUserSecret(), desiredModel.getMasterUserSecret()) != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null)
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
-                .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
-                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
-                .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
-                .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()));
+                .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()));
 
         if (BooleanUtils.isNotTrue(isRollback)) {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
@@ -412,7 +407,7 @@ public class Translator {
                 .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
-                .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .promotionTier(desiredModel.getPromotionTier()) // promotion tier is set unconditionally
                 .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()))
                 .storageThroughput(diff(previousModel.getStorageThroughput(), desiredModel.getStorageThroughput()))
@@ -466,7 +461,9 @@ public class Translator {
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
             builder.manageMasterUserPassword(true);
-            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+            if (desiredModel.getMasterUserSecret() != null) {
+                builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret().getKmsKeyId());
+            }
         } else {
             builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }

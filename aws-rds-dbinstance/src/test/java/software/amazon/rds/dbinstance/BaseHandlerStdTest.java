@@ -56,38 +56,6 @@ class BaseHandlerStdTest {
     }
 
     @Test
-    void isPromotionTierUpdated_NullPromotionTierReturnsTrue() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().build(),
-                ResourceModel.builder().build()
-        )).isTrue();
-    }
-
-    @Test
-    void isPromotionTierUpdated_MatchingPromotionTiedReturnsTrue() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().promotionTier(42).build(),
-                ResourceModel.builder().promotionTier(42).build()
-        )).isTrue();
-    }
-
-    @Test
-    void isPromotionTierUpdated_EmptyModelPromotionTierReturnsTrue() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().promotionTier(42).build(),
-                ResourceModel.builder().promotionTier(null).build()
-        )).isTrue();
-    }
-
-    @Test
-    void isPromotionTierUpdated_MismatchingPromotionTierReturnsFalse() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().promotionTier(null).build(),
-                ResourceModel.builder().promotionTier(42).build()
-        )).isFalse();
-    }
-
-    @Test
     void isDomainMembershipsJoined_NullDomainMembershipReturnsTrue() {
         Assertions.assertThat(handler.isDomainMembershipsJoined(
                 DBInstance.builder().build()
