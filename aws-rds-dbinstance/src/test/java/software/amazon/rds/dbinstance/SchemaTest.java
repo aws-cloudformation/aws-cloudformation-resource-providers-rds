@@ -200,4 +200,15 @@ public class SchemaTest {
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
+
+    @Test
+    public void testDrift_DBName_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBName("DBName")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBName("dbname")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
 }
