@@ -211,4 +211,15 @@ public class SchemaTest {
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
+
+    @Test
+    public void testDrift_DBName_Oracle_Uppercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBName("Oracle_DB")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBName("ORACLE_DB")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
 }
