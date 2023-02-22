@@ -442,7 +442,7 @@
     "/properties/DBClusterSnapshotIdentifier": "$lowercase(DBClusterSnapshotIdentifier)",
     "/properties/DBInstanceIdentifier": "$lowercase(DBInstanceIdentifier)",
     "/properties/DBParameterGroupName": "$lowercase(DBParameterGroupName)",
-    "/properties/DBName": "$lowercase(DBName)",
+    "/properties/DBName": "$lowercase(DBName) $OR $uppercase(DBName)",
     "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
     "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
     "/properties/Engine": "$lowercase(Engine)",
