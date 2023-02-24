@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import java.time.Instant;
 import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
@@ -74,7 +75,11 @@ public class CreateHandler extends BaseHandlerStd {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(
                                 progress,
-                                () -> modifyDBCluster(proxy, rdsProxyClient, progress),
+                                () -> {
+                                    progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
+                                    return modifyDBCluster(proxy, rdsProxyClient, progress)
+                                            .then(p -> checkFailedEvents(rdsProxyClient, logger, p, p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)));
+                                },
                                 CallbackContext::isModified,
                                 CallbackContext::setModified
                         );

@@ -2,6 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
+import java.time.Instant;
 import java.util.HashSet;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -61,7 +62,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     "Resource is immutable"
             );
         }
-
+        callbackContext.timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
         return ProgressEvent.progress(desiredResourceState, callbackContext)
                 .then(progress -> {
                     if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
@@ -87,6 +88,11 @@ public class UpdateHandler extends BaseHandlerStd {
                         request.getPreviousResourceState().getAssociatedRoles(),
                         progress.getResourceModel().getAssociatedRoles(),
                         BooleanUtils.isTrue(request.getRollback())))
+                .then(progress -> checkFailedEvents(
+                        rdsProxyClient,
+                        logger,
+                        progress,
+                        progress.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }

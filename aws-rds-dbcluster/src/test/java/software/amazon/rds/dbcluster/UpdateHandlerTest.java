@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -50,8 +51,11 @@ import software.amazon.awssdk.services.rds.model.DbClusterRoleNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
+import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterMember;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
@@ -65,6 +69,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
@@ -75,6 +80,7 @@ import software.amazon.rds.test.common.core.TestUtils;
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractHandlerTest {
 
+    private static final String RESOURCE_UPDATED_AT = "resource-updated-at";
     @Mock
     RdsClient rdsClient;
     @Mock
@@ -135,6 +141,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenThrow(DbClusterRoleNotFoundException.builder().message("not found").build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
@@ -152,6 +160,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -183,6 +192,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_AddRoleAlreadyExistsExceptionRecoveryModeShouldSucceed() {
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenThrow(DbClusterRoleAlreadyExistsException.builder().message(ERROR_MSG).build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
@@ -204,6 +215,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -216,6 +228,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenThrow(DbClusterRoleNotFoundException.builder().message("not found").build());
         when(rdsProxy.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class)))
                 .thenThrow(GlobalClusterNotFoundException.class);
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
@@ -236,6 +250,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -264,6 +279,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RemoveFromGlobalClusterStabilization() {
         when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
                 .thenReturn(RemoveFromGlobalClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final Queue<GlobalCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(GlobalCluster.builder().globalClusterMembers(GlobalClusterMember.builder().dbClusterArn(DBCLUSTER_ACTIVE.dbClusterArn()).build()).build());
@@ -285,6 +302,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(6)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class));
         verify(rdsProxy.client(), times(2)).describeGlobalClusters(any(DescribeGlobalClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -311,6 +329,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(AddTagsToResourceResponse.builder().build());
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
@@ -342,6 +362,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         ArgumentCaptor<ModifyDbClusterRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argumentCaptor.capture());
@@ -352,6 +373,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_StabilizeWithPendingActions() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE.toBuilder()
@@ -380,6 +403,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -388,6 +412,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DBSubnetGroup.builder().vpcId("vpcId").build()).build());
         when(ec2Proxy.client().describeSecurityGroups(any(DescribeSecurityGroupsRequest.class)))
                 .thenReturn(DescribeSecurityGroupsResponse.builder().securityGroups(SecurityGroup.builder().groupId("group-id").build()).build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
         final CallbackContext context = new CallbackContext();
@@ -408,6 +434,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(resourceModel.getVpcSecurityGroupIds()).isEqualTo(ImmutableList.of("group-id"));
 
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -416,6 +443,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
         context.setAddTagsComplete(true);
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 context,
@@ -431,6 +460,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(resourceModel.getVpcSecurityGroupIds()).isNullOrEmpty();
 
         verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -439,6 +469,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
 
@@ -476,6 +508,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(5)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -484,6 +517,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
 
@@ -567,6 +602,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -587,6 +624,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         Assertions.assertThat(argument.getValue().masterUserPassword()).isNull();
     }
 
@@ -604,6 +642,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -624,6 +664,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         Assertions.assertThat(argument.getValue().masterUserPassword()).isEqualTo(masterUserPassword2);
     }
 
@@ -642,6 +683,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -664,6 +707,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         Assertions.assertThat(argument.getValue().engineVersion()).isNull();
     }
 
@@ -681,6 +725,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -702,6 +748,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         Assertions.assertThat(argument.getValue().engineVersion()).isNull();
     }
 
@@ -709,6 +756,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_DoNotSetDefaultPortOnUpdate() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -728,6 +777,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbClusterRequest> captor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(captor.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         Assertions.assertThat(captor.getValue().port()).isNull();
     }
 
@@ -745,6 +795,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -765,6 +817,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<ModifyDbClusterRequest> argument = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(argument.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         Assertions.assertThat(argument.getValue().engineVersion()).isEqualTo(engineVersion2);
         Assertions.assertThat(argument.getValue().allowMajorVersionUpgrade()).isTrue();
     }
@@ -777,6 +830,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(DBCLUSTER_ACTIVE);
         transitions.add(DBCLUSTER_INPROGRESS);
@@ -817,12 +873,95 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration())
                 .isEqualTo(software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration.builder()
                         .maxCapacity(desiredServerlessV2ScalingConfiguration.getMaxCapacity())
                         .minCapacity(desiredServerlessV2ScalingConfiguration.getMinCapacity())
                         .build());
+    }
+
+    @Test
+    public void handleRequest_FetchEventsFromUpdateMoment() {
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        final Instant updatedAt = response.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT);
+        Assertions.assertThat(updatedAt).isNotNull();
+
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        ArgumentCaptor<DescribeEventsRequest> describeEventsCaptor = ArgumentCaptor.forClass(DescribeEventsRequest.class);
+        verify(rdsProxy.client(), times(1)).describeEvents(describeEventsCaptor.capture());
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        Assertions.assertThat(describeEventsCaptor.getValue().startTime()).isEqualTo(updatedAt);
+    }
+
+    @Test
+    public void handleRequest_FetchEventsThrowsAwsServiceExceptionIgnore() {
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenThrow(AwsServiceException.builder()
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode(HandlerErrorCode.AccessDenied.toString())
+                                .errorMessage("Access denied")
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL.toBuilder().build(),
+                () -> RESOURCE_MODEL.toBuilder().build(),
+                expectSuccess()
+        );
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ObserveFailureEvent() {
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder()
+                        .events(Event.builder()
+                                .message("Unable to upgrade DB cluster test-cluster-id because the instance test-instance-id has a status of %s. Resolve the issue or delete the instance and try again.")
+                                .build())
+                        .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setRebooted(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.GeneralServiceException)
+        );
+
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
     static class ModifyDBClusterExceptionArgumentsProvider implements ArgumentsProvider {
