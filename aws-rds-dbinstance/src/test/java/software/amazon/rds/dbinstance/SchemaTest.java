@@ -222,4 +222,15 @@ public class SchemaTest {
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
+
+    @Test
+    public void testDrift_PreferredMaintenanceWindow_Uppercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .preferredMaintenanceWindow("Sun:19:00-Sun:23:00")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .preferredMaintenanceWindow("sun:19:00-sun:23:00")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
 }
