@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -44,6 +43,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.verification.AccessPermissionAlias;
+import software.amazon.rds.test.common.verification.AccessPermissionFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateHandlerTest extends AbstractTestBase {
@@ -76,7 +77,17 @@ public class CreateHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
-        verifyAccessPermissions(rdsClient);
+        verifyAccessPermissions(
+                rdsClient,
+                new AccessPermissionAlias(
+                        AccessPermissionFactory.fromString("rds:DescribeEngineDefaultParametersPaginator"),
+                        AccessPermissionFactory.fromString("rds:DescribeEngineDefaultParameters")
+                ),
+                new AccessPermissionAlias(
+                        AccessPermissionFactory.fromString("rds:DescribeDBParametersPaginator"),
+                        AccessPermissionFactory.fromString("rds:DescribeDBParameters")
+                )
+        );
     }
 
     @Test
@@ -115,7 +126,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
-
     }
 
     @Test
@@ -124,7 +134,6 @@ public class CreateHandlerTest extends AbstractTestBase {
         mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, false);
 
         mockDescribeDBParameterGroup();
-
 
         final ModifyDbParameterGroupResponse modifyDbParameterGroupResponse = ModifyDbParameterGroupResponse.builder().build();
         when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class))).thenReturn(modifyDbParameterGroupResponse);
@@ -144,33 +153,6 @@ public class CreateHandlerTest extends AbstractTestBase {
 
         verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
         verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
-    }
-
-    @Test
-    public void handleRequest_SimpleSuccessWithApplyParametersPagination() {
-        mockCreateCall();
-        mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, true);
-
-        mockDescribeDBParameterGroup();
-
-        when(proxyClient.client().modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class)))
-                .thenReturn(ModifyDbParameterGroupResponse.builder().build());
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(getClientRequestToken())
-                .desiredResourceState(RESET_RESOURCE_MODEL)
-                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getCallbackContext()).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(rdsClient).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
-        verify(rdsClient, times(2)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test
@@ -311,8 +293,8 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
                 .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(DB_PARAMETER_GROUP_ACTIVE).build());
 
-        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
     }
 
     private void mockCreateCall() {

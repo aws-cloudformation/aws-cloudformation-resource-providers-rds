@@ -1,7 +1,9 @@
 package software.amazon.rds.test.common.verification;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.json.JSONArray;
@@ -19,9 +21,11 @@ import software.amazon.rds.test.common.core.ServiceProvider;
 public class AccessPermissionVerificationMode implements VerificationMode {
 
     private final Set<AccessPermission> permissions;
+    private final Map<AccessPermission, AccessPermission> aliases;
 
     public AccessPermissionVerificationMode() {
         this.permissions = new HashSet<>();
+        this.aliases = new HashMap<>();
     }
 
     public AccessPermissionVerificationMode enablePermission(final AccessPermission permission) {
@@ -49,14 +53,24 @@ public class AccessPermissionVerificationMode implements VerificationMode {
         return this;
     }
 
+    @ExcludeFromJacocoGeneratedReport
+    public AccessPermissionVerificationMode withAliases(AccessPermissionAlias... aliases) {
+        for (final AccessPermissionAlias alias : aliases) {
+            this.aliases.put(alias.getOrigin(), alias.getEquivalent());
+        }
+
+        return this;
+    }
+
     private MockitoAssertionError missingRequiredPermission(final AccessPermission permission) {
         return new MockitoAssertionError(String.format("Missing a required access permission: %s", permission));
     }
 
     private void verifyInvocationPermissions(final Invocation invocation) {
-        final AccessPermission requiredPermission = AccessPermissionFactory.fromInvocation(invocation);
-        if (!permissions.contains(requiredPermission)) {
-            throw missingRequiredPermission(requiredPermission);
+        AccessPermission requiredPermission = AccessPermissionFactory.fromInvocation(invocation);
+        AccessPermission permissionAlias = this.aliases.get(requiredPermission);
+        if (!permissions.contains(requiredPermission) && !permissions.contains(permissionAlias)) {
+            throw missingRequiredPermission(permissionAlias == null ? requiredPermission : permissionAlias);
         }
     }
 
