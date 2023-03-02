@@ -18,14 +18,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbParametersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersResponse;
+import software.amazon.awssdk.services.rds.model.EngineDefaults;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.paginators.DescribeDBParametersIterable;
+import software.amazon.awssdk.services.rds.paginators.DescribeEngineDefaultParametersIterable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -33,6 +42,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.verification.AccessPermissionAlias;
+import software.amazon.rds.test.common.verification.AccessPermissionFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class ReadHandlerTest extends AbstractTestBase {
@@ -65,7 +76,17 @@ public class ReadHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
-        verifyAccessPermissions(rdsClient);
+        verifyAccessPermissions(
+                rdsClient,
+                new AccessPermissionAlias(
+                        AccessPermissionFactory.fromString("rds:DescribeEngineDefaultParametersPaginator"),
+                        AccessPermissionFactory.fromString("rds:DescribeEngineDefaultParameters")
+                ),
+                new AccessPermissionAlias(
+                        AccessPermissionFactory.fromString("rds:DescribeDBParametersPaginator"),
+                        AccessPermissionFactory.fromString("rds:DescribeDBParameters")
+                )
+        );
     }
 
     @Test
@@ -75,8 +96,10 @@ public class ReadHandlerTest extends AbstractTestBase {
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().tagList(Tag.builder().key("Key").value("Value").build()).build());
 
+        expectEmptyDescribeParametersResponse(proxyClient);
+
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .desiredResourceState(RESOURCE_MODEL_WITH_TAGS)
+                .desiredResourceState(ResourceModel.builder().dBParameterGroupName("testDBParameterGroupName").build())
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
@@ -90,6 +113,8 @@ public class ReadHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+        verify(proxyClient.client()).describeDBParameters(any(DescribeDbParametersRequest.class));
     }
 
     @Test
@@ -100,7 +125,7 @@ public class ReadHandlerTest extends AbstractTestBase {
                         .build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceState(ResourceModel.builder().dBParameterGroupName("testDBParameterGroupName").build())
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
@@ -120,7 +145,7 @@ public class ReadHandlerTest extends AbstractTestBase {
                 .thenThrow(InvalidParameterException.class);
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .desiredResourceState(RESOURCE_MODEL)
+                .desiredResourceState(ResourceModel.builder().dBParameterGroupName("testDBParameterGroupName").build())
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
@@ -133,5 +158,58 @@ public class ReadHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
 
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ReadModifiedParameters() {
+        when(proxyClient.client().describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
+                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(DB_PARAMETER_GROUP_ACTIVE).build());
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().tagList(Tag.builder().key("Key").value("Value").build()).build());
+
+        when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
+                .thenReturn(DescribeDbParametersResponse.builder()
+                        .parameters(
+                                Parameter.builder().parameterName("param1").parameterValue("value1").build(),
+                                Parameter.builder().parameterName("param2").parameterValue("value2-modified").build(),
+                                Parameter.builder().parameterName("param3").build()
+                        )
+                        .marker(null)
+                        .build());
+
+        when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
+                .thenReturn(DescribeEngineDefaultParametersResponse.builder()
+                        .engineDefaults(EngineDefaults.builder()
+                                .parameters(
+                                        Parameter.builder().parameterName("param1").parameterValue("value1").build(),
+                                        Parameter.builder().parameterName("param2").parameterValue("value2").build(),
+                                        Parameter.builder().parameterName("param3").build()
+                                )
+                                .marker(null)
+                                .build())
+                        .build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(ResourceModel.builder().dBParameterGroupName("testDBParameterGroupName").build())
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        assertThat(response.getResourceModel().getParameters())
+                .isEqualTo(ImmutableMap.of(
+                        "param2", "value2-modified"
+                ));
+
+        verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
+        verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client()).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
+        verify(proxyClient.client()).describeDBParameters(any(DescribeDbParametersRequest.class));
     }
 }

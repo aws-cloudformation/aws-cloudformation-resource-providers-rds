@@ -15,13 +15,16 @@ class AccessPermissionVerificationModeTest {
     static class RdsClient {
         public void testMethod() {
         }
+
+        public void testMethodAlias() {
+        }
     }
 
     @Test
     public void test_unknownPermissionThrowsMockitoAssertionError() {
         final AccessPermissionVerificationMode verificationMode = new AccessPermissionVerificationMode();
-        RdsClient mock = Mockito.mock(RdsClient.class);
 
+        RdsClient mock = Mockito.mock(RdsClient.class);
         mock.testMethod();
 
         Assertions.assertThatThrownBy(() -> {
@@ -32,10 +35,27 @@ class AccessPermissionVerificationModeTest {
     @Test
     public void test_enabledPermissionVerifiedSuccessfully() {
         final AccessPermissionVerificationMode verificationMode = new AccessPermissionVerificationMode();
-        RdsClient mock = Mockito.mock(RdsClient.class);
         verificationMode.enablePermission(new AccessPermission(ServiceProvider.RDS, "TestMethod"));
 
+        RdsClient mock = Mockito.mock(RdsClient.class);
         mock.testMethod();
+
+        Assertions.assertThatCode(() -> {
+            verificationMode.verify(new VerificationDataImpl(MockUtil.getInvocationContainer(mock), null));
+        }).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void test_enabledPermissionAliasVerifiedSuccessfully() {
+        final AccessPermission origin = new AccessPermission(ServiceProvider.RDS, "TestMethodAlias");
+        final AccessPermission equivalent = new AccessPermission(ServiceProvider.RDS, "TestMethod");
+
+        final AccessPermissionVerificationMode verificationMode = new AccessPermissionVerificationMode()
+                .enablePermission(equivalent)
+                .withAliases(new AccessPermissionAlias(origin, equivalent));
+
+        RdsClient mock = Mockito.mock(RdsClient.class);
+        mock.testMethodAlias();
 
         Assertions.assertThatCode(() -> {
             verificationMode.verify(new VerificationDataImpl(MockUtil.getInvocationContainer(mock), null));
