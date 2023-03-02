@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -29,6 +30,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.client.ApiVersion;
@@ -128,7 +130,14 @@ public class UpdateHandler extends BaseHandlerStd {
                     return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                             ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
                             ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
-                    )).then(p -> checkFailedEvents(rdsClient, logger, p, p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)));
+                    )).then(p -> Events.checkFailedEvents(
+                            rdsClient,
+                            logger,
+                            p,
+                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                            p.getResourceModel().getDBInstanceIdentifier(),
+                            SourceType.DB_INSTANCE,
+                            this::isFailureEvent));
                 }, CallbackContext::isUpdated, CallbackContext::setUpdated))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (shouldReboot(rdsClient, progress)) {

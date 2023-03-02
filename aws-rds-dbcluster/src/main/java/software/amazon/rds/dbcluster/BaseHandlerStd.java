@@ -4,17 +4,14 @@ import static software.amazon.rds.dbcluster.Translator.addRoleToDbClusterRequest
 import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 
@@ -39,7 +36,6 @@ import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnough
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.Event;
@@ -56,7 +52,6 @@ import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
@@ -73,6 +68,7 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
@@ -87,21 +83,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
     protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
-    protected static final String EVENT_CATEGORY_NOTIFICATION = "notification";
 
     private static final List<Predicate<Event>> EVENT_FAIL_CHECKERS = ImmutableList.of(
-            (e) -> isEventMessageContains(e, "Database cluster is in a state that cannot be upgraded:"),
-            (e) -> isEventMessageContains(e, "Cluster failover failed"),
-            (e) -> isEventMessageContains(e, "Cluster reboot failed"),
-            (e) -> isEventMessageContains(e, "Amazon RDS can't access the KMS encryption key"),
-            (e) -> isEventMessageContains(e, "Failed to join a host to a domain"),
-            (e) -> isEventMessageContains(e, "Failed to join cluster instance"),
-            (e) -> isEventMessageContains(e, "Amazon RDS isn't able to associate the IAM role"),
-            (e) -> isEventMessageContains(e, "could not be removed from global cluster"),
-            (e) -> isEventMessageContains(e, "Unable to upgrade DB cluster"),
-            (e) -> isEventMessageContains(e, "Unable to perform a major version upgrade"),
-            (e) -> isEventMessageContains(e, "Unable to patch the primary DB cluster"),
-            (e) -> isEventMessageContains(e, "We were unable to create your Aurora Serverless DB cluster")
+            (e) -> Events.isEventMessageContains(e, "Database cluster is in a state that cannot be upgraded:"),
+            (e) -> Events.isEventMessageContains(e, "Cluster failover failed"),
+            (e) -> Events.isEventMessageContains(e, "Cluster reboot failed"),
+            (e) -> Events.isEventMessageContains(e, "Amazon RDS can't access the KMS encryption key"),
+            (e) -> Events.isEventMessageContains(e, "Failed to join a host to a domain"),
+            (e) -> Events.isEventMessageContains(e, "Failed to join cluster instance"),
+            (e) -> Events.isEventMessageContains(e, "Amazon RDS isn't able to associate the IAM role"),
+            (e) -> Events.isEventMessageContains(e, "could not be removed from global cluster"),
+            (e) -> Events.isEventMessageContains(e, "Unable to upgrade DB cluster"),
+            (e) -> Events.isEventMessageContains(e, "Unable to perform a major version upgrade"),
+            (e) -> Events.isEventMessageContains(e, "Unable to patch the primary DB cluster"),
+            (e) -> Events.isEventMessageContains(e, "We were unable to create your Aurora Serverless DB cluster")
     );
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet
@@ -211,25 +206,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<Ec2Client> ec2ProxyClient,
             final Logger logger
     );
-
-    protected List<Event> fetchEvents(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model,
-            final String eventType,
-            final Instant fetchSince
-    ) {
-        final DescribeEventsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeEventsRequest(
-                        SourceType.DB_CLUSTER,
-                        model.getDBClusterIdentifier(),
-                        Collections.singletonList(eventType),
-                        fetchSince,
-                        Instant.now()
-                ),
-                rdsProxyClient.client()::describeEvents
-        );
-        return response.events();
-    }
 
     protected boolean isFailureEvent(final Event event) {
         return EVENT_FAIL_CHECKERS.stream().anyMatch(p -> p.test(event));
@@ -572,7 +548,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
-    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState, final ResourceModel desiredState) {
+    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState,
+                                                          final ResourceModel desiredState) {
         if (previousState != null) {
             final List<String> previousVpcIds = CollectionUtils.isEmpty(previousState.getVpcSecurityGroupIds()) ?
                     Collections.emptyList() : previousState.getVpcSecurityGroupIds();
@@ -586,47 +563,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds());
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> checkFailedEvents(
-            final ProxyClient<RdsClient> rdsClient,
-            final Logger logger,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Instant fetchSince
-    ) {
-        try {
-            final List<Event> failures = fetchEvents(rdsClient, progress.getResourceModel(), EVENT_CATEGORY_NOTIFICATION, fetchSince)
-                    .stream()
-                    .filter(this::isFailureEvent)
-                    .collect(Collectors.toList());
-            if (!com.amazonaws.util.CollectionUtils.isNullOrEmpty(failures)) {
-                return ProgressEvent.failed(
-                        progress.getResourceModel(),
-                        progress.getCallbackContext(),
-                        HandlerErrorCode.GeneralServiceException,
-                        failures.get(0).message()
-                );
-            }
-        } catch (Exception e) {
-            logger.log(String.format("Failed to fetch events: %s", e.getMessage()));
-            return Commons.handleException(progress, e, DESCRIBE_EVENTS_ERROR_RULE_SET);
-        }
-        return progress;
-    }
-
     private void assertNoDBClusterTerminalStatus(final DBCluster dbCluster) throws CfnNotStabilizedException {
         final DBClusterStatus status = DBClusterStatus.fromString(dbCluster.status());
         if (status != null && status.isTerminal()) {
             throw new CfnNotStabilizedException(new Exception("DBCluster is in state: " + status));
         }
-    }
-
-    private static boolean isEventMessageContains(final Event event, final String fragment) {
-        if (event != null) {
-            final String msg = event.message();
-            if (msg != null) {
-                return msg.toLowerCase(Locale.getDefault())
-                        .contains(fragment.toLowerCase(Locale.getDefault()));
-            }
-        }
-        return false;
     }
 }
