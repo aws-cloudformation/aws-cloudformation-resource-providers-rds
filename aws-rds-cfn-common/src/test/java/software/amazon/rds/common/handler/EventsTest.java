@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.Event;
+import software.amazon.awssdk.services.rds.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -64,7 +65,22 @@ class EventsTest extends ProxyClientTestBase {
         when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class))).thenReturn(DescribeEventsResponse.builder().events(Event.builder()
                 .message("failed to create").build()).build());
 
-        Predicate<Event> isFailureEvent = event -> Events.isEventMessageContains(event, "failed to update") || Events.isEventMessageContains(event, "failed to create");
+        Predicate<Event> isFailureEvent = event -> Events.isEventMessageContains(event, "failed to update") ||
+                Events.isEventMessageContains(null, "failed to update") ||
+                Events.isEventMessageContains(event, "failed to create");
+
+        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, logger, progressEvent, Instant.parse("2023-02-15T19:34:50Z"), "test_identifier", SourceType.DB_CLUSTER, isFailureEvent);
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isTrue();
+    }
+
+    @Test
+    public void test_checkFailedEvents_exception_failure() {
+        final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
+
+        when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class))).thenThrow(ResourceNotFoundException.builder().build());
+
+        Predicate<Event> isFailureEvent = event -> true;
 
         ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, logger, progressEvent, Instant.parse("2023-02-15T19:34:50Z"), "test_identifier", SourceType.DB_CLUSTER, isFailureEvent);
         assertThat(resultEvent).isNotNull();

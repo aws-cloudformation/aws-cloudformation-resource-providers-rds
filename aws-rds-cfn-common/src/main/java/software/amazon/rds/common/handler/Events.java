@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import lombok.NonNull;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
@@ -101,7 +102,7 @@ public class Events {
     private static DescribeEventsRequest describeEventsRequest(
             final SourceType sourceType,
             final String sourceIdentifier,
-            final Collection<String> eventCategories,
+            @NonNull final Collection<String> eventCategories,
             final Instant startTime,
             final Instant endTime
     ) {
