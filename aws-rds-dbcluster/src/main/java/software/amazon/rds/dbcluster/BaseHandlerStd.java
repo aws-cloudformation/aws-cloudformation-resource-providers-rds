@@ -152,15 +152,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbClusterRoleNotFoundException.class)
             .build();
 
-    protected static final ErrorRuleSet DESCRIBE_EVENTS_ERROR_RULE_SET = ErrorRuleSet
-            .extend(Commons.DEFAULT_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
-                    ErrorCode.AccessDenied,
-                    ErrorCode.AccessDeniedException,
-                    ErrorCode.NotAuthorized,
-                    ErrorCode.UnauthorizedOperation)
-            .build();
-
     protected final static HandlerConfig DB_CLUSTER_HANDLER_CONFIG_36H = HandlerConfig.builder()
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofHours(36)).build())
             .probingEnabled(true)

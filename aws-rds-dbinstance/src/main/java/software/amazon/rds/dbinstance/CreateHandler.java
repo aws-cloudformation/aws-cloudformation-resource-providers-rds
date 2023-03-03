@@ -9,7 +9,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
@@ -132,12 +131,13 @@ public class CreateHandler extends BaseHandlerStd {
                                             )).then(p ->
                                                     Events.checkFailedEvents(
                                                             rdsProxyClient.defaultClient(),
-                                                            logger,
-                                                            p,
-                                                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
                                                             p.getResourceModel().getDBInstanceIdentifier(),
                                                             SourceType.DB_INSTANCE,
-                                                            this::isFailureEvent));
+                                                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                                                            p,
+                                                            this::isFailureEvent,
+                                                            logger
+                                                    ));
                                         },
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {

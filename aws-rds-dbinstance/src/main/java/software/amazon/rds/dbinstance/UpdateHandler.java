@@ -131,13 +131,14 @@ public class UpdateHandler extends BaseHandlerStd {
                             ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
                             ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
                     )).then(p -> Events.checkFailedEvents(
-                            rdsClient,
-                            logger,
-                            p,
-                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                            rdsProxyClient.defaultClient(),
                             p.getResourceModel().getDBInstanceIdentifier(),
                             SourceType.DB_INSTANCE,
-                            this::isFailureEvent));
+                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                            p,
+                            this::isFailureEvent,
+                            logger
+                    ));
                 }, CallbackContext::isUpdated, CallbackContext::setUpdated))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (shouldReboot(rdsClient, progress)) {

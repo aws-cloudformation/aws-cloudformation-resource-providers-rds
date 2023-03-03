@@ -82,12 +82,13 @@ public class CreateHandler extends BaseHandlerStd {
                                     return modifyDBCluster(proxy, rdsProxyClient, progress)
                                             .then(p -> Events.checkFailedEvents(
                                                     rdsProxyClient,
-                                                    logger,
-                                                    p,
-                                                    p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
                                                     p.getResourceModel().getDBClusterIdentifier(),
                                                     SourceType.DB_CLUSTER,
-                                                    this::isFailureEvent));
+                                                    p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                                                    p,
+                                                    this::isFailureEvent,
+                                                    logger
+                                            ));
                                 },
                                 CallbackContext::isModified,
                                 CallbackContext::setModified

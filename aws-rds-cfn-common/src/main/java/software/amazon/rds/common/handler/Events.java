@@ -1,14 +1,12 @@
 package software.amazon.rds.common.handler;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import lombok.NonNull;
+import com.amazonaws.util.CollectionUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
@@ -52,39 +50,39 @@ public class Events {
 
     public static <M, C> List<Event> fetchEvents(
             final ProxyClient<RdsClient> rdsProxyClient,
-            final String resourceIdentifier,
+            final String sourceIdentifier,
             final SourceType sourceType,
-            final String eventType,
-            final Instant fetchSince
+            final String eventCategory,
+            final Instant startTime
     ) {
         final DescribeEventsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                describeEventsRequest(
-                        sourceType,
-                        resourceIdentifier,
-                        Collections.singletonList(eventType),
-                        fetchSince,
-                        Instant.now()
-                ),
+                DescribeEventsRequest.builder()
+                        .sourceType(sourceType)
+                        .sourceIdentifier(sourceIdentifier)
+                        .eventCategories(eventCategory)
+                        .startTime(startTime)
+                        .endTime(Instant.now())
+                        .build(),
                 rdsProxyClient.client()::describeEvents
         );
         return response.events();
     }
 
     public static <M, C> ProgressEvent<M, C> checkFailedEvents(
-            final ProxyClient<RdsClient> rdsClient,
-            final Logger logger,
-            final ProgressEvent<M, C> progress,
-            final Instant fetchSince,
-            final String resourceIdentifier,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String sourceIdentifier,
             final SourceType sourceType,
-            final Predicate<Event> isFailureEvent
+            final Instant startTime,
+            final ProgressEvent<M, C> progress,
+            final Predicate<Event> isFailureEvent,
+            final Logger logger
     ) {
         try {
-            final List<Event> failures = fetchEvents(rdsClient, resourceIdentifier, sourceType, EVENT_CATEGORY_NOTIFICATION, fetchSince)
+            final List<Event> failures = fetchEvents(rdsProxyClient, sourceIdentifier, sourceType, EVENT_CATEGORY_NOTIFICATION, startTime)
                     .stream()
                     .filter(isFailureEvent)
                     .collect(Collectors.toList());
-            if (!com.amazonaws.util.CollectionUtils.isNullOrEmpty(failures)) {
+            if (!CollectionUtils.isNullOrEmpty(failures)) {
                 return ProgressEvent.failed(
                         progress.getResourceModel(),
                         progress.getCallbackContext(),
@@ -97,21 +95,5 @@ public class Events {
             return Commons.handleException(progress, e, DESCRIBE_EVENTS_ERROR_RULE_SET);
         }
         return progress;
-    }
-
-    private static DescribeEventsRequest describeEventsRequest(
-            final SourceType sourceType,
-            final String sourceIdentifier,
-            @NonNull final Collection<String> eventCategories,
-            final Instant startTime,
-            final Instant endTime
-    ) {
-        return DescribeEventsRequest.builder()
-                .eventCategories(eventCategories.toArray(new String[0]))
-                .sourceIdentifier(sourceIdentifier)
-                .sourceType(sourceType)
-                .startTime(startTime)
-                .endTime(endTime)
-                .build();
     }
 }
