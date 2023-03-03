@@ -639,22 +639,6 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeEventsRequest describeEventsRequest(
-            final SourceType sourceType,
-            final String sourceIdentifier,
-            final Collection<String> eventCategories,
-            final Instant startTime,
-            final Instant endTime
-    ) {
-        return DescribeEventsRequest.builder()
-                .eventCategories(eventCategories.toArray(new String[0]))
-                .sourceIdentifier(sourceIdentifier)
-                .sourceType(sourceType)
-                .startTime(startTime)
-                .endTime(endTime)
-                .build();
-    }
-
     public static List<ResourceModel> translateDbInstancesFromSdk(
             final List<software.amazon.awssdk.services.rds.model.DBInstance> dbInstances
     ) {

@@ -2,6 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
+import java.time.Instant;
 import java.util.HashSet;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -9,6 +10,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -16,6 +18,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
@@ -61,10 +64,10 @@ public class UpdateHandler extends BaseHandlerStd {
                     "Resource is immutable"
             );
         }
-
         return ProgressEvent.progress(desiredResourceState, callbackContext)
                 .then(progress -> {
                     if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                        progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
                         return removeFromGlobalCluster(proxy, rdsProxyClient, progress, request.getPreviousResourceState().getGlobalClusterIdentifier());
                     }
                     return progress;
@@ -77,7 +80,10 @@ public class UpdateHandler extends BaseHandlerStd {
                 })
                 .then(progress -> Commons.execOnce(
                         progress,
-                        () -> modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback),
+                        () -> {
+                            progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
+                            return modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback);
+                        },
                         CallbackContext::isModified,
                         CallbackContext::setModified))
                 .then(progress -> updateAssociatedRoles(
@@ -87,6 +93,15 @@ public class UpdateHandler extends BaseHandlerStd {
                         request.getPreviousResourceState().getAssociatedRoles(),
                         progress.getResourceModel().getAssociatedRoles(),
                         BooleanUtils.isTrue(request.getRollback())))
+                .then(p -> Events.checkFailedEvents(
+                        rdsProxyClient,
+                        p.getResourceModel().getDBClusterIdentifier(),
+                        SourceType.DB_CLUSTER,
+                        p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                        p,
+                        this::isFailureEvent,
+                        logger
+                ))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }
