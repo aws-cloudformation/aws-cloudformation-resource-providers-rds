@@ -5,13 +5,13 @@ import java.util.stream.Collectors;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public class ListHandler extends BaseHandlerStd {
 
@@ -29,8 +29,8 @@ public class ListHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
-
+            final RequestLogger logger
+    ) {
         DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse;
         try {
             describeDbClusterParameterGroupsResponse = proxy
