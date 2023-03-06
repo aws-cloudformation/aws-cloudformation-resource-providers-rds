@@ -2,6 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
@@ -34,6 +36,7 @@ import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.rds.common.handler.Tagging;
 
@@ -536,6 +539,22 @@ public class Translator {
         return MasterUserSecret.builder()
                 .secretArn(sdkSecret.secretArn())
                 .kmsKeyId(sdkSecret.kmsKeyId())
+                .build();
+    }
+
+    public static DescribeEventsRequest describeEventsRequest(
+            final SourceType sourceType,
+            final String sourceIdentifier,
+            final Collection<String> eventCategories,
+            final Instant startTime,
+            final Instant endTime
+    ) {
+        return DescribeEventsRequest.builder()
+                .eventCategories(eventCategories.toArray(new String[0]))
+                .sourceIdentifier(sourceIdentifier)
+                .sourceType(sourceType)
+                .startTime(startTime)
+                .endTime(endTime)
                 .build();
     }
 }

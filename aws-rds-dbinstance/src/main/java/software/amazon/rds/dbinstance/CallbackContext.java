@@ -1,20 +1,18 @@
 package software.amazon.rds.dbinstance;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.TaggingContext;
+import software.amazon.rds.common.handler.TimestampContext;
 
 @lombok.Getter
 @lombok.Setter
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
-public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider {
+public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider {
     private boolean created;
     private boolean deleted;
     private boolean updatedRoles;
@@ -24,9 +22,9 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean allocatingStorage;
     private boolean readReplicaPromoted;
 
-    private Map<String, Long> timestamps;
-
     private TaggingContext taggingContext;
+
+    private Map<String, Long> timestamps;
 
     public CallbackContext() {
         super();

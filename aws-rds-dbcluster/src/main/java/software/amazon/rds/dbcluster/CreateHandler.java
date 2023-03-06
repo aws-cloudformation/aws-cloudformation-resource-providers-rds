@@ -1,16 +1,19 @@
 package software.amazon.rds.dbcluster;
 
+import java.time.Instant;
 import java.util.HashSet;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
@@ -74,7 +77,19 @@ public class CreateHandler extends BaseHandlerStd {
                     if (shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(
                                 progress,
-                                () -> modifyDBCluster(proxy, rdsProxyClient, progress),
+                                () -> {
+                                    progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
+                                    return modifyDBCluster(proxy, rdsProxyClient, progress)
+                                            .then(p -> Events.checkFailedEvents(
+                                                    rdsProxyClient,
+                                                    p.getResourceModel().getDBClusterIdentifier(),
+                                                    SourceType.DB_CLUSTER,
+                                                    p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                                                    p,
+                                                    this::isFailureEvent,
+                                                    logger
+                                            ));
+                                },
                                 CallbackContext::isModified,
                                 CallbackContext::setModified
                         );
