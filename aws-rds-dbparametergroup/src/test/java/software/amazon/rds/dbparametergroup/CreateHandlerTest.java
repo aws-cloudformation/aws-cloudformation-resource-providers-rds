@@ -91,7 +91,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithoutApplyParameters() {
+    public void handleRequest_SuccessWithoutApplyParameters() {
         mockCreateCall();
         mockDescribeDBParameterGroup();
 
@@ -129,7 +129,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessWithApplyParameters() {
+    public void handleRequest_SuccessWithApplyParameters() {
         mockCreateCall();
         mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", true, false, false);
 
@@ -156,7 +156,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleFailWithAccessDenied() {
+    public void handleRequest_FailWithAccessDenied() {
         final String message = "AccessDenied on create request";
 
         when(rdsClient.createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
@@ -184,7 +184,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleUnmodifiableParameterFail() {
+    public void handleRequest_UnmodifiableParameterFail() {
         mockCreateCall();
         mockDescribeDbParametersResponse(proxyClient, "static", "dynamic", false, false, true);
 
@@ -202,7 +202,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleInProgressFailedUnsupportedParams() {
+    public void handleRequest_InProgressFailedUnsupportedParams() {
         mockCreateCall();
         when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
                 .thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
@@ -222,7 +222,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleSuccessAlreadyExists() {
+    public void handleRequest_SuccessAlreadyExists() {
         when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
                 .thenThrow(DbParameterGroupAlreadyExistsException.class);
 
@@ -245,7 +245,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleThrottlingException() {
+    public void handleRequest_ThrottlingException() {
         mockCreateCall();
         when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
                 .thenThrow(RdsException.builder()
@@ -269,7 +269,7 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
-    public void handleRequest_SimpleException() {
+    public void handleRequest_InvalidParameterException() {
         when(proxyClient.client().createDBParameterGroup(any(CreateDbParameterGroupRequest.class)))
                 .thenThrow(InvalidParameterException.class);
 
