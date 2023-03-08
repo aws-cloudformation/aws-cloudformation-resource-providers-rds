@@ -1,14 +1,16 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.util.Map;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.util.DifferenceUtils;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -22,11 +24,13 @@ public class UpdateHandler extends BaseHandlerStd {
     }
 
     @Override
-    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
-                                                                          final ResourceHandlerRequest<ResourceModel> request,
-                                                                          final CallbackContext callbackContext,
-                                                                          final ProxyClient<RdsClient> proxyClient,
-                                                                          final Logger logger) {
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final RequestLogger logger
+    ) {
         final ResourceModel model = request.getDesiredResourceState();
 
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
@@ -41,7 +45,9 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
-        final boolean shouldUpdateParameters = !DifferenceUtils.diff(request.getPreviousResourceState().getParameters(), request.getDesiredResourceState().getParameters()).isEmpty();
+        final Map<String, Object> previousParams = request.getPreviousResourceState().getParameters();
+        final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
+        final boolean shouldUpdateParameters = !DifferenceUtils.diff(previousParams, desiredParams).isEmpty();
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
@@ -52,7 +58,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     return progress;
                 }).then(progress -> Commons.execOnce(progress, () -> {
                     if (shouldUpdateParameters) {
-                        return applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext());
+                        return applyParameters(proxy, proxyClient, progress, desiredParams, logger);
                     }
                     return progress;
                 }, CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
