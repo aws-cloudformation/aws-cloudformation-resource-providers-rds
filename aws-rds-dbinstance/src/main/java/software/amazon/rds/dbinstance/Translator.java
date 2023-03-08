@@ -33,14 +33,12 @@ import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
-import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
@@ -424,7 +422,12 @@ public class Translator {
             builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
         }
 
-        if (BooleanUtils.isNotTrue(isRollback)) {
+        if (BooleanUtils.isTrue(isRollback)) {
+            if (isProvisionedIoStorage(desiredModel)) {
+                builder.allocatedStorage(max(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(desiredModel.getIops());
+            }
+        } else {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
             if (isProvisionedIoStorage(desiredModel)) {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
@@ -519,7 +522,7 @@ public class Translator {
                 .engineVersion(model.getEngineVersion())
                 .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
-                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId(): null)
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .masterUserPassword(model.getMasterUserPassword())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
@@ -913,5 +916,9 @@ public class Translator {
                 .secretArn(sdkSecret.secretArn())
                 .kmsKeyId(sdkSecret.kmsKeyId())
                 .build();
+    }
+
+    private static Integer max(Integer a, Integer b) {
+        return a == null ? b : b == null ? a : Math.max(a, b);
     }
 }

@@ -893,6 +893,66 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorageAndIopsOnRollback_ifStorageTypeIsProvisioned_storageDecr() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_INCR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_DECR)
+                .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
+                .build();
+
+        final boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_sholdIncludeAllocatedStorageAndIopsOnRollback_ifStorageTypeIsProvisioned_storageNoChange() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_INCR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_DECR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+
+        final boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorageAndIopsOnRollback_ifStorageTypeIsProvisioned_storageUnset() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_INCR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_DECR)
+                .allocatedStorage(null)
+                .build();
+
+        final boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
     public void test_modifyAfterCreate_shouldSetManageMasterUserPasswordFields() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
