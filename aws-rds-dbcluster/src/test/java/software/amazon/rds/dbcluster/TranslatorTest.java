@@ -295,6 +295,40 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(translated.getKmsKeyId()).isNull();
     }
 
+    @Test
+    public void modifyDBClusterAfterCreateServerlessShouldNotSetUnsupportedParameters() {
+        final ResourceModel model = ResourceModel.builder()
+                .engineMode(EngineMode.Serverless.toString())
+                .enableIAMDatabaseAuthentication(true)
+                .preferredBackupWindow("backup")
+                .backtrackWindow(100)
+                .allocatedStorage(200)
+                .build();
+        final ModifyDbClusterRequest request = Translator.modifyDBClusterAfterCreate(model);
+
+        assertThat(request.enableIAMDatabaseAuthentication()).isNull();
+        assertThat(request.preferredBackupWindow()).isNull();
+        assertThat(request.backtrackWindow()).isNull();
+        assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
+    public void modifyDBClusterAfterCreateNonServerless() {
+        final ResourceModel model = ResourceModel.builder()
+                .engineMode(EngineMode.Provisioned.toString())
+                .enableIAMDatabaseAuthentication(true)
+                .preferredBackupWindow("backup")
+                .backtrackWindow(100)
+                .allocatedStorage(200)
+                .build();
+        final ModifyDbClusterRequest request = Translator.modifyDBClusterAfterCreate(model);
+
+        assertThat(request.enableIAMDatabaseAuthentication()).isEqualTo(true);
+        assertThat(request.preferredBackupWindow()).isEqualTo("backup");
+        assertThat(request.backtrackWindow()).isEqualTo(100);
+        assertThat(request.allocatedStorage()).isEqualTo(200);
+    }
+
     @Override
     protected BaseHandlerStd getHandler() {
         return null;
