@@ -304,7 +304,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .backtrackWindow(100)
                 .allocatedStorage(200)
                 .build();
-        final ModifyDbClusterRequest request = Translator.modifyDBClusterAfterCreate(model);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterAfterCreateRequest(model);
 
         assertThat(request.enableIAMDatabaseAuthentication()).isNull();
         assertThat(request.preferredBackupWindow()).isNull();
@@ -321,7 +321,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .backtrackWindow(100)
                 .allocatedStorage(200)
                 .build();
-        final ModifyDbClusterRequest request = Translator.modifyDBClusterAfterCreate(model);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterAfterCreateRequest(model);
 
         assertThat(request.enableIAMDatabaseAuthentication()).isEqualTo(true);
         assertThat(request.preferredBackupWindow()).isEqualTo("backup");

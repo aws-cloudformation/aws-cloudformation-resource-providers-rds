@@ -189,7 +189,7 @@ public class Translator {
                 .build();
     }
 
-    static ModifyDbClusterRequest modifyDBClusterAfterCreate(final ResourceModel desiredModel) {
+    static ModifyDbClusterRequest modifyDbClusterAfterCreateRequest(final ResourceModel desiredModel) {
         final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(null, desiredModel);
 
         final ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()

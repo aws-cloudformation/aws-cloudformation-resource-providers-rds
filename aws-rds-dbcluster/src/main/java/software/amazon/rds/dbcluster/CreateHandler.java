@@ -178,7 +178,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::modifyDBClusterAfterCreate)
+                .translateToServiceRequest(Translator::modifyDbClusterAfterCreateRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterModifyRequest,
