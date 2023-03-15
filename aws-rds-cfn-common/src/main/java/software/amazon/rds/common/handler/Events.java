@@ -24,6 +24,7 @@ import software.amazon.rds.common.error.ErrorStatus;
 public class Events {
 
     protected static final String EVENT_CATEGORY_NOTIFICATION = "notification";
+    protected static final String EVENT_CATEGORY_MAINTENANCE = "maintenance";
 
     protected static final ErrorRuleSet DESCRIBE_EVENTS_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -48,18 +49,18 @@ public class Events {
         return false;
     }
 
-    public static <M, C> List<Event> fetchEvents(
+    public static List<Event> fetchEvents(
             final ProxyClient<RdsClient> rdsProxyClient,
             final String sourceIdentifier,
             final SourceType sourceType,
-            final String eventCategory,
+            final String[] eventCategories,
             final Instant startTime
     ) {
         final DescribeEventsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
                 DescribeEventsRequest.builder()
                         .sourceType(sourceType)
                         .sourceIdentifier(sourceIdentifier)
-                        .eventCategories(eventCategory)
+                        .eventCategories(eventCategories)
                         .startTime(startTime)
                         .endTime(Instant.now())
                         .build(),
@@ -78,7 +79,13 @@ public class Events {
             final Logger logger
     ) {
         try {
-            final List<Event> failures = fetchEvents(rdsProxyClient, sourceIdentifier, sourceType, EVENT_CATEGORY_NOTIFICATION, startTime)
+            final List<Event> failures = fetchEvents(
+                    rdsProxyClient,
+                    sourceIdentifier,
+                    sourceType,
+                    new String[]{EVENT_CATEGORY_NOTIFICATION, EVENT_CATEGORY_MAINTENANCE},
+                    startTime
+            )
                     .stream()
                     .filter(isFailureEvent)
                     .collect(Collectors.toList());
