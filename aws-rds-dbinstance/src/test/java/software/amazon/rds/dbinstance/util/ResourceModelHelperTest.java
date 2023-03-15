@@ -154,4 +154,12 @@ public class ResourceModelHelperTest {
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 
+    @Test
+    public void shouldUpdateAfterCreate_whenDeletionProtectionIsTrue() {
+        final ResourceModel model = ResourceModel.builder()
+                .sourceDBInstanceIdentifier("source-db-instance-identifier")
+                .deletionProtection(true)
+                .build();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
 }

@@ -1,14 +1,14 @@
 package software.amazon.rds.dbinstance.util;
 
-import com.amazonaws.util.StringUtils;
-import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang3.BooleanUtils;
-import software.amazon.awssdk.utils.CollectionUtils;
-import software.amazon.rds.dbinstance.ResourceModel;
-import software.amazon.rds.dbinstance.StorageType;
-
 import java.util.Optional;
 import java.util.Set;
+
+import org.apache.commons.lang3.BooleanUtils;
+
+import com.amazonaws.util.StringUtils;
+import com.google.common.collect.ImmutableSet;
+import software.amazon.awssdk.utils.CollectionUtils;
+import software.amazon.rds.dbinstance.ResourceModel;
 
 public final class ResourceModelHelper {
     private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
@@ -36,7 +36,8 @@ public final class ResourceModelHelper {
                                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
                                 (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
-                                BooleanUtils.isTrue(model.getManageMasterUserPassword())
+                                BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
+                                BooleanUtils.isTrue(model.getDeletionProtection())
                 );
     }
 
@@ -49,7 +50,7 @@ public final class ResourceModelHelper {
     public static boolean isRestoreToPointInTime(final ResourceModel model) {
         // Parameters to rely on are UseLatestRestorableTime and RestoreTime to tell if this is a RestoreToPointInTime
         // But SourceDBInstanceAutomatedBackupsArn and DbiResourceId are also unique identifying parameters of RestoreToPointInTime
-        return  BooleanUtils.isTrue(model.getUseLatestRestorableTime()) || StringUtils.hasValue(model.getRestoreTime())  ||
+        return BooleanUtils.isTrue(model.getUseLatestRestorableTime()) || StringUtils.hasValue(model.getRestoreTime()) ||
                 StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn()) || StringUtils.hasValue(model.getSourceDbiResourceId());
     }
 
