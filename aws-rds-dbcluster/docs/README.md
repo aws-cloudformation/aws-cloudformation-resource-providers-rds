@@ -54,6 +54,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#preferredmaintenancewindow" title="PreferredMaintenanceWindow">PreferredMaintenanceWindow</a>" : <i>String</i>,
         "<a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>" : <i>Boolean</i>,
         "<a href="#replicationsourceidentifier" title="ReplicationSourceIdentifier">ReplicationSourceIdentifier</a>" : <i>String</i>,
+        "<a href="#restoretotime" title="RestoreToTime">RestoreToTime</a>" : <i>String</i>,
         "<a href="#restoretype" title="RestoreType">RestoreType</a>" : <i>String</i>,
         "<a href="#serverlessv2scalingconfiguration" title="ServerlessV2ScalingConfiguration">ServerlessV2ScalingConfiguration</a>" : <i><a href="serverlessv2scalingconfiguration.md">ServerlessV2ScalingConfiguration</a></i>,
         "<a href="#scalingconfiguration" title="ScalingConfiguration">ScalingConfiguration</a>" : <i><a href="scalingconfiguration.md">ScalingConfiguration</a></i>,
@@ -119,6 +120,7 @@ Properties:
     <a href="#preferredmaintenancewindow" title="PreferredMaintenanceWindow">PreferredMaintenanceWindow</a>: <i>String</i>
     <a href="#publiclyaccessible" title="PubliclyAccessible">PubliclyAccessible</a>: <i>Boolean</i>
     <a href="#replicationsourceidentifier" title="ReplicationSourceIdentifier">ReplicationSourceIdentifier</a>: <i>String</i>
+    <a href="#restoretotime" title="RestoreToTime">RestoreToTime</a>: <i>String</i>
     <a href="#restoretype" title="RestoreType">RestoreType</a>: <i>String</i>
     <a href="#serverlessv2scalingconfiguration" title="ServerlessV2ScalingConfiguration">ServerlessV2ScalingConfiguration</a>: <i><a href="serverlessv2scalingconfiguration.md">ServerlessV2ScalingConfiguration</a></i>
     <a href="#scalingconfiguration" title="ScalingConfiguration">ScalingConfiguration</a>: <i><a href="scalingconfiguration.md">ScalingConfiguration</a></i>
@@ -561,6 +563,16 @@ _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/l
 #### ReplicationSourceIdentifier
 
 The Amazon Resource Name (ARN) of the source DB instance or DB cluster if this DB cluster is created as a Read Replica.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### RestoreToTime
+
+The date and time to restore the DB cluster to. Value must be a time in Universal Coordinated Time (UTC) format. An example: 2015-03-07T23:45:00Z
 
 _Required_: No
 

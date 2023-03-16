@@ -3,6 +3,7 @@ package software.amazon.rds.dbcluster;
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,9 +39,13 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotReq
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
+
+    public static final String COPY_ON_WRITE = "copy-on-write";
+
     static CreateDbClusterRequest createDbClusterRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
@@ -99,7 +104,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return RestoreDbClusterToPointInTimeRequest.builder()
+        RestoreDbClusterToPointInTimeRequest.Builder builder = RestoreDbClusterToPointInTimeRequest.builder()
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
@@ -111,15 +116,27 @@ public class Translator {
                 .kmsKeyId(model.getKmsKeyId())
                 .networkType(model.getNetworkType())
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .restoreType(model.getRestoreType())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
-                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
-                .build();
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds());
+
+        if(StringUtils.hasValue(model.getRestoreToTime())
+                && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())
+                && !COPY_ON_WRITE.equalsIgnoreCase(model.getRestoreType())) {
+            try{
+                builder.restoreToTime(Instant.parse(model.getRestoreToTime()));
+            } catch (DateTimeParseException exception) {
+                throw new CfnInvalidRequestException(
+                        model.getRestoreToTime() + " is invalid RestoreToTime Universal Coordinated Time (UTC) format." +
+                                " A valid example: 2015-03-07T23:45:00Z");
+            }
+        }
+
+        return builder.build();
     }
 
     static RestoreDbClusterFromSnapshotRequest restoreDbClusterFromSnapshotRequest(
