@@ -3,7 +3,6 @@ package software.amazon.rds.dbcluster;
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,10 +15,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -124,16 +123,12 @@ public class Translator {
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds());
 
-        if(StringUtils.hasValue(model.getRestoreToTime())
-                && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())
-                && !COPY_ON_WRITE.equalsIgnoreCase(model.getRestoreType())) {
-            try{
-                builder.restoreToTime(Instant.parse(model.getRestoreToTime()));
-            } catch (DateTimeParseException exception) {
-                throw new CfnInvalidRequestException(
-                        model.getRestoreToTime() + " is invalid RestoreToTime Universal Coordinated Time (UTC) format." +
-                                " A valid example: 2015-03-07T23:45:00Z");
+        if (StringUtils.hasValue(model.getRestoreToTime())
+                && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())) {
+            if (COPY_ON_WRITE.equalsIgnoreCase(model.getRestoreType())) {
+                throw new CfnInvalidRequestException("When RestoreToTime specified, Restore type can not be copy-on-write");
             }
+            builder.restoreToTime(Instant.parse(model.getRestoreToTime()));
         }
 
         return builder.build();

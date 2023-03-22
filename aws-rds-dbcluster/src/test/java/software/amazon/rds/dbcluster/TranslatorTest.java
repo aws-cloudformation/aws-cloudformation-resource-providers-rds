@@ -348,16 +348,18 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void restoreDBClusterToPointInTimeInvalidFormat() {
+    public void restoreDBClusterToPointInTimeInvalid() {
         final ResourceModel model = ResourceModel.builder()
                 .engineMode(EngineMode.Provisioned.toString())
                 .enableIAMDatabaseAuthentication(true)
                 .useLatestRestorableTime(false)
-                .restoreToTime("invalid-format")
+                .restoreType("copy-on-write")
+                .restoreToTime("2019-03-07T23:45:00Z")
                 .build();
         assertThatThrownBy(() -> Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet()))
                 .isInstanceOf(CfnInvalidRequestException.class);
     }
+
     @Override
     protected BaseHandlerStd getHandler() {
         return null;
