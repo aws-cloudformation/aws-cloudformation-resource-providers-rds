@@ -38,13 +38,10 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotReq
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
-
-    public static final String COPY_ON_WRITE = "copy-on-write";
-
     static CreateDbClusterRequest createDbClusterRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
@@ -125,10 +122,7 @@ public class Translator {
 
         if (StringUtils.hasValue(model.getRestoreToTime())
                 && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())) {
-            if (COPY_ON_WRITE.equalsIgnoreCase(model.getRestoreType())) {
-                throw new CfnInvalidRequestException("When RestoreToTime specified, Restore type can not be copy-on-write");
-            }
-            builder.restoreToTime(Instant.parse(model.getRestoreToTime()));
+            builder.restoreToTime(Commons.parseTimestamp(model.getRestoreToTime()));
         }
 
         return builder.build();

@@ -204,6 +204,6 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return isRestoreFromSnapshot(model);
+        return isRestoreFromSnapshot(model) || isRestoreToPointInTime(model);
     }
 }

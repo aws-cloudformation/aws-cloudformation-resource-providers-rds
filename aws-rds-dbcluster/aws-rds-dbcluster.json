@@ -209,7 +209,6 @@
     },
     "RestoreToTime": {
       "description": "The date and time to restore the DB cluster to. Value must be a time in Universal Coordinated Time (UTC) format. An example: 2015-03-07T23:45:00Z",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
       "type": "string"
     },
     "RestoreType": {
@@ -427,11 +426,12 @@
     "/properties/AvailabilityZones",
     "/properties/DBClusterIdentifier",
     "/properties/DBSubnetGroupName",
-    "/properties/DatabaseName",
     "/properties/DBSystemId",
+    "/properties/DatabaseName",
     "/properties/EngineMode",
     "/properties/KmsKeyId",
     "/properties/PubliclyAccessible",
+    "/properties/RestoreToTime",
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",
@@ -450,6 +450,7 @@
   "writeOnlyProperties": [
     "/properties/DBInstanceParameterGroupName",
     "/properties/MasterUserPassword",
+    "/properties/RestoreToTime",
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",

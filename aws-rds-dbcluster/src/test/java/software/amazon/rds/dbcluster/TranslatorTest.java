@@ -1,7 +1,6 @@
 package software.amazon.rds.dbcluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
 import java.util.Random;
@@ -15,7 +14,6 @@ import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
@@ -345,19 +343,6 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         assertThat(request.useLatestRestorableTime()).isEqualTo(false);
         assertThat(request.restoreToTime()).isEqualTo("2019-03-07T23:45:00Z");
-    }
-
-    @Test
-    public void restoreDBClusterToPointInTimeInvalid() {
-        final ResourceModel model = ResourceModel.builder()
-                .engineMode(EngineMode.Provisioned.toString())
-                .enableIAMDatabaseAuthentication(true)
-                .useLatestRestorableTime(false)
-                .restoreType("copy-on-write")
-                .restoreToTime("2019-03-07T23:45:00Z")
-                .build();
-        assertThatThrownBy(() -> Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet()))
-                .isInstanceOf(CfnInvalidRequestException.class);
     }
 
     @Override
