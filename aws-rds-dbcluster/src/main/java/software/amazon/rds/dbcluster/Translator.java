@@ -189,6 +189,50 @@ public class Translator {
                 .build();
     }
 
+    static ModifyDbClusterRequest modifyDbClusterAfterCreateRequest(final ResourceModel desiredModel) {
+        final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(null, desiredModel);
+
+        final ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
+                .applyImmediately(Boolean.TRUE)
+                .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
+                .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
+                .cloudwatchLogsExportConfiguration(config)
+                .copyTagsToSnapshot(desiredModel.getCopyTagsToSnapshot())
+                .dbClusterIdentifier(desiredModel.getDBClusterIdentifier())
+                .dbClusterInstanceClass(desiredModel.getDBClusterInstanceClass())
+                .dbClusterParameterGroupName(desiredModel.getDBClusterParameterGroupName())
+                .deletionProtection(desiredModel.getDeletionProtection())
+                .domain(desiredModel.getDomain())
+                .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
+                .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
+                .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
+                .iops(desiredModel.getIops())
+                .masterUserPassword(desiredModel.getMasterUserPassword())
+                .monitoringInterval(desiredModel.getMonitoringInterval())
+                .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
+                .networkType(desiredModel.getNetworkType())
+                .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKmsKeyId())
+                .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
+                .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
+                .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
+                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(desiredModel.getServerlessV2ScalingConfiguration()))
+                .storageType(desiredModel.getStorageType());
+
+        if (EngineMode.fromString(desiredModel.getEngineMode()) != EngineMode.Serverless) {
+            builder.allocatedStorage(desiredModel.getAllocatedStorage())
+                    .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
+                    .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
+                    .preferredBackupWindow(desiredModel.getPreferredBackupWindow());
+        }
+
+        if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
+            builder.manageMasterUserPassword(true);
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret() != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null);
+        }
+
+        return builder.build();
+    }
+
     static ModifyDbClusterRequest modifyDbClusterRequest(
             final ResourceModel previousModel,
             final ResourceModel desiredModel,

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
+import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
@@ -116,5 +118,24 @@ class EventsTest extends ProxyClientTestBase {
         assertThat(resultEvent.isFailed()).isTrue();
         assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.ServiceInternalError);
         assertThat(resultEvent.getMessage()).isEqualTo(SERVICE_INTERNAL_FAILURE_MESSAGE);
+    }
+
+    @Test
+    public void test_fetchEvents_shouldSetCategories() {
+        when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        Events.fetchEvents(
+                proxyRdsClient,
+                "test_identifier",
+                SourceType.DB_CLUSTER,
+                new String[]{"category1", "category2", "category3"},
+                Instant.now()
+        );
+
+        ArgumentCaptor<DescribeEventsRequest> captor = ArgumentCaptor.forClass(DescribeEventsRequest.class);
+        verify(proxyRdsClient.client(), times(1)).describeEvents(captor.capture());
+
+        assertThat(captor.getValue().eventCategories()).isEqualTo(ImmutableList.of("category1", "category2", "category3"));
     }
 }

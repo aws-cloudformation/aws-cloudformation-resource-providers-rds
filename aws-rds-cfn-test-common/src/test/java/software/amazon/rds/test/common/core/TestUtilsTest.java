@@ -18,6 +18,6 @@ public class TestUtilsTest {
                 .sorted()
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                 .toString();
-        Assertions.assertThat(alphabet.contains(resultAlphabet)).isTrue();
+        Assertions.assertThat(alphabet).contains(resultAlphabet);
     }
 }
