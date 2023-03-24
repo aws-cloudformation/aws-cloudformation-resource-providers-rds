@@ -1,13 +1,13 @@
 package software.amazon.rds.common.handler;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.function.Function;
 
 import lombok.NonNull;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
@@ -91,10 +91,6 @@ public final class Commons {
     }
 
     public static Instant parseTimestamp(@NonNull String timestamp) {
-        try {
-            return Instant.parse(timestamp);
-        } catch (Exception exception) {
-            throw new CfnInvalidRequestException("timestamp must follow ISO8601", exception);
-        }
+        return ZonedDateTime.parse(timestamp).toInstant();
     }
 }

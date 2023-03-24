@@ -3,7 +3,6 @@ package software.amazon.rds.dbinstance;
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -293,7 +292,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? Commons.parseTimestamp(model.getRestoreTime()) : null;
+        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime())? Commons.parseTimestamp(model.getRestoreTime()) :null;
 
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())

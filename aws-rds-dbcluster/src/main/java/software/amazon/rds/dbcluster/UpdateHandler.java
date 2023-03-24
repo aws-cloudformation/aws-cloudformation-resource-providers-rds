@@ -16,12 +16,12 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
@@ -36,7 +36,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
+            final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
