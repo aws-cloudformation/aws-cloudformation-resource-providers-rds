@@ -3,7 +3,6 @@ package software.amazon.rds.dbinstance;
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +39,7 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
@@ -292,7 +292,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? ZonedDateTime.parse(model.getRestoreTime()).toInstant() : null;
+        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime())? Commons.parseTimestamp(model.getRestoreTime()) :null;
 
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())

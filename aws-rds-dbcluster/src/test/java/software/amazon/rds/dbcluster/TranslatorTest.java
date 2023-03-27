@@ -13,8 +13,10 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -327,6 +329,20 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.preferredBackupWindow()).isEqualTo("backup");
         assertThat(request.backtrackWindow()).isEqualTo(100);
         assertThat(request.allocatedStorage()).isEqualTo(200);
+    }
+
+    @Test
+    public void restoreDBClusterToPointInTime() {
+        final ResourceModel model = ResourceModel.builder()
+                .engineMode(EngineMode.Provisioned.toString())
+                .enableIAMDatabaseAuthentication(true)
+                .useLatestRestorableTime(false)
+                .restoreToTime("2019-03-07T23:45:00Z")
+                .build();
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+
+        assertThat(request.useLatestRestorableTime()).isEqualTo(false);
+        assertThat(request.restoreToTime()).isEqualTo("2019-03-07T23:45:00Z");
     }
 
     @Override

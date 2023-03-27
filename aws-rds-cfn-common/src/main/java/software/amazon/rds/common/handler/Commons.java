@@ -1,7 +1,10 @@
 package software.amazon.rds.common.handler;
 
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.function.Function;
 
+import lombok.NonNull;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
@@ -85,5 +88,9 @@ public final class Commons {
             });
         }
         return progress;
+    }
+
+    public static Instant parseTimestamp(@NonNull String timestamp) {
+        return ZonedDateTime.parse(timestamp).toInstant();
     }
 }

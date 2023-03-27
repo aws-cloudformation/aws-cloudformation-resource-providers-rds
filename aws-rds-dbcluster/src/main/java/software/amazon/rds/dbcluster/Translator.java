@@ -15,10 +15,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -38,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotReq
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
@@ -99,7 +100,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return RestoreDbClusterToPointInTimeRequest.builder()
+        RestoreDbClusterToPointInTimeRequest.Builder builder = RestoreDbClusterToPointInTimeRequest.builder()
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
@@ -111,15 +112,20 @@ public class Translator {
                 .kmsKeyId(model.getKmsKeyId())
                 .networkType(model.getNetworkType())
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .restoreType(model.getRestoreType())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
-                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
-                .build();
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds());
+
+        if (StringUtils.hasValue(model.getRestoreToTime())
+                && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())) {
+            builder.restoreToTime(Commons.parseTimestamp(model.getRestoreToTime()));
+        }
+
+        return builder.build();
     }
 
     static RestoreDbClusterFromSnapshotRequest restoreDbClusterFromSnapshotRequest(
