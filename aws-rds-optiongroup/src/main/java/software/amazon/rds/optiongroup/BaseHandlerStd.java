@@ -158,15 +158,4 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         );
         return Translator.translateTagsFromSdk(listTagsForResourceResponse.tagList());
     }
-
-    protected <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
-        final Map<K, V> result = new HashMap<>();
-        if (m1 != null) {
-            result.putAll(m1);
-        }
-        if (m2 != null) {
-            result.putAll(m2);
-        }
-        return result;
-    }
 }
