@@ -10,7 +10,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.common.request.ValidatedRequest;
 
 public class ListHandler extends BaseHandlerStd {
 

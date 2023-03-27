@@ -59,7 +59,6 @@ import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
-import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -75,6 +74,9 @@ import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.common.printer.JsonPrinter;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.common.request.Validations;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
@@ -168,6 +170,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         this.config = config;
     }
 
+    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ValidatedRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger
+    );
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger
+    ) {
+        try {
+            validateRequest(request);
+        } catch (RequestValidationException exception) {
+            return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
+        }
+
+        return handleRequest(proxy, new ValidatedRequest<>(request), callbackContext, rdsProxyClient, ec2ProxyClient, logger);
+    }
+
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -189,14 +217,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 ));
     }
 
-    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-            final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
-    );
+    protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        Validations.validateSourceRegion(request.getDesiredResourceState().getSourceRegion());
+    }
 
     protected boolean isFailureEvent(final Event event) {
         return EVENT_FAIL_CHECKERS.stream().anyMatch(p -> p.test(event));
