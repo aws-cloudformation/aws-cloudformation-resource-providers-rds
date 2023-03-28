@@ -37,7 +37,8 @@ public final class ResourceModelHelper {
                                 Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
                                 (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
-                                BooleanUtils.isTrue(model.getDeletionProtection())
+                                BooleanUtils.isTrue(model.getDeletionProtection()) ||
+                                BooleanUtils.isTrue(model.getEnablePerformanceInsights())
                 );
     }
 
