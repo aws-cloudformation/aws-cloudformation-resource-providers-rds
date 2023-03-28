@@ -1,11 +1,10 @@
 package software.amazon.rds.dbinstance.util;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import software.amazon.rds.dbinstance.ResourceModel;
-
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+import org.junit.jupiter.api.Test;
+
+import software.amazon.rds.dbinstance.ResourceModel;
 
 public class ResourceModelHelperTest {
 
@@ -161,5 +160,32 @@ public class ResourceModelHelperTest {
                 .deletionProtection(true)
                 .build();
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_enablePerformanceInsights() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("db-snapshot-identifier")
+                .enablePerformanceInsights(true)
+                .build();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldNotUpdateAfterCreate_enablePerformanceInsightsIsFalse() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("db-snapshot-identifier")
+                .enablePerformanceInsights(false)
+                .build();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+    }
+
+    @Test
+    public void shouldNotUpdateAfterCreate_enablePerformanceInsightsIsNull() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("db-snapshot-identifier")
+                .enablePerformanceInsights(null)
+                .build();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
     }
 }

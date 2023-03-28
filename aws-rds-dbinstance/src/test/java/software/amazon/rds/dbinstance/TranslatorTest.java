@@ -966,6 +966,15 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyAfterCreate_shouldSetEnablePerformanceInsights() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .enablePerformanceInsights(true)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+    }
+
+    @Test
     public void test_restoreDbInstanceFromSnapshot_shouldKeepCopyTagsToSnapshotEmptyIfUnset() {
         final ResourceModel model = ResourceModel.builder()
                 .build();

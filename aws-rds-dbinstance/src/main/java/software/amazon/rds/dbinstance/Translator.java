@@ -292,7 +292,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime())? Commons.parseTimestamp(model.getRestoreTime()) :null;
+        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? Commons.parseTimestamp(model.getRestoreTime()) : null;
 
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -521,6 +521,7 @@ public class Translator {
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .deletionProtection(model.getDeletionProtection())
+                .enablePerformanceInsights(model.getEnablePerformanceInsights())
                 .engineVersion(model.getEngineVersion())
                 .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
