@@ -5,6 +5,7 @@ Description: AWS SAM template for the AWS::RDS::GlobalCluster resource type
 Globals:
   Function:
     Timeout: 60  # docker start-up times can be long for SAM CLI
+    MemorySize: 1024
 
 Resources:
   TypeFunction:
@@ -13,7 +14,6 @@ Resources:
       Handler: software.amazon.rds.globalcluster.HandlerWrapper::handleRequest
       Runtime: java8
       CodeUri: ./target/aws-rds-globalcluster-handler-1.0-SNAPSHOT.jar
-      MemorySize: 256
 
   TestEntrypoint:
     Type: AWS::Serverless::Function
@@ -21,4 +21,3 @@ Resources:
       Handler: software.amazon.rds.globalcluster.HandlerWrapper::testEntrypoint
       Runtime: java8
       CodeUri: ./target/aws-rds-globalcluster-handler-1.0-SNAPSHOT.jar
-      MemorySize: 256

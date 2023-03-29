@@ -55,6 +55,9 @@
     }
   ],
   "additionalProperties": false,
+  "propertyTransform": {
+    "/properties/GlobalClusterIdentifier": "$lowercase(GlobalClusterIdentifier)"
+  },
   "createOnlyProperties": [
     "/properties/GlobalClusterIdentifier",
     "/properties/SourceDBClusterIdentifier",

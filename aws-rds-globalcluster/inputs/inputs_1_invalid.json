@@ -1,4 +1,4 @@
 {
-  "GlobalClusterIdentifier": "cf-contract-test-global-cluster-0",
+  "GlobalClusterIdentifier": "cf-contract-test-global-cluster-0-invalid",
   "Engine": "bogus"
 }
