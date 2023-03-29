@@ -188,4 +188,22 @@ public class ResourceModelHelperTest {
                 .build();
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
     }
+
+    @Test
+    public void shouldUpdateAfterCreate_monitoringIntervalIsSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("db-snapshot-identifier")
+                .monitoringInterval(42)
+                .build();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_monitoringRoleArnIsSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("db-snapshot-identifier")
+                .monitoringRoleArn("monitoring-role-arn")
+                .build();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
 }

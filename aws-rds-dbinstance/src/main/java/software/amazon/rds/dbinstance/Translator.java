@@ -528,6 +528,8 @@ public class Translator {
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
+                .monitoringInterval(model.getMonitoringInterval())
+                .monitoringRoleArn(model.getMonitoringRoleArn())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
