@@ -31,10 +31,12 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getMasterUserPassword()) ||
                                 StringUtils.hasValue(model.getPreferredBackupWindow()) ||
                                 StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
+                                StringUtils.hasValue(model.getMonitoringRoleArn()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
+                                Optional.ofNullable(model.getMonitoringInterval()).orElse(0) > 0 ||
                                 (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
