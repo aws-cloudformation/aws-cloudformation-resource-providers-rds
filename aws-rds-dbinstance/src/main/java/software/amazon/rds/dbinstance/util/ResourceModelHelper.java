@@ -32,12 +32,17 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getPreferredBackupWindow()) ||
                                 StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
-                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
+                                (isSqlServer(model) && isStorageParametersModified(model)) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword())
                 );
+    }
+
+    public static boolean isStorageParametersModified(final ResourceModel model) {
+        return StringUtils.hasValue(model.getAllocatedStorage()) ||
+                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
+                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
+                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
+                StringUtils.hasValue(model.getStorageType());
     }
 
     public static boolean isSqlServer(final ResourceModel model) {
