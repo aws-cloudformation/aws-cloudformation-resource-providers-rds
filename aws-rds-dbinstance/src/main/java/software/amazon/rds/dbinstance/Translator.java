@@ -3,7 +3,6 @@ package software.amazon.rds.dbinstance;
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +39,7 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
@@ -75,6 +75,7 @@ public class Translator {
         final CreateDbInstanceReadReplicaRequest.Builder builder = CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -152,11 +153,11 @@ public class Translator {
                 .availabilityZone(model.getAvailabilityZone())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
+                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbName(model.getDBName())
                 .dbParameterGroupName(model.getDBParameterGroupName())
-                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
@@ -246,13 +247,13 @@ public class Translator {
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
-                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .licenseModel(model.getLicenseModel())
-                .masterUsername(model.getMasterUsername())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUserSecretKmsKeyId(model.getMasterUserSecret() == null ? null : model.getMasterUserSecret().getKmsKeyId())
+                .masterUsername(model.getMasterUsername())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
@@ -264,8 +265,8 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
-                .promotionTier(model.getPromotionTier())
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
+                .promotionTier(model.getPromotionTier())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .storageEncrypted(model.getStorageEncrypted())
                 .storageThroughput(model.getStorageThroughput())
@@ -291,7 +292,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? ZonedDateTime.parse(model.getRestoreTime()).toInstant() : null;
+        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? Commons.parseTimestamp(model.getRestoreTime()) : null;
 
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -317,9 +318,9 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreTime(restoreTimeInstant)
+                .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceDbiResourceId(model.getSourceDbiResourceId())
-                .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .targetDBInstanceIdentifier(model.getDBInstanceIdentifier()) // We only work with DBInstanceId not TargetDBInstanceId
                 .tdeCredentialArn(model.getTdeCredentialArn())
@@ -515,16 +516,20 @@ public class Translator {
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
-                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .caCertificateIdentifier(model.getCACertificateIdentifier())
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbParameterGroupName(model.getDBParameterGroupName())
+                .deletionProtection(model.getDeletionProtection())
+                .enablePerformanceInsights(model.getEnablePerformanceInsights())
                 .engineVersion(model.getEngineVersion())
                 .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
-                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .masterUserPassword(model.getMasterUserPassword())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
+                .monitoringInterval(model.getMonitoringInterval())
+                .monitoringRoleArn(model.getMonitoringRoleArn())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
@@ -698,8 +703,8 @@ public class Translator {
                 .autoMinorVersionUpgrade(dbInstance.autoMinorVersionUpgrade())
                 .availabilityZone(dbInstance.availabilityZone())
                 .backupRetentionPeriod(dbInstance.backupRetentionPeriod())
-                .certificateDetails(translateCertificateDetailsFromSdk(dbInstance.certificateDetails()))
                 .cACertificateIdentifier(dbInstance.caCertificateIdentifier())
+                .certificateDetails(translateCertificateDetailsFromSdk(dbInstance.certificateDetails()))
                 .characterSetName(dbInstance.characterSetName())
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
                 .customIAMInstanceProfile(dbInstance.customIamInstanceProfile())
@@ -707,27 +712,27 @@ public class Translator {
                 .dBInstanceArn(dbInstance.dbInstanceArn())
                 .dBInstanceClass(dbInstance.dbInstanceClass())
                 .dBInstanceIdentifier(dbInstance.dbInstanceIdentifier())
-                .dbiResourceId(dbInstance.dbiResourceId())
                 .dBName(dbInstance.dbName())
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
                 .dBSystemId(dbInstance.dbSystemId())
+                .dbiResourceId(dbInstance.dbiResourceId())
+                .deletionProtection(dbInstance.deletionProtection())
                 .domain(domain)
                 .domainIAMRoleName(domainIAMRoleName)
-                .deletionProtection(dbInstance.deletionProtection())
                 .enableCloudwatchLogsExports(translateEnableCloudwatchLogsExport(dbInstance.enabledCloudwatchLogsExports()))
                 .enableIAMDatabaseAuthentication(dbInstance.iamDatabaseAuthenticationEnabled())
                 .enablePerformanceInsights(dbInstance.performanceInsightsEnabled())
                 .endpoint(endpoint)
                 .engine(dbInstance.engine())
                 .engineVersion(dbInstance.engineVersion())
-                .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .iops(dbInstance.iops())
                 .kmsKeyId(dbInstance.kmsKeyId())
                 .licenseModel(dbInstance.licenseModel())
-                .masterUsername(dbInstance.masterUsername())
+                .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .masterUserSecret(translateMasterUserSecret(dbInstance.masterUserSecret()))
+                .masterUsername(dbInstance.masterUsername())
                 .maxAllocatedStorage(dbInstance.maxAllocatedStorage())
                 .monitoringInterval(dbInstance.monitoringInterval())
                 .monitoringRoleArn(dbInstance.monitoringRoleArn())

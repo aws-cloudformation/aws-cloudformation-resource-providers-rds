@@ -22,11 +22,12 @@ import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.RequestValidationException;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -49,6 +50,7 @@ public class CreateHandler extends BaseHandlerStd {
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
         super.validateRequest(request);
         validateDeletionPolicyForClusterInstance(request);
+        Validations.validateTimestamp(request.getDesiredResourceState().getRestoreTime());
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {

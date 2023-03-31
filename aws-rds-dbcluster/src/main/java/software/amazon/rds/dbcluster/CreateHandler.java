@@ -16,6 +16,9 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -34,9 +37,15 @@ public class CreateHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
+    protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        super.validateRequest(request);
+        Validations.validateTimestamp(request.getDesiredResourceState().getRestoreToTime());
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
+            final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger
@@ -178,7 +187,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(model -> Translator.modifyDbClusterRequest(model, model, false))
+                .translateToServiceRequest(Translator::modifyDbClusterAfterCreateRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterModifyRequest,
@@ -204,6 +213,6 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return isRestoreFromSnapshot(model);
+        return isRestoreFromSnapshot(model) || isRestoreToPointInTime(model);
     }
 }

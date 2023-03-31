@@ -87,13 +87,14 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.RequestValidationException;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
@@ -343,18 +344,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        validateSourceRegion(request);
-    }
-
-    protected void validateSourceRegion(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        final ResourceModel model = request.getDesiredResourceState();
-        final String sourceRegion = model.getSourceRegion();
-        if (StringUtils.isNotBlank(sourceRegion)) {
-            final Set<String> regionNames = Region.regions().stream().map(Region::toString).collect(Collectors.toSet());
-            if (!regionNames.contains(sourceRegion.toLowerCase(Locale.getDefault()))) {
-                throw new RequestValidationException(UNKNOWN_SOURCE_REGION_ERROR);
-            }
-        }
+        Validations.validateSourceRegion(request.getDesiredResourceState().getSourceRegion());
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(

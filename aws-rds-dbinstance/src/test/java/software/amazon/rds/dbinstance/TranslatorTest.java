@@ -966,6 +966,29 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyAfterCreate_shouldSetEnablePerformanceInsights() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .enablePerformanceInsights(true)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetEnhancedMonitoring() {
+        final String monitoringRoleArn = "monitoring-role-arn";
+        final int monitoringInterval = 42;
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .monitoringRoleArn(monitoringRoleArn)
+                .monitoringInterval(monitoringInterval)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+
+        assertThat(request.monitoringRoleArn()).isEqualTo(monitoringRoleArn);
+        assertThat(request.monitoringInterval()).isEqualTo(monitoringInterval);
+    }
+
+    @Test
     public void test_restoreDbInstanceFromSnapshot_shouldKeepCopyTagsToSnapshotEmptyIfUnset() {
         final ResourceModel model = ResourceModel.builder()
                 .build();

@@ -1,4 +1,4 @@
-package software.amazon.rds.dbinstance.request;
+package software.amazon.rds.common.request;
 
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 

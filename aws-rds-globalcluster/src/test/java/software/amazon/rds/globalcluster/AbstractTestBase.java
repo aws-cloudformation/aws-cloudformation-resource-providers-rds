@@ -59,9 +59,9 @@ public class AbstractTestBase {
     GLOBALCLUSTER_IDENTIFIER = "my-sample-globalcluster";
     SOURCECLUSTER_IDENTIFIER = "my-sample-dbcluster";
     SOURCECLUSTER_ARN = "arn:aws:rds:us-east-1:340834135580:cluster:sample-globalcluster";
-    ENGINE = "aurora";
-    ENGINE_VERSION = "5.6.mysql_aurora.1.22.2";
-    ENGINE_VERSION_MVU = "5.7.mysql_aurora.2.10.2";
+    ENGINE = "aurora-mysql";
+    ENGINE_VERSION = "5.7.mysql_aurora.2.11.1";
+    ENGINE_VERSION_MVU = "8.0.mysql_aurora.3.03.0";
     DELETION_PROTECTION = false;
 
 
