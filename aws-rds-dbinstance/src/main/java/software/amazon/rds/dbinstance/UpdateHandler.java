@@ -39,6 +39,7 @@ import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -120,7 +121,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                 }, CallbackContext::isStorageAllocated, CallbackContext::setStorageAllocated))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (shouldPromoteReadReplica(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                    if (ResourceModelHelper.isReadReplicaPromotion(request.getPreviousResourceState(), request.getDesiredResourceState())) {
                         return promoteReadReplica(proxy, rdsClient, progress);
                     }
                     return progress;
