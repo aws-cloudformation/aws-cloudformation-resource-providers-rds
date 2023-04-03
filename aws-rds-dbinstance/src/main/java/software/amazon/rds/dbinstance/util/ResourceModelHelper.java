@@ -1,14 +1,13 @@
 package software.amazon.rds.dbinstance.util;
 
-import java.util.Optional;
-import java.util.Set;
-
-import org.apache.commons.lang3.BooleanUtils;
-
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
+
+import java.util.Optional;
+import java.util.Set;
 
 public final class ResourceModelHelper {
     private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
@@ -33,15 +32,20 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
                                 StringUtils.hasValue(model.getMonitoringRoleArn()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMonitoringInterval()).orElse(0) > 0 ||
-                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
+                                (isSqlServer(model) &&  isStorageParametersModified(model)) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
                                 BooleanUtils.isTrue(model.getEnablePerformanceInsights())
                 );
+    }
+
+    public static boolean isStorageParametersModified(final ResourceModel model) {
+        return StringUtils.hasValue(model.getAllocatedStorage()) ||
+                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
+                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
+                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
+                StringUtils.hasValue(model.getStorageType());
     }
 
     public static boolean isSqlServer(final ResourceModel model) {

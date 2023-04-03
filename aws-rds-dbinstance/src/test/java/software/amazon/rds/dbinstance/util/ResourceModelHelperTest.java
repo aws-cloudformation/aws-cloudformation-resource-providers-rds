@@ -206,4 +206,36 @@ public class ResourceModelHelperTest {
                 .build();
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndStorageTypeSpecified() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndSqlServerEngineAndStorageTypeSpecified() {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("snapshot")
+                .engine("sqlserver")
+                .storageType("gp2")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndAuroraEngineAndStorageTypeSpecified() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine("aurora-postgres")
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+    }
 }
