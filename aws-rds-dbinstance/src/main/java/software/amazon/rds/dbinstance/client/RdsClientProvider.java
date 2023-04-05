@@ -3,8 +3,6 @@ package software.amazon.rds.dbinstance.client;
 import static software.amazon.awssdk.core.client.config.SdkAdvancedClientOption.USER_AGENT_PREFIX;
 import static software.amazon.awssdk.core.client.config.SdkAdvancedClientOption.USER_AGENT_SUFFIX;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.function.Supplier;
 
 import lombok.NonNull;
