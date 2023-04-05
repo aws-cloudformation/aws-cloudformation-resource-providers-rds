@@ -263,4 +263,32 @@ class ImmutabilityHelperTest {
                 .build();
         assertThat(ImmutabilityHelper.isAvailabilityZoneChangeMutable(previous, desired)).isFalse();
     }
+
+    @Test
+    public void test_isSourceDBClusterIdentifierMutable() {
+        final List<ResourceModelTestCase> tests = Arrays.asList(
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBClusterIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBClusterIdentifier("old").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBClusterIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBClusterIdentifier("").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBClusterIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBClusterIdentifier(null).build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().sourceDBClusterIdentifier("old").build())
+                        .desired(ResourceModel.builder().sourceDBClusterIdentifier("new").build())
+                        .expect(false)
+                        .build());
+        for (final ResourceModelTestCase test : tests) {
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+        }
+    }
 }

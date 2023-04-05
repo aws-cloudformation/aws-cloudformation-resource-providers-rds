@@ -9,7 +9,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import software.amazon.rds.dbinstance.ResourceModel;
 
-
 public final class ImmutabilityHelper {
 
     private static final String ORACLE_SE = "oracle-se";
@@ -53,15 +52,16 @@ public final class ImmutabilityHelper {
                 (StringUtils.isNullOrEmpty(desired.getAvailabilityZone()) && BooleanUtils.isTrue(desired.getMultiAZ()));
     }
 
-    private static boolean isReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
-        return !StringUtils.isNullOrEmpty(previous.getSourceDBInstanceIdentifier()) &&
-                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
-    }
-
     public static boolean isSourceDBInstanceIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
         return Objects.equal(previous.getSourceDBInstanceIdentifier(), desired.getSourceDBInstanceIdentifier()) ||
-                isReadReplicaPromotion(previous, desired);
+                ResourceModelHelper.isDBInstanceReadReplicaPromotion(previous, desired);
     }
+
+    public static boolean isSourceDBClusterIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
+        return Objects.equal(previous.getSourceDBClusterIdentifier(), desired.getSourceDBClusterIdentifier()) ||
+                ResourceModelHelper.isDBClusterReadReplicaPromotion(previous, desired);
+    }
+
 
     public static boolean isDBSnapshotIdentifierMutable(final ResourceModel previous, final ResourceModel desired) {
         return Objects.equal(previous.getDBSnapshotIdentifier(), desired.getDBSnapshotIdentifier()) ||
@@ -103,6 +103,7 @@ public final class ImmutabilityHelper {
                 isUseLatestRestorableTimeMutable(previous, desired) &&
                 isRestoreTimeMutable(previous, desired) &&
                 isSourceDBInstanceAutomatedBackupsArnMutable(previous, desired) &&
-                isSourceDbiResourceIdMutable(previous, desired);
+                isSourceDbiResourceIdMutable(previous, desired) &&
+                isSourceDBClusterIdentifierMutable(previous, desired);
     }
 }

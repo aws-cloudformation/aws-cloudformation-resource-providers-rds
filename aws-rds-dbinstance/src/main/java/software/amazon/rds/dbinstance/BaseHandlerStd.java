@@ -262,6 +262,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBInstanceAlreadyExists)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    DbClusterNotFoundException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    InvalidDbClusterStateException.class)
             .build();
 
     protected static final ErrorRuleSet REBOOT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet

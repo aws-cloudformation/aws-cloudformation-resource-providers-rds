@@ -62,7 +62,8 @@ public final class ResourceModelHelper {
     }
 
     public static boolean isReadReplica(final ResourceModel model) {
-        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier());
+        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier())
+                || StringUtils.hasValue(model.getSourceDBClusterIdentifier());
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
@@ -82,5 +83,20 @@ public final class ResourceModelHelper {
             return null;
         }
         return false;
+    }
+
+    public static boolean isDBInstanceReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return !StringUtils.isNullOrEmpty(previous.getSourceDBInstanceIdentifier()) &&
+                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
+    }
+
+    public static boolean isDBClusterReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return !StringUtils.isNullOrEmpty(previous.getSourceDBClusterIdentifier()) &&
+                StringUtils.isNullOrEmpty(desired.getSourceDBClusterIdentifier());
+    }
+
+    public static boolean isReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return isDBClusterReadReplicaPromotion(previous, desired) ||
+                isDBInstanceReadReplicaPromotion(previous, desired);
     }
 }
