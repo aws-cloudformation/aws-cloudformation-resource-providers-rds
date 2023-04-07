@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -343,6 +344,36 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         assertThat(request.useLatestRestorableTime()).isEqualTo(false);
         assertThat(request.restoreToTime()).isEqualTo("2019-03-07T23:45:00Z");
+    }
+
+    @Test
+    public void restoreDBClusterToPointInTimeServerlessV2() {
+        final ResourceModel model = ResourceModel.builder()
+                .serverlessV2ScalingConfiguration(SERVERLESS_V2_SCALING_CONFIGURATION)
+                .build();
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+
+        assertThat(request.serverlessV2ScalingConfiguration()).isNotNull();
+        assertThat(request.serverlessV2ScalingConfiguration().minCapacity()).isEqualTo(1.0);
+        assertThat(request.serverlessV2ScalingConfiguration().maxCapacity()).isEqualTo(10.0);
+
+        final ModifyDbClusterRequest modifyRequest = Translator.modifyDbClusterAfterCreateRequest(model);
+        assertThat(modifyRequest.serverlessV2ScalingConfiguration()).isNull();
+    }
+
+    @Test
+    public void restoreDBClusterFromSnapshotServerlessV2() {
+        final ResourceModel model = ResourceModel.builder()
+                .serverlessV2ScalingConfiguration(SERVERLESS_V2_SCALING_CONFIGURATION)
+                .build();
+        final RestoreDbClusterFromSnapshotRequest request = Translator.restoreDbClusterFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+
+        assertThat(request.serverlessV2ScalingConfiguration()).isNotNull();
+        assertThat(request.serverlessV2ScalingConfiguration().minCapacity()).isEqualTo(1.0);
+        assertThat(request.serverlessV2ScalingConfiguration().maxCapacity()).isEqualTo(10.0);
+
+        final ModifyDbClusterRequest modifyRequest = Translator.modifyDbClusterAfterCreateRequest(model);
+        assertThat(modifyRequest.serverlessV2ScalingConfiguration()).isNull();
     }
 
     @Override
