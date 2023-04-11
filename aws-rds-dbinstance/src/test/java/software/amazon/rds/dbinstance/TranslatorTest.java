@@ -989,6 +989,18 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyAfterCreate_shouldSetPerformanceInsightsKMSKeyIdIfPIEnabled() {
+        final String kmsKeyId = "kms-key-id";
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId);
+    }
+
+    @Test
     public void test_restoreDbInstanceFromSnapshot_shouldKeepCopyTagsToSnapshotEmptyIfUnset() {
         final ResourceModel model = ResourceModel.builder()
                 .build();
