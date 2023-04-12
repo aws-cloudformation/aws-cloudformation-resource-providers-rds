@@ -1,4 +1,4 @@
-package software.amazon.rds.dbcluster;
+package software.amazon.rds.test.common.core;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -10,7 +10,9 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.test.common.annotations.ExcludeFromJacocoGeneratedReport;
 
+@ExcludeFromJacocoGeneratedReport
 public class BaseProxyClient<ClientT> implements ProxyClient<ClientT> {
 
     protected final AmazonWebServicesClientProxy proxy;

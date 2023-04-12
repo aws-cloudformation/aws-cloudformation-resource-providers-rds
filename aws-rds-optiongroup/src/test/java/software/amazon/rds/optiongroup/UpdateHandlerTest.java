@@ -13,9 +13,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,14 +20,34 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.ModifyOptionGroupRequest;
+import software.amazon.awssdk.services.rds.model.ModifyOptionGroupResponse;
+import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.RdsException;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.Tag;
-import software.amazon.cloudformation.proxy.*;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -63,7 +80,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
-        proxyClient = MOCK_PROXY(proxy, rdsClient);
+        proxyClient = new BaseProxyClient<>(proxy, rdsClient);
     }
 
     @AfterEach
@@ -164,10 +181,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS = RESOURCE_MODEL_WITH_RESOURCE_TAGS_BUILDER().build();
         ResourceModel RESOURCE_MODEL_WITH_UPDATED_RESOURCE_TAGS = RESOURCE_MODEL_BUILDER()
                 .tags(
-                    Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
-                        ImmutableMap.of("desiredKey", "desiredValue")
-                    )
-                )).build();
+                        Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
+                                        ImmutableMap.of("desiredKey", "desiredValue")
+                                )
+                        )).build();
 
 
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))

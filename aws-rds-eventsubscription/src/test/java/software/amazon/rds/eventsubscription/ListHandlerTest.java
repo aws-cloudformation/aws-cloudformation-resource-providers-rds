@@ -24,6 +24,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,7 +44,7 @@ public class ListHandlerTest extends AbstractTestBase {
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        proxyRdsClient = MOCK_PROXY(proxy, mock(RdsClient.class));
+        proxyRdsClient = new BaseProxyClient<>(proxy, mock(RdsClient.class));
     }
 
     @AfterEach

@@ -16,6 +16,7 @@
         <module>aws-rds-dbinstance</module>
         <module>aws-rds-dbparametergroup</module>
         <module>aws-rds-dbsubnetgroup</module>
+        <module>aws-rds-dbsnapshot</module>
         <module>aws-rds-eventsubscription</module>
         <module>aws-rds-globalcluster</module>
         <module>aws-rds-optiongroup</module>

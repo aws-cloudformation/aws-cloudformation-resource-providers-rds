@@ -1,0 +1,28 @@
+{
+    "artifact_type": "RESOURCE",
+    "typeName": "AWS::RDS::DBSnapshot",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbsnapshot.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbsnapshot.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "version": false,
+        "subparser_name": null,
+        "verbose": 0,
+        "force": false,
+        "type_name": "AWS::RDS::DBSnapshot",
+        "artifact_type": "RESOURCE",
+        "endpoint_url": null,
+        "region": null,
+        "target_schemas": [],
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbsnapshot"
+        ],
+        "codegen_template_path": "default",
+        "protocolVersion": "2.0.0"
+    },
+    "executableEntrypoint": "software.amazon.rds.dbsnapshot.HandlerWrapperExecutable"
+}

@@ -27,11 +27,10 @@ import software.amazon.awssdk.services.rds.paginators.DescribeDBInstancesIterabl
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.handler.ProxyClientTestBase;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 @ExtendWith(MockitoExtension.class)
-class LoggingProxyClientTest extends ProxyClientTestBase {
+class LoggingProxyClientTest {
     public static final String AWS_ACCOUNT_ID = "123456789";
     public static final String TOKEN = "token";
     public static final String STACK_ID = "stackId";

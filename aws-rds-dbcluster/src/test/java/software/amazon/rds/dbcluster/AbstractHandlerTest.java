@@ -321,10 +321,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 )).build();
     }
 
-    static <ClientT> ProxyClient<ClientT> MOCK_PROXY(final AmazonWebServicesClientProxy proxy, final ClientT client) {
-        return new BaseProxyClient<>(proxy, client);
-    }
-
     protected abstract BaseHandlerStd getHandler();
 
     protected abstract AmazonWebServicesClientProxy getProxy();

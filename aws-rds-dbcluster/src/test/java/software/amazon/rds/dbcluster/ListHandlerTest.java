@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +62,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
         handler = new ListHandler();
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        rdsProxy = MOCK_PROXY(proxy, rdsClient);
+        rdsProxy = new BaseProxyClient<>(proxy, rdsClient);
         expectServiceInvocation = true;
     }
 
