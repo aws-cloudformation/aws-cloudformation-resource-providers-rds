@@ -98,6 +98,25 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_CreateSuccessInactiveExceptRestore() {
+        when(rdsProxy.client().createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class)))
+                .thenReturn(CreateCustomDbEngineVersionResponse.builder().dbEngineVersionArn("arn").build());
+        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
+                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DB_ENGINE_VERSION_AVAILABLE,
+                () -> null,
+                () -> RESOURCE_MODEL.toBuilder().status("inactive-except-restore").build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
+    }
+
+    @Test
     public void handleRequest_CreateSuccessWithNotAvailableStatus() {
         when(rdsProxy.client().createCustomDBEngineVersion(any(CreateCustomDbEngineVersionRequest.class)))
                 .thenReturn(CreateCustomDbEngineVersionResponse.builder().dbEngineVersionArn("arn").build());

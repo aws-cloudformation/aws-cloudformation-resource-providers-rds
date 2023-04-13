@@ -47,8 +47,8 @@ public class Translator {
                 //Engine and EngineVersion together are the primary identifier of EngineVersion
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
-                .description(DifferenceUtils.diff(previousModel.getDescription(), model.getDescription()))
-                .status(DifferenceUtils.diff(previousModel.getStatus(), model.getStatus()))
+                .description(DifferenceUtils.diff(previousModel != null ? previousModel.getDescription() : null, model.getDescription()))
+                .status(DifferenceUtils.diff(previousModel != null ? previousModel.getStatus() : null, model.getStatus()))
                 .build();
     }
 
@@ -110,9 +110,13 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbEngineVersionsRequest describeDbEngineVersionsRequest(final String nextToken) {
+    public static DescribeDbEngineVersionsRequest describeDbEngineVersionsRequest(final ResourceModel model,
+                                                                                  final String nextToken) {
         return DescribeDbEngineVersionsRequest.builder()
+                .engine(model.getEngine())
+                .engineVersion(model.getEngineVersion())
                 .marker(nextToken)
+                .includeAll(true)
                 .build();
     }
 
