@@ -221,7 +221,6 @@ public class Translator {
                 .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
                 .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
                 .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
-                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(desiredModel.getServerlessV2ScalingConfiguration()))
                 .storageType(desiredModel.getStorageType());
 
         if (EngineMode.fromString(desiredModel.getEngineMode()) != EngineMode.Serverless) {

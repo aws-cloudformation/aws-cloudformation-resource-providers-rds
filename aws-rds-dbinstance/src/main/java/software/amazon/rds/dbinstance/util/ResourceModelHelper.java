@@ -1,14 +1,13 @@
 package software.amazon.rds.dbinstance.util;
 
-import java.util.Optional;
-import java.util.Set;
-
-import org.apache.commons.lang3.BooleanUtils;
-
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
+
+import java.util.Optional;
+import java.util.Set;
 
 public final class ResourceModelHelper {
     private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
@@ -33,15 +32,20 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getPreferredMaintenanceWindow()) ||
                                 StringUtils.hasValue(model.getMonitoringRoleArn()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
-                                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMonitoringInterval()).orElse(0) > 0 ||
-                                (isSqlServer(model) && StringUtils.hasValue(model.getAllocatedStorage())) ||
+                                (isSqlServer(model) &&  isStorageParametersModified(model)) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
                                 BooleanUtils.isTrue(model.getEnablePerformanceInsights())
                 );
+    }
+
+    public static boolean isStorageParametersModified(final ResourceModel model) {
+        return StringUtils.hasValue(model.getAllocatedStorage()) ||
+                Optional.ofNullable(model.getIops()).orElse(0) > 0 ||
+                Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
+                Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
+                StringUtils.hasValue(model.getStorageType());
     }
 
     public static boolean isSqlServer(final ResourceModel model) {
@@ -58,7 +62,8 @@ public final class ResourceModelHelper {
     }
 
     public static boolean isReadReplica(final ResourceModel model) {
-        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier());
+        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier())
+                || StringUtils.hasValue(model.getSourceDBClusterIdentifier());
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
@@ -78,5 +83,20 @@ public final class ResourceModelHelper {
             return null;
         }
         return false;
+    }
+
+    public static boolean isDBInstanceReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return !StringUtils.isNullOrEmpty(previous.getSourceDBInstanceIdentifier()) &&
+                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
+    }
+
+    public static boolean isDBClusterReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return !StringUtils.isNullOrEmpty(previous.getSourceDBClusterIdentifier()) &&
+                StringUtils.isNullOrEmpty(desired.getSourceDBClusterIdentifier());
+    }
+
+    public static boolean isReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
+        return isDBClusterReadReplicaPromotion(previous, desired) ||
+                isDBInstanceReadReplicaPromotion(previous, desired);
     }
 }

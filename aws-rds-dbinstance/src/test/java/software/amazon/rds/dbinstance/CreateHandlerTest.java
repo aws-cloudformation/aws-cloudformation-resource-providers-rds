@@ -790,6 +790,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(DescribeEventsResponse.builder().build());
 
         final DBInstance dbInstance = DB_INSTANCE_BASE.toBuilder()
+                .engine(ENGINE_SQLSERVER_SE)
                 .allocatedStorage(100)
                 .iops(3000)
                 .build();
@@ -1154,7 +1155,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                () -> DB_INSTANCE_ACTIVE,
+                () -> DB_INSTANCE_SQLSERVER_ACTIVE,
                 () -> RESOURCE_MODEL_BAREBONE_BLDR()
                         .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY) // Read replica
                         .iops(IOPS_DEFAULT)
@@ -1182,7 +1183,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                () -> DB_INSTANCE_ACTIVE,
+                () -> DB_INSTANCE_SQLSERVER_ACTIVE,
                 () -> RESOURCE_MODEL_BAREBONE_BLDR()
                         .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY) // Read replica
                         .maxAllocatedStorage(MAX_ALLOCATED_STORAGE_DEFAULT)

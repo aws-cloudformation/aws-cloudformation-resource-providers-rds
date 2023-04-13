@@ -99,6 +99,7 @@ public class Translator {
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
+                .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
@@ -530,6 +531,7 @@ public class Translator {
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
+                .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
@@ -748,6 +750,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesFromSdk(dbInstance.processorFeatures()))
                 .promotionTier(dbInstance.promotionTier())
                 .publiclyAccessible(dbInstance.publiclyAccessible())
+                .sourceDBClusterIdentifier(dbInstance.readReplicaSourceDBClusterIdentifier())
                 .replicaMode(dbInstance.replicaModeAsString())
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())

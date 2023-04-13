@@ -381,9 +381,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterFromSnapshot_ServerlessV2ScalingConfiguration() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
-        context.setModified(true);
 
         test_handleRequest_base(
                 context,
@@ -396,7 +397,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
@@ -405,6 +406,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
                         .build()
         );
+
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().serverlessV2ScalingConfiguration()).isNull();
     }
 
     @Test
@@ -482,9 +487,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterToPointInTime_ServerlessV2ScalingConfiguration() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
-        context.setModified(true);
 
         test_handleRequest_base(
                 context,
@@ -497,7 +503,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
@@ -506,6 +512,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
                         .build()
         );
+
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().serverlessV2ScalingConfiguration()).isNull();
     }
 
     @Test
