@@ -203,4 +203,15 @@ public class SchemaTest {
 
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
+
+    @Test
+    public void testDrift_NetworkType_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .networkType("IO1")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .networkType("io1")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
 }
