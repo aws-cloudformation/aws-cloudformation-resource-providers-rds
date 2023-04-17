@@ -1,0 +1,10 @@
+{
+  "Engine": "invalid-engine",
+  "DatabaseInstallationFilesS3BucketName": "{{S3BucketNamePrefix}}",
+  "DatabaseInstallationFilesS3Prefix": "2020-10",
+  "KMSKeyId": "{{KMSKeyArn}}",
+  "Description": "Contract test CEV",
+  "Manifest": "{{CEVManifest}}",
+  "Status": "available",
+  "EngineVersion": "19.contract-cev-{{CevMarker}}"
+}

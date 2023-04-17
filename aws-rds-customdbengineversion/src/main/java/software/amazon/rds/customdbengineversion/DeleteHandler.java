@@ -37,7 +37,7 @@ public class DeleteHandler extends BaseHandlerStd {
                 .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
+                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
                 .done(progress -> ProgressEvent.defaultSuccessHandler(null));
     }
 

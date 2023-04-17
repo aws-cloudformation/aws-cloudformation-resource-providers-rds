@@ -28,7 +28,7 @@ public class ListHandler extends BaseHandlerStd {
                                                                           final ProxyClient<RdsClient> proxyClient,
                                                                           final Logger logger) {
         return proxy.initiate("rds::list-db-engine-versions", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .translateToServiceRequest(resourceModel -> Translator.describeDbEngineVersionsRequest(request.getNextToken()))
+                .translateToServiceRequest(resourceModel -> Translator.describeDbEngineVersionsRequest(resourceModel, request.getNextToken()))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         describeRequest,
