@@ -1,16 +1,22 @@
 package software.amazon.rds.dbinstance.status;
 
 import software.amazon.awssdk.utils.StringUtils;
-import software.amazon.rds.common.status.Status;
+import software.amazon.rds.common.status.TerminableStatus;
 
-public enum DomainMembershipStatus implements Status {
+public enum DomainMembershipStatus implements TerminableStatus {
     Joined("joined"),
-    KerberosEnabled("kerberos-enabled");
+    KerberosEnabled("kerberos-enabled"),
+    Failed("failed", true);
 
     private final String value;
+    private final Boolean isTerminal;
 
     DomainMembershipStatus(final String value) {
+        this(value, false);
+    }
+    DomainMembershipStatus(final String value, final boolean isTerminal) {
         this.value = value;
+        this.isTerminal = isTerminal;
     }
 
     public static DomainMembershipStatus fromString(final String status) {
@@ -30,5 +36,10 @@ public enum DomainMembershipStatus implements Status {
     @Override
     public boolean equalsString(final String other) {
         return StringUtils.equals(this.value, other);
+    }
+
+    @Override
+    public boolean isTerminal() {
+        return isTerminal;
     }
 }

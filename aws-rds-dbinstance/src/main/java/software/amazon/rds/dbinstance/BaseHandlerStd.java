@@ -46,6 +46,7 @@ import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureExcep
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
@@ -554,9 +555,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
+    private void assertNoDomainMembershipTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
+        final List<DomainMembership> terminalDomainMemberships = Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
+                .stream()
+                .filter(domainMembership -> {
+                    final DomainMembershipStatus status = DomainMembershipStatus.fromString(domainMembership.status());
+                    return status != null && status.isTerminal();
+                })
+                .collect(Collectors.toList());
+
+        if (!terminalDomainMemberships.isEmpty()) {
+            throw new CfnNotStabilizedException(new Exception(String.format("Domain %s is in a terminal state",
+                    terminalDomainMemberships.get(0).domain())));
+        }
+    }
+
     private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
         assertNoDBInstanceTerminalStatus(dbInstance);
         assertNoOptionGroupTerminalStatus(dbInstance);
+        assertNoDomainMembershipTerminalStatus(dbInstance);
     }
 
     protected boolean isDBInstanceStabilizedAfterMutate(
