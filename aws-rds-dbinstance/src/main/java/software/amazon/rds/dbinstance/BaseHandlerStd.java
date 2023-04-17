@@ -556,7 +556,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     private void assertNoDomainMembershipTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
-        List<DomainMembership> terminalDomainMemberships = Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
+        final List<DomainMembership> terminalDomainMemberships = Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
                 .stream()
                 .filter(domainMembership -> {
                     final DomainMembershipStatus status = DomainMembershipStatus.fromString(domainMembership.status());
