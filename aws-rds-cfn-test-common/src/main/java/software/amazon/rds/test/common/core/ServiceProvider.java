@@ -35,7 +35,7 @@ public enum ServiceProvider {
             .put("RdsClient", RDS)
             .put("S3Client", S3)
             .put("SdkClient", SDK)
-            .put("cloudtrail", MEDIAIMPORT)
+            .put("CloudTrailClient", MEDIAIMPORT)
             .build();
 
 

@@ -237,10 +237,21 @@ public class SchemaTest {
     @Test
     public void testDrift_NetworkType_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
-                .networkType("IO1")
+                .networkType("IPV4")
                 .build();
         final ResourceModel output = ResourceModel.builder()
-                .networkType("io1")
+                .networkType("ipv4")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_StorageType_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .storageType("GP3")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .storageType("gp3")
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
