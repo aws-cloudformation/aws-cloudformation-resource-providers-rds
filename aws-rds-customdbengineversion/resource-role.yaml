@@ -30,12 +30,23 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "kms:CreateGrant"
+                - "kms:DescribeKey"
+                - "mediaimport:CreateDatabaseBinarySnapshot"
                 - "rds:AddTagsToResource"
                 - "rds:CreateCustomDBEngineVersion"
                 - "rds:DeleteCustomDBEngineVersion"
                 - "rds:DescribeDBEngineVersions"
                 - "rds:ModifyCustomDBEngineVersion"
                 - "rds:RemoveTagsFromResource"
+                - "s3:CreateBucket"
+                - "s3:GetObject"
+                - "s3:GetObjectAcl"
+                - "s3:GetObjectTagging"
+                - "s3:ListBucket"
+                - "s3:PutBucketObjectLockConfiguration"
+                - "s3:PutBucketPolicy"
+                - "s3:PutBucketVersioning"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:
