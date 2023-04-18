@@ -1,5 +1,21 @@
 package software.amazon.rds.dbinstance;
 
+import static software.amazon.rds.common.util.DifferenceUtils.diff;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -17,34 +33,16 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBack
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
-import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
-
-import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
 public class Translator {
     final static String DBI_RESOURCE_ID_FILTER = "dbi-resource-id";
@@ -104,6 +102,7 @@ public class Translator {
         final CreateDbInstanceReadReplicaRequest.Builder builder = CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
                 .availabilityZone(model.getAvailabilityZone())
+                .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
@@ -127,6 +126,7 @@ public class Translator {
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .replicaMode(model.getReplicaMode())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
+                .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .sourceRegion(StringUtils.isNotBlank(model.getSourceRegion()) ? model.getSourceRegion() : null)
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
@@ -181,11 +181,11 @@ public class Translator {
                 .availabilityZone(model.getAvailabilityZone())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .customIamInstanceProfile(model.getCustomIAMInstanceProfile())
+                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .dbInstanceClass(model.getDBInstanceClass())
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbName(model.getDBName())
                 .dbParameterGroupName(model.getDBParameterGroupName())
-                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
@@ -275,13 +275,13 @@ public class Translator {
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
-                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .licenseModel(model.getLicenseModel())
-                .masterUsername(model.getMasterUsername())
+                .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
                 .masterUserSecretKmsKeyId(model.getMasterUserSecret() == null ? null : model.getMasterUserSecret().getKmsKeyId())
+                .masterUsername(model.getMasterUsername())
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
@@ -293,8 +293,8 @@ public class Translator {
                 .port(translatePortToSdk(model.getPort()))
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow())
-                .promotionTier(model.getPromotionTier())
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
+                .promotionTier(model.getPromotionTier())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .storageEncrypted(model.getStorageEncrypted())
                 .storageThroughput(model.getStorageThroughput())
@@ -320,7 +320,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? ZonedDateTime.parse(model.getRestoreTime()).toInstant() : null;
+        final Instant restoreTimeInstant = StringUtils.isNotBlank(model.getRestoreTime()) ? Commons.parseTimestamp(model.getRestoreTime()) : null;
 
         final RestoreDbInstanceToPointInTimeRequest.Builder builder = RestoreDbInstanceToPointInTimeRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -346,9 +346,9 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesToSdk(model.getProcessorFeatures()))
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .restoreTime(restoreTimeInstant)
+                .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .sourceDBInstanceIdentifier(model.getSourceDBInstanceIdentifier())
                 .sourceDbiResourceId(model.getSourceDbiResourceId())
-                .sourceDBInstanceAutomatedBackupsArn(model.getSourceDBInstanceAutomatedBackupsArn())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .targetDBInstanceIdentifier(model.getDBInstanceIdentifier()) // We only work with DBInstanceId not TargetDBInstanceId
                 .tdeCredentialArn(model.getTdeCredentialArn())
@@ -434,7 +434,7 @@ public class Translator {
                 .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
-                .promotionTier(diff(previousModel.getPromotionTier(), desiredModel.getPromotionTier()))
+                .promotionTier(desiredModel.getPromotionTier()) // promotion tier is set unconditionally
                 .publiclyAccessible(diff(previousModel.getPubliclyAccessible(), desiredModel.getPubliclyAccessible()))
                 .replicaMode(diff(previousModel.getReplicaMode(), desiredModel.getReplicaMode()))
                 .storageThroughput(diff(previousModel.getStorageThroughput(), desiredModel.getStorageThroughput()))
@@ -451,7 +451,12 @@ public class Translator {
             builder.cloudwatchLogsExportConfiguration(cloudwatchLogsExportConfiguration);
         }
 
-        if (BooleanUtils.isNotTrue(isRollback)) {
+        if (BooleanUtils.isTrue(isRollback)) {
+            if (isProvisionedIoStorage(desiredModel)) {
+                builder.allocatedStorage(max(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                builder.iops(desiredModel.getIops());
+            }
+        } else {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
             if (isProvisionedIoStorage(desiredModel)) {
                 builder.allocatedStorage(getAllocatedStorage(desiredModel));
@@ -539,16 +544,21 @@ public class Translator {
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
                 .applyImmediately(Boolean.TRUE)
-                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .caCertificateIdentifier(model.getCACertificateIdentifier())
+                .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbParameterGroupName(model.getDBParameterGroupName())
+                .deletionProtection(model.getDeletionProtection())
+                .enablePerformanceInsights(model.getEnablePerformanceInsights())
                 .engineVersion(model.getEngineVersion())
                 .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
-                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId(): null)
                 .masterUserPassword(model.getMasterUserPassword())
+                .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
+                .monitoringInterval(model.getMonitoringInterval())
+                .monitoringRoleArn(model.getMonitoringRoleArn())
+                .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
@@ -666,22 +676,6 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeEventsRequest describeEventsRequest(
-            final SourceType sourceType,
-            final String sourceIdentifier,
-            final Collection<String> eventCategories,
-            final Instant startTime,
-            final Instant endTime
-    ) {
-        return DescribeEventsRequest.builder()
-                .eventCategories(eventCategories.toArray(new String[0]))
-                .sourceIdentifier(sourceIdentifier)
-                .sourceType(sourceType)
-                .startTime(startTime)
-                .endTime(endTime)
-                .build();
-    }
-
     public static List<ResourceModel> translateDbInstancesFromSdk(
             final List<software.amazon.awssdk.services.rds.model.DBInstance> dbInstances
     ) {
@@ -738,8 +732,8 @@ public class Translator {
                 .autoMinorVersionUpgrade(dbInstance.autoMinorVersionUpgrade())
                 .availabilityZone(dbInstance.availabilityZone())
                 .backupRetentionPeriod(dbInstance.backupRetentionPeriod())
-                .certificateDetails(translateCertificateDetailsFromSdk(dbInstance.certificateDetails()))
                 .cACertificateIdentifier(dbInstance.caCertificateIdentifier())
+                .certificateDetails(translateCertificateDetailsFromSdk(dbInstance.certificateDetails()))
                 .characterSetName(dbInstance.characterSetName())
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
                 .customIAMInstanceProfile(dbInstance.customIamInstanceProfile())
@@ -747,27 +741,27 @@ public class Translator {
                 .dBInstanceArn(dbInstance.dbInstanceArn())
                 .dBInstanceClass(dbInstance.dbInstanceClass())
                 .dBInstanceIdentifier(dbInstance.dbInstanceIdentifier())
-                .dbiResourceId(dbInstance.dbiResourceId())
                 .dBName(dbInstance.dbName())
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
                 .dBSystemId(dbInstance.dbSystemId())
+                .dbiResourceId(dbInstance.dbiResourceId())
+                .deletionProtection(dbInstance.deletionProtection())
                 .domain(domain)
                 .domainIAMRoleName(domainIAMRoleName)
-                .deletionProtection(dbInstance.deletionProtection())
                 .enableCloudwatchLogsExports(translateEnableCloudwatchLogsExport(dbInstance.enabledCloudwatchLogsExports()))
                 .enableIAMDatabaseAuthentication(dbInstance.iamDatabaseAuthenticationEnabled())
                 .enablePerformanceInsights(dbInstance.performanceInsightsEnabled())
                 .endpoint(endpoint)
                 .engine(dbInstance.engine())
                 .engineVersion(dbInstance.engineVersion())
-                .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .iops(dbInstance.iops())
                 .kmsKeyId(dbInstance.kmsKeyId())
                 .licenseModel(dbInstance.licenseModel())
-                .masterUsername(dbInstance.masterUsername())
+                .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .masterUserSecret(translateMasterUserSecret(dbInstance.masterUserSecret()))
+                .masterUsername(dbInstance.masterUsername())
                 .maxAllocatedStorage(dbInstance.maxAllocatedStorage())
                 .monitoringInterval(dbInstance.monitoringInterval())
                 .monitoringRoleArn(dbInstance.monitoringRoleArn())
@@ -783,6 +777,7 @@ public class Translator {
                 .processorFeatures(translateProcessorFeaturesFromSdk(dbInstance.processorFeatures()))
                 .promotionTier(dbInstance.promotionTier())
                 .publiclyAccessible(dbInstance.publiclyAccessible())
+                .sourceDBClusterIdentifier(dbInstance.readReplicaSourceDBClusterIdentifier())
                 .replicaMode(dbInstance.replicaModeAsString())
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())
@@ -956,5 +951,9 @@ public class Translator {
                 .secretArn(sdkSecret.secretArn())
                 .kmsKeyId(sdkSecret.kmsKeyId())
                 .build();
+    }
+
+    private static Integer max(Integer a, Integer b) {
+        return a == null ? b : b == null ? a : Math.max(a, b);
     }
 }

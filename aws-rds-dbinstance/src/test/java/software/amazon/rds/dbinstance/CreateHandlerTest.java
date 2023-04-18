@@ -48,6 +48,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
@@ -70,6 +71,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
 
@@ -795,6 +797,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(DescribeEventsResponse.builder().build());
 
         final DBInstance dbInstance = DB_INSTANCE_BASE.toBuilder()
+                .engine(ENGINE_SQLSERVER_SE)
                 .allocatedStorage(100)
                 .iops(3000)
                 .build();
@@ -1159,7 +1162,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                () -> DB_INSTANCE_ACTIVE,
+                () -> DB_INSTANCE_SQLSERVER_ACTIVE,
                 () -> RESOURCE_MODEL_BAREBONE_BLDR()
                         .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY) // Read replica
                         .iops(IOPS_DEFAULT)
@@ -1187,7 +1190,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                () -> DB_INSTANCE_ACTIVE,
+                () -> DB_INSTANCE_SQLSERVER_ACTIVE,
                 () -> RESOURCE_MODEL_BAREBONE_BLDR()
                         .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY) // Read replica
                         .maxAllocatedStorage(MAX_ALLOCATED_STORAGE_DEFAULT)
@@ -1303,6 +1306,27 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                             .optionGroupMemberships(OptionGroupMembership.builder()
                                     .status(OptionGroupStatus.Failed.toString())
                                     .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
+                                    .build()).build(),
+                    () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                    expectFailed(HandlerErrorCode.NotStabilized)
+            );
+        }).isInstanceOf(CfnNotStabilizedException.class);
+
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstance_DomainMembershipInTerminalState() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+
+        Assertions.assertThatThrownBy(() -> {
+            test_handleRequest_base(
+                    context,
+                    () -> DB_INSTANCE_ACTIVE.toBuilder()
+                            .domainMemberships(DomainMembership.builder()
+                                    .status(DomainMembershipStatus.Failed.toString())
+                                    .domain("domain")
                                     .build()).build(),
                     () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
                     expectFailed(HandlerErrorCode.NotStabilized)

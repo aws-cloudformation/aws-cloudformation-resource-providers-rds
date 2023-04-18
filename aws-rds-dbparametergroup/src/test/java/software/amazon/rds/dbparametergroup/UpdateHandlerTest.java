@@ -26,7 +26,6 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultParametersRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -39,6 +38,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.test.common.core.HandlerName;
+import software.amazon.rds.test.common.verification.AccessPermissionAlias;
+import software.amazon.rds.test.common.verification.AccessPermissionFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractTestBase {
@@ -100,7 +101,17 @@ public class UpdateHandlerTest extends AbstractTestBase {
     public void tear_down() {
         verify(rdsClient, atLeastOnce()).serviceName();
         verifyNoMoreInteractions(rdsClient);
-        verifyAccessPermissions(rdsClient);
+        verifyAccessPermissions(
+                rdsClient,
+                new AccessPermissionAlias(
+                        AccessPermissionFactory.fromString("rds:DescribeEngineDefaultParametersPaginator"),
+                        AccessPermissionFactory.fromString("rds:DescribeEngineDefaultParameters")
+                ),
+                new AccessPermissionAlias(
+                        AccessPermissionFactory.fromString("rds:DescribeDBParametersPaginator"),
+                        AccessPermissionFactory.fromString("rds:DescribeDBParameters")
+                )
+        );
     }
 
     @Test
@@ -169,44 +180,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
         verify(rdsClient).resetDBParameterGroup(captor.capture());
         assertThat(captor.getValue().parameters().get(0).applyMethod().toString().equals("pending-reboot")).isTrue();
         verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
-    }
-
-    @Test
-    public void handleRequest_SimpleSuccessWithApplyParametersPaginated() {
-        final UpdateHandler handler = new UpdateHandler();
-
-        CallbackContext callbackContext = new CallbackContext();
-        callbackContext.setParametersApplied(true);
-
-        when(rdsClient.describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class)))
-                .thenReturn(DescribeDbParameterGroupsResponse.builder().dbParameterGroups(simpleDbParameterGroup).build());
-
-        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder().build());
-
-        mockDescribeDbParametersResponse(proxyRdsClient, "static", "dynamic", true, true, true);
-
-        when(rdsClient.modifyDBParameterGroup(any(ModifyDbParameterGroupRequest.class)))
-                .thenReturn(ModifyDbParameterGroupResponse.builder().build());
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                .clientRequestToken(getClientRequestToken())
-                .previousResourceState(previousResourceModel)
-                .desiredResourceState(RESET_RESOURCE_MODEL)
-                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getCallbackContext()).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(rdsClient).resetDBParameterGroup(captor.capture());
-        assertThat(captor.getValue().parameters().get(0).applyMethod().toString().equals("pending-reboot")).isTrue();
-        verify(rdsClient, times(2)).describeDBParameters(any(DescribeDbParametersRequest.class));
-        verify(rdsClient, times(2)).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 
     @Test

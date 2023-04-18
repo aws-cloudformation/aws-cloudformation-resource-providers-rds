@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -29,14 +30,16 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -118,7 +121,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                 }, CallbackContext::isStorageAllocated, CallbackContext::setStorageAllocated))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                    if (shouldPromoteReadReplica(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                    if (ResourceModelHelper.isReadReplicaPromotion(request.getPreviousResourceState(), request.getDesiredResourceState())) {
                         return promoteReadReplica(proxy, rdsClient, progress);
                     }
                     return progress;
@@ -128,7 +131,15 @@ public class UpdateHandler extends BaseHandlerStd {
                     return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                             ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
                             ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
-                    )).then(p -> checkFailedEvents(rdsClient, logger, p, p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)));
+                    )).then(p -> Events.checkFailedEvents(
+                            rdsProxyClient.defaultClient(),
+                            p.getResourceModel().getDBInstanceIdentifier(),
+                            SourceType.DB_INSTANCE,
+                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                            p,
+                            this::isFailureEvent,
+                            logger
+                    ));
                 }, CallbackContext::isUpdated, CallbackContext::setUpdated))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (shouldReboot(rdsClient, progress)) {

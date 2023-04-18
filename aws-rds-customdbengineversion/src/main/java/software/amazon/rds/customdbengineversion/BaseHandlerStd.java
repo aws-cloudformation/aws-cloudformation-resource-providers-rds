@@ -13,7 +13,6 @@ import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRespons
 import software.amazon.awssdk.services.rds.model.InvalidCustomDbEngineVersionStateException;
 import software.amazon.awssdk.services.rds.model.InvalidS3BucketException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -22,6 +21,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
@@ -60,6 +60,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     CustomDbEngineVersionQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidCustomDbEngineVersionStateException.class)
+            .build();
+
+    protected static final ErrorRuleSet ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET)
+            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    ErrorCode.AccessDenied)
             .build();
 
     private final FilteredJsonPrinter EMPTY_FILTER = new FilteredJsonPrinter();
@@ -185,7 +191,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
+                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
                 .progress();
     }
 }

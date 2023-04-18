@@ -2,6 +2,7 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -14,10 +15,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
@@ -27,6 +28,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
@@ -34,7 +36,9 @@ import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
+import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
@@ -96,7 +100,7 @@ public class Translator {
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
-        return RestoreDbClusterToPointInTimeRequest.builder()
+        RestoreDbClusterToPointInTimeRequest.Builder builder = RestoreDbClusterToPointInTimeRequest.builder()
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
@@ -108,15 +112,20 @@ public class Translator {
                 .kmsKeyId(model.getKmsKeyId())
                 .networkType(model.getNetworkType())
                 .publiclyAccessible(model.getPubliclyAccessible())
-                .restoreType(model.getRestoreType())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
-                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
-                .build();
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds());
+
+        if (StringUtils.hasValue(model.getRestoreToTime())
+                && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())) {
+            builder.restoreToTime(Commons.parseTimestamp(model.getRestoreToTime()));
+        }
+
+        return builder.build();
     }
 
     static RestoreDbClusterFromSnapshotRequest restoreDbClusterFromSnapshotRequest(
@@ -184,6 +193,49 @@ public class Translator {
                 .roleArn(roleArn)
                 .featureName(featureName)
                 .build();
+    }
+
+    static ModifyDbClusterRequest modifyDbClusterAfterCreateRequest(final ResourceModel desiredModel) {
+        final CloudwatchLogsExportConfiguration config = cloudwatchLogsExportConfiguration(null, desiredModel);
+
+        final ModifyDbClusterRequest.Builder builder = ModifyDbClusterRequest.builder()
+                .applyImmediately(Boolean.TRUE)
+                .autoMinorVersionUpgrade(desiredModel.getAutoMinorVersionUpgrade())
+                .backupRetentionPeriod(desiredModel.getBackupRetentionPeriod())
+                .cloudwatchLogsExportConfiguration(config)
+                .copyTagsToSnapshot(desiredModel.getCopyTagsToSnapshot())
+                .dbClusterIdentifier(desiredModel.getDBClusterIdentifier())
+                .dbClusterInstanceClass(desiredModel.getDBClusterInstanceClass())
+                .dbClusterParameterGroupName(desiredModel.getDBClusterParameterGroupName())
+                .deletionProtection(desiredModel.getDeletionProtection())
+                .domain(desiredModel.getDomain())
+                .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
+                .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
+                .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
+                .iops(desiredModel.getIops())
+                .masterUserPassword(desiredModel.getMasterUserPassword())
+                .monitoringInterval(desiredModel.getMonitoringInterval())
+                .monitoringRoleArn(desiredModel.getMonitoringRoleArn())
+                .networkType(desiredModel.getNetworkType())
+                .performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKmsKeyId())
+                .performanceInsightsRetentionPeriod(desiredModel.getPerformanceInsightsRetentionPeriod())
+                .preferredMaintenanceWindow(desiredModel.getPreferredMaintenanceWindow())
+                .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
+                .storageType(desiredModel.getStorageType());
+
+        if (EngineMode.fromString(desiredModel.getEngineMode()) != EngineMode.Serverless) {
+            builder.allocatedStorage(desiredModel.getAllocatedStorage())
+                    .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
+                    .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
+                    .preferredBackupWindow(desiredModel.getPreferredBackupWindow());
+        }
+
+        if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
+            builder.manageMasterUserPassword(true);
+            builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret() != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null);
+        }
+
+        return builder.build();
     }
 
     static ModifyDbClusterRequest modifyDbClusterRequest(
@@ -536,6 +588,22 @@ public class Translator {
         return MasterUserSecret.builder()
                 .secretArn(sdkSecret.secretArn())
                 .kmsKeyId(sdkSecret.kmsKeyId())
+                .build();
+    }
+
+    public static DescribeEventsRequest describeEventsRequest(
+            final SourceType sourceType,
+            final String sourceIdentifier,
+            final Collection<String> eventCategories,
+            final Instant startTime,
+            final Instant endTime
+    ) {
+        return DescribeEventsRequest.builder()
+                .eventCategories(eventCategories.toArray(new String[0]))
+                .sourceIdentifier(sourceIdentifier)
+                .sourceType(sourceType)
+                .startTime(startTime)
+                .endTime(endTime)
                 .build();
     }
 }

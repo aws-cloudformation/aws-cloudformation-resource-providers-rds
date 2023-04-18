@@ -75,7 +75,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_Success() {
         when(rdsProxy.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
                 .thenReturn(DescribeDbClustersResponse.builder()
                         .dbClusters(DBCLUSTER_ACTIVE)

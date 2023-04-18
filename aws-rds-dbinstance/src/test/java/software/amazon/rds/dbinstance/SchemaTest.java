@@ -200,4 +200,48 @@ public class SchemaTest {
                 .build();
         ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
     }
+
+    @Test
+    public void testDrift_DBName_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBName("DBName")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBName("dbname")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_DBName_Oracle_Uppercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .dBName("Oracle_DB")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .dBName("ORACLE_DB")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_PreferredMaintenanceWindow_Uppercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .preferredMaintenanceWindow("Sun:19:00-Sun:23:00")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .preferredMaintenanceWindow("sun:19:00-sun:23:00")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    @Test
+    public void testDrift_NetworkType_Lowercase() {
+        final ResourceModel input = ResourceModel.builder()
+                .networkType("IO1")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .networkType("io1")
+                .build();
+        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+    }
 }

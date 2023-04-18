@@ -43,6 +43,8 @@ import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterResponse;
@@ -252,6 +254,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -269,6 +273,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         // We expect the default engine-specific port to be set
         Assertions.assertThat(restoreCaptor.getValue().port()).isNotNull();
@@ -282,6 +287,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -293,6 +300,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -309,6 +317,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                 .stackTags(TAG_SET.getStackTags())
@@ -330,6 +340,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
         verify(rdsProxy.client(), times(2)).restoreDBClusterFromSnapshot(createCaptor.capture());
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         final RestoreDbClusterFromSnapshotRequest requestWithAllTags = createCaptor.getAllValues().get(0);
         final RestoreDbClusterFromSnapshotRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
@@ -370,9 +381,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterFromSnapshot_ServerlessV2ScalingConfiguration() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
-        context.setModified(true);
 
         test_handleRequest_base(
                 context,
@@ -385,7 +397,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
@@ -394,6 +406,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
                         .build()
         );
+
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().serverlessV2ScalingConfiguration()).isNull();
     }
 
     @Test
@@ -424,6 +440,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterToPointInTime_Success() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -433,14 +453,19 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
     public void handleRequest_RestoreDbClusterToPointInTime_UpdateVpcSecurityGroups() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
-
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DBCLUSTER_ACTIVE,
@@ -453,17 +478,19 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(argumentCaptor.capture());
         Assertions.assertThat(argumentCaptor.getValue().vpcSecurityGroupIds()).isEqualTo(VPC_SG_IDS);
-
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
     public void handleRequest_RestoreDbClusterToPointInTime_ServerlessV2ScalingConfiguration() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
-        context.setModified(true);
 
         test_handleRequest_base(
                 context,
@@ -476,7 +503,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
@@ -485,6 +512,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .minCapacity(SERVERLESS_V2_SCALING_CONFIGURATION.getMinCapacity())
                         .build()
         );
+
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().serverlessV2ScalingConfiguration()).isNull();
     }
 
     @Test
@@ -499,6 +530,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                 .stackTags(TAG_SET.getStackTags())
@@ -528,7 +563,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
 
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
         verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
@@ -540,6 +575,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterToPointInTime_SetEnableCloudwatchLogsExports() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final List<String> cloudwatchLogsExports = ImmutableList.of("config-1", "config-2", "config-3");
 
@@ -554,9 +593,34 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(restoreCaptor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         Assertions.assertThat(restoreCaptor.getValue().enableCloudwatchLogsExports()).containsExactlyElementsOf(cloudwatchLogsExports);
+    }
+
+
+    @Test
+    public void handleRequest_RestoreDbClusterToPointInTime_ModifyAfterCreate() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test

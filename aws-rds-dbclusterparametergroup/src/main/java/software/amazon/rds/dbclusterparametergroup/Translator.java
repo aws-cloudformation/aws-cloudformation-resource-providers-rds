@@ -1,8 +1,10 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -11,8 +13,10 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 
 import com.amazonaws.arn.Arn;
+import lombok.NonNull;
 import software.amazon.awssdk.services.rds.model.ApplyMethod;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
+import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
@@ -30,6 +34,7 @@ public class Translator {
     public static final String RDS = "rds";
     public static final String RESOURCE_PREFIX = "cluster-pg:";
     public static final String FILTER_PARAMETER_NAME = "parameter-name";
+    public static final String FILTER_DBCLUSTER_PARAMETER_GROUP_NAME = "db-cluster-parameter-group-name";
 
     static CreateDbClusterParameterGroupRequest createDbClusterParameterGroupRequest(
             final ResourceModel model,
@@ -61,29 +66,41 @@ public class Translator {
                 .build();
     }
 
-    static DescribeDbClustersRequest describeDbClustersRequest() {
-        return DescribeDbClustersRequest.builder().build();
+    public static DescribeDbClustersRequest describeDbClustersRequestForDBClusterParameterGroup(final ResourceModel model) {
+        return DescribeDbClustersRequest.builder()
+                .filters(Filter.builder()
+                        .name(FILTER_DBCLUSTER_PARAMETER_GROUP_NAME)
+                        .values(model.getDBClusterParameterGroupName())
+                        .build())
+                .build();
     }
 
-    static DeleteDbClusterParameterGroupRequest deleteDbClusterParameterGroupRequest(final ResourceModel model) {
+    static Filter filterByParameterNames(final Collection<String> paramNames) {
+        return Filter.builder()
+                .name(FILTER_PARAMETER_NAME)
+                .values(paramNames)
+                .build();
+    }
+
+    public static DeleteDbClusterParameterGroupRequest deleteDbClusterParameterGroupRequest(final ResourceModel model) {
         return DeleteDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .build();
     }
 
-    static DescribeDbClusterParameterGroupsRequest describeDbClusterParameterGroupsRequest(final ResourceModel model) {
+    public static DescribeDbClusterParameterGroupsRequest describeDbClusterParameterGroupsRequest(final ResourceModel model) {
         return DescribeDbClusterParameterGroupsRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .build();
     }
 
-    static DescribeDbClusterParameterGroupsRequest describeDbClusterParameterGroupsRequest(final String nextToken) {
+    public static DescribeDbClusterParameterGroupsRequest describeDbClusterParameterGroupsRequest(final String nextToken) {
         return DescribeDbClusterParameterGroupsRequest.builder()
                 .marker(nextToken)
                 .build();
     }
 
-    static ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest(
+    public static ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest(
             final ResourceModel model,
             final Collection<Parameter> parameters
     ) {
@@ -93,14 +110,14 @@ public class Translator {
                 .build();
     }
 
-    static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
+    public static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
         return ResetDbClusterParameterGroupRequest.builder()
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
                 .resetAllParameters(true)
                 .build();
     }
 
-    static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
+    public static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {
         return streamOfOrEmpty(tags)
                 .map(tag -> software.amazon.rds.dbclusterparametergroup.Tag.builder()
                         .key(tag.key())
@@ -145,5 +162,22 @@ public class Translator {
                 .withAccountId(request.getAwsAccountId())
                 .withResource(resource)
                 .build();
+    }
+
+    public static ResourceModel translateFromSdk(final DBClusterParameterGroup dbClusterParameterGroup) {
+        return ResourceModel.builder()
+                .dBClusterParameterGroupName(dbClusterParameterGroup.dbClusterParameterGroupName())
+                .family(dbClusterParameterGroup.dbParameterGroupFamily())
+                .description(dbClusterParameterGroup.description())
+                .build();
+    }
+
+    public static Map<String, Object> translateParametersFromSdk(@NonNull final Map<String, Parameter> parameters) {
+        final Map<String, Object> result = new HashMap<>();
+        for (final Map.Entry<String, Parameter> kv : parameters.entrySet()) {
+            result.put(kv.getKey(), kv.getValue().parameterValue());
+        }
+
+        return result;
     }
 }

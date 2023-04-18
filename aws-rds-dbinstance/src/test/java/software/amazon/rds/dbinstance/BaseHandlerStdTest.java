@@ -24,8 +24,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.RequestValidationException;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
 
 class BaseHandlerStdTest {
 
@@ -53,38 +53,6 @@ class BaseHandlerStdTest {
     @BeforeEach
     public void setUp() {
         handler = new TestBaseHandlerStd(null);
-    }
-
-    @Test
-    void isPromotionTierUpdated_NullPromotionTierReturnsTrue() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().build(),
-                ResourceModel.builder().build()
-        )).isTrue();
-    }
-
-    @Test
-    void isPromotionTierUpdated_MatchingPromotionTiedReturnsTrue() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().promotionTier(42).build(),
-                ResourceModel.builder().promotionTier(42).build()
-        )).isTrue();
-    }
-
-    @Test
-    void isPromotionTierUpdated_EmptyModelPromotionTierReturnsTrue() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().promotionTier(42).build(),
-                ResourceModel.builder().promotionTier(null).build()
-        )).isTrue();
-    }
-
-    @Test
-    void isPromotionTierUpdated_MismatchingPromotionTierReturnsFalse() {
-        Assertions.assertThat(handler.isPromotionTierUpdated(
-                DBInstance.builder().promotionTier(null).build(),
-                ResourceModel.builder().promotionTier(42).build()
-        )).isFalse();
     }
 
     @Test

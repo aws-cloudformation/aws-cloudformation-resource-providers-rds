@@ -1,9 +1,12 @@
 package software.amazon.rds.dbparametergroup;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
+import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -44,7 +47,11 @@ public class ReadHandler extends BaseHandlerStd {
                     try {
                         final DBParameterGroup dBParameterGroup = describeResponse.dbParameterGroups().stream().findFirst().get();
                         context.setDbParameterGroupArn(dBParameterGroup.dbParameterGroupArn());
-                        return ProgressEvent.progress(Translator.translateFromDBParameterGroup(dBParameterGroup), context);
+                        final ResourceModel currentModel = Translator.translateFromDBParameterGroup(dBParameterGroup);
+                        if (model.getParameters() != null) {
+                            currentModel.setParameters(model.getParameters());
+                        }
+                        return ProgressEvent.progress(currentModel, context);
                     } catch (Exception exception) {
                         return Commons.handleException(
                                 ProgressEvent.progress(model, context),
@@ -53,10 +60,36 @@ public class ReadHandler extends BaseHandlerStd {
                         );
                     }
                 })
+                .then(progress -> {
+                    if (progress.getResourceModel().getParameters() == null) {
+                        return readParameters(proxy, proxyClient, progress, logger);
+                    }
+                    return progress;
+                })
                 .then(progress -> readTags(proxyClient, progress));
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> readTags(
+    private ProgressEvent<ResourceModel, CallbackContext> readParameters(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final RequestLogger logger
+    ) {
+        final Map<String, Parameter> engineDefaultParameters = new HashMap<>();
+        final Map<String, Parameter> currentDBParameters = new HashMap<>();
+
+        return progress
+                .then(p -> describeEngineDefaultParameters(proxy, proxyClient, p, null, engineDefaultParameters, logger))
+                .then(p -> describeCurrentDBParameters(proxy, proxyClient, p, null, currentDBParameters, logger))
+                .then(p -> {
+                    p.getResourceModel().setParameters(
+                            Translator.translateParametersFromSdk(computeModifiedDBParameters(engineDefaultParameters, currentDBParameters))
+                    );
+                    return p;
+                });
+    }
+
+    private ProgressEvent<ResourceModel, CallbackContext> readTags(
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {

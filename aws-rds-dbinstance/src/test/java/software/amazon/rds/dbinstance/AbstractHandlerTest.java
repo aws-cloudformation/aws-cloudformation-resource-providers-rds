@@ -198,6 +198,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     protected static final DBInstance DB_INSTANCE_BASE;
     protected static final DBInstance DB_INSTANCE_ACTIVE;
+    protected static final DBInstance DB_INSTANCE_SQLSERVER_ACTIVE;
     protected static final DBInstance DB_INSTANCE_DELETING;
     protected static final DBInstance DB_INSTANCE_MODIFYING;
     protected static final DBInstance DB_INSTANCE_EMPTY_PORT;
@@ -560,6 +561,10 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .storageEncrypted(STORAGE_ENCRYPTED_NO)
                 .masterUsername(MASTER_USERNAME)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
+                .build();
+
+        DB_INSTANCE_SQLSERVER_ACTIVE = DB_INSTANCE_ACTIVE.toBuilder()
+                .engine(ENGINE_SQLSERVER_SE)
                 .build();
 
         DB_INSTANCE_DELETING = DB_INSTANCE_ACTIVE.toBuilder()

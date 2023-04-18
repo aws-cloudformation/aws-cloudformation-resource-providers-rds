@@ -3,31 +3,44 @@ package software.amazon.rds.dbclusterparametergroup;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import lombok.NonNull;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersResponse;
+import software.amazon.awssdk.services.rds.model.EngineDefaults;
+import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateException;
 import software.amazon.awssdk.services.rds.model.Parameter;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.CallChain.Completed;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -50,7 +63,7 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.common.util.ParameterGrouper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
-    public static final List<Set<String>> DEPENDENCIES = ImmutableList.of(
+    public static final List<Set<String>> PARAMETER_DEPENDENCIES = ImmutableList.of(
             ImmutableSet.of("collation_server", "character_set_server"),
             ImmutableSet.of("gtid-mode", "enforce_gtid_consistency"),
             ImmutableSet.of("password_encryption", "rds.accepted_password_auth_method"),
@@ -61,10 +74,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String AVAILABLE = "available";
     protected static final String RESOURCE_IDENTIFIER = "dbclusterparametergroup";
     protected static final String STACK_NAME = "rds";
+
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
     protected static final int MAX_PARAMETER_FILTER_SIZE = 100;
-    protected static final int MAX_PARAMETER_DESCRIBE_DEPTH = 20;
+    protected static final int MAX_DESCRIBE_PAGE_DEPTH = 50;
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -127,7 +141,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         request,
                         context,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        logger));
+                        requestLogger));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -135,7 +149,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             ResourceHandlerRequest<ResourceModel> request,
             CallbackContext callbackContext,
             ProxyClient<RdsClient> client,
-            Logger logger
+            RequestLogger logger
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
@@ -153,7 +167,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         try {
-            String arn = progress.getCallbackContext().getDbClusterParameterGroupArn();
+            final String arn = progress.getCallbackContext().getDbClusterParameterGroupArn();
             Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
             Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
         } catch (Exception exception) {
@@ -177,13 +191,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ResourceModel model,
-            final CallbackContext callbackContext
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Map<String, Object> desiredParams,
+            final RequestLogger logger
     ) {
         final Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
 
-        return ProgressEvent.progress(model, callbackContext)
-                .then(progressEvent -> describeCurrentDBClusterParameters(proxyClient, progressEvent, currentClusterParameters))
+        final List<String> filterParameterNames = new ArrayList<String>(desiredParams.keySet());
+
+        return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext())
+                .then(progressEvent -> describeCurrentDBClusterParameters(proxy, proxyClient, progressEvent, filterParameterNames, currentClusterParameters, logger))
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
                         CallbackContext::isParametersModified, CallbackContext::setParametersModified))
@@ -209,24 +226,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET));
     }
 
-
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Map<String, Parameter> defaultEngineParameters
     ) {
-        Map<String, Object> modelParameters = Optional.ofNullable(progress.getResourceModel().getParameters()).orElse(Collections.emptyMap());
-        Set<String> invalidParameters = modelParameters.entrySet().stream()
-                .filter(entry -> {
-                    String parameterName = entry.getKey();
-                    String newParameterValue = String.valueOf(entry.getValue());
-                    Parameter defaultParameter = defaultEngineParameters.get(parameterName);
-                    if (!defaultEngineParameters.containsKey(parameterName)) return true;
+        final Map<String, Object> modelParameters = Optional.ofNullable(progress.getResourceModel().getParameters()).orElse(Collections.emptyMap());
+        final List<String> invalidParameters = modelParameters.keySet().stream()
+                .filter(parameterName -> {
+                    if (!defaultEngineParameters.containsKey(parameterName)) {
+                        return true;
+                    }
+                    final String newParameterValue = String.valueOf(modelParameters.get(parameterName));
+                    final Parameter defaultParameter = defaultEngineParameters.get(parameterName);
                     //Parameter is not modifiable and input model contains different value from default value
                     return newParameterValue != null && BooleanUtils.isNotTrue(defaultParameter.isModifiable())
                             && !newParameterValue.equals(defaultParameter.parameterValue());
                 })
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         if (!invalidParameters.isEmpty()) {
             return ProgressEvent.failed(
@@ -238,57 +254,159 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return progress;
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBClusterParameters(
+    private Iterable<Parameter> fetchDBClusterParametersIterable(
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, Parameter> parametersAcc
+            final DescribeDbClusterParametersRequest request
     ) {
-        final Map<String, Object> parameters = progress.getResourceModel().getParameters();
-        if (MapUtils.isEmpty(parameters)) {
-            return progress;
-        }
+        Iterable<Parameter> result = Collections.emptyList();
 
-        final ResourceModel model = progress.getResourceModel();
+        String marker = null;
+        int page = 0;
+        do {
+            if (page >= MAX_DESCRIBE_PAGE_DEPTH) {
+                throw new CfnInvalidRequestException("Max DescribeDBParameters page reached.");
+            }
+            final DescribeDbClusterParametersResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                    request.toBuilder().marker(marker).build(),
+                    proxyClient.client()::describeDBClusterParameters
+            );
+            if (response.parameters() != null) {
+                result = Iterables.concat(result, response.parameters());
+            }
+            marker = response.marker();
+            page++;
+        } while (marker != null);
 
-        final List<String> parameterNames = new ArrayList<>(parameters.keySet());
-        for (final List<String> parameterNamePartition : Lists.partition(parameterNames, MAX_PARAMETER_FILTER_SIZE)) {
-            String marker = null;
-            try {
-                int page = 1;
-                do {
-                    if (page > MAX_PARAMETER_DESCRIBE_DEPTH) {
-                        return ProgressEvent.failed(
-                                progress.getResourceModel(),
-                                progress.getCallbackContext(),
-                                HandlerErrorCode.InvalidRequest,
-                                "Max describeDBClusterParameters response page reached."
-                        );
-                    }
-                    final DescribeDbClusterParametersResponse response = fetchDbClusterParameters(proxyClient, model, parameterNamePartition, marker);
-                    for (final Parameter parameter : response.parameters()) {
-                        parametersAcc.put(parameter.parameterName(), parameter);
-                    }
-                    marker = response.marker();
-                    page++;
-                } while (marker != null);
-            } catch (Exception e) {
-                return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+        return result;
+    }
+
+    private Iterable<Parameter> fetchDBClusterParametersIterableWithFilters(
+            final ProxyClient<RdsClient> proxyClient,
+            final String dbClusterParameterGroupName,
+            final List<String> filterParameterNames
+    ) {
+        Iterable<Parameter> iterable = Collections.emptyList();
+
+        if (filterParameterNames == null) {
+            final DescribeDbClusterParametersRequest request = DescribeDbClusterParametersRequest.builder()
+                    .dbClusterParameterGroupName(dbClusterParameterGroupName)
+                    .build();
+            iterable = fetchDBClusterParametersIterable(proxyClient, request);
+        } else {
+            for (final List<String> partition : Lists.partition(filterParameterNames, MAX_PARAMETER_FILTER_SIZE)) {
+                final Filter[] filters = new Filter[]{Translator.filterByParameterNames(partition)};
+                final DescribeDbClusterParametersRequest request = DescribeDbClusterParametersRequest.builder()
+                        .dbClusterParameterGroupName(dbClusterParameterGroupName)
+                        .filters(filters)
+                        .build();
+                iterable = Iterables.concat(iterable, fetchDBClusterParametersIterable(proxyClient, request));
             }
         }
 
+        return iterable;
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBClusterParameters(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final List<String> filterParameterNames,
+            final Map<String, Parameter> accumulator,
+            final RequestLogger logger
+    ) {
+        try {
+            final Iterable<Parameter> parameters = fetchDBClusterParametersIterableWithFilters(
+                    proxyClient,
+                    progress.getResourceModel().getDBClusterParameterGroupName(),
+                    filterParameterNames
+            );
+            for (final Parameter parameter : parameters) {
+                accumulator.put(parameter.parameterName(), parameter);
+            }
+        } catch (Exception e) {
+            return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+        }
         return progress;
     }
 
-    private DescribeDbClusterParametersResponse fetchDbClusterParameters(
+    private Iterable<Parameter> fetchEngineDefaultClusterParametersIterable(
             final ProxyClient<RdsClient> proxyClient,
-            final ResourceModel model,
-            final List<String> parameterNames,
-            final String marker
+            final DescribeEngineDefaultClusterParametersRequest request
     ) {
-        return proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbClusterParametersFilteredRequest(model, parameterNames, marker),
-                proxyClient.client()::describeDBClusterParameters
-        );
+        Iterable<Parameter> result = Collections.emptyList();
+
+        String marker = null;
+        int page = 0;
+        do {
+            if (page >= MAX_DESCRIBE_PAGE_DEPTH) {
+                throw new RuntimeException("Max DescribeEngineDefaultClusterParameters page reached.");
+            }
+            final DescribeEngineDefaultClusterParametersResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                    request.toBuilder().marker(marker).build(),
+                    proxyClient.client()::describeEngineDefaultClusterParameters
+            );
+            final EngineDefaults engineDefaults = response.engineDefaults();
+            if (engineDefaults == null) {
+                break;
+            }
+            if (engineDefaults.parameters() != null) {
+                result = Iterables.concat(result, engineDefaults.parameters());
+            }
+            marker = response.engineDefaults().marker();
+            page++;
+        } while (marker != null);
+
+        return result;
+    }
+
+    private Iterable<Parameter> fetchEngineDefaultClusterParametersIterableWithFilters(
+            final ProxyClient<RdsClient> proxyClient,
+            final String dbParameterGroupFamily,
+            final List<String> filterParameterNames
+    ) {
+        Iterable<Parameter> iterable = Collections.emptyList();
+
+        if (filterParameterNames == null) {
+            final DescribeEngineDefaultClusterParametersRequest request = DescribeEngineDefaultClusterParametersRequest.builder()
+                    .dbParameterGroupFamily(dbParameterGroupFamily)
+                    .build();
+            iterable = fetchEngineDefaultClusterParametersIterable(proxyClient, request);
+        } else {
+            for (final List<String> partition : Lists.partition(filterParameterNames, MAX_PARAMETER_FILTER_SIZE)) {
+                final Filter[] filters = new Filter[]{Translator.filterByParameterNames(partition)};
+                final DescribeEngineDefaultClusterParametersRequest request = DescribeEngineDefaultClusterParametersRequest.builder()
+                        .dbParameterGroupFamily(dbParameterGroupFamily)
+                        .filters(filters)
+                        .build();
+                iterable = Iterables.concat(iterable, fetchEngineDefaultClusterParametersIterable(proxyClient, request));
+            }
+        }
+
+        return iterable;
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> describeEngineDefaultClusterParameters(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final List<String> filterParameterNames,
+            final Map<String, Parameter> accumulator,
+            final RequestLogger logger
+    ) {
+        try {
+            final Iterable<Parameter> parameters = fetchEngineDefaultClusterParametersIterableWithFilters(
+                    proxyClient,
+                    progress.getResourceModel().getFamily(),
+                    filterParameterNames
+            );
+            for (final Parameter parameter : parameters) {
+                accumulator.put(parameter.parameterName(), parameter);
+            }
+        } catch (Exception e) {
+            return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+        }
+
+        return progress;
     }
 
     private Map<String, Parameter> getParametersToModify(
@@ -301,19 +419,36 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .stream()
                 //filter to parameters want to modify and its value is different from already exist value
                 .filter(entry -> {
-                    String parameterName = entry.getKey();
-                    String currentParameterValue = entry.getValue().parameterValue();
-                    String newParameterValue = String.valueOf(modelParameters.get(parameterName));
+                    final String parameterName = entry.getKey();
+                    final String currentParameterValue = entry.getValue().parameterValue();
+                    final String newParameterValue = String.valueOf(modelParameters.get(parameterName));
                     return !newParameterValue.equals(currentParameterValue);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> {
-                            String parameterName = entry.getKey();
-                            String newValue = String.valueOf(modelParameters.get(parameterName));
-                            Parameter defaultParameter = entry.getValue();
+                            final String parameterName = entry.getKey();
+                            final String newValue = String.valueOf(modelParameters.get(parameterName));
+                            final Parameter defaultParameter = entry.getValue();
                             return Translator.buildParameterWithNewValue(newValue, defaultParameter);
                         })
                 );
+    }
+
+    @VisibleForTesting
+    static Map<String, Parameter> computeModifiedDBParameters(
+            @NonNull final Map<String, Parameter> engineDefaultParameters,
+            @NonNull final Map<String, Parameter> currentDBParameters
+    ) {
+        final Map<String, Parameter> modifiedParameters = new HashMap<>();
+        for (final String paramName : currentDBParameters.keySet()) {
+            final Parameter currentParam = currentDBParameters.get(paramName);
+            final Parameter defaultParam = engineDefaultParameters.get(paramName);
+            if (defaultParam == null || !Objects.equals(defaultParam.parameterValue(), currentParam.parameterValue())) {
+                modifiedParameters.put(paramName, currentParam);
+            }
+        }
+
+        return modifiedParameters;
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> resetAllParameters(
@@ -343,7 +478,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final Map<String, Parameter> parametersToModify = getParametersToModify(model.getParameters(), currentDBParameters);
 
         try {
-            for (final List<Parameter> partition : ParameterGrouper.partition(parametersToModify, DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {
+            for (final List<Parameter> partition : ParameterGrouper.partition(parametersToModify, PARAMETER_DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {
                 proxyClient.injectCredentialsAndInvokeV2(
                         Translator.modifyDbClusterParameterGroupRequest(model, partition),
                         proxyClient.client()::modifyDBClusterParameterGroup
@@ -359,12 +494,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isDBClustersAvailable(final ProxyClient<RdsClient> proxyClient, final ResourceModel model) {
-        return proxyClient
-                .injectCredentialsAndInvokeIterableV2(Translator.describeDbClustersRequest(), proxyClient.client()::describeDBClustersPaginator)
-                .stream()
-                .flatMap(describeDbClustersResponse -> describeDbClustersResponse.dbClusters().stream())
-                .filter(dbCluster -> dbCluster.dbClusterParameterGroup().equalsIgnoreCase(model.getDBClusterParameterGroupName()))
-                .allMatch(dbCluster -> dbCluster.status().equals(AVAILABLE));
+        String marker = null;
+        int page = 1;
+        final DescribeDbClustersRequest request = Translator.describeDbClustersRequestForDBClusterParameterGroup(model);
+
+        do {
+            if (page > MAX_DESCRIBE_PAGE_DEPTH) {
+                throw new CfnInvalidRequestException("Max describeDBClusters response page reached.");
+            }
+            final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                    request.toBuilder().marker(marker).build(),
+                    proxyClient.client()::describeDBClusters
+            );
+            final List<DBCluster> dbClusters = Optional.ofNullable(response.dbClusters()).orElse(Collections.emptyList());
+            for (final DBCluster dbCluster : dbClusters) {
+                if (!AVAILABLE.equalsIgnoreCase(dbCluster.status())) {
+                    return false;
+                }
+            }
+            marker = response.marker();
+            page++;
+        } while (marker != null);
+
+        return true;
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> waitForDbClustersStabilization(
@@ -387,5 +539,4 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET))
                 .progress();
     }
-
 }

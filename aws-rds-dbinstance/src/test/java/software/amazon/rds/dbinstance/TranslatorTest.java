@@ -892,6 +892,66 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorageAndIopsOnRollback_ifStorageTypeIsProvisioned_storageDecr() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_INCR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_DECR)
+                .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
+                .build();
+
+        final boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_sholdIncludeAllocatedStorageAndIopsOnRollback_ifStorageTypeIsProvisioned_storageNoChange() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_INCR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_DECR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+
+        final boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorageAndIopsOnRollback_ifStorageTypeIsProvisioned_storageUnset() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_INCR)
+                .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR()
+                .storageType(STORAGE_TYPE_IO1)
+                .iops(IOPS_DECR)
+                .allocatedStorage(null)
+                .build();
+
+        final boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+
+        assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
+        assertThat(request.iops()).isEqualTo(IOPS_DECR);
+    }
+
+    @Test
     public void test_modifyAfterCreate_shouldSetManageMasterUserPasswordFields() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
@@ -902,6 +962,41 @@ class TranslatorTest extends AbstractHandlerTest {
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("kms-key");
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetEnablePerformanceInsights() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .enablePerformanceInsights(true)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetEnhancedMonitoring() {
+        final String monitoringRoleArn = "monitoring-role-arn";
+        final int monitoringInterval = 42;
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .monitoringRoleArn(monitoringRoleArn)
+                .monitoringInterval(monitoringInterval)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+
+        assertThat(request.monitoringRoleArn()).isEqualTo(monitoringRoleArn);
+        assertThat(request.monitoringInterval()).isEqualTo(monitoringInterval);
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetPerformanceInsightsKMSKeyIdIfPIEnabled() {
+        final String kmsKeyId = "kms-key-id";
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .enablePerformanceInsights(true)
+                .performanceInsightsKMSKeyId(kmsKeyId)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId);
     }
 
     @Test

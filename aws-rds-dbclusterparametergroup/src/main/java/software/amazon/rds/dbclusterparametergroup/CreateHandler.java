@@ -1,15 +1,17 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.util.Map;
+
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -29,16 +31,20 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     @Override
-    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
-                                                                          final ResourceHandlerRequest<ResourceModel> request,
-                                                                          final CallbackContext callbackContext,
-                                                                          final ProxyClient<RdsClient> proxyClient,
-                                                                          final Logger logger) {
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient,
+            final RequestLogger logger
+    ) {
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
+
+        final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
@@ -50,15 +56,17 @@ public class CreateHandler extends BaseHandlerStd {
                             .build();
                     return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
-                .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress.getResourceModel(), progress.getCallbackContext()),
+                .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress, desiredParams, logger),
                         CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> createDbClusterParameterGroup(final AmazonWebServicesClientProxy proxy,
-                                                                                        final ProxyClient<RdsClient> proxyClient,
-                                                                                        final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                        final Tagging.TagSet tags) {
+    private ProgressEvent<ResourceModel, CallbackContext> createDbClusterParameterGroup(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tags
+    ) {
         return proxy
                 .initiate("rds::create-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest((resourceModel) -> Translator
@@ -76,8 +84,10 @@ public class CreateHandler extends BaseHandlerStd {
                 });
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> setDbClusterParameterGroupNameIfMissing(final ResourceHandlerRequest<ResourceModel> request,
-                                                                                                  final ProgressEvent<ResourceModel, CallbackContext> progress) {
+    private ProgressEvent<ResourceModel, CallbackContext> setDbClusterParameterGroupNameIfMissing(
+            final ResourceHandlerRequest<ResourceModel> request,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
         final ResourceModel model = progress.getResourceModel();
         if (StringUtils.isNullOrEmpty(model.getDBClusterParameterGroupName()))
             model.setDBClusterParameterGroupName(groupIdentifierFactory.newIdentifier()

@@ -108,7 +108,7 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SimpleSuccess() {
+    public void handleRequest_Success() {
         when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
                 .thenReturn(DeleteDbClusterResponse.builder().build());
 

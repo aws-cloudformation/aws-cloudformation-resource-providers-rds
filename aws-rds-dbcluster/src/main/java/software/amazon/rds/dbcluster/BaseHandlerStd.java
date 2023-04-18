@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.commons.collections.CollectionUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
@@ -36,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
+import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
@@ -64,18 +67,39 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.common.printer.JsonPrinter;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.common.request.Validations;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
     private static final String MASTER_USER_SECRET_ACTIVE = "active";
     public static final String STACK_NAME = "rds";
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
+
+    protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
+
+    private static final List<Predicate<Event>> EVENT_FAIL_CHECKERS = ImmutableList.of(
+            (e) -> Events.isEventMessageContains(e, "Database cluster is in a state that cannot be upgraded:"),
+            (e) -> Events.isEventMessageContains(e, "Cluster failover failed"),
+            (e) -> Events.isEventMessageContains(e, "Cluster reboot failed"),
+            (e) -> Events.isEventMessageContains(e, "Amazon RDS can't access the KMS encryption key"),
+            (e) -> Events.isEventMessageContains(e, "Failed to join a host to a domain"),
+            (e) -> Events.isEventMessageContains(e, "Failed to join cluster instance"),
+            (e) -> Events.isEventMessageContains(e, "Amazon RDS isn't able to associate the IAM role"),
+            (e) -> Events.isEventMessageContains(e, "could not be removed from global cluster"),
+            (e) -> Events.isEventMessageContains(e, "Unable to upgrade DB cluster"),
+            (e) -> Events.isEventMessageContains(e, "Unable to perform a major version upgrade"),
+            (e) -> Events.isEventMessageContains(e, "Unable to patch the primary DB cluster"),
+            (e) -> Events.isEventMessageContains(e, "We were unable to create your Aurora Serverless DB cluster")
+    );
 
     protected static final ErrorRuleSet DEFAULT_DB_CLUSTER_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -146,6 +170,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         this.config = config;
     }
 
+    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ValidatedRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger
+    );
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final Logger logger
+    ) {
+        try {
+            validateRequest(request);
+        } catch (RequestValidationException exception) {
+            return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
+        }
+
+        return handleRequest(proxy, new ValidatedRequest<>(request), callbackContext, rdsProxyClient, ec2ProxyClient, logger);
+    }
+
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -167,14 +217,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 ));
     }
 
-    protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
-            final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
-    );
+    protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
+        Validations.validateSourceRegion(request.getDesiredResourceState().getSourceRegion());
+    }
+
+    protected boolean isFailureEvent(final Event event) {
+        return EVENT_FAIL_CHECKERS.stream().anyMatch(p -> p.test(event));
+    }
 
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> proxyClient,
@@ -513,7 +562,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
-    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState, final ResourceModel desiredState) {
+    protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState,
+                                                          final ResourceModel desiredState) {
         if (previousState != null) {
             final List<String> previousVpcIds = CollectionUtils.isEmpty(previousState.getVpcSecurityGroupIds()) ?
                     Collections.emptyList() : previousState.getVpcSecurityGroupIds();

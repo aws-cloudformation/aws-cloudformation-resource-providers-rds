@@ -1,5 +1,9 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+
 import com.amazonaws.util.StringUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -8,6 +12,7 @@ import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
+import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -15,14 +20,16 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.RequestValidationException;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 import java.time.Instant;
@@ -49,6 +56,7 @@ public class CreateHandler extends BaseHandlerStd {
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
         super.validateRequest(request);
         validateDeletionPolicyForClusterInstance(request);
+        Validations.validateTimestamp(request.getDesiredResourceState().getRestoreTime());
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
@@ -156,7 +164,16 @@ public class CreateHandler extends BaseHandlerStd {
                                             return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                                                     ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreateV12(pxy, request, pcl, prg),
                                                     ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstanceAfterCreate(pxy, request, pcl, prg)
-                                            )).then(p -> checkFailedEvents(rdsProxyClient.defaultClient(), logger, p, p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT)));
+                                            )).then(p ->
+                                                    Events.checkFailedEvents(
+                                                            rdsProxyClient.defaultClient(),
+                                                            p.getResourceModel().getDBInstanceIdentifier(),
+                                                            SourceType.DB_INSTANCE,
+                                                            p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
+                                                            p,
+                                                            this::isFailureEvent,
+                                                            logger
+                                                    ));
                                         },
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
                                 .then(p -> Commons.execOnce(p, () -> {

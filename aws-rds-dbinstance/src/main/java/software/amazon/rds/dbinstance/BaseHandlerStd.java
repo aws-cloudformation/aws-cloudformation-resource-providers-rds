@@ -1,7 +1,6 @@
 package software.amazon.rds.dbinstance;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -51,7 +50,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
@@ -70,7 +69,6 @@ import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
@@ -87,19 +85,21 @@ import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
+import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.request.RequestValidationException;
-import software.amazon.rds.dbinstance.request.ValidatedRequest;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
@@ -149,8 +149,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
 
-    protected static final String EVENT_CATEGORY_NOTIFICATION = "notification";
-
     protected final HandlerConfig config;
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
@@ -168,18 +166,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     //TODO: This list should be gone eventually. Event ID should be checked instead.
     private static final List<Predicate<Event>> EVENT_FAIL_CHECKERS = ImmutableList.of(
-            (e) -> isEventMessageContains(e, "failed to join a host to a domain"),
-            (e) -> isEventMessageContains(e, "failed to join cluster instance"),
-            (e) -> isEventMessageContains(e, "insufficient instance capacity"),
-            (e) -> isEventMessageContains(e, "rds custom couldn't modify the db instance"),
-            (e) -> isEventMessageContains(e, "the db engine version upgrade failed"),
-            (e) -> isEventMessageContains(e, "the instance could not be upgraded"),
-            (e) -> isEventMessageContains(e, "the storage volume limitation was exceeded"),
-            (e) -> isEventMessageContains(e, "the update of the replica mode failed"),
-            (e) -> isEventMessageContains(e, "unable to modify database instance class"),
-            (e) -> isEventMessageContains(e, "unable to modify the db instance class"),
-            (e) -> isEventMessageContains(e, "you can't create the db instance"),
-            (e) -> isEventMessageContains(e, "instance is in a state that cannot be upgraded")
+            (e) -> Events.isEventMessageContains(e, "failed to join a host to a domain"),
+            (e) -> Events.isEventMessageContains(e, "failed to join cluster instance"),
+            (e) -> Events.isEventMessageContains(e, "insufficient instance capacity"),
+            (e) -> Events.isEventMessageContains(e, "rds custom couldn't modify the db instance"),
+            (e) -> Events.isEventMessageContains(e, "the db engine version upgrade failed"),
+            (e) -> Events.isEventMessageContains(e, "the instance could not be upgraded"),
+            (e) -> Events.isEventMessageContains(e, "the storage volume limitation was exceeded"),
+            (e) -> Events.isEventMessageContains(e, "the update of the replica mode failed"),
+            (e) -> Events.isEventMessageContains(e, "unable to modify database instance class"),
+            (e) -> Events.isEventMessageContains(e, "unable to modify the db instance class"),
+            (e) -> Events.isEventMessageContains(e, "you can't create the db instance"),
+            (e) -> Events.isEventMessageContains(e, "instance is in a state that cannot be upgraded")
     );
 
     protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
@@ -269,6 +267,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBInstanceAlreadyExists)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbInstanceAlreadyExistsException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    DbClusterNotFoundException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
+                    InvalidDbClusterStateException.class)
             .build();
 
     protected static final ErrorRuleSet REBOOT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
@@ -325,15 +327,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSnapshotAlreadyExistsException.class)
             .build();
 
-    protected static final ErrorRuleSet DESCRIBE_EVENTS_ERROR_RULE_SET = ErrorRuleSet
-            .extend(Commons.DEFAULT_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
-                    ErrorCode.AccessDenied,
-                    ErrorCode.AccessDeniedException,
-                    ErrorCode.NotAuthorized,
-                    ErrorCode.UnauthorizedOperation)
-            .build();
-
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -360,18 +353,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        validateSourceRegion(request);
-    }
-
-    protected void validateSourceRegion(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        final ResourceModel model = request.getDesiredResourceState();
-        final String sourceRegion = model.getSourceRegion();
-        if (StringUtils.isNotBlank(sourceRegion)) {
-            final Set<String> regionNames = Region.regions().stream().map(Region::toString).collect(Collectors.toSet());
-            if (!regionNames.contains(sourceRegion.toLowerCase(Locale.getDefault()))) {
-                throw new RequestValidationException(UNKNOWN_SOURCE_REGION_ERROR);
-            }
-        }
+        Validations.validateSourceRegion(request.getDesiredResourceState().getSourceRegion());
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -482,25 +464,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean isRdsCustomOracleInstance(final ResourceModel model) {
         return RDS_CUSTOM_ORACLE_ENGINES.contains(model.getEngine());
-    }
-
-    protected List<Event> fetchEvents(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model,
-            final String eventType,
-            final Instant fetchSince
-    ) {
-        final DescribeEventsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeEventsRequest(
-                        SourceType.DB_INSTANCE,
-                        model.getDBInstanceIdentifier(),
-                        Collections.singletonList(eventType),
-                        fetchSince,
-                        Instant.now()
-                ),
-                rdsProxyClient.client()::describeEvents
-        );
-        return response.events();
     }
 
     protected boolean isFailureEvent(final Event event) {
@@ -641,9 +604,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
     }
 
+    private void assertNoDomainMembershipTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
+        final List<DomainMembership> terminalDomainMemberships = Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
+                .stream()
+                .filter(domainMembership -> {
+                    final DomainMembershipStatus status = DomainMembershipStatus.fromString(domainMembership.status());
+                    return status != null && status.isTerminal();
+                })
+                .collect(Collectors.toList());
+
+        if (!terminalDomainMemberships.isEmpty()) {
+            throw new CfnNotStabilizedException(new Exception(String.format("Domain %s is in a terminal state",
+                    terminalDomainMemberships.get(0).domain())));
+        }
+    }
+
     private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
         assertNoDBInstanceTerminalStatus(dbInstance);
         assertNoOptionGroupTerminalStatus(dbInstance);
+        assertNoDomainMembershipTerminalStatus(dbInstance);
     }
 
     protected boolean isDBInstanceStabilizedAfterMutate(
@@ -662,7 +641,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isCaCertificateChangesApplied(dbInstance, model) &&
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
-                isPromotionTierUpdated(dbInstance, model) &&
                 isMasterUserSecretStabilized(dbInstance);
     }
 
@@ -682,10 +660,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     boolean isDBInstanceAvailable(final DBInstance dbInstance) {
         return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
-    }
-
-    boolean isPromotionTierUpdated(final DBInstance dbInstance, final ResourceModel model) {
-        return model.getPromotionTier() == null || model.getPromotionTier().equals(dbInstance.promotionTier());
     }
 
     boolean isDomainMembershipsJoined(final DBInstance dbInstance) {
@@ -1026,42 +1000,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             throw MISSING_METHOD_VERSION_EXCEPTION;
         }
         return methodVersions.get(apiVersion).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> checkFailedEvents(
-            final ProxyClient<RdsClient> rdsClient,
-            final Logger logger,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Instant fetchSince
-    ) {
-        try {
-            final List<Event> failures = fetchEvents(rdsClient, progress.getResourceModel(), EVENT_CATEGORY_NOTIFICATION, fetchSince)
-                    .stream()
-                    .filter(this::isFailureEvent)
-                    .collect(Collectors.toList());
-            if (!CollectionUtils.isNullOrEmpty(failures)) {
-                return ProgressEvent.failed(
-                        progress.getResourceModel(),
-                        progress.getCallbackContext(),
-                        HandlerErrorCode.GeneralServiceException,
-                        failures.get(0).message()
-                );
-            }
-        } catch (Exception e) {
-            logger.log(String.format("Failed to fetch events: %s", e.getMessage()));
-            return Commons.handleException(progress, e, DESCRIBE_EVENTS_ERROR_RULE_SET);
-        }
-        return progress;
-    }
-
-    private static boolean isEventMessageContains(final Event event, final String fragment) {
-        if (event != null) {
-            final String msg = event.message();
-            if (msg != null) {
-                return msg.toLowerCase(Locale.getDefault())
-                        .contains(fragment.toLowerCase(Locale.getDefault()));
-            }
-        }
-        return false;
     }
 }
