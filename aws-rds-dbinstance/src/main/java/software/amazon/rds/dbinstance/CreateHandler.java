@@ -100,6 +100,9 @@ public class CreateHandler extends BaseHandlerStd {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
                                 final String engine = snapshot.engine();
+                                if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                                    progress.getResourceModel().setEngine(engine);
+                                }
                                 progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
                             } catch (Exception e) {
                                 return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
