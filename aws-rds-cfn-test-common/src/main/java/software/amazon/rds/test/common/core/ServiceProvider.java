@@ -10,6 +10,8 @@ public enum ServiceProvider {
     KMS("kms"),
     RDS("rds"),
     SDK("sdk"),
+    S3("s3"),
+    MEDIAIMPORT("mediaimport"),
     ASM("secretsmanager");
 
     private final String name;
@@ -30,6 +32,8 @@ public enum ServiceProvider {
             .put("RdsClient", RDS)
             .put("SdkClient", SDK)
             .put("AsmClient", ASM)
+            .put("S3Client", S3)
+            .put("MediaimportClient", MEDIAIMPORT)
             .build();
 
 
