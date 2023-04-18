@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRespons
 import software.amazon.awssdk.services.rds.model.InvalidCustomDbEngineVersionStateException;
 import software.amazon.awssdk.services.rds.model.InvalidS3BucketException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -148,7 +149,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return progress;
         }
 
-        final String arn = progress.getResourceModel().getDBEngineVersionArn();
+        ResourceModel model = progress.getResourceModel();
+        if (StringUtils.isBlank(model.getDBEngineVersionArn())) {
+            model.setDBEngineVersionArn(fetchDBEngineVersion(model, rdsProxyClient).dbEngineVersionArn());
+        }
+
+        final String arn = model.getDBEngineVersionArn();
 
         try {
             Tagging.removeTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToRemove));
