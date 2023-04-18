@@ -129,10 +129,21 @@
   "handlers": {
     "create": {
       "permissions": [
+        "kms:CreateGrant",
+        "kms:DescribeKey",
+        "mediaimport:CreateDatabaseBinarySnapshot",
         "rds:AddTagsToResource",
         "rds:CreateCustomDBEngineVersion",
         "rds:DescribeDBEngineVersions",
-        "rds:ModifyCustomDBEngineVersion"
+        "rds:ModifyCustomDBEngineVersion",
+        "s3:CreateBucket",
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:GetObjectTagging",
+        "s3:ListBucket",
+        "s3:PutBucketObjectLockConfiguration",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketVersioning"
       ],
       "timeoutInMinutes": 600
     },
