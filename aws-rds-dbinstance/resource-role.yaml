@@ -30,6 +30,8 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "cloudtrail:CreateTrail"
+                - "cloudtrail:StartLogging"
                 - "ec2:DescribeAccountAttributes"
                 - "ec2:DescribeAvailabilityZones"
                 - "ec2:DescribeInternetGateways"
@@ -41,6 +43,7 @@ Resources:
                 - "iam:GetRole"
                 - "iam:ListRoles"
                 - "iam:PassRole"
+                - "iam:SimulatePrincipalPolicy"
                 - "kms:CreateGrant"
                 - "kms:DescribeKey"
                 - "rds:AddRoleToDBInstance"
