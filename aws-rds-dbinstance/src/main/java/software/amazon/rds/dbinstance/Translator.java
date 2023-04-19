@@ -105,7 +105,7 @@ public class Translator {
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (!ResourceModelHelper.isSqlServer(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model)) {
             builder.allocatedStorage(getAllocatedStorage(model))
                     .iops(model.getIops())
                     .storageThroughput(model.getStorageThroughput())
@@ -136,7 +136,7 @@ public class Translator {
                 .storageType(model.getStorageType())
                 .storageThroughput(model.getStorageThroughput());
 
-        if (!ResourceModelHelper.isSqlServer(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model)) {
             builder.allocatedStorage(getAllocatedStorage(model))
                     .iops(model.getIops())
                     .storageThroughput(model.getStorageThroughput())
@@ -180,7 +180,7 @@ public class Translator {
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (!ResourceModelHelper.isSqlServer(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model)) {
             builder.allocatedStorage(getAllocatedStorage(model))
                     .iops(model.getIops())
                     .storageThroughput(model.getStorageThroughput())
@@ -330,7 +330,7 @@ public class Translator {
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (!ResourceModelHelper.isSqlServer(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model)) {
             builder.allocatedStorage(getAllocatedStorage(model))
                     .iops(model.getIops())
                     .storageThroughput(model.getStorageThroughput())
@@ -535,7 +535,7 @@ public class Translator {
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
-        if (ResourceModelHelper.isSqlServer(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model)) {
             builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
             builder.storageThroughput(model.getStorageThroughput());
