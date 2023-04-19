@@ -15,6 +15,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -1446,6 +1447,44 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+    }
+
+    @Test
+    public void handleRequest_CreateReadReplica_SetStorageTypeIfEngineIsEmptyAndSourceInstanceIsNotSQLServer() {
+        when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
+                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        final String sourceDBInstanceIdentifier = RandomStringUtils.randomAlphabetic(10);
+        final DBInstance sourceDBInstance = DBInstance.builder()
+                .dbInstanceIdentifier(sourceDBInstanceIdentifier)
+                .engine(ENGINE_POSTGRES)
+                .storageType(STORAGE_TYPE_IO1)
+                .dbInstanceStatus(DB_INSTANCE_STATUS_AVAILABLE)
+                .build();
+
+        test_handleRequest_base(
+                context,
+                () -> sourceDBInstance,
+                () -> ResourceModel.builder()
+                        .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                        .engine(null)
+                        .sourceDBInstanceIdentifier(sourceDBInstanceIdentifier)
+                        .storageType(STORAGE_TYPE_GP2)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<CreateDbInstanceReadReplicaRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(createCaptor.capture());
+        Assertions.assertThat(createCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test

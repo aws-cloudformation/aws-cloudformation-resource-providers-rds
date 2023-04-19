@@ -9,6 +9,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
@@ -91,6 +92,10 @@ public class CreateHandler extends BaseHandlerStd {
                         return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
+                        if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                            final DBInstance sourceDBInstance = fetchSourceDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                            progress.getResourceModel().setEngine(sourceDBInstance.engine());
+                        }
                         // createDBInstanceReadReplica is not a versioned call.
                         return safeAddTags(this::createDbInstanceReadReplica)
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
