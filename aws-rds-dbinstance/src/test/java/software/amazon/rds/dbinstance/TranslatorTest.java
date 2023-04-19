@@ -486,21 +486,22 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_modifyAfterCreate_shouldNotSetGP3Parameters() {
+    public void test_modifyAfterCreate_shouldSetStorageParameters() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .storageType("gp3")
                 .storageThroughput(100)
                 .iops(200)
+                .engine("sqlserver-ee")
                 .build();
 
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
-        assertThat(request.iops()).isNull();
-        assertThat(request.storageThroughput()).isNull();
-        assertThat(request.storageType()).isNull();
+        assertThat(request.iops()).isEqualTo(200);
+        assertThat(request.storageThroughput()).isEqualTo(100);
+        assertThat(request.storageType()).isEqualTo("gp3");
     }
 
     @Test
-    public void test_modifyAfterCreate_shouldSetGP3ParametersForSqlServer() {
+    public void test_modifyAfterCreate_shouldSetGP3ParametersWhenPresent() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .storageType("gp3")
                 .storageThroughput(100)
