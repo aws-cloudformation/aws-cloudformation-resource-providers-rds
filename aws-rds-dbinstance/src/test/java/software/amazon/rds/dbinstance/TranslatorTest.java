@@ -326,14 +326,14 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isEqualTo("gp3");
-        assertThat(request.iops()).isEqualTo(100);
-        assertThat(request.storageThroughput()).isEqualTo(200);
-        assertThat(request.allocatedStorage()).isEqualTo(300);
+        assertThat(request.storageType()).isNull();
+        assertThat(request.iops()).isNull();
+        assertThat(request.storageThroughput()).isNull();
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
-    public void test_restoreDbInstanceToPointInTimeRequest_shouldBeSetOnCreate() {
+    public void test_restoreDbInstanceToPointInTimeRequest_shouldNotBeSetOnCreate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp3")
@@ -343,14 +343,14 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isEqualTo("gp3");
-        assertThat(request.iops()).isEqualTo(100);
-        assertThat(request.storageThroughput()).isEqualTo(200);
-        assertThat(request.allocatedStorage()).isEqualTo(300);
+        assertThat(request.storageType()).isNull();
+        assertThat(request.iops()).isNull();
+        assertThat(request.storageThroughput()).isNull();
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
-    public void test_restoreFromSnapshotRequestV12_shouldBeSetOnRestore() {
+    public void test_restoreFromSnapshotRequestV12_shouldNotBeSetOnRestore() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp3")
@@ -360,11 +360,10 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
-        assertThat(request.storageType()).isEqualTo("gp3");
-        assertThat(request.iops()).isEqualTo(100);
-        assertThat(request.storageThroughput()).isEqualTo(200);
-        assertThat(request.allocatedStorage()).isEqualTo(300);
-
+        assertThat(request.storageType()).isNull();
+        assertThat(request.iops()).isNull();
+        assertThat(request.storageThroughput()).isNull();
+        assertThat(request.allocatedStorage()).isNull();
     }
 
     @Test
@@ -375,7 +374,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isEqualTo("gp2");
+        assertThat(request.storageType()).isNull();
     }
 
     @Test
@@ -386,7 +385,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
-        assertThat(request.storageType()).isEqualTo("gp2");
+        assertThat(request.storageType()).isNull();
     }
 
     @Test
@@ -397,7 +396,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
 
         final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequestV12(model);
-        assertThat(request.storageType()).isEqualTo("gp2");
+        assertThat(request.storageType()).isNull();
     }
 
     @Test

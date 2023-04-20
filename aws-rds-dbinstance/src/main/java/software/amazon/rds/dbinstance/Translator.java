@@ -104,13 +104,6 @@ public class Translator {
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
-
-        if (ResourceModelHelper.isStorageParametersModified(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -127,21 +120,12 @@ public class Translator {
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
-                .port(translatePortToSdk(model.getPort()))
-                .storageType(model.getStorageType())
-                .storageThroughput(model.getStorageThroughput());
+                .port(translatePortToSdk(model.getPort()));
 
-        if (ResourceModelHelper.isStorageParametersModified(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -179,13 +163,6 @@ public class Translator {
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
-
-        if (ResourceModelHelper.isStorageParametersModified(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -330,12 +307,6 @@ public class Translator {
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (ResourceModelHelper.isStorageParametersModified(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
