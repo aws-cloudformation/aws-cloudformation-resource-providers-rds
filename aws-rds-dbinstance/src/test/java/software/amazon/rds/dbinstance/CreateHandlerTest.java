@@ -920,7 +920,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RestoreDBInstanceFromSnapshot_AllocatedStorage() {
+    public void handleRequest_RestoreDBInstanceFromSnapshot_AllocatedStorage_ShouldNotUpdate_Success() {
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
         context.setUpdated(false);
@@ -1495,6 +1495,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
         Assertions.assertThat(modifyCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
