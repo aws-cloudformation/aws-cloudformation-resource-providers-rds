@@ -10,8 +10,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class ResourceModelHelper {
-    private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
-
     private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
             "sqlserver-ee",
             "sqlserver-se"
