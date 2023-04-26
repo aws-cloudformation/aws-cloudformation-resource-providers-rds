@@ -69,6 +69,7 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
+        final boolean isMultiAZ = BooleanUtils.isTrue(model.getMultiAZ());
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
             model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
@@ -96,14 +97,16 @@ public class CreateHandler extends BaseHandlerStd {
                                 .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
                             ResourceModelHelper.isRestoreFromClusterSnapshot(progress.getResourceModel())) {
-                        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && model.getMultiAZ() == null) {
+                        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && !isMultiAZ) {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
                                 final String engine = snapshot.engine();
                                 if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
                                     progress.getResourceModel().setEngine(engine);
                                 }
-                                progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
+                                if (progress.getResourceModel().getMultiAZ() == null) {
+                                    progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
+                                }
                             } catch (Exception e) {
                                 return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
                             }
