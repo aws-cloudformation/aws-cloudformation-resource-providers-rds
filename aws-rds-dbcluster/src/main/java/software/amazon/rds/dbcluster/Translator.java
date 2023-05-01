@@ -308,7 +308,7 @@ public class Translator {
         if (null != desired.getManageMasterUserPassword()) {
             return desired.getManageMasterUserPassword();
         }
-        if (BooleanUtils.isTrue(previous.getManageMasterUserPassword()) && BooleanUtils.isNotTrue(desired.getManageMasterUserPassword())) {
+        if (BooleanUtils.isTrue(previous.getManageMasterUserPassword())) {
             return false;
         }
         return null;
