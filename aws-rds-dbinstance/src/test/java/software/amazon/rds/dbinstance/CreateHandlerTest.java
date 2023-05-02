@@ -167,6 +167,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(restoreResponse);
 
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
+
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
         context.setUpdated(true);
@@ -182,6 +189,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     @Test
@@ -193,6 +201,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         // rdsClientV12 would be invoked on a stabilization.
         when(rdsProxyV12.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
                 .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(DB_INSTANCE_ACTIVE).build());
+
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -215,11 +230,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     @Test
     public void handleRequest_RestoreDBInstanceFromSnapshot_AccessDeniedTagging() {
-        final RestoreDbInstanceFromDbSnapshotResponse restoreResponse = RestoreDbInstanceFromDbSnapshotResponse.builder().build();
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenThrow(
                         RdsException.builder()
@@ -227,9 +242,17 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
                                 ).build())
-                .thenReturn(restoreResponse);
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -274,6 +297,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
+
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     @Test
@@ -1346,6 +1371,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
 
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
+
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
         context.setUpdated(true);
@@ -1367,6 +1399,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isEmpty();
         Assertions.assertThat(captor.getValue().vpcSecurityGroupIds()).isInstanceOf(SdkAutoConstructList.class);
+
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     @Test
@@ -1492,6 +1526,40 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_SetStorageType_MultiAZSetFalse() {
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
+
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> ResourceModel.builder()
+                        .storageType(STORAGE_TYPE_GP2)
+                        .multiAZ(false)
+                        .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_NON_EMPTY)
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
+        Assertions.assertThat(restoreCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+    }
+
+    @Test
     public void handleRequest_RestoreDBInstanceFromSnapshot_UpdateEngineVersion() {
         final String snapshotEngineVersion = ENGINE_VERSION_MYSQL_56;
         final String requestedEngineVersion = ENGINE_VERSION_MYSQL_80;
@@ -1502,6 +1570,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(ModifyDbInstanceResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
                 .thenReturn(DescribeEventsResponse.builder().build());
+
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -1527,6 +1602,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
         Assertions.assertThat(captor.getValue().engineVersion()).isEqualTo(requestedEngineVersion);
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     static class CreateDBInstanceExceptionArgumentsProvider implements ArgumentsProvider {
@@ -1616,6 +1692,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
             final Object requestException,
             final HandlerErrorCode expectResponseCode
     ) {
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder()
+                                .engine(ENGINE_MYSQL)
+                                .build())
+                        .build());
+
         test_handleRequest_error(
                 expectRestoreDBInstanceFromDBSnapshotCall(),
                 new CallbackContext(),
