@@ -911,7 +911,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateReadReplica_AllocatedStorage_ShouldUpdate() {
+    public void handleRequest_CreateReadReplica_AllocatedStorage() {
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
         context.setUpdated(false);
@@ -937,7 +937,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
-        Assertions.assertThat(captor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(captor.getValue().allocatedStorage()).isNull();
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
@@ -974,7 +974,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
-        Assertions.assertThat(captor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(captor.getValue().allocatedStorage()).isNull();
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
@@ -1503,10 +1503,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
-        context.setUpdated(true);
+        context.setUpdated(false);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
 
@@ -1522,7 +1524,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
-        Assertions.assertThat(restoreCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+        Assertions.assertThat(restoreCaptor.getValue().storageType()).isNull();
+
+        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
     @Test
@@ -1537,9 +1544,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
 
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
-        context.setUpdated(true);
+        context.setUpdated(false);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
 
@@ -1556,7 +1566,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
-        Assertions.assertThat(restoreCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+        Assertions.assertThat(restoreCaptor.getValue().storageType()).isNull();
+
+        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
     }
 
     @Test
