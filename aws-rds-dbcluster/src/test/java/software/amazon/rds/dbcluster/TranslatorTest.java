@@ -214,6 +214,25 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void translateManageMasterUserPassword_fromExplicitFalseToExplicitFalse() {
+        final ResourceModel prev = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(false)
+                .masterUserPassword("password")
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
+                .build();
+        final ResourceModel desired = RESOURCE_MODEL.toBuilder()
+                .manageMasterUserPassword(false)
+                .masterUserPassword("password")
+                .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
+                .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+
+        assertThat(request.manageMasterUserPassword()).isNull();
+        assertThat(request.masterUserSecretKmsKeyId()).isNull();
+    }
+
+    @Test
     public void test_translateScalingConfigurationToSdk_null() {
         assertThat(Translator.translateScalingConfigurationToSdk(null)).isNull();
     }
