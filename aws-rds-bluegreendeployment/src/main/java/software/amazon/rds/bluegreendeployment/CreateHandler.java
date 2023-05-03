@@ -66,17 +66,25 @@ public class CreateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::create-blue-green-deployment", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(model -> Translator.createBlueGreenDeploymentRequest(model, tags))
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> client.injectCredentialsAndInvokeV2(
                         request, client.client()::createBlueGreenDeployment
                 ))
-                .stabilize((request, response, client, model, context) -> isBlueGreenDeploymentStabilized(client, model))
+                .stabilize((request, response, client, model, context) -> {
+                    if (StringUtils.isNullOrEmpty(model.getBlueGreenDeploymentIdentifier())) {
+                        model.setBlueGreenDeploymentIdentifier(response.blueGreenDeployment().blueGreenDeploymentIdentifier());
+                    }
+                    return isBlueGreenDeploymentStabilized(client, model);
+                })
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
                         DEFAULT_BLUE_GREEN_DEPLOYMENT_ERROR_RULE_SET
                 ))
                 .done((request, response, client, model, context) -> {
-                    model.setBlueGreenDeploymentIdentifier(response.blueGreenDeployment().blueGreenDeploymentIdentifier());
+                    if (StringUtils.isNullOrEmpty(model.getBlueGreenDeploymentIdentifier())) {
+                        model.setBlueGreenDeploymentIdentifier(response.blueGreenDeployment().blueGreenDeploymentIdentifier());
+                    }
                     return ProgressEvent.progress(model, context);
                 });
     }

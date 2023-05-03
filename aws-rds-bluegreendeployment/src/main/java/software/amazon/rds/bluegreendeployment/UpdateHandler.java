@@ -51,6 +51,7 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::switchower-blue-green-deployment", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::switchoverBlueGreenDeploymentRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> client.injectCredentialsAndInvokeV2(
                         request,
                         client.client()::switchoverBlueGreenDeployment

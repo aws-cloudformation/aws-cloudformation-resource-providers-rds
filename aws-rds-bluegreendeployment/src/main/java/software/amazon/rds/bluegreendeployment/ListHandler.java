@@ -44,6 +44,7 @@ public class ListHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::list-blue-green-deployments", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(model -> Translator.describeBlueGreenDeploymentsRequest(nextToken))
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> client.injectCredentialsAndInvokeV2(
                         request,
                         client.client()::describeBlueGreenDeployments

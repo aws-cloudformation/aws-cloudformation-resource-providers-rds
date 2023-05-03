@@ -32,6 +32,7 @@ public class ReadHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::describe-blue-green-deployment", proxyClient, req.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeBlueGreenDeploymentsRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> client.injectCredentialsAndInvokeV2(
                         request,
                         client.client()::describeBlueGreenDeployments

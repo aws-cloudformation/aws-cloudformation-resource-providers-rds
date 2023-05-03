@@ -161,4 +161,29 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         assertThat(response.getResourceModel().getBlueGreenDeploymentIdentifier()).isEqualTo(blueGreenDeploymentIdentifier);
         assertThat(createCaptor.getValue().blueGreenDeploymentName()).isEqualTo(blueGreenDeploymentName);
     }
+
+    @Test
+    public void handleRequest_createBlueGreenDeploymentWithBlueGreenDeploymentIdentifier() {
+        final String blueGreenDeploymentIdentifier = RandomStringUtils.randomAlphabetic(32);
+
+        when(rdsProxy.client().createBlueGreenDeployment(any(CreateBlueGreenDeploymentRequest.class)))
+                .thenReturn(CreateBlueGreenDeploymentResponse.builder().build());
+
+        final ProgressEvent<ResourceModel, CallbackContext> result = test_handleRequest_base(
+                new CallbackContext(),
+                () -> BlueGreenDeployment.builder()
+                        .blueGreenDeploymentIdentifier(blueGreenDeploymentIdentifier)
+                        .status("available")
+                        .build(),
+                () -> ResourceModel.builder()
+                        .blueGreenDeploymentIdentifier(blueGreenDeploymentIdentifier)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createBlueGreenDeployment(any(CreateBlueGreenDeploymentRequest.class));
+        verify(rdsProxy.client(), times(2)).describeBlueGreenDeployments(any(DescribeBlueGreenDeploymentsRequest.class));
+
+        assertThat(result.getResourceModel().getBlueGreenDeploymentIdentifier()).isEqualTo(blueGreenDeploymentIdentifier);
+    }
 }

@@ -31,7 +31,7 @@ import software.amazon.rds.common.printer.JsonPrinter;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "bluegreendeployment";
     public static final String STACK_NAME = "rds";
-    protected static final int RESOURCE_ID_MAX_LENGTH = 63;
+    protected static final int RESOURCE_ID_MAX_LENGTH = 60;
 
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
@@ -44,7 +44,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .build();
 
     protected final static HandlerConfig DEFAULT_HANDLER_CONFIG = HandlerConfig.builder()
-            .probingEnabled(true)
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofMinutes(180)).build())
             .build();
 

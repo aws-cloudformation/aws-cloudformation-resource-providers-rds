@@ -39,6 +39,7 @@ public class DeleteHandler extends BaseHandlerStd {
     ) {
         return proxy.initiate("rds::delete-blue-green-deployment", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::deleteBlueGreenDeploymentRequest)
+                .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> client.injectCredentialsAndInvokeV2(
                         request,
                         client.client()::deleteBlueGreenDeployment
