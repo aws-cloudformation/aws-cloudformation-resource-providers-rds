@@ -13,4 +13,9 @@ public enum BlueGreenDeploymentStatus {
     public boolean equalsString(final String value) {
         return this.value.equalsIgnoreCase(value);
     }
+
+    @Override
+    public String toString() {
+        return value;
+    }
 }

@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.rds.model.BlueGreenDeployment;
 import software.amazon.awssdk.services.rds.model.BlueGreenDeploymentAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.BlueGreenDeploymentNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeBlueGreenDeploymentsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
@@ -91,7 +92,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return false;
         }
 
-        if (!isBlueGreenDeploymentTasksComplete(blueGreenDeployment)) {
+        if (!isBlueGreenDeploymentTasksCompleted(blueGreenDeployment)) {
             return false;
         }
 
@@ -110,10 +111,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return true;
     }
 
-    protected boolean isBlueGreenDeploymentTasksComplete(final BlueGreenDeployment blueGreenDeployment) {
+    protected boolean isBlueGreenDeploymentTasksCompleted(final BlueGreenDeployment blueGreenDeployment) {
         return Optional.ofNullable(blueGreenDeployment.tasks()).orElse(Collections.emptyList())
                 .stream()
-                .allMatch(task -> BlueGreenDeploymentTaskStatus.Complete.equalsString(task.status()));
+                .allMatch(task -> BlueGreenDeploymentTaskStatus.Completed.equalsString(task.status()));
     }
 
     protected boolean isDBInstanceAvailable(
@@ -122,6 +123,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final DBInstance dbInstance = fetchDBInstance(client, dbInstanceIdentifier);
         return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
+    }
+
+    protected boolean isDBInstanceDeleted(
+            final ProxyClient<RdsClient> client,
+            final String dbInstanceIdentifier
+    ) {
+        try {
+            fetchDBInstance(client, dbInstanceIdentifier);
+            return false;
+        } catch (DbInstanceNotFoundException exception) {
+            return true;
+        }
     }
 
     protected boolean isBlueGreenDeploymentAvailable(final BlueGreenDeployment blueGreenDeployment) {

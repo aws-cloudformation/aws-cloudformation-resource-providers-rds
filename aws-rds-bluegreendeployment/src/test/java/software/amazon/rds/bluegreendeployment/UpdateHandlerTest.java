@@ -82,7 +82,24 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_NoStageChangeThrowsInvalidRequestException() {
+    public void handleRequest_NoStageChangeReturnsImmediately() {
+        expectServiceInvocation = false;
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> ResourceModel.builder()
+                        .stage("blue")
+                        .build(),
+                () -> ResourceModel.builder()
+                        .stage("blue")
+                        .build(),
+                expectSuccess()
+        );
+    }
+
+    @Test
+    public void handleRequest_RevertThrowsInvalidRequestException() {
         expectServiceInvocation = false;
 
         assertThatThrownBy(() -> {
@@ -90,7 +107,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                     new CallbackContext(),
                     null,
                     () -> ResourceModel.builder()
-                            .stage("blue")
+                            .stage("green")
                             .build(),
                     () -> ResourceModel.builder()
                             .stage("blue")

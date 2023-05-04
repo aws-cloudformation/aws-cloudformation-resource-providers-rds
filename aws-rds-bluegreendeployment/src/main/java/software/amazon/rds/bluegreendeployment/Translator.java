@@ -8,8 +8,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.amazonaws.arn.Arn;
 import software.amazon.awssdk.services.rds.model.CreateBlueGreenDeploymentRequest;
 import software.amazon.awssdk.services.rds.model.DeleteBlueGreenDeploymentRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeBlueGreenDeploymentsRequest;
 import software.amazon.awssdk.services.rds.model.SwitchoverBlueGreenDeploymentRequest;
 import software.amazon.rds.common.handler.Tagging;
@@ -48,11 +52,44 @@ public class Translator {
                 .build();
     }
 
-    public static DeleteBlueGreenDeploymentRequest deleteBlueGreenDeploymentRequest(final ResourceModel model) {
+    public static DeleteBlueGreenDeploymentRequest deleteBlueGreenDeploymentRequest(
+            final ResourceModel model,
+            final boolean deleteTarget
+    ) {
         return DeleteBlueGreenDeploymentRequest.builder()
                 .blueGreenDeploymentIdentifier(model.getBlueGreenDeploymentIdentifier())
-                .deleteTarget(model.getDeleteTarget())
+                .deleteTarget(deleteTarget)
                 .build();
+    }
+
+    public static DeleteDbInstanceRequest deleteDbInstanceRequest(String dbInstanceIdentifier) {
+        return DeleteDbInstanceRequest.builder()
+                .dbInstanceIdentifier(dbInstanceIdentifier)
+                .skipFinalSnapshot(true)
+                .build();
+    }
+
+    public static String getDBInstanceIdentifier(final String identifierOrArn) {
+        if (looksLikeArn(identifierOrArn)) {
+            return parseIdentifierFromArn(identifierOrArn);
+        }
+        return identifierOrArn;
+    }
+
+    public static boolean looksLikeArn(final String arnIdentifier) {
+        if (StringUtils.isEmpty(arnIdentifier)) {
+            return false;
+        }
+        try {
+            Arn.fromString(arnIdentifier);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public static String parseIdentifierFromArn(final String arnIdentifier) {
+        return Arn.fromString(arnIdentifier).getResource().getResource();
     }
 
     public static ResourceModel translateBlueGreenDeploymentFromSdk(

@@ -14,6 +14,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "Properties" : {
         "<a href="#bluegreendeploymentname" title="BlueGreenDeploymentName">BlueGreenDeploymentName</a>" : <i>String</i>,
         "<a href="#deletetarget" title="DeleteTarget">DeleteTarget</a>" : <i>Boolean</i>,
+        "<a href="#deletesource" title="DeleteSource">DeleteSource</a>" : <i>Boolean</i>,
         "<a href="#stage" title="Stage">Stage</a>" : <i>String</i>,
         "<a href="#switchovertimeout" title="SwitchoverTimeout">SwitchoverTimeout</a>" : <i>Integer</i>,
         "<a href="#source" title="Source">Source</a>" : <i>String</i>,
@@ -32,6 +33,7 @@ Type: AWS::RDS::BlueGreenDeployment
 Properties:
     <a href="#bluegreendeploymentname" title="BlueGreenDeploymentName">BlueGreenDeploymentName</a>: <i>String</i>
     <a href="#deletetarget" title="DeleteTarget">DeleteTarget</a>: <i>Boolean</i>
+    <a href="#deletesource" title="DeleteSource">DeleteSource</a>: <i>Boolean</i>
     <a href="#stage" title="Stage">Stage</a>: <i>String</i>
     <a href="#switchovertimeout" title="SwitchoverTimeout">SwitchoverTimeout</a>: <i>Integer</i>
     <a href="#source" title="Source">Source</a>: <i>String</i>
@@ -53,6 +55,14 @@ _Type_: String
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### DeleteTarget
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### DeleteSource
 
 _Required_: No
 

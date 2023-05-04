@@ -1,11 +1,12 @@
 package software.amazon.rds.bluegreendeployment;
 
-public enum BlueGreenDeploymentTaskStatus {
-    Completed("completed");
+public enum BlueGreenDeploymentStage {
+    Blue("blue"),
+    Green("green");
 
     private final String value;
 
-    BlueGreenDeploymentTaskStatus(final String value) {
+    BlueGreenDeploymentStage(final String value) {
         this.value = value;
     }
 

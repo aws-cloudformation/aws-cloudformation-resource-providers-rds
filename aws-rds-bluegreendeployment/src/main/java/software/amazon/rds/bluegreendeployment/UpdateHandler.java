@@ -36,7 +36,12 @@ public class UpdateHandler extends BaseHandlerStd {
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
         if (diff(previousModel.getStage(), desiredModel.getStage()) == null) {
-            throw new CfnInvalidRequestException(new RuntimeException("Resource stage must be altered"));
+            //throw new CfnInvalidRequestException(new Exception("Resource stage must be altered"));
+            return ProgressEvent.success(desiredModel, callbackContext);
+        }
+
+        if (!BlueGreenDeploymentStage.Green.equalsString(desiredModel.getStage())) {
+            throw new CfnInvalidRequestException(new Exception("Can not revert a blue-green deployment"));
         }
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)

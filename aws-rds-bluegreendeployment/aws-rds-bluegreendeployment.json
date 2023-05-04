@@ -63,6 +63,9 @@
     "DeleteTarget": {
       "type": "boolean"
     },
+    "DeleteSource": {
+      "type": "boolean"
+    },
     "Stage": {
       "type": "string",
       "enum": [
@@ -138,8 +141,10 @@
   ],
   "writeOnlyProperties": [
     "/properties/DeleteTarget",
+    "/properties/DeleteSource",
+    "/properties/Source",
     "/properties/Stage",
-    "/property/SwitchoverTimeout",
+    "/properties/SwitchoverTimeout",
     "/properties/TargetDBClusterParameterGroupName",
     "/properties/TargetDBParameterGroupName",
     "/properties/TargetEngineVersion"
@@ -167,7 +172,9 @@
     "delete": {
       "permissions": [
         "rds:DeleteBlueGreenDeployment",
-        "rds:DescribeBlueGreenDeployments"
+        "rds:DeleteDBInstance",
+        "rds:DescribeBlueGreenDeployments",
+        "rds:DescribeDBInstances"
       ]
     },
     "list": {
