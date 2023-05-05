@@ -13,6 +13,8 @@ import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DescribeBlueGreenDeploymentsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
+import software.amazon.awssdk.services.rds.model.SourceClusterNotSupportedException;
+import software.amazon.awssdk.services.rds.model.SourceDatabaseNotSupportedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -42,6 +44,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     BlueGreenDeploymentAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     BlueGreenDeploymentNotFoundException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    SourceDatabaseNotSupportedException.class,
+                    SourceClusterNotSupportedException.class)
             .build();
 
     protected final static HandlerConfig DEFAULT_HANDLER_CONFIG = HandlerConfig.builder()
