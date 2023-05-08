@@ -249,6 +249,46 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_CreateDbCluster_AssociatedRoleWithEmptyFeatureNameShouldStabilize() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        final Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_INPROGRESS);
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE.toBuilder()
+                            .associatedRoles(ImmutableList.of(
+                                    software.amazon.awssdk.services.rds.model.DBClusterRole.builder()
+                                            .roleArn(ROLE_ARN)
+                                            .build()
+                            ))
+                            .build();
+                },
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(
+                                DBClusterRole.builder()
+                                        .roleArn(ROLE_ARN)
+                                        .featureName("")
+                                        .build()
+                        ))
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
     public void handleRequest_RestoreDbClusterFromSnapshot_UnsetPort() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());

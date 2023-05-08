@@ -29,7 +29,7 @@ import software.amazon.rds.common.request.ValidatedRequest;
 
 class BaseHandlerStdTest {
 
-    class TestBaseHandlerStd extends BaseHandlerStd {
+    static class TestBaseHandlerStd extends BaseHandlerStd {
 
         public TestBaseHandlerStd(HandlerConfig config) {
             super(config);

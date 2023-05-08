@@ -463,7 +463,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return role == null && sdkRole == null;
         }
         return Objects.equals(role.getRoleArn(), sdkRole.roleArn()) &&
-                Objects.equals(role.getFeatureName(), sdkRole.featureName());
+                Objects.equals(StringUtils.trimToNull(role.getFeatureName()), StringUtils.trimToNull(sdkRole.featureName()));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
