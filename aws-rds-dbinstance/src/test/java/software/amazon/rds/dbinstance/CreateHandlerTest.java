@@ -11,6 +11,7 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.API_VERSION_V12;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -763,6 +764,49 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(3)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateNewInstance_UpdateRolesWithEmptyFeatureName_ShouldStabilize() {
+        when(rdsProxy.client().addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class)))
+                .thenReturn(AddRoleToDbInstanceResponse.builder().build());
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final List<DBInstanceRole> associatedRoles = ImmutableList.of(
+                DBInstanceRole.builder()
+                        .roleArn(ASSOCIATED_ROLE_ARN)
+                        .build()
+        );
+
+        final Queue<DBInstance> transitions = new ConcurrentLinkedQueue<>(
+                computeAssociatedRoleTransitions(DB_INSTANCE_ACTIVE, Collections.emptyList(), associatedRoles)
+        );
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .associatedRoles(Translator.translateAssociatedRolesToSdk(associatedRoles))
+                .build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(false);
+
+        test_handleRequest_base(
+                context,
+                transitions::remove,
+                () -> RESOURCE_MODEL_BLDR()
+                        .associatedRoles(ImmutableList.of(DBInstanceRole.builder()
+                                .roleArn(ASSOCIATED_ROLE_ARN)
+                                .featureName("")
+                                .build()))
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
