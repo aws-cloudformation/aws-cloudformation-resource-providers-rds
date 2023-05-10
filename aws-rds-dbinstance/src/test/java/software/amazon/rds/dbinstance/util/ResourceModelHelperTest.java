@@ -238,4 +238,206 @@ public class ResourceModelHelperTest {
 
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
+
+    @Test
+    public void getBackupRetentionPeriod_returnsZeroWhenNotSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+
+        assertThat(ResourceModelHelper.getBackupRetentionPeriod(model)).isEqualTo(0);
+    }
+
+    @Test
+    public void getBackupRetentionPeriod_returnsValueWhenSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.getBackupRetentionPeriod(model)).isEqualTo(10);
+    }
+
+    @Test
+    public void getAutomaticBackupReplicationRegion_returnsNullWhenBackupReplicationIsZero() {
+        final ResourceModel model = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .build();
+
+        assertThat(ResourceModelHelper.getAutomaticBackupReplicationRegion(model)).isNull();
+    }
+
+    @Test
+    public void getAutomaticBackupReplicationRegion_returnsValueWhenBackupReplicationIsZero() {
+        final ResourceModel model = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.getAutomaticBackupReplicationRegion(model)).isEqualTo("eu-west-1");
+    }
+
+    @Test
+    public void shouldStartAutomaticBackupReplication_returnsFalseWhenRegionUnchanged() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(previous, desired)).isFalse();
+    }
+
+    @Test
+    public void shouldStartAutomaticBackupReplication_returnsTrueWhenRegionChanged() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-2")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(previous, desired)).isTrue();
+    }
+
+    @Test
+    public void shouldStartAutomaticBackupReplication_returnsTrueWhenBackupRetentionPeriodChangedFromNullToValue() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(previous, desired)).isTrue();
+    }
+
+    @Test
+    public void shouldStartAutomaticBackupReplication_returnsFalseWhenBackupRetentionPeriodChangedFromOneToTwo() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(1)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(2)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(previous, desired)).isFalse();
+    }
+
+    @Test
+    public void shouldStartAutomaticBackupReplication_returnsTrueWhePreviousModelIsNull() {
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(2)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(null, desired)).isTrue();
+    }
+
+    @Test
+    public void shouldStartAutomaticBackupReplication_returnsFalseWhePreviousModelIsNullAndFeatureNotEnabled() {
+        final ResourceModel desired = ResourceModel.builder()
+                .backupRetentionPeriod(2)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(null, desired)).isFalse();
+    }
+
+    @Test
+    public void shouldStopAutomaticBackupReplication_returnsFalseWhenPreviousRegionIsNull() {
+        final ResourceModel previous = ResourceModel.builder()
+                .backupRetentionPeriod(10)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isFalse();
+    }
+
+
+    @Test
+    public void shouldStopAutomaticBackupReplication_returnsFalseWhenRegionUnchanged() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isFalse();
+    }
+
+    @Test
+    public void shouldStopAutomaticBackupReplication_returnsTrueWhenRegionChanged() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-2")
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isTrue();
+    }
+
+    @Test
+    public void shouldStopAutomaticBackupReplication_returnsTrueWhenBackupRetentionPeriodChangedFromValueToNull() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(10)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isTrue();
+    }
+
+    @Test
+    public void shouldStopAutomaticBackupReplication_returnsFalseWhenBackupRetentionPeriodChangedFromOneToTwo() {
+        final ResourceModel previous = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(1)
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .automaticBackupReplicationRegion("eu-west-1")
+                .backupRetentionPeriod(2)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isFalse();
+    }
+
+    @Test
+    public void shouldStopAutomaticBackupReplication_returnsTrueWhenRegionSetFromValuToNull() {
+        final ResourceModel previous = ResourceModel.builder()
+                .backupRetentionPeriod(10)
+                .automaticBackupReplicationRegion("eu-west-1")
+                .build();
+
+        final ResourceModel desired = ResourceModel.builder()
+                .backupRetentionPeriod(10)
+                .build();
+
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isTrue();
+    }
 }

@@ -16,6 +16,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#allowmajorversionupgrade" title="AllowMajorVersionUpgrade">AllowMajorVersionUpgrade</a>" : <i>Boolean</i>,
         "<a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>" : <i>[ <a href="dbinstancerole.md">DBInstanceRole</a>, ... ]</i>,
         "<a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>" : <i>Boolean</i>,
+        "<a href="#automaticbackupreplicationregion" title="AutomaticBackupReplicationRegion">AutomaticBackupReplicationRegion</a>" : <i>String</i>,
         "<a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>" : <i>String</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
         "<a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>" : <i>String</i>,
@@ -96,6 +97,7 @@ Properties:
     <a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>: <i>
       - <a href="dbinstancerole.md">DBInstanceRole</a></i>
     <a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>: <i>Boolean</i>
+    <a href="#automaticbackupreplicationregion" title="AutomaticBackupReplicationRegion">AutomaticBackupReplicationRegion</a>: <i>String</i>
     <a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>: <i>String</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
     <a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>: <i>String</i>
@@ -210,6 +212,16 @@ A value that indicates whether minor engine upgrades are applied automatically t
 _Required_: No
 
 _Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### AutomaticBackupReplicationRegion
+
+Enables replication of automated backups to a different Amazon Web Services Region.
+
+_Required_: No
+
+_Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

@@ -51,6 +51,7 @@ import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
+import software.amazon.awssdk.services.rds.model.InvalidDbInstanceAutomatedBackupStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSecurityGroupStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException;
@@ -83,6 +84,7 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
+import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -278,6 +280,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     InvalidDbInstanceStateException.class)
+            .build();
+
+    protected static final ErrorRuleSet MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+            .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    InvalidDbInstanceAutomatedBackupStateException.class)
             .build();
 
     protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
@@ -592,6 +600,24 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isMasterUserSecretStabilized(dbInstance);
+    }
+
+    protected boolean isInstanceStabilizedAfterReplicationStop(final ProxyClient<RdsClient> rdsProxyClient,
+                                                               final ResourceModel model) {
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+
+        assertNoTerminalStatus(dbInstance);
+        return isDBInstanceAvailable(dbInstance)
+                && !dbInstance.hasDbInstanceAutomatedBackupsReplications();
+    }
+
+    protected boolean isInstanceStabilizedAfterReplicationStart(final ProxyClient<RdsClient> rdsProxyClient,
+                                                                final ResourceModel model) {
+        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+
+        assertNoTerminalStatus(dbInstance);
+        return isDBInstanceAvailable(dbInstance)
+                && dbInstance.hasDbInstanceAutomatedBackupsReplications();
     }
 
     protected boolean isDBInstanceStabilizedAfterReboot(
@@ -950,5 +976,61 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             throw MISSING_METHOD_VERSION_EXCEPTION;
         }
         return methodVersions.get(apiVersion).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> stopAutomaticBackupReplicationInRegion(
+            final DBInstance dbInstance,
+            final AmazonWebServicesClientProxy proxy,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final ProxyClient<RdsClient> sourceRegionClient,
+            final String region
+    ) {
+        final ProxyClient<RdsClient> rdsClient = proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region));
+
+        return proxy.initiate("rds::stop-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(resourceModel -> Translator.stopDbInstanceAutomatedBackupsReplicationRequest(dbInstance.dbInstanceArn()))
+                .makeServiceCall((stopDbInstanceAutomatedBackupsReplicationRequest, client) -> rdsClient.injectCredentialsAndInvokeV2(
+                        stopDbInstanceAutomatedBackupsReplicationRequest,
+                        rdsClient.client()::stopDBInstanceAutomatedBackupsReplication
+                ))
+                .stabilize((stopDbInstanceAutomatedBackupsReplicationRequest, response, client, model, context) ->
+                        Probing.withProbing(context.getProbingContext(),
+                                "start-automated-backup-replication",
+                                3,
+                                () -> isInstanceStabilizedAfterReplicationStop(sourceRegionClient, model)))
+                .handleError((startDbInstanceAutomatedBackupsReplicationRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> startAutomaticBackupReplicationInRegion(
+            final DBInstance dbInstance,
+            final AmazonWebServicesClientProxy proxy,
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final ProxyClient<RdsClient> sourceRegionClient,
+            final String region
+    ) {
+        final ProxyClient<RdsClient> rdsClient = proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region));
+
+        return proxy.initiate("rds::start-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstance.dbInstanceArn()))
+                .makeServiceCall((startDBInstanceAutomatedBackupsReplicationRequest, client) -> rdsClient.injectCredentialsAndInvokeV2(
+                        startDBInstanceAutomatedBackupsReplicationRequest,
+                        rdsClient.client()::startDBInstanceAutomatedBackupsReplication
+                ))
+                .stabilize((startDbInstanceAutomatedBackupsReplicationRequest, response, proxyInvocation, model, context) ->
+                        Probing.withProbing(context.getProbingContext(),
+                                        "start-automated-backup-replication",
+                                        3,
+                                () -> isInstanceStabilizedAfterReplicationStart(sourceRegionClient, model)))
+                .handleError((startDbInstanceAutomatedBackupsReplicationRequest, exception, client, model, context) -> Commons.handleException(
+                        ProgressEvent.progress(model, context),
+                        exception,
+                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET
+                ))
+                .progress();
     }
 }

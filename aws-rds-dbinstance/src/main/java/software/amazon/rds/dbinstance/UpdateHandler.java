@@ -152,6 +152,23 @@ public class UpdateHandler extends BaseHandlerStd {
                                 updateAssociatedRoles(proxy, rdsClient, progress, previousRoles, desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles)
                 )
+                .then(progress -> Commons.execOnce(progress, () -> {
+                            if (ResourceModelHelper.shouldStopAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                                final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                                return stopAutomaticBackupReplicationInRegion(dbInstance, proxy, progress, rdsProxyClient.defaultClient(),
+                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getPreviousResourceState()));
+                            }
+                            return progress;},
+                        CallbackContext::isAutomaticBackupReplicationStopped, CallbackContext::setAutomaticBackupReplicationStopped))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                            if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                                final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                                return startAutomaticBackupReplicationInRegion(dbInstance, proxy, progress, rdsProxyClient.defaultClient(),
+                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState()));
+                            }
+                            return progress;
+                        },
+                        CallbackContext::isAutomaticBackupReplicationStarted, CallbackContext::setAutomaticBackupReplicationStarted))
                 .then(progress -> updateTags(proxy, rdsClient, progress, previousTags, desiredTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
     }

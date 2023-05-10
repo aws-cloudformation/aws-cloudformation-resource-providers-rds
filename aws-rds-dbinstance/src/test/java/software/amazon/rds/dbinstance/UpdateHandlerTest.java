@@ -2,6 +2,7 @@ package software.amazon.rds.dbinstance;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
@@ -28,7 +30,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.ImmutableList;
@@ -50,6 +54,7 @@ import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackupsReplication;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
@@ -78,6 +83,8 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
+import software.amazon.awssdk.services.rds.model.StartDbInstanceAutomatedBackupsReplicationRequest;
+import software.amazon.awssdk.services.rds.model.StopDbInstanceAutomatedBackupsReplicationRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -1640,5 +1647,81 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_startAutomaticBackupReplication() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+        context.setAutomaticBackupReplicationStarted(false);
+        context.setAutomaticBackupReplicationStopped(true);
+        context.getProbingContext().setProbingEnabled(false);
+
+        proxy = Mockito.spy(proxy);
+
+        final RdsClient crossRegionRdsClient = mock(RdsClient.class);
+        final ProxyClient<RdsClient> crossRegionRdsProxy = mockProxy(proxy, crossRegionRdsClient);
+        doReturn(crossRegionRdsProxy).when(proxy).newProxy(ArgumentMatchers.<Supplier<RdsClient>>any());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .dbInstanceAutomatedBackupsReplications(Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
+                                .dbInstanceAutomatedBackupsArn(AUTOMATIC_BACKUP_REPLICATION_ARN_ALTER).build()))
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(crossRegionRdsProxy.client(), times(1)).startDBInstanceAutomatedBackupsReplication(any(StartDbInstanceAutomatedBackupsReplicationRequest.class));
+        verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(crossRegionRdsProxy.client());
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_stopAutomaticBackupReplication() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+        context.setAutomaticBackupReplicationStarted(true);
+        context.setAutomaticBackupReplicationStopped(false);
+        context.getProbingContext().setProbingEnabled(false);
+
+        proxy = Mockito.spy(proxy);
+
+        final RdsClient crossRegionRdsClient = mock(RdsClient.class);
+        final ProxyClient<RdsClient> crossRegionRdsProxy = mockProxy(proxy, crossRegionRdsClient);
+        doReturn(crossRegionRdsProxy).when(proxy).newProxy(ArgumentMatchers.<Supplier<RdsClient>>any());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(crossRegionRdsProxy.client(), times(1)).stopDBInstanceAutomatedBackupsReplication(any(StopDbInstanceAutomatedBackupsReplicationRequest.class));
+        verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
+        verifyNoMoreInteractions(crossRegionRdsProxy.client());
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 }

@@ -6,6 +6,9 @@ import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.rds.dbinstance.ResourceModel;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -90,5 +93,34 @@ public final class ResourceModelHelper {
     public static boolean isReadReplicaPromotion(final ResourceModel previous, final ResourceModel desired) {
         return isDBClusterReadReplicaPromotion(previous, desired) ||
                 isDBInstanceReadReplicaPromotion(previous, desired);
+    }
+
+    public static boolean shouldStartAutomaticBackupReplication(final ResourceModel previous, final ResourceModel desired) {
+        final String previousRegion = getAutomaticBackupReplicationRegion(previous);
+        final String desiredRegion = getAutomaticBackupReplicationRegion(desired);
+        return !StringUtils.isNullOrEmpty(desiredRegion) && !desiredRegion.equalsIgnoreCase(previousRegion);
+    }
+
+    public static boolean shouldStopAutomaticBackupReplication(final ResourceModel previous, final ResourceModel desired) {
+        final String previousRegion = getAutomaticBackupReplicationRegion(previous);
+        final String desiredRegion = getAutomaticBackupReplicationRegion(desired);
+        return !StringUtils.isNullOrEmpty(getAutomaticBackupReplicationRegion(previous)) && !previousRegion.equalsIgnoreCase(desiredRegion);
+    }
+
+    public static Integer getBackupRetentionPeriod(final ResourceModel model) {
+        if (model == null) {
+            return 0;
+        }
+        return Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0);
+    }
+
+    public static String getAutomaticBackupReplicationRegion(final ResourceModel model) {
+        if (model == null) {
+            return null;
+        }
+        if (getBackupRetentionPeriod(model) == 0) {
+            return null;
+        }
+        return model.getAutomaticBackupReplicationRegion();
     }
 }

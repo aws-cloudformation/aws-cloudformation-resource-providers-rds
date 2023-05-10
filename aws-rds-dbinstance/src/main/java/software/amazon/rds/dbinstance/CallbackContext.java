@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import software.amazon.cloudformation.proxy.StdCallbackContext;
+import software.amazon.rds.common.handler.ProbingContext;
 import software.amazon.rds.common.handler.TaggingContext;
 import software.amazon.rds.common.handler.TimestampContext;
 
@@ -12,7 +13,7 @@ import software.amazon.rds.common.handler.TimestampContext;
 @lombok.Setter
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
-public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider {
+public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider, ProbingContext.Provider {
     private boolean created;
     private boolean deleted;
     private boolean updatedRoles;
@@ -21,13 +22,17 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean storageAllocated;
     private boolean allocatingStorage;
     private boolean readReplicaPromoted;
+    private boolean automaticBackupReplicationStopped;
+    private boolean automaticBackupReplicationStarted;
 
     private TaggingContext taggingContext;
-
+    private ProbingContext probingContext;
     private Map<String, Long> timestamps;
 
     public CallbackContext() {
         super();
+        this.probingContext = new ProbingContext();
+        this.probingContext.setProbingEnabled(true);
         this.taggingContext = new TaggingContext();
         this.timestamps = new HashMap<>();
     }
@@ -58,5 +63,10 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
             return Instant.ofEpochSecond(timestamps.get(label));
         }
         return null;
+    }
+
+    @Override
+    public ProbingContext getProbingContext() {
+        return probingContext;
     }
 }

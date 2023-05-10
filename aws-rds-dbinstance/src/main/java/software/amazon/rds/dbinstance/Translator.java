@@ -16,10 +16,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazonaws.arn.Arn;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.google.common.annotations.VisibleForTesting;
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
@@ -38,6 +40,8 @@ import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeRequest;
+import software.amazon.awssdk.services.rds.model.StartDbInstanceAutomatedBackupsReplicationRequest;
+import software.amazon.awssdk.services.rds.model.StopDbInstanceAutomatedBackupsReplicationRequest;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
@@ -623,6 +627,22 @@ public class Translator {
                 .build();
     }
 
+    public static StartDbInstanceAutomatedBackupsReplicationRequest startDbInstanceAutomatedBackupsReplicationRequest(
+            final String dbInstanceArn
+    ) {
+        return StartDbInstanceAutomatedBackupsReplicationRequest.builder()
+                .sourceDBInstanceArn(dbInstanceArn)
+                .build();
+    }
+
+    public static StopDbInstanceAutomatedBackupsReplicationRequest stopDbInstanceAutomatedBackupsReplicationRequest(
+            final String dbInstanceArn
+    ) {
+        return StopDbInstanceAutomatedBackupsReplicationRequest.builder()
+                .sourceDBInstanceArn(dbInstanceArn)
+                .build();
+    }
+
     public static List<ResourceModel> translateDbInstancesFromSdk(
             final List<software.amazon.awssdk.services.rds.model.DBInstance> dbInstances
     ) {
@@ -673,9 +693,16 @@ public class Translator {
             optionGroupName = dbInstance.optionGroupMemberships().get(0).optionGroupName();
         }
 
+        String automatedReplicationRegion = null;
+        if (dbInstance.hasDbInstanceAutomatedBackupsReplications() && !dbInstance.dbInstanceAutomatedBackupsReplications().isEmpty()) {
+            automatedReplicationRegion = Arn.fromString(dbInstance.dbInstanceAutomatedBackupsReplications()
+                    .get(0).dbInstanceAutomatedBackupsArn()).getRegion();
+        }
+
         return ResourceModel.builder()
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
+                .automaticBackupReplicationRegion(automatedReplicationRegion)
                 .autoMinorVersionUpgrade(dbInstance.autoMinorVersionUpgrade())
                 .availabilityZone(dbInstance.availabilityZone())
                 .backupRetentionPeriod(dbInstance.backupRetentionPeriod())
