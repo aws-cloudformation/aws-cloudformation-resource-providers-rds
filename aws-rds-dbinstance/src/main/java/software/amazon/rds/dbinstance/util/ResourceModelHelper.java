@@ -107,7 +107,7 @@ public final class ResourceModelHelper {
         return !StringUtils.isNullOrEmpty(getAutomaticBackupReplicationRegion(previous)) && !previousRegion.equalsIgnoreCase(desiredRegion);
     }
 
-    public static Integer getBackupRetentionPeriod(final ResourceModel model) {
+    public static int getBackupRetentionPeriod(final ResourceModel model) {
         if (model == null) {
             return 0;
         }

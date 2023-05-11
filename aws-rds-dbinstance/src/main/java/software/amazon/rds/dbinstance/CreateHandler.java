@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -166,9 +167,16 @@ public class CreateHandler extends BaseHandlerStd {
                                 updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
                 .then(progress -> Commons.execOnce(progress, () -> {
+                    if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())
+                            && StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn())) {
+                        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                        callbackContext.setDbInstanceArn(dbInstance.dbInstanceArn());
+                    }
+                    return progress;
+                },  (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {}))
+                .then(progress -> Commons.execOnce(progress, () -> {
                             if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
-                                final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
-                                return startAutomaticBackupReplicationInRegion(dbInstance, proxy, progress, rdsProxyClient.defaultClient(),
+                                return startAutomaticBackupReplicationInRegion(callbackContext.getDbInstanceArn(), proxy, progress, rdsProxyClient.defaultClient(),
                                         ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState()));
                             }
                             return progress;
