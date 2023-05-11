@@ -53,6 +53,7 @@ import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
@@ -108,6 +109,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DefaultVpcDoesNotExist)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    ErrorCode.StorageTypeNotAvailableFault,
                     ErrorCode.StorageTypeNotSupportedFault)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     ErrorCode.InvalidDBSecurityGroupState)
@@ -138,6 +140,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     KmsKeyNotAccessibleException.class,
+                    StorageTypeNotAvailableException.class,
                     StorageTypeNotSupportedException.class,
                     NetworkTypeNotSupportedException.class)
             .build();
@@ -158,8 +161,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .backoff(Constant.of().delay(Duration.ofSeconds(30)).timeout(Duration.ofHours(36)).build())
             .probingEnabled(true)
             .build();
-
-    protected final static String IN_SYNC_STATUS = "in-sync";
 
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
 
@@ -286,7 +287,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return modifiedValues == null || (
                 modifiedValues.masterUserPassword() == null &&
                         modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
-                        modifiedValues.engineVersion() == null);
+                        modifiedValues.engineVersion() == null &&
+                        modifiedValues.storageType() == null);
     }
 
     protected boolean isDBClusterStabilized(

@@ -23,6 +23,10 @@ import software.amazon.rds.test.common.core.TestUtils;
 
 public class TranslatorTest extends AbstractHandlerTest {
 
+    private final static String STORAGE_TYPE_AURORA = "aurora";
+    private final static String STORAGE_TYPE_AURORA_IOPT1 = "aurora-opt1";
+
+
     @Test
     public void modifyDbClusterRequest_omitPreferredMaintenanceWindowIfUnchanged() {
         final ResourceModel model = RESOURCE_MODEL.toBuilder().preferredMaintenanceWindow("old").build();
@@ -393,6 +397,24 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         final ModifyDbClusterRequest modifyRequest = Translator.modifyDbClusterAfterCreateRequest(model);
         assertThat(modifyRequest.serverlessV2ScalingConfiguration()).isNull();
+    }
+
+    @Test
+    public void translateDbClusterFromSdk_setDefaultStorageType() {
+        final ResourceModel model = Translator.translateDbClusterFromSdk(
+                DBCluster.builder().build()
+        );
+        assertThat(model.getStorageType()).isEqualTo(STORAGE_TYPE_AURORA);
+    }
+
+    @Test
+    public void translateDbCluterFromSdk_useProvidedStorageType() {
+        final ResourceModel model = Translator.translateDbClusterFromSdk(
+                DBCluster.builder()
+                        .storageType(STORAGE_TYPE_AURORA_IOPT1)
+                        .build()
+        );
+        assertThat(model.getStorageType()).isEqualTo(STORAGE_TYPE_AURORA_IOPT1);
     }
 
     @Override
