@@ -1671,7 +1671,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_INSTANCE_ACTIVE.toBuilder()
                         .dbInstanceAutomatedBackupsReplications(Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
-                                .dbInstanceAutomatedBackupsArn(AUTOMATIC_BACKUP_REPLICATION_ARN_ALTER).build()))
+                                .dbInstanceAutomatedBackupsArn(getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER)).build()))
                         .build(),
                 () -> RESOURCE_MODEL_BLDR()
                         .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)

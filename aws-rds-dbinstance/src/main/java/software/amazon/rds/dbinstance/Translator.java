@@ -21,7 +21,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.google.common.annotations.VisibleForTesting;
-import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;

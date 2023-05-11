@@ -2081,7 +2081,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceAutomatedBackupsReplications(
                         Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
                                 .dbInstanceAutomatedBackupsArn(
-                                        AUTOMATIC_BACKUP_REPLICATION_ARN).build())).build(),
+                                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build())).build(),
                 () -> RESOURCE_MODEL_BLDR()
                         .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
                         .build(),
@@ -2109,7 +2109,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceAutomatedBackupsReplications(
                         Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
                                 .dbInstanceAutomatedBackupsArn(
-                                        AUTOMATIC_BACKUP_REPLICATION_ARN).build())).build(),
+                                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build())).build(),
                 () -> RESOURCE_MODEL_BLDR()
                         .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
                         .backupRetentionPeriod(0)
