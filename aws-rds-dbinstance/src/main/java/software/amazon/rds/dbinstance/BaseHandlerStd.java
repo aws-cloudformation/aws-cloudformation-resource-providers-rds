@@ -287,6 +287,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
                     InvalidDbInstanceAutomatedBackupStateException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
+                    DbInstanceAutomatedBackupQuotaExceededException.class)
             .build();
 
     protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet

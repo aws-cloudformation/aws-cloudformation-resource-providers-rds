@@ -104,7 +104,7 @@ public final class ResourceModelHelper {
     public static boolean shouldStopAutomaticBackupReplication(final ResourceModel previous, final ResourceModel desired) {
         final String previousRegion = getAutomaticBackupReplicationRegion(previous);
         final String desiredRegion = getAutomaticBackupReplicationRegion(desired);
-        return !StringUtils.isNullOrEmpty(getAutomaticBackupReplicationRegion(previous)) && !previousRegion.equalsIgnoreCase(desiredRegion);
+        return !StringUtils.isNullOrEmpty(previousRegion) && !previousRegion.equalsIgnoreCase(desiredRegion);
     }
 
     public static int getBackupRetentionPeriod(final ResourceModel model) {
