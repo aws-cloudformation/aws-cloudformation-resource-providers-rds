@@ -2,7 +2,6 @@ package software.amazon.rds.dbcluster;
 
 import static software.amazon.rds.common.util.DifferenceUtils.diff;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -28,7 +27,6 @@ import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
-import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
@@ -36,12 +34,14 @@ import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
-import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
+
+    private final static String STORAGE_TYPE_AURORA = "aurora";
+
     static CreateDbClusterRequest createDbClusterRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
@@ -347,8 +347,10 @@ public class Translator {
         return builder.build();
     }
 
-    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(final String globalClusterIdentifier,
-                                                                         final String clusterArn) {
+    static RemoveFromGlobalClusterRequest removeFromGlobalClusterRequest(
+            final String globalClusterIdentifier,
+            final String clusterArn
+    ) {
         return RemoveFromGlobalClusterRequest.builder()
                 .dbClusterIdentifier(clusterArn)
                 .globalClusterIdentifier(globalClusterIdentifier)
@@ -537,7 +539,7 @@ public class Translator {
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfigurationFromSdk(dbCluster.serverlessV2ScalingConfiguration()))
                 .scalingConfiguration(translateScalingConfigurationFromSdk(dbCluster.scalingConfigurationInfo()))
                 .storageEncrypted(dbCluster.storageEncrypted())
-                .storageType(dbCluster.storageType())
+                .storageType(Optional.ofNullable(dbCluster.storageType()).orElse(STORAGE_TYPE_AURORA))
                 .tags(translateTagsFromSdk(dbCluster.tagList()))
                 .vpcSecurityGroupIds(
                         Optional.ofNullable(dbCluster.vpcSecurityGroups())
@@ -573,8 +575,10 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeSecurityGroupsRequest describeSecurityGroupsRequest(final String vpcId,
-                                                                              final String groupName) {
+    public static DescribeSecurityGroupsRequest describeSecurityGroupsRequest(
+            final String vpcId,
+            final String groupName
+    ) {
         return DescribeSecurityGroupsRequest.builder()
                 .filters(
                         Filter.builder().name("vpc-id").values(vpcId).build(),
@@ -583,7 +587,8 @@ public class Translator {
     }
 
     public static MasterUserSecret translateMasterUserSecretFromSdk(
-            final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret) {
+            final software.amazon.awssdk.services.rds.model.MasterUserSecret sdkSecret
+    ) {
         if (sdkSecret == null) {
             return MasterUserSecret.builder().build();
         }
@@ -591,22 +596,6 @@ public class Translator {
         return MasterUserSecret.builder()
                 .secretArn(sdkSecret.secretArn())
                 .kmsKeyId(sdkSecret.kmsKeyId())
-                .build();
-    }
-
-    public static DescribeEventsRequest describeEventsRequest(
-            final SourceType sourceType,
-            final String sourceIdentifier,
-            final Collection<String> eventCategories,
-            final Instant startTime,
-            final Instant endTime
-    ) {
-        return DescribeEventsRequest.builder()
-                .eventCategories(eventCategories.toArray(new String[0]))
-                .sourceIdentifier(sourceIdentifier)
-                .sourceType(sourceType)
-                .startTime(startTime)
-                .endTime(endTime)
                 .build();
     }
 }

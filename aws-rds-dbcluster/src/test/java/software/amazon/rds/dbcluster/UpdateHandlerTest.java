@@ -67,12 +67,14 @@ import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RemoveRoleFromDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
@@ -969,8 +971,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
             return Stream.of(
                     // Put error codes below
+                    Arguments.of(ErrorCode.StorageTypeNotAvailableFault, HandlerErrorCode.InvalidRequest),
+                    Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
                     // Put exception classes below
-                    Arguments.of(DbClusterNotFoundException.builder().message(ERROR_MSG).build(), HandlerErrorCode.NotFound)
+                    Arguments.of(DbClusterNotFoundException.builder().message(ERROR_MSG).build(), HandlerErrorCode.NotFound),
+                    Arguments.of(StorageTypeNotAvailableException.builder().message(ERROR_MSG).build(), HandlerErrorCode.InvalidRequest)
             );
         }
     }
