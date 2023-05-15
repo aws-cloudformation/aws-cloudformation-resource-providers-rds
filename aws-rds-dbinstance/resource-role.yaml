@@ -61,6 +61,8 @@ Resources:
                 - "rds:RemoveTagsFromResource"
                 - "rds:RestoreDBInstanceFromDBSnapshot"
                 - "rds:RestoreDBInstanceToPointInTime"
+                - "rds:StartDBInstanceAutomatedBackupsReplication"
+                - "rds:StopDBInstanceAutomatedBackupsReplication"
                 - "secretsmanager:CreateSecret"
                 - "secretsmanager:TagResource"
                 Resource: "*"

@@ -2068,7 +2068,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         context.setUpdatedRoles(true);
         context.setAddTagsComplete(true);
         context.setAutomaticBackupReplicationStarted(false);
-        context.getProbingContext().setProbingEnabled(false);
 
         proxy = Mockito.spy(proxy);
 
@@ -2102,7 +2101,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         context.setRebooted(true);
         context.setUpdatedRoles(true);
         context.setAddTagsComplete(true);
-        context.getProbingContext().setProbingEnabled(false);
 
         test_handleRequest_base(
                 context,

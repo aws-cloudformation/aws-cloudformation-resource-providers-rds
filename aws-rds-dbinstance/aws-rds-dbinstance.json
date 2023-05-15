@@ -560,6 +560,7 @@
         "rds:RebootDBInstance",
         "rds:RestoreDBInstanceFromDBSnapshot",
         "rds:RestoreDBInstanceToPointInTime",
+        "rds:StartDBInstanceAutomatedBackupsReplication",
         "secretsmanager:CreateSecret",
         "secretsmanager:TagResource"
       ],
@@ -604,6 +605,8 @@
         "rds:RebootDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource",
+        "rds:StartDBInstanceAutomatedBackupsReplication",
+        "rds:StopDBInstanceAutomatedBackupsReplication",
         "secretsmanager:CreateSecret",
         "secretsmanager:TagResource"
       ],

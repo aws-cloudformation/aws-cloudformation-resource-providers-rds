@@ -15,6 +15,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazonaws.arn.Arn;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
@@ -617,7 +618,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoTerminalStatus(dbInstance);
         return isDBInstanceAvailable(dbInstance)
-                && dbInstance.hasDbInstanceAutomatedBackupsReplications();
+                && dbInstance.hasDbInstanceAutomatedBackupsReplications() &&
+                !dbInstance.dbInstanceAutomatedBackupsReplications().isEmpty() &&
+                model.getAutomaticBackupReplicationRegion()
+                        .equalsIgnoreCase(
+                                Arn.fromString(dbInstance.dbInstanceAutomatedBackupsReplications().get(0).dbInstanceAutomatedBackupsArn()).getRegion());
     }
 
     protected boolean isDBInstanceStabilizedAfterReboot(
@@ -995,10 +1000,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         rdsClient.client()::stopDBInstanceAutomatedBackupsReplication
                 ))
                 .stabilize((request, response, client, model, context) ->
-                        Probing.withProbing(context.getProbingContext(),
-                                "start-automated-backup-replication",
-                                3,
-                                () -> isInstanceStabilizedAfterReplicationStop(sourceRegionClient, model)))
+                        isInstanceStabilizedAfterReplicationStop(sourceRegionClient, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
@@ -1024,10 +1026,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         rdsClient.client()::startDBInstanceAutomatedBackupsReplication
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
-                        Probing.withProbing(context.getProbingContext(),
-                                        "start-automated-backup-replication",
-                                        3,
-                                () -> isInstanceStabilizedAfterReplicationStart(sourceRegionClient, model)))
+                        isInstanceStabilizedAfterReplicationStart(sourceRegionClient, model))
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,

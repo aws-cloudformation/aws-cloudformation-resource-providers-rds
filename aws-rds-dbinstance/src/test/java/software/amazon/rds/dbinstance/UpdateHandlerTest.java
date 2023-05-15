@@ -1659,7 +1659,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setAddTagsComplete(true);
         context.setAutomaticBackupReplicationStarted(false);
         context.setAutomaticBackupReplicationStopped(true);
-        context.getProbingContext().setProbingEnabled(false);
 
         proxy = Mockito.spy(proxy);
 
@@ -1685,6 +1684,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(crossRegionRdsProxy.client(), times(1)).startDBInstanceAutomatedBackupsReplication(any(StartDbInstanceAutomatedBackupsReplicationRequest.class));
         verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
         verifyNoMoreInteractions(crossRegionRdsProxy.client());
+        verifyAccessPermissions(crossRegionRdsProxy.client());
         verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
@@ -1698,7 +1698,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setAddTagsComplete(true);
         context.setAutomaticBackupReplicationStarted(true);
         context.setAutomaticBackupReplicationStopped(false);
-        context.getProbingContext().setProbingEnabled(false);
 
         proxy = Mockito.spy(proxy);
 
@@ -1721,6 +1720,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(crossRegionRdsProxy.client(), times(1)).stopDBInstanceAutomatedBackupsReplication(any(StopDbInstanceAutomatedBackupsReplicationRequest.class));
         verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
+        verifyAccessPermissions(crossRegionRdsProxy.client());
         verifyNoMoreInteractions(crossRegionRdsProxy.client());
         verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
