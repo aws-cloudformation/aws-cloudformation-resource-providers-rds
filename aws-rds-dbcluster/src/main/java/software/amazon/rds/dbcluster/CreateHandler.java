@@ -8,7 +8,6 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -16,6 +15,7 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
@@ -23,7 +23,7 @@ import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
 
-    private final static IdentifierFactory dbClusterIdentifierFactory = new IdentifierFactory(
+    private static final IdentifierFactory dbClusterIdentifierFactory = new IdentifierFactory(
             STACK_NAME,
             RESOURCE_IDENTIFIER,
             RESOURCE_ID_MAX_LENGTH
@@ -43,12 +43,14 @@ public class CreateHandler extends BaseHandlerStd {
         Validations.validateTimestamp(request.getDesiredResourceState().getRestoreToTime());
     }
 
+    @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final RequestLogger logger
     ) {
         final ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
 
@@ -106,7 +108,15 @@ public class CreateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> addAssociatedRoles(proxy, rdsProxyClient, progress, progress.getResourceModel().getAssociatedRoles(), false))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> {
+                    model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
+                    return Commons.reportResourceDrift(
+                            model,
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            resourceTypeSchema,
+                            logger
+                    );
+                });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbCluster(

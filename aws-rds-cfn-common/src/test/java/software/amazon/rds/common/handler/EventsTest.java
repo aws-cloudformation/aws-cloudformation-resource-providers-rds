@@ -36,6 +36,7 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 class EventsTest extends ProxyClientTestBase {
     public static final String FAILED_TO_CREATE_MESSAGE = "failed to create";
     public static final String SERVICE_INTERNAL_FAILURE_MESSAGE = "Service Internal Failure";
+
     @Mock
     RdsClient rds;
 
@@ -54,7 +55,7 @@ class EventsTest extends ProxyClientTestBase {
     }
 
     @Test
-    public void test_checkFailedEvents_success() {
+    void test_checkFailedEvents_success() {
         final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
 
         when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class))).thenReturn(DescribeEventsResponse.builder().build());
@@ -63,7 +64,7 @@ class EventsTest extends ProxyClientTestBase {
 
         Instant start = Instant.parse("2023-02-15T19:34:50Z");
         String identifier = "test_identifier";
-        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, identifier, SourceType.DB_CLUSTER, start, progressEvent, isFailureEvent, logger);
+        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, identifier, SourceType.DB_CLUSTER, start, progressEvent, isFailureEvent, new RequestLogger(null, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()));
 
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isFalse();
@@ -78,7 +79,7 @@ class EventsTest extends ProxyClientTestBase {
     }
 
     @Test
-    public void test_checkFailedEvents_failure() {
+    void test_checkFailedEvents_failure() {
         final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
 
         when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class))).thenReturn(DescribeEventsResponse.builder().events(Event.builder()
@@ -90,7 +91,7 @@ class EventsTest extends ProxyClientTestBase {
 
         Instant start = Instant.parse("2023-02-15T19:34:50Z");
         String identifier = "test_identifier";
-        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, identifier, SourceType.DB_CLUSTER, start, progressEvent, isFailureEvent, logger);
+        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, identifier, SourceType.DB_CLUSTER, start, progressEvent, isFailureEvent, new RequestLogger(null, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()));
 
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
@@ -102,18 +103,18 @@ class EventsTest extends ProxyClientTestBase {
         assertThat(captor.getValue().startTime()).isEqualTo(start);
         assertThat(captor.getValue().sourceIdentifier()).isEqualTo(identifier);
         assertThat(captor.getValue().sourceType()).isEqualTo(SourceType.DB_CLUSTER);
-
     }
 
     @Test
-    public void test_checkFailedEvents_exception_failure() {
+    void test_checkFailedEvents_exception_failure() {
         final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
 
         when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class))).thenThrow(SdkServiceException.builder().message(SERVICE_INTERNAL_FAILURE_MESSAGE).build());
 
         Predicate<Event> isFailureEvent = event -> true;
 
-        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, "test_identifier", SourceType.DB_CLUSTER, Instant.parse("2023-02-15T19:34:50Z"), progressEvent, isFailureEvent, logger);
+        ProgressEvent<Void, Void> resultEvent = Events.checkFailedEvents(proxyRdsClient, "test_identifier", SourceType.DB_CLUSTER, Instant.parse("2023-02-15T19:34:50Z"), progressEvent, isFailureEvent, new RequestLogger(null, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()));
+
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
         assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.ServiceInternalError);
@@ -121,7 +122,7 @@ class EventsTest extends ProxyClientTestBase {
     }
 
     @Test
-    public void test_fetchEvents_shouldSetCategories() {
+    void test_fetchEvents_shouldSetCategories() {
         when(proxyRdsClient.client().describeEvents(any(DescribeEventsRequest.class)))
                 .thenReturn(DescribeEventsResponse.builder().build());
 
