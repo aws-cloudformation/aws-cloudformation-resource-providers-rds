@@ -25,7 +25,6 @@ import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -33,9 +32,10 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
@@ -57,7 +57,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
         if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
             return ProgressEvent.failed(
@@ -153,7 +153,16 @@ public class UpdateHandler extends BaseHandlerStd {
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles)
                 )
                 .then(progress -> updateTags(proxy, rdsClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> {
+                    final ResourceModel model = request.getDesiredResourceState();
+                    model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(desiredTags)));
+                    return Commons.reportResourceDrift(
+                            model,
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            resourceTypeSchema,
+                            logger
+                    );
+                });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> handleResourceDrift(
@@ -162,7 +171,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {

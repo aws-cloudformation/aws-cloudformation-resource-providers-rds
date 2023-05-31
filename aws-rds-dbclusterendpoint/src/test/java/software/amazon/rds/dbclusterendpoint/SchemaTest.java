@@ -1,16 +1,23 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import org.json.JSONObject;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
-import software.amazon.rds.test.common.schema.ResourceDriftTestHelper;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
+import software.amazon.rds.common.util.DriftDetector;
+import software.amazon.rds.common.util.Mutation;
 
-public class SchemaTest {
+class SchemaTest {
 
-    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+    private static final ResourceTypeSchema resourceSchema = ResourceTypeSchema.load(
+            new Configuration().resourceSchemaJsonObject()
+    );
 
     @Test
-    public void testDrift_DBClusterIdentifier_Lowercase() {
+    void testDrift_DBClusterIdentifier_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .dBClusterIdentifier("DBClusterIdentifier")
                 .build();
@@ -18,11 +25,11 @@ public class SchemaTest {
                 .dBClusterIdentifier("dbclusteridentifier")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_DBClusterEndpointIdentifier_Lowercase() {
+    void testDrift_DBClusterEndpointIdentifier_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .dBClusterEndpointIdentifier("DBClusterEndpointIdentifier")
                 .build();
@@ -30,6 +37,12 @@ public class SchemaTest {
                 .dBClusterEndpointIdentifier("dbclusterendpointidentifier")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    private static <T> void assertResourceNotDrifted(final T input, final T output, final ResourceTypeSchema schema) {
+        final DriftDetector driftDetector = new DriftDetector(schema);
+        final Map<String, Mutation> drift = driftDetector.detectDrift(input, output);
+        assertThat(drift).isEmpty();
     }
 }

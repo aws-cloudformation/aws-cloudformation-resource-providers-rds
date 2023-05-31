@@ -1,17 +1,24 @@
 package software.amazon.rds.dbcluster;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
+
 import org.assertj.core.api.Assertions;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-import software.amazon.rds.test.common.schema.ResourceDriftTestHelper;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
+import software.amazon.rds.common.util.DriftDetector;
+import software.amazon.rds.common.util.Mutation;
 
-public class SchemaTest {
+class SchemaTest {
 
-    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+    private static final ResourceTypeSchema resourceSchema = ResourceTypeSchema.load(
+            new Configuration().resourceSchemaJsonObject()
+    );
 
     @Test
-    public void testDrift_DBClusterIdentifier_Lowercase() {
+    void testDrift_DBClusterIdentifier_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .dBClusterIdentifier("DBClusterIdentifier")
                 .build();
@@ -19,11 +26,11 @@ public class SchemaTest {
                 .dBClusterIdentifier("dbclusteridentifier")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_DBClusterParameterGroupName_Lowercase() {
+    void testDrift_DBClusterParameterGroupName_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .dBClusterParameterGroupName("DBClusterParameterGroupName")
                 .build();
@@ -31,11 +38,11 @@ public class SchemaTest {
                 .dBClusterParameterGroupName("dbclusterparametergroupname")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_DBSubnetGroupName_Lowercase() {
+    void testDrift_DBSubnetGroupName_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .dBSubnetGroupName("DBSubnetGroupName")
                 .build();
@@ -43,11 +50,11 @@ public class SchemaTest {
                 .dBSubnetGroupName("dbsubnetgroupname")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_SnapshotIdentifier_Lowercase() {
+    void testDrift_SnapshotIdentifier_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .snapshotIdentifier("SnapshotIdentifier")
                 .build();
@@ -55,11 +62,11 @@ public class SchemaTest {
                 .snapshotIdentifier("snapshotidentifier")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_SourceDBClusterIdentifier_Lowercase() {
+    void testDrift_SourceDBClusterIdentifier_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .sourceDBClusterIdentifier("SourceDBClusterIdentifier")
                 .build();
@@ -67,33 +74,33 @@ public class SchemaTest {
                 .sourceDBClusterIdentifier("sourcedbclusteridentifier")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_KmsKeyId_ExpandArn() {
+    void testDrift_KmsKeyId_ExpandArn() {
         final ResourceModel input = ResourceModel.builder()
                 .kmsKeyId("test-kms-key-id")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .kmsKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_PerformanceInsightsKmsKeyId_ExpandArn() {
+    void testDrift_PerformanceInsightsKmsKeyId_ExpandArn() {
         final ResourceModel input = ResourceModel.builder()
                 .performanceInsightsKmsKeyId("test-kms-key-id")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .performanceInsightsKmsKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_MasterUserSecret_KmsKeyId_ExpandArn() {
+    void testDrift_MasterUserSecret_KmsKeyId_ExpandArn() {
         final ResourceModel input = ResourceModel.builder()
                 .masterUserSecret(MasterUserSecret.builder()
                         .kmsKeyId("test-kms-key-id")
@@ -104,22 +111,22 @@ public class SchemaTest {
                         .kmsKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
                         .build())
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_PreferredMaintenanceWindow_Lowercase() {
+    void testDrift_PreferredMaintenanceWindow_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .preferredMaintenanceWindow("Sat:06:01-Sat:08:01")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .preferredMaintenanceWindow("sat:06:01-sat:08:01")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_EnableHttpEndpoint_Serverless_Drifted() {
+    void testDrift_EnableHttpEndpoint_Serverless_Drifted() {
         final ResourceModel input = ResourceModel.builder()
                 .enableHttpEndpoint(true)
                 .engineMode("serverless")
@@ -129,12 +136,12 @@ public class SchemaTest {
                 .engineMode("serverless")
                 .build();
         Assertions.assertThatThrownBy(() -> {
-            ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+            assertResourceNotDrifted(input, output, resourceSchema);
         }).isInstanceOf(AssertionError.class);
     }
 
     @Test
-    public void testDrift_EnableHttpEndpoint_Provisioned() {
+    void testDrift_EnableHttpEndpoint_Provisioned() {
         final ResourceModel input = ResourceModel.builder()
                 .enableHttpEndpoint(true)
                 .engineMode("provisioned")
@@ -143,44 +150,44 @@ public class SchemaTest {
                 .enableHttpEndpoint(false)
                 .engineMode("provisioned")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_EnableHttpEndpoint_NoEngineMode() {
+    void testDrift_EnableHttpEndpoint_NoEngineMode() {
         final ResourceModel input = ResourceModel.builder()
                 .enableHttpEndpoint(true)
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .enableHttpEndpoint(false)
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_EngineVersion_MajorVersionOnly() {
+    void testDrift_EngineVersion_MajorVersionOnly() {
         final ResourceModel input = ResourceModel.builder()
                 .engineVersion("5")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .engineVersion("5.6.40")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_EngineVersion_MajorAndMinorVersion() {
+    void testDrift_EngineVersion_MajorAndMinorVersion() {
         final ResourceModel input = ResourceModel.builder()
                 .engineVersion("5.6")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .engineVersion("5.6.40")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_EngineVersion_MinorMismatch_ShouldDrift() {
+    void testDrift_EngineVersion_MinorMismatch_ShouldDrift() {
         final ResourceModel input = ResourceModel.builder()
                 .engineVersion("5.6")
                 .build();
@@ -188,12 +195,12 @@ public class SchemaTest {
                 .engineVersion("5.7.40")
                 .build();
         Assertions.assertThatThrownBy(() -> {
-            ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+            assertResourceNotDrifted(input, output, resourceSchema);
         }).isInstanceOf(AssertionError.class);
     }
 
     @Test
-    public void testDrift_Engine_CaseMismatch_ShouldNotDrift() {
+    void testDrift_Engine_CaseMismatch_ShouldNotDrift() {
         final ResourceModel input = ResourceModel.builder()
                 .engine("aurora-MySQL")
                 .build();
@@ -201,28 +208,34 @@ public class SchemaTest {
                 .engine("aurora-mysql")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_NetworkType_Lowercase() {
+    void testDrift_NetworkType_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .networkType("IPV4")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .networkType("ipv4")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_StorageType_Lowercase() {
+    void testDrift_StorageType_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .storageType("GP3")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .storageType("gp3")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
+    }
+
+    private static <T> void assertResourceNotDrifted(final T input, final T output, final ResourceTypeSchema schema) {
+        final DriftDetector driftDetector = new DriftDetector(schema);
+        final Map<String, Mutation> drift = driftDetector.detectDrift(input, output);
+        assertThat(drift).isEmpty();
     }
 }

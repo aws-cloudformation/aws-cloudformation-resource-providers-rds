@@ -42,6 +42,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.test.common.core.AbstractTestBase;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.MethodCallExpectation;
@@ -349,7 +351,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), logger);
+        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), new RequestLogger(logger, request, new FilteredJsonPrinter()));
     }
 
     @Override

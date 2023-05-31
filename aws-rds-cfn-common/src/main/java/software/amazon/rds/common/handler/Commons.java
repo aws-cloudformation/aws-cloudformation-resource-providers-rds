@@ -2,6 +2,7 @@ package software.amazon.rds.common.handler;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.function.Function;
 
 import lombok.NonNull;
@@ -10,11 +11,16 @@ import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.error.IgnoreErrorStatus;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.util.DriftDetector;
+import software.amazon.rds.common.util.DriftDetectorReport;
+import software.amazon.rds.common.util.Mutation;
 
 public final class Commons {
 
@@ -92,5 +98,23 @@ public final class Commons {
 
     public static Instant parseTimestamp(@NonNull String timestamp) {
         return ZonedDateTime.parse(timestamp).toInstant();
+    }
+
+    public static <M, C> ProgressEvent<M, C> reportResourceDrift(
+            final M inputModel,
+            final ProgressEvent<M, C> progress,
+            final ResourceTypeSchema schema,
+            final RequestLogger logger
+    ) {
+        try {
+            final DriftDetector driftDetector = new DriftDetector(schema);
+            final Map<String, Mutation> mutations = driftDetector.detectDrift(inputModel, progress.getResourceModel());
+            if (!mutations.isEmpty()) {
+                logger.log("Resource drift detected", new DriftDetectorReport(mutations));
+            }
+        } catch (Exception e) {
+            logger.log("Drift detector internal error", e);
+        }
+        return progress;
     }
 }
