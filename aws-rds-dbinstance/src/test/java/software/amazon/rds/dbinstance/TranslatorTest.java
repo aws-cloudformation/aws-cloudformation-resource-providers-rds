@@ -281,14 +281,6 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_createReadReplicaRequest_parameterGroupNotSet() {
-        final ResourceModel model = RESOURCE_MODEL_BLDR().build();
-
-        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
-        Assertions.assertNull(request.dbParameterGroupName());
-    }
-
-    @Test
     public void test_createReadReplicaRequest_blankSourceRegionIsNotSet() {
         final ResourceModel model = ResourceModel.builder()
                 .sourceRegion("")

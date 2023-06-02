@@ -111,6 +111,11 @@ public class Translator {
                     .storageThroughput(model.getStorageThroughput())
                     .storageType(model.getStorageType());
         }
+
+        if (ResourceModelHelper.isMySQL(model)) {
+            builder.dbParameterGroupName(model.getDBParameterGroupName());
+        }
+
         return builder.build();
     }
 
@@ -580,7 +585,8 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeSecurityGroupsRequest describeSecurityGroupsRequest(final String vpcId, final String groupName) {
+    public static DescribeSecurityGroupsRequest describeSecurityGroupsRequest(final String vpcId,
+                                                                              final String groupName) {
         return DescribeSecurityGroupsRequest.builder()
                 .filters(
                         Filter.builder().name("vpc-id").values(vpcId).build(),
