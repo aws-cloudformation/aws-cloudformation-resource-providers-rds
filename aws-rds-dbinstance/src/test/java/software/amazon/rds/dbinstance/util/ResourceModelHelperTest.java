@@ -78,7 +78,7 @@ public class ResourceModelHelperTest {
                 .allocatedStorage("100")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 
     @Test
@@ -236,6 +236,6 @@ public class ResourceModelHelperTest {
                 .storageType("gp2")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
     }
 }

@@ -53,6 +53,7 @@ import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
@@ -63,6 +64,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
@@ -108,6 +110,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.DefaultVpcDoesNotExist)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    ErrorCode.StorageTypeNotAvailableFault,
                     ErrorCode.StorageTypeNotSupportedFault)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     ErrorCode.InvalidDBSecurityGroupState)
@@ -138,6 +141,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     DbSubnetGroupDoesNotCoverEnoughAZsException.class,
                     KmsKeyNotAccessibleException.class,
+                    StorageTypeNotAvailableException.class,
                     StorageTypeNotSupportedException.class,
                     NetworkTypeNotSupportedException.class)
             .build();
@@ -159,9 +163,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .probingEnabled(true)
             .build();
 
-    protected final static String IN_SYNC_STATUS = "in-sync";
-
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
+
+    protected static final ResourceTypeSchema resourceTypeSchema = ResourceTypeSchema.load(new Configuration().resourceSchemaJsonObject());
 
     protected HandlerConfig config;
 
@@ -176,7 +180,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -185,7 +189,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
         try {
             validateRequest(request);
@@ -213,7 +217,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         callbackContext != null ? callbackContext : new CallbackContext(),
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient)),
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient)),
-                        logger
+                        requestLogger
                 ));
     }
 
@@ -286,7 +290,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return modifiedValues == null || (
                 modifiedValues.masterUserPassword() == null &&
                         modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
-                        modifiedValues.engineVersion() == null);
+                        modifiedValues.engineVersion() == null &&
+                        modifiedValues.storageType() == null);
     }
 
     protected boolean isDBClusterStabilized(
@@ -463,7 +468,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return role == null && sdkRole == null;
         }
         return Objects.equals(role.getRoleArn(), sdkRole.roleArn()) &&
-                Objects.equals(role.getFeatureName(), sdkRole.featureName());
+                Objects.equals(StringUtils.trimToNull(role.getFeatureName()), StringUtils.trimToNull(sdkRole.featureName()));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(

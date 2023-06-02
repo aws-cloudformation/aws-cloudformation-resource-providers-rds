@@ -54,6 +54,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRes
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -239,6 +240,46 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 },
                 () -> RESOURCE_MODEL.toBuilder()
                         .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_AssociatedRoleWithEmptyFeatureNameShouldStabilize() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        final Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_INPROGRESS);
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE.toBuilder()
+                            .associatedRoles(ImmutableList.of(
+                                    software.amazon.awssdk.services.rds.model.DBClusterRole.builder()
+                                            .roleArn(ROLE_ARN)
+                                            .build()
+                            ))
+                            .build();
+                },
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(
+                                DBClusterRole.builder()
+                                        .roleArn(ROLE_ARN)
+                                        .featureName("")
+                                        .build()
+                        ))
                         .build(),
                 expectSuccess()
         );
@@ -673,9 +714,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
             return Stream.of(
                     // Put error codes below
+                    Arguments.of(ErrorCode.StorageTypeNotAvailableFault, HandlerErrorCode.InvalidRequest),
                     Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
                     // Put exception classes below
                     Arguments.of(DbClusterAlreadyExistsException.builder().message(ERROR_MSG).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(StorageTypeNotAvailableException.builder().message(ERROR_MSG).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(StorageTypeNotSupportedException.builder().message(ERROR_MSG).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(DomainNotFoundException.builder().message(ERROR_MSG).build(), HandlerErrorCode.NotFound),
                     Arguments.of(new RuntimeException(ERROR_MSG), HandlerErrorCode.InternalFailure)

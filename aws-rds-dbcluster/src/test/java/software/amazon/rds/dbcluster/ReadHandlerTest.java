@@ -66,7 +66,7 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ReadSuccess() {
+    void handleRequest_ReadSuccess() {
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DBCLUSTER_ACTIVE,

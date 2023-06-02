@@ -104,13 +104,6 @@ public class Translator {
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
-
-        if (!ResourceModelHelper.isSqlServer(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -127,21 +120,12 @@ public class Translator {
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .engine(model.getEngine())
-                .iops(model.getIops())
                 .licenseModel(model.getLicenseModel())
                 .multiAZ(model.getMultiAZ())
                 .networkType(model.getNetworkType())
                 .optionGroupName(model.getOptionGroupName())
-                .port(translatePortToSdk(model.getPort()))
-                .storageType(model.getStorageType())
-                .storageThroughput(model.getStorageThroughput());
+                .port(translatePortToSdk(model.getPort()));
 
-        if (!ResourceModelHelper.isSqlServer(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -179,13 +163,6 @@ public class Translator {
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
-
-        if (!ResourceModelHelper.isSqlServer(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -330,12 +307,6 @@ public class Translator {
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
 
-        if (!ResourceModelHelper.isSqlServer(model)) {
-            builder.allocatedStorage(getAllocatedStorage(model))
-                    .iops(model.getIops())
-                    .storageThroughput(model.getStorageThroughput())
-                    .storageType(model.getStorageType());
-        }
         return builder.build();
     }
 
@@ -490,10 +461,13 @@ public class Translator {
     }
 
     private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
+        if (Objects.equals(previous.getManageMasterUserPassword(), desired.getManageMasterUserPassword())) {
+            return null;
+        }
         if (null != desired.getManageMasterUserPassword()) {
             return desired.getManageMasterUserPassword();
         }
-        if (BooleanUtils.isTrue(previous.getManageMasterUserPassword()) && BooleanUtils.isNotTrue(desired.getManageMasterUserPassword())) {
+        if (BooleanUtils.isTrue(previous.getManageMasterUserPassword())) {
             return false;
         }
         return null;
@@ -535,7 +509,7 @@ public class Translator {
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
-        if (ResourceModelHelper.isSqlServer(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model)) {
             builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
             builder.storageThroughput(model.getStorageThroughput());

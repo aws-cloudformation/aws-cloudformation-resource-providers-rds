@@ -4,11 +4,11 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.ValidatedRequest;
 
 public class ReadHandler extends BaseHandlerStd {
@@ -27,7 +27,9 @@ public class ReadHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final RequestLogger logger
+    ) {
         return proxy.initiate("rds::describe-db-cluster", rdsProxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbClustersRequest)
                 .backoffDelay(config.getBackoff())

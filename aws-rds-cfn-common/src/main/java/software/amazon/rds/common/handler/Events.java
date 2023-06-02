@@ -20,6 +20,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
+import software.amazon.rds.common.logging.RequestLogger;
 
 public class Events {
 
@@ -76,7 +77,7 @@ public class Events {
             final Instant startTime,
             final ProgressEvent<M, C> progress,
             final Predicate<Event> isFailureEvent,
-            final Logger logger
+            final RequestLogger logger
     ) {
         try {
             final List<Event> failures = fetchEvents(

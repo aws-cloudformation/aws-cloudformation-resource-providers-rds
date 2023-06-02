@@ -5,8 +5,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -19,7 +19,6 @@ import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableList;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -77,6 +76,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
@@ -88,14 +88,14 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.common.request.RequestValidationException;
-import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
@@ -149,7 +149,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
 
-    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
+    protected final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
 
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
 
@@ -323,6 +323,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSnapshotAlreadyExistsException.class)
             .build();
 
+    protected static final ResourceTypeSchema resourceTypeSchema = ResourceTypeSchema.load(new Configuration().resourceSchemaJsonObject());
+
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -358,7 +360,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -367,7 +369,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
         try {
             validateRequest(request);
@@ -398,7 +400,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient))),
                         new VersionedProxyClient<Ec2Client>()
                                 .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient))),
-                        logger
+                        requestLogger
                 ));
     }
 
@@ -728,7 +730,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 rdsProxyClient,
                 model,
                 (roles) -> roles.anyMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()) &&
-                        (role.featureName() == null || role.featureName().equals(lookupRole.getFeatureName())))
+                        Objects.equals(StringUtils.trimToNull(role.featureName()), StringUtils.trimToNull(lookupRole.getFeatureName())))
         );
     }
 

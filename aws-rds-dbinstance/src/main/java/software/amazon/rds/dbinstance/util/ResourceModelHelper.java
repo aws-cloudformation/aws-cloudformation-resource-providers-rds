@@ -10,8 +10,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class ResourceModelHelper {
-    private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
-
     private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
             "sqlserver-ee",
             "sqlserver-se"
@@ -33,7 +31,7 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getMonitoringRoleArn()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMonitoringInterval()).orElse(0) > 0 ||
-                                (isSqlServer(model) &&  isStorageParametersModified(model)) ||
+                                isStorageParametersModified(model) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
                                 BooleanUtils.isTrue(model.getEnablePerformanceInsights())
@@ -46,12 +44,6 @@ public final class ResourceModelHelper {
                 Optional.ofNullable(model.getMaxAllocatedStorage()).orElse(0) > 0 ||
                 Optional.ofNullable(model.getStorageThroughput()).orElse(0) > 0 ||
                 StringUtils.hasValue(model.getStorageType());
-    }
-
-    public static boolean isSqlServer(final ResourceModel model) {
-        final String engine = model.getEngine();
-        // treat unknown engines as SQLServer
-        return engine == null || engine.startsWith(SQLSERVER_ENGINE_PREFIX);
     }
 
     public static boolean isRestoreToPointInTime(final ResourceModel model) {
