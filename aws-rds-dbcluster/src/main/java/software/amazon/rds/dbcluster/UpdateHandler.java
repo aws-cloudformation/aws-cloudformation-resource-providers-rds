@@ -13,7 +13,6 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Commons;
@@ -21,6 +20,7 @@ import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
 
@@ -39,7 +39,9 @@ public class UpdateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient, final Logger logger) {
+            final ProxyClient<Ec2Client> ec2ProxyClient,
+            final RequestLogger logger
+    ) {
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
                 .stackTags(Tagging.translateTagsToSdk(request.getPreviousResourceTags()))
@@ -103,7 +105,15 @@ public class UpdateHandler extends BaseHandlerStd {
                         logger
                 ))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> {
+                    desiredResourceState.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(desiredTags)));
+                    return Commons.reportResourceDrift(
+                            desiredResourceState,
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            resourceTypeSchema,
+                            logger
+                    );
+                });
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> modifyDBCluster(

@@ -13,7 +13,6 @@ import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -22,6 +21,7 @@ import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
@@ -65,10 +65,11 @@ public class CreateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
+        final boolean isMultiAZ = BooleanUtils.isTrue(model.getMultiAZ());
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
             model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
@@ -94,11 +95,16 @@ public class CreateHandler extends BaseHandlerStd {
                         return createDbInstanceReadReplica(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
                             ResourceModelHelper.isRestoreFromClusterSnapshot(progress.getResourceModel())) {
-                        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && model.getMultiAZ() == null) {
+                        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && !isMultiAZ) {
                             try {
                                 final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
                                 final String engine = snapshot.engine();
-                                progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
+                                if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                                    progress.getResourceModel().setEngine(engine);
+                                }
+                                if (progress.getResourceModel().getMultiAZ() == null) {
+                                    progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
+                                }
                             } catch (Exception e) {
                                 return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
                             }
@@ -152,7 +158,15 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> Commons.execOnce(progress, () ->
                                 updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> {
+                    model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
+                    return Commons.reportResourceDrift(
+                            model,
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            resourceTypeSchema,
+                            logger
+                    );
+                });
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(

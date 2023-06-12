@@ -1,16 +1,24 @@
 package software.amazon.rds.customdbengineversion;
 
-import org.json.JSONObject;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
+
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import software.amazon.rds.test.common.schema.ResourceDriftTestHelper;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
+import software.amazon.rds.common.util.DriftDetector;
+import software.amazon.rds.common.util.Mutation;
 
-public class SchemaTest {
+class SchemaTest {
 
-    private static final JSONObject resourceSchema = new Configuration().resourceSchemaJsonObject();
+    private static final ResourceTypeSchema resourceSchema = ResourceTypeSchema.load(
+            new Configuration().resourceSchemaJsonObject()
+    );
 
     @Test
-    public void testDrift_Engine_Lowercase() {
+    void testDrift_Engine_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .engine("Engine")
                 .build();
@@ -18,11 +26,11 @@ public class SchemaTest {
                 .engine("engine")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_EngineVersion_Lowercase() {
+    void testDrift_EngineVersion_Lowercase() {
         final ResourceModel input = ResourceModel.builder()
                 .engineVersion("EngineVersion")
                 .build();
@@ -30,18 +38,23 @@ public class SchemaTest {
                 .engineVersion("engineversion")
                 .build();
 
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
     @Test
-    public void testDrift_KmsKeyId_ExpandArn() {
+    void testDrift_KmsKeyId_ExpandArn() {
         final ResourceModel input = ResourceModel.builder()
                 .kMSKeyId("test-kms-key-id")
                 .build();
         final ResourceModel output = ResourceModel.builder()
                 .kMSKeyId("arn:aws:kms:us-east-1:123456789012:key/test-kms-key-id")
                 .build();
-        ResourceDriftTestHelper.assertResourceNotDrifted(input, output, resourceSchema);
+        assertResourceNotDrifted(input, output, resourceSchema);
     }
 
+    private static <T> void assertResourceNotDrifted(final T input, final T output, final ResourceTypeSchema schema) {
+        final DriftDetector driftDetector = new DriftDetector(schema);
+        final Map<String, Mutation> drift = driftDetector.detectDrift(input, output);
+        assertThat(drift).isEmpty();
+    }
 }

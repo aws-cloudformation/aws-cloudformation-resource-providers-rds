@@ -11,7 +11,6 @@ import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
 import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.SdkHttpRequest;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.RdsClientBuilder;
 import software.amazon.rds.common.client.BaseSdkClientProvider;
@@ -54,10 +53,5 @@ public class RdsClientProvider extends BaseSdkClientProvider<RdsClientBuilder, R
 
     public RdsClient getClientForApiVersion(@NonNull final String apiVersion) {
         return setUserAgentAndApiVersion(setHttpClient(RdsClient.builder()), apiVersion).build();
-    }
-
-    public RdsClient getClientForRegion(@NonNull final String region) {
-        final Region sdkRegion = Region.of(region);
-        return setUserAgent(setHttpClient(RdsClient.builder().region(sdkRegion))).build();
     }
 }

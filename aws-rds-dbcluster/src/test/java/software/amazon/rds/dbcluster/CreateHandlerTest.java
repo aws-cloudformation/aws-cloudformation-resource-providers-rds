@@ -54,6 +54,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRes
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeResponse;
 import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration;
+import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -168,58 +169,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_CreateDbCluster_AccessDeniedTagging() {
-        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build())
-                .thenReturn(CreateDbClusterResponse.builder().build());
-        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
-                .thenReturn(AddRoleToDbClusterResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DBCLUSTER_ACTIVE,
-                null,
-                () -> RESOURCE_MODEL.toBuilder()
-                        .associatedRoles(ImmutableList.of(ROLE))
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
-                        .build(),
-                expectSuccess()
-        );
-
-        ArgumentCaptor<CreateDbClusterRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterRequest.class);
-        verify(rdsProxy.client(), times(2)).createDBCluster(createCaptor.capture());
-        final CreateDbClusterRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        final CreateDbClusterRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class));
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
-
-        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
-        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
-    }
-
-    @Test
     public void handleRequest_CreateDbCluster_TestStabilisation() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
@@ -239,6 +188,46 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 },
                 () -> RESOURCE_MODEL.toBuilder()
                         .associatedRoles(ImmutableList.of(ROLE))
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
+        verify(rdsProxy.client(), times(1)).addRoleToDBCluster(any(AddRoleToDbClusterRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateDbCluster_AssociatedRoleWithEmptyFeatureNameShouldStabilize() {
+        when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
+                .thenReturn(CreateDbClusterResponse.builder().build());
+        when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
+                .thenReturn(AddRoleToDbClusterResponse.builder().build());
+
+        final Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_INPROGRESS);
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (transitions.size() > 0) {
+                        return transitions.remove();
+                    }
+                    return DBCLUSTER_ACTIVE.toBuilder()
+                            .associatedRoles(ImmutableList.of(
+                                    software.amazon.awssdk.services.rds.model.DBClusterRole.builder()
+                                            .roleArn(ROLE_ARN)
+                                            .build()
+                            ))
+                            .build();
+                },
+                () -> RESOURCE_MODEL.toBuilder()
+                        .associatedRoles(ImmutableList.of(
+                                DBClusterRole.builder()
+                                        .roleArn(ROLE_ARN)
+                                        .featureName("")
+                                        .build()
+                        ))
                         .build(),
                 expectSuccess()
         );
@@ -301,61 +290,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
-    }
-
-    @Test
-    public void handleRequest_RestoreDbClusterFromSnapshot_AccessDeniedTagging() {
-        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build())
-                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
-        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
-                .thenReturn(ModifyDbClusterResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DBCLUSTER_ACTIVE,
-                null,
-                () -> RESOURCE_MODEL_ON_RESTORE.toBuilder()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
-                        .build(),
-                expectSuccess()
-        );
-
-        ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
-        verify(rdsProxy.client(), times(2)).restoreDBClusterFromSnapshot(createCaptor.capture());
-        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
-
-        final RestoreDbClusterFromSnapshotRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        final RestoreDbClusterFromSnapshotRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class));
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
-
-        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
-        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
     }
 
     @Test
@@ -519,59 +453,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RestoreDbClusterToPointInTime_AccessDeniedTagging() {
-        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build())
-                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
-        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
-                .thenReturn(ModifyDbClusterResponse.builder().build());
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DBCLUSTER_ACTIVE,
-                null,
-                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
-                        .build(),
-                expectSuccess()
-        );
-
-        ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
-        verify(rdsProxy.client(), times(2)).restoreDBClusterToPointInTime(createCaptor.capture());
-
-        final RestoreDbClusterToPointInTimeRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        final RestoreDbClusterToPointInTimeRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class));
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
-
-        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
-    }
-
-    @Test
     public void handleRequest_RestoreDbClusterToPointInTime_SetEnableCloudwatchLogsExports() {
         when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
                 .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
@@ -673,9 +554,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
             return Stream.of(
                     // Put error codes below
+                    Arguments.of(ErrorCode.StorageTypeNotAvailableFault, HandlerErrorCode.InvalidRequest),
                     Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
                     // Put exception classes below
                     Arguments.of(DbClusterAlreadyExistsException.builder().message(ERROR_MSG).build(), HandlerErrorCode.AlreadyExists),
+                    Arguments.of(StorageTypeNotAvailableException.builder().message(ERROR_MSG).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(StorageTypeNotSupportedException.builder().message(ERROR_MSG).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(DomainNotFoundException.builder().message(ERROR_MSG).build(), HandlerErrorCode.NotFound),
                     Arguments.of(new RuntimeException(ERROR_MSG), HandlerErrorCode.InternalFailure)
