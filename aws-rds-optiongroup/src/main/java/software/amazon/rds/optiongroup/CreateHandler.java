@@ -51,7 +51,7 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setOptionGroupNameIfEmpty(request, progress))
-                .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createOptionGroup, progress, allTags))
+                .then(progress -> createOptionGroup(proxy, proxyClient, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                                     .stackTags(allTags.getStackTags())

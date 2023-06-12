@@ -8,6 +8,7 @@ import lombok.NonNull;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.error.ErrorCode;
@@ -17,12 +18,27 @@ import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.error.IgnoreErrorStatus;
 
 public final class Commons {
+    public static final String NOT_AUTHORIZED_TO_PERFORM_RDS_ADD_TAGS_TO_RESOURCE = "is not authorized to perform: rds:AddTagsToResource";
+
+    protected static final Function<Exception, ErrorStatus> isUnauthorizedTaggingOperation = exception -> {
+        if (isUnauthorizedTaggingExceptionMessage(exception.getMessage())) {
+            return ErrorStatus.failWith(HandlerErrorCode.UnauthorizedTaggingOperation);
+        }
+        return ErrorStatus.failWith(HandlerErrorCode.AccessDenied);
+    };
+
+    private static boolean isUnauthorizedTaggingExceptionMessage(final String message) {
+        if (StringUtils.isBlank(message)) {
+            return false;
+        }
+        return message.contains(NOT_AUTHORIZED_TO_PERFORM_RDS_ADD_TAGS_TO_RESOURCE);
+    }
 
     public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
                     ErrorCode.ClientUnavailable,
                     ErrorCode.InternalFailure)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
+            .withErrorCodes(ErrorStatus.conditional(isUnauthorizedTaggingOperation),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException,
                     ErrorCode.NotAuthorized,

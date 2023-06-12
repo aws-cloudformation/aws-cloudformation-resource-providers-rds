@@ -1,6 +1,5 @@
 package software.amazon.rds.dbsubnetgroup;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 
 import com.amazonaws.util.StringUtils;
@@ -48,22 +47,8 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbSubnetGroupNameIfEmpty(request, progress))
-                .then(progress -> safeCreateDbSubnetGroup(proxy, proxyClient, progress, allTags))
+                .then(progress -> createDbSubnetGroup(proxy, proxyClient, progress, allTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> safeCreateDbSubnetGroup(final AmazonWebServicesClientProxy proxy,
-                                                                                  final ProxyClient<RdsClient> proxyClient,
-                                                                                  final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                  final Tagging.TagSet allTags) {
-        return Tagging.safeCreate(proxy, proxyClient, this::createDbSubnetGroup, progress, allTags)
-                .then(p -> Commons.execOnce(p, () -> {
-                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                            .stackTags(allTags.getStackTags())
-                            .resourceTags(allTags.getResourceTags())
-                            .build();
-                    return updateTags(proxyClient, p, Tagging.TagSet.emptySet(), extraTags);
-                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbSubnetGroup(final AmazonWebServicesClientProxy proxy,

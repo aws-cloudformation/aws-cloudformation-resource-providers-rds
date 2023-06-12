@@ -35,7 +35,7 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getMonitoringRoleArn()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMonitoringInterval()).orElse(0) > 0 ||
-                                (isSqlServer(model) && isStorageParametersModified(model)) ||
+                                (isSqlServer(model) &&  isStorageParametersModified(model)) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
                                 BooleanUtils.isTrue(model.getEnablePerformanceInsights())
@@ -54,11 +54,6 @@ public final class ResourceModelHelper {
         final String engine = model.getEngine();
         // treat unknown engines as SQLServer
         return engine == null || engine.startsWith(SQLSERVER_ENGINE_PREFIX);
-    }
-
-    public static boolean isMySQL(final ResourceModel model) {
-        final String engine = model.getEngine();
-        return engine != null && engine.startsWith(MYSQL_ENGINE_PREFIX);
     }
 
     public static boolean isRestoreToPointInTime(final ResourceModel model) {

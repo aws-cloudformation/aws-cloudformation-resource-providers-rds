@@ -51,27 +51,9 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(desiredModel, callbackContext)
                 .then(progress -> setDBParameterGroupNameIfEmpty(request, progress))
-                .then(progress -> safeCreateDBParameterGroup(proxy, proxyClient, progress, allTags, logger))
+                .then(progress -> createDBParameterGroup(proxy, proxyClient, progress, allTags, logger))
                 .then(progress -> applyParameters(proxy, proxyClient, progress, desiredParams, logger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, logger));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> safeCreateDBParameterGroup(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet allTags,
-            final RequestLogger logger
-    ) {
-        final HandlerMethod<ResourceModel, CallbackContext> createMethod = (pxy, pcl, prg, tgs) -> createDBParameterGroup(pxy, pcl, prg, tgs, logger);
-        return Tagging.safeCreate(proxy, proxyClient, createMethod, progress, allTags)
-                .then(p -> Commons.execOnce(p, () -> {
-                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                            .stackTags(allTags.getStackTags())
-                            .resourceTags(allTags.getResourceTags())
-                            .build();
-                    return updateTags(proxy, proxyClient, p, Tagging.TagSet.emptySet(), extraTags, logger);
-                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDBParameterGroup(

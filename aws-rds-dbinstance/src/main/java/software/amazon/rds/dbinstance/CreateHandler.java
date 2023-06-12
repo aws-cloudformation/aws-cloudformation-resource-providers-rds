@@ -88,12 +88,10 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
                         // restoreDBInstanceToPointInTime is not a versioned call.
-                        return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
-                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
+                        return restoreDbInstanceToPointInTimeRequest(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
                         // createDBInstanceReadReplica is not a versioned call.
-                        return safeAddTags(this::createDbInstanceReadReplica)
-                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
+                        return createDbInstanceReadReplica(proxy, rdsProxyClient.defaultClient(), progress, allTags);
                     } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
                             ResourceModelHelper.isRestoreFromClusterSnapshot(progress.getResourceModel())) {
                         if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && model.getMultiAZ() == null) {
@@ -107,12 +105,12 @@ public class CreateHandler extends BaseHandlerStd {
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
                                 ApiVersion.V12, this::restoreDbInstanceFromSnapshotV12,
-                                ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot)
+                                ApiVersion.DEFAULT, this::restoreDbInstanceFromSnapshot
                         ));
                     }
                     return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
                             ApiVersion.V12, this::createDbInstanceV12,
-                            ApiVersion.DEFAULT, safeAddTags(this::createDbInstance)
+                            ApiVersion.DEFAULT, this::createDbInstance
                     ));
                 }, CallbackContext::isCreated, CallbackContext::setCreated))
                 .then(progress -> Commons.execOnce(progress, () -> {
@@ -155,10 +153,6 @@ public class CreateHandler extends BaseHandlerStd {
                                 updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
-    }
-
-    private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
-        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(

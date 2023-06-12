@@ -204,38 +204,6 @@ public final class Tagging {
         return hardFailErrorRuleSet;
     }
 
-    public static <M, C extends TaggingContext.Provider> ProgressEvent<M, C> safeCreate(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final HandlerMethod<M, C> handlerMethod,
-            final ProgressEvent<M, C> progress,
-            final Tagging.TagSet allTags
-    ) {
-        return progress.then(p -> {
-            final C context = p.getCallbackContext();
-            if (context.getTaggingContext().isSoftFailTags()) {
-                return p;
-            }
-            final ProgressEvent<M, C> allTagsResult = handlerMethod.invoke(proxy, rdsProxyClient, p, allTags);
-            if (allTagsResult.isFailed()) {
-                if (HandlerErrorCode.AccessDenied.equals(allTagsResult.getErrorCode())) {
-                    context.getTaggingContext().setSoftFailTags(true);
-                    return ProgressEvent.progress(allTagsResult.getResourceModel(), context);
-                }
-                return allTagsResult;
-            }
-            allTagsResult.getCallbackContext().getTaggingContext().setAddTagsComplete(true);
-            return allTagsResult;
-        }).then(p -> {
-            final C context = p.getCallbackContext();
-            if (!context.getTaggingContext().isSoftFailTags()) {
-                return p;
-            }
-            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
-            return handlerMethod.invoke(proxy, rdsProxyClient, p, systemTags);
-        });
-    }
-
     private static void addToMapIfAbsent(Map<String, Tag> allTags, Collection<Tag> tags) {
         for (Tag tag : tags) {
             allTags.putIfAbsent(tag.key(), tag);

@@ -111,11 +111,6 @@ public class Translator {
                     .storageThroughput(model.getStorageThroughput())
                     .storageType(model.getStorageType());
         }
-
-        if (ResourceModelHelper.isMySQL(model)) {
-            builder.dbParameterGroupName(model.getDBParameterGroupName());
-        }
-
         return builder.build();
     }
 

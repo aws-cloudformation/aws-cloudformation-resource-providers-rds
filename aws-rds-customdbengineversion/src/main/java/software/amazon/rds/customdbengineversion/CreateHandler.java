@@ -49,7 +49,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> safeCreateCustomEngineVersion(proxy, proxyClient, progress, allTags))
+                .then(progress -> createCustomEngineVersion(proxy, proxyClient, progress, allTags))
                 .then(progress -> {
                     if (shouldModifyEngineVersionAfterCreate(progress)) {
                         return Commons.execOnce(
@@ -68,20 +68,6 @@ public class CreateHandler extends BaseHandlerStd {
         String status = progress.getResourceModel().getStatus();
         return CustomDBEngineVersionStatus.Inactive.toString().equals(status) ||
                 CustomDBEngineVersionStatus.InactiveExceptRestore.toString().equals(status);
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> safeCreateCustomEngineVersion(final AmazonWebServicesClientProxy proxy,
-                                                                                        final ProxyClient<RdsClient> proxyClient,
-                                                                                        final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                        final Tagging.TagSet allTags) {
-        return Tagging.safeCreate(proxy, proxyClient, this::createCustomEngineVersion, progress, allTags)
-                .then(p -> Commons.execOnce(p, () -> {
-                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                            .stackTags(allTags.getStackTags())
-                            .resourceTags(allTags.getResourceTags())
-                            .build();
-                    return updateTags(proxy, proxyClient, p, Tagging.TagSet.emptySet(), extraTags);
-                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createCustomEngineVersion(final AmazonWebServicesClientProxy proxy,

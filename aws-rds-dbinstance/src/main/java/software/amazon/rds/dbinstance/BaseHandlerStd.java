@@ -974,7 +974,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return StringUtils.isNotBlank(sourceArn) && sourceArn.startsWith(ARN_PREFIX) &&
                 !Arn.fromString(sourceArn).getRegion().equalsIgnoreCase(currentRegion);
     }
-    
+
     protected ProxyClient<RdsClient> getRdsClientForRegion(final String region,
                                                            final AmazonWebServicesClientProxy proxy) {
         return proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region));

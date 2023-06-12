@@ -39,22 +39,8 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> setEnabledDefaultValue(progress))
                 .then(progress -> setEventSubscriptionNameIfEmpty(request, progress))
-                .then(progress -> safeCreateEventSubscription(proxy, proxyClient, progress, allTags))
+                .then(progress -> createEventSubscription(proxy, proxyClient, progress, allTags))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> safeCreateEventSubscription(final AmazonWebServicesClientProxy proxy,
-                                                                                      final ProxyClient<RdsClient> proxyClient,
-                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress,
-                                                                                      final Tagging.TagSet allTags) {
-        return Tagging.safeCreate(proxy, proxyClient, this::createEventSubscription, progress, allTags)
-                .then(p -> Commons.execOnce(p, () -> {
-                    final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                            .stackTags(allTags.getStackTags())
-                            .resourceTags(allTags.getResourceTags())
-                            .build();
-                    return updateTags(proxy, proxyClient, p, Tagging.TagSet.emptySet(), extraTags);
-                }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createEventSubscription(final AmazonWebServicesClientProxy proxy,
