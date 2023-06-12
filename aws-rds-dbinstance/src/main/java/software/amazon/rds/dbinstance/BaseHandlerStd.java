@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -17,9 +16,9 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.BooleanUtils;
 
+import com.amazonaws.arn.Arn;
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableList;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -88,14 +87,14 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.common.request.RequestValidationException;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.common.request.RequestValidationException;
-import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
@@ -144,6 +143,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
     protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
+    public static final String ARN_PREFIX = "arn::";
 
     protected final HandlerConfig config;
 
@@ -835,11 +835,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::reboot-db-instance",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+                "rds::reboot-db-instance",
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+        ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         rebootRequest,
@@ -867,11 +867,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::stabilize-db-instance-after-reboot-" + getClass().getSimpleName(),
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                )
+                "rds::stabilize-db-instance-after-reboot-" + getClass().getSimpleName(),
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+        )
                 .translateToServiceRequest(Function.identity())
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall(NOOP_CALL)
@@ -885,6 +885,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> ensureEngineSet(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final ResourceModel model = progress.getResourceModel();
+        if (StringUtils.isEmpty(model.getEngine())) {
+            try {
+                final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
+                model.setEngine(dbInstance.engine());
+            } catch (Exception e) {
+                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            }
+        }
+        return progress;
+    }
+
+
+    protected ProgressEvent<ResourceModel, CallbackContext> ensureEngineSetForCreateReadReplica(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
@@ -951,5 +968,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             throw MISSING_METHOD_VERSION_EXCEPTION;
         }
         return methodVersions.get(apiVersion).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
+    }
+
+    protected boolean isCrossRegion(String sourceArn, String currentRegion) {
+        return StringUtils.isNotBlank(sourceArn) && sourceArn.startsWith(ARN_PREFIX) &&
+                !Arn.fromString(sourceArn).getRegion().equalsIgnoreCase(currentRegion);
+    }
+    
+    protected ProxyClient<RdsClient> getRdsClientForRegion(final String region,
+                                                           final AmazonWebServicesClientProxy proxy) {
+        return proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region));
     }
 }
