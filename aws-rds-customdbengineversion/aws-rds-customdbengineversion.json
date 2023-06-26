@@ -105,8 +105,7 @@
   "required": [
     "DatabaseInstallationFilesS3BucketName",
     "Engine",
-    "EngineVersion",
-    "Manifest"
+    "EngineVersion"
   ],
   "writeOnlyProperties": [
     "/properties/Manifest"
