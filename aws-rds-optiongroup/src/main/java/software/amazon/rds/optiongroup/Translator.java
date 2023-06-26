@@ -56,7 +56,9 @@ public class Translator {
                 )).build();
     }
 
-    static ModifyOptionGroupRequest modifyOptionGroupRequest(final ResourceModel model, Collection<OptionConfiguration> optionsToInclude, Collection<OptionConfiguration> optionsToRemove) {
+    static ModifyOptionGroupRequest modifyOptionGroupRequest(final ResourceModel model,
+                                                             Collection<OptionConfiguration> optionsToInclude,
+                                                             Collection<OptionConfiguration> optionsToRemove) {
         final Collection<software.amazon.awssdk.services.rds.model.OptionConfiguration> optionsToIncludeSdk = translateOptionConfigurationsToSdk(optionsToInclude);
         final Collection<String> optionNamesToRemove = optionsToRemove.stream().map(OptionConfiguration::getOptionName).collect(Collectors.toList());
 
@@ -156,6 +158,16 @@ public class Translator {
                 .collect(Collectors.toSet());
     }
 
+    static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Map<String, String> tags) {
+        return Optional.ofNullable(tags.entrySet()).orElse(Collections.emptySet())
+                .stream()
+                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
+                        .key(tag.getKey())
+                        .value(tag.getValue())
+                        .build())
+                .collect(Collectors.toSet());
+    }
+
     static Set<Tag> translateTagsToModelResource(final Map<String, String> tags) {
         return Optional.ofNullable(tags).orElse(Collections.emptyMap())
                 .entrySet()
@@ -165,16 +177,6 @@ public class Translator {
                         .value(entry.getValue())
                         .build())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    static Set<software.amazon.awssdk.services.rds.model.Tag> translateTagsToSdk(final Map<String, String> tags) {
-        return Optional.ofNullable(tags.entrySet()).orElse(Collections.emptySet())
-                .stream()
-                .map(tag -> software.amazon.awssdk.services.rds.model.Tag.builder()
-                        .key(tag.getKey())
-                        .value(tag.getValue())
-                        .build())
-                .collect(Collectors.toSet());
     }
 
     static List<Tag> translateTagsFromSdk(final Collection<software.amazon.awssdk.services.rds.model.Tag> tags) {

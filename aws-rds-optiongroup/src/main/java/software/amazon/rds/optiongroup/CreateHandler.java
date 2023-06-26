@@ -1,27 +1,26 @@
 package software.amazon.rds.optiongroup;
 
+import java.util.LinkedHashSet;
+
 import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.common.handler.Tagging;
-
-import java.util.LinkedHashSet;
+import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
 
-    private static final IdentifierFactory groupIdentifierFactory = new IdentifierFactory(
-            STACK_NAME,
-            RESOURCE_IDENTIFIER,
-            RESOURCE_ID_MAX_LENGTH
+    private static final IdentifierFactory GROUP_IDENTIFIER_FACTORY = new IdentifierFactory(
+        STACK_NAME,
+        RESOURCE_IDENTIFIER,
+        RESOURCE_ID_MAX_LENGTH
     );
 
     public CreateHandler() {
@@ -53,12 +52,12 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> setOptionGroupNameIfEmpty(request, progress))
                 .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createOptionGroup, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                                    .stackTags(allTags.getStackTags())
-                                    .resourceTags(allTags.getResourceTags())
-                                    .build();
-                            return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
-                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
+                        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                                .stackTags(allTags.getStackTags())
+                                .resourceTags(allTags.getResourceTags())
+                                .build();
+                        return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
+                    }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete
                 ))
                 .then(progress -> {
                     if (CollectionUtils.isNullOrEmpty(progress.getResourceModel().getOptionConfigurations())) {
@@ -96,7 +95,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
         if (StringUtils.isNullOrEmpty(desiredModel.getOptionGroupName())) {
-            desiredModel.setOptionGroupName(groupIdentifierFactory.newIdentifier()
+            desiredModel.setOptionGroupName(GROUP_IDENTIFIER_FACTORY.newIdentifier()
                     .withStackId(request.getStackId())
                     .withResourceId(request.getLogicalResourceIdentifier())
                     .withRequestToken(request.getClientRequestToken())
