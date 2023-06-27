@@ -665,6 +665,37 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_RestoreDbClusterToPointInTime_RestoreAsClone() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
+                        .restoreType(RESTORE_TYPE_COPY_ON_WRITE)
+                        .useLatestRestorableTime(USE_LATEST_RESTORABLE_TIME_YES)
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+
+        Assertions.assertThat(captor.getValue().restoreType()).isEqualTo(RESTORE_TYPE_COPY_ON_WRITE);
+        Assertions.assertThat(captor.getValue().useLatestRestorableTime()).isTrue();
+    }
+
+    @Test
     public void handleRequest_CreateDbCluster_SetDefaultPortForProvisionedPostgresql() {
         when(rdsProxy.client().createDBCluster(any(CreateDbClusterRequest.class)))
                 .thenReturn(CreateDbClusterResponse.builder().build());
