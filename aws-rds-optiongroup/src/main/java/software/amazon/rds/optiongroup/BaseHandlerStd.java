@@ -1,9 +1,7 @@
 package software.amazon.rds.optiongroup;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
@@ -13,7 +11,6 @@ import software.amazon.awssdk.services.rds.model.OptionGroupQuotaExceededExcepti
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
-import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -39,13 +36,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .delay(Duration.ofSeconds(5L))
             .build();
 
-    protected HandlerConfig config;
-
-    public BaseHandlerStd(final HandlerConfig config) {
-        super();
-        this.config = config;
-    }
-
     protected static final ErrorRuleSet DEFAULT_OPTION_GROUP_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
@@ -58,7 +48,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     OptionGroupQuotaExceededException.class)
             .build();
 
-    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+
+    private static final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
+    protected HandlerConfig config;
+
+    public BaseHandlerStd(final HandlerConfig config) {
+        super();
+        this.config = config;
+    }
 
     @Override
     public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
