@@ -116,6 +116,7 @@ public class Translator {
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
                 .storageType(model.getStorageType())
+                .restoreType(model.getRestoreType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds());

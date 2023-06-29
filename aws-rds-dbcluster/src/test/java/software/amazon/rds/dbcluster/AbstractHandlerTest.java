@@ -73,6 +73,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final Integer PORT;
     protected static final String USER_NAME;
     protected static final String USER_PASSWORD;
+    protected static final String RESTORE_TYPE_COPY_ON_WRITE;
+    protected static final boolean USE_LATEST_RESTORABLE_TIME_YES;
     protected static final String ROLE_ARN;
     protected static final String OLD_ROLE_ARN;
     protected static final String NEW_ROLE_ARN;
@@ -134,6 +136,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         PORT = 3306;
         USER_NAME = "username";
         USER_PASSWORD = "xxx";
+        RESTORE_TYPE_COPY_ON_WRITE = "copy-on-write";
+        USE_LATEST_RESTORABLE_TIME_YES = true;
 
         ROLE_ARN = "sampleArn";
         OLD_ROLE_ARN = "oldRoleArn";

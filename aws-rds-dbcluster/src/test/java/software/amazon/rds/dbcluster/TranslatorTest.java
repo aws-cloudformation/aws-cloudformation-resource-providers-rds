@@ -385,6 +385,20 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void restoreDBClusterToPointInTimeCopyOnWrite() {
+        final ResourceModel model = ResourceModel.builder()
+                .engineMode(EngineMode.Provisioned.toString())
+                .enableIAMDatabaseAuthentication(true)
+                .useLatestRestorableTime(true)
+                .restoreType(RESTORE_TYPE_COPY_ON_WRITE)
+                .build();
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+
+        assertThat(request.useLatestRestorableTime()).isEqualTo(true);
+        assertThat(request.restoreType()).isEqualTo("copy-on-write");
+    }
+
+    @Test
     public void restoreDBClusterFromSnapshotServerlessV2() {
         final ResourceModel model = ResourceModel.builder()
                 .serverlessV2ScalingConfiguration(SERVERLESS_V2_SCALING_CONFIGURATION)
