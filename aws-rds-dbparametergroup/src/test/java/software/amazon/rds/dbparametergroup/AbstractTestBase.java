@@ -181,12 +181,25 @@ public abstract class AbstractTestBase {
             final boolean mockDescribeParameters,
             final boolean isPaginated
     ) {
-        mockDescribeDbParametersResponse(proxyClient, firstParamApplyType, secondParamApplyType, isModifiable, mockDescribeParameters, isPaginated, 1);
+        mockDescribeDbParametersResponse(proxyClient, firstParamApplyType, "system_value", secondParamApplyType, isModifiable, mockDescribeParameters, isPaginated, 1);
     }
 
     void mockDescribeDbParametersResponse(
             final ProxyClient<RdsClient> proxyClient,
             final String firstParamApplyType,
+            final String secondParamValue,
+            final String secondParamApplyType,
+            final boolean isModifiable,
+            final boolean mockDescribeParameters,
+            final boolean isPaginated
+    ) {
+        mockDescribeDbParametersResponse(proxyClient, firstParamApplyType, secondParamValue, secondParamApplyType, isModifiable, mockDescribeParameters, isPaginated, 1);
+    }
+
+    void mockDescribeDbParametersResponse(
+            final ProxyClient<RdsClient> proxyClient,
+            final String firstParamApplyType,
+            final String secondParamValue,
             final String secondParamApplyType,
             final boolean isModifiable,
             final boolean mockDescribeParameters,
@@ -206,7 +219,7 @@ public abstract class AbstractTestBase {
                 .build();
         Parameter param2 = Parameter.builder()
                 .parameterName("param2")
-                .parameterValue("system_value")
+                .parameterValue(secondParamValue)
                 .isModifiable(isModifiable)
                 .applyType(secondParamApplyType)
                 .build();

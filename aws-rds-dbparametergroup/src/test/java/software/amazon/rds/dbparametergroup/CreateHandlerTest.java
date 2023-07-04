@@ -202,6 +202,24 @@ public class CreateHandlerTest extends AbstractTestBase {
     }
 
     @Test
+    public void handleRequest_UnmodifiableParameterFailWithNullValue() {
+        mockCreateCall();
+        mockDescribeDbParametersResponse(proxyClient, "static",null, "dynamic", false, false, false);
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(getClientRequestToken())
+                .desiredResourceState(RESOURCE_MODEL)
+                .logicalResourceIdentifier(LOGICAL_RESOURCE_IDENTIFIER).build();
+        try {
+            handler.handleRequest(proxy, proxyClient, request, new CallbackContext(), EMPTY_REQUEST_LOGGER);
+        } catch (CfnInvalidRequestException e) {
+            assertThat(e.getMessage()).isEqualTo("Invalid request provided: Unmodifiable DB Parameter: param1");
+        }
+
+        verify(proxyClient.client()).createDBParameterGroup(any(CreateDbParameterGroupRequest.class));
+    }
+
+    @Test
     public void handleRequest_InProgressFailedUnsupportedParams() {
         mockCreateCall();
         when(rdsClient.describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
