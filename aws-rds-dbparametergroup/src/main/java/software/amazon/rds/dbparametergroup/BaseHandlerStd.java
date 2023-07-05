@@ -353,7 +353,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     }
                     final Parameter defaultParam = defaultParams.get(name);
                     //Parameter is not modifiable and input model contains different value from default value
-                    return value != null && !defaultParam.isModifiable() && !defaultParam.parameterValue().equals(value);
+                    return value != null && !defaultParam.isModifiable() && !value.equals(defaultParam.parameterValue());
                 })
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
