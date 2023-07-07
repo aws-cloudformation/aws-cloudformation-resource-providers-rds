@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
@@ -32,6 +33,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
@@ -82,7 +84,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .enablePerformanceInsights(model.getEnablePerformanceInsights())
@@ -147,7 +153,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
@@ -220,7 +230,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
@@ -283,7 +297,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
@@ -365,7 +383,11 @@ public class Translator {
                 .dbPortNumber(translatePortToSdk(diff(previousModel.getPort(), desiredModel.getPort())))
                 .deletionProtection(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
                 .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
+                .domainAuthSecretArn(desiredModel.getDomainAuthSecretArn())
+                .domainDnsIps(desiredModel.getDomainDnsIps())
+                .domainFqdn(desiredModel.getDomainFqdn())
                 .domainIAMRoleName(diff(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
+                .domainOu(desiredModel.getDomainOu())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
                 .licenseModel(diff(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
@@ -444,6 +466,9 @@ public class Translator {
             builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }
 
+        if(shouldDisableDomain(previousModel, desiredModel)) {
+            builder.disableDomain(Boolean.TRUE);
+        }
         return builder.build();
     }
 
@@ -458,6 +483,13 @@ public class Translator {
     private static Boolean isIo1Storage(final ResourceModel model) {
         return StorageType.IO1.toString().equalsIgnoreCase(model.getStorageType()) ||
                 (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
+    }
+
+    private static Boolean shouldDisableDomain(final ResourceModel previous, final ResourceModel desired) {
+        return ObjectUtils.allNull(desired.getDomain(), desired.getDomainAuthSecretArn(), desired.getDomainDnsIps(),
+                desired.getDomainFqdn(), desired.getDomainOu(), desired.getDomainIAMRoleName())
+                && ObjectUtils.anyNotNull(previous.getDomain(), previous.getDomainAuthSecretArn(), previous.getDomainDnsIps(),
+                previous.getDomainFqdn(), previous.getDomainOu(), previous.getDomainIAMRoleName());
     }
 
     private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
@@ -663,9 +695,18 @@ public class Translator {
 
         String domain = null;
         String domainIAMRoleName = null;
+        String domainAuthSecretArn = null;
+        String domainFqdn = null;
+        String domainOu = null;
+        List<String> domainDnsIps = null;
         if (CollectionUtils.isNotEmpty(dbInstance.domainMemberships())) {
-            domain = dbInstance.domainMemberships().get(0).domain();
-            domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
+            DomainMembership domainMembership = dbInstance.domainMemberships().get(0);
+            domain = domainMembership.domain();
+            domainIAMRoleName = domainMembership.iamRoleName();
+            domainAuthSecretArn = domainMembership.authSecretArn();
+            domainFqdn = domainMembership.fqdn();
+            domainOu = domainMembership.ou();
+            domainDnsIps = domainMembership.dnsIps();
         }
 
         String optionGroupName = null;
@@ -696,7 +737,11 @@ public class Translator {
                 .dbiResourceId(dbInstance.dbiResourceId())
                 .deletionProtection(dbInstance.deletionProtection())
                 .domain(domain)
+                .domainAuthSecretArn(domainAuthSecretArn)
+                .domainDnsIps(domainDnsIps)
+                .domainFqdn(domainFqdn)
                 .domainIAMRoleName(domainIAMRoleName)
+                .domainOu(domainOu)
                 .enableCloudwatchLogsExports(translateEnableCloudwatchLogsExport(dbInstance.enabledCloudwatchLogsExports()))
                 .enableIAMDatabaseAuthentication(dbInstance.iamDatabaseAuthenticationEnabled())
                 .enablePerformanceInsights(dbInstance.performanceInsightsEnabled())
