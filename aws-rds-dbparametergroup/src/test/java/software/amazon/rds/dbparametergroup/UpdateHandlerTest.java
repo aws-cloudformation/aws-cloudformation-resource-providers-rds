@@ -178,7 +178,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(rdsClient).resetDBParameterGroup(captor.capture());
-        assertThat(captor.getValue().parameters().get(0).applyMethod().toString().equals("pending-reboot")).isTrue();
+        assertThat(captor.getValue().parameters()
+                .stream().parallel()
+                .filter(parameter -> parameter.parameterName().equals("param1")).findAny().get()
+                .applyMethod().toString().equals("pending-reboot")).isTrue();
         verify(rdsClient).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
     }
 

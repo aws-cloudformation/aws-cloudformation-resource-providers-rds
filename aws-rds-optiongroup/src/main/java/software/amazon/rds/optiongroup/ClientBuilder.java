@@ -12,7 +12,7 @@ import software.amazon.rds.common.client.RdsUserAgentProvider;
 
 public class ClientBuilder extends BaseSdkClientProvider<RdsClientBuilder, RdsClient> {
 
-    private final static int MAX_RETRIES = 5;
+    private static final int MAX_RETRIES = 5;
 
     private static final RetryPolicy RETRY_POLICY = RetryPolicy.builder()
             .numRetries(MAX_RETRIES)

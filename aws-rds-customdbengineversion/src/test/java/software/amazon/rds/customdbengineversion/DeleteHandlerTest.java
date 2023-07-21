@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionNotFoundEx
 import software.amazon.awssdk.services.rds.model.DeleteCustomDbEngineVersionRequest;
 import software.amazon.awssdk.services.rds.model.DeleteCustomDbEngineVersionResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.InvalidCustomDbEngineVersionStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -100,6 +101,29 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 () -> RESOURCE_MODEL,
                 expectFailed(HandlerErrorCode.NotFound)
         );
+
+        verify(rdsProxy.client(), times(1)).deleteCustomDBEngineVersion(any(DeleteCustomDbEngineVersionRequest.class));
+    }
+
+
+    @Test
+    public void handleRequest_CevIsBeingDeleted() {
+        when(rdsProxy.client().deleteCustomDBEngineVersion(any(DeleteCustomDbEngineVersionRequest.class))).thenThrow(
+                InvalidCustomDbEngineVersionStateException.builder()
+                        .message("Custom DB Engine Version 19.unit-test is already being deleted.")
+                        .build());
+        when(rdsProxy.client().describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class)))
+                .thenThrow(CustomDbEngineVersionNotFoundException.builder().message(MSG_NOT_FOUND).build());
+
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        assertThat(response.getMessage()).isNull();
 
         verify(rdsProxy.client(), times(1)).deleteCustomDBEngineVersion(any(DeleteCustomDbEngineVersionRequest.class));
     }
