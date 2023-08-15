@@ -51,7 +51,7 @@ public class ReadHandler extends BaseHandlerStd {
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final OptionGroup optionGroup = describeResponse.optionGroupsList().stream().findFirst().get();
-                    final List<Option> overriddenConfigurations = getOverriddenOptionConfigurations(optionGroup);
+                    final List<OptionConfiguration> optionConfigurations = Translator.translateOptionConfigurationsFromSdk(optionGroup.options());
 
                     final List<Tag> tags = listTags(proxyInvocation, optionGroup.optionGroupArn());
                     return ProgressEvent.success(
@@ -60,30 +60,11 @@ public class ReadHandler extends BaseHandlerStd {
                                     .engineName(optionGroup.engineName())
                                     .majorEngineVersion(optionGroup.majorEngineVersion())
                                     .optionGroupDescription(optionGroup.optionGroupDescription())
-                                    .optionConfigurations(Translator.translateOptionConfigurationsFromSdk(overriddenConfigurations))
+                                    .optionConfigurations(optionConfigurations)
                                     .tags(tags)
                                     .build(),
                             context
                     );
                 });
-    }
-
-    private List<Option> getOverriddenOptionConfigurations(final OptionGroup optionGroup) {
-        final List<Option> overriddenOptions = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(optionGroup.options())) {
-            for (final Option option : optionGroup.options()) {
-                final List<OptionSetting> optionSettings = new ArrayList<>();
-                if (CollectionUtils.isNotEmpty(option.optionSettings())) {
-                    for (final OptionSetting optionSetting : option.optionSettings()) {
-                        final String defaultValue = optionSetting.defaultValue();
-                        if (!Objects.equals(defaultValue, optionSetting.value())) {
-                            optionSettings.add(optionSetting);
-                        }
-                    }
-                }
-                overriddenOptions.add(option.toBuilder().optionSettings(optionSettings).build());
-            }
-        }
-        return overriddenOptions;
     }
 }
