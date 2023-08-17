@@ -44,6 +44,24 @@ public class RequestLoggerTest {
     }
 
     @Test
+    void test_message_detail_log() {
+        final String logMessage = "title";
+        final String detailedLogMessage = "Detailed log message";
+        ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
+        request.setAwsAccountId(AWS_ACCOUNT_ID);
+        request.setClientRequestToken(TOKEN);
+        request.setStackId(STACK_ID);
+        RequestLogger requestLogger = new RequestLogger(logger, request, new FilteredJsonPrinter());
+        requestLogger.log(logMessage, detailedLogMessage);
+        verify(logger, atLeast(1)).log(captor.capture());
+        final String resultLogMessage = captor.getValue();
+        System.out.println(resultLogMessage);
+        assertThat(resultLogMessage.contains(STACK_ID)).isTrue();
+        assertThat(resultLogMessage.contains(logMessage)).isTrue();
+        assertThat(resultLogMessage.contains(detailedLogMessage)).isTrue();
+    }
+
+    @Test
     void test_fail_if_request_null() {
         assertThatThrownBy(() -> new RequestLogger(s -> {
         }, null, new FilteredJsonPrinter()))

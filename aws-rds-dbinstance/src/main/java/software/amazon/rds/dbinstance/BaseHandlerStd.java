@@ -19,6 +19,7 @@ import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -146,6 +147,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
 
     protected final HandlerConfig config;
+
+    protected RequestLogger logger;
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
 
@@ -359,8 +362,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -371,13 +373,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
             final RequestLogger logger
     ) {
+        this.logger = logger;
         try {
             validateRequest(request);
         } catch (RequestValidationException exception) {
             return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
         }
 
-        return handleRequest(proxy, new ValidatedRequest<ResourceModel>(request), context, rdsProxyClient, ec2ProxyClient, logger);
+        return handleRequest(proxy, new ValidatedRequest<ResourceModel>(request), context, rdsProxyClient, ec2ProxyClient);
     }
 
     @Override
@@ -410,6 +413,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        logger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                " functioning properly. Please refer to the Translator's modifyDbInstanceRequestV12 method to verify" +
+                " supported features");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequestV12(
                         request.getPreviousResourceState(),
@@ -587,7 +594,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoTerminalStatus(dbInstance);
 
-        return isDBInstanceAvailable(dbInstance) &&
+        final boolean isDBInstanceStabilizedAfterMutateResult = isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
                 isNoPendingChanges(dbInstance) &&
@@ -595,6 +602,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isMasterUserSecretStabilized(dbInstance);
+
+        logger.log(String.format("isDBInstanceStabilizedAfterMutate: %b", isDBInstanceStabilizedAfterMutateResult),
+                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
+                        "isReplicationComplete", isReplicationComplete(dbInstance),
+                        "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
+                        "isNoPendingChanges", isNoPendingChanges(dbInstance),
+                        "isCaCertificateChangesApplied", isCaCertificateChangesApplied(dbInstance, model),
+                        "isVpcSecurityGroupsActive", isVpcSecurityGroupsActive(dbInstance),
+                        "isDomainMembershipsJoined", isDomainMembershipsJoined(dbInstance),
+                        "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbInstance)),
+                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterMutate method will be repeatedly" +
+                        " called with a backoff mechanism after the modify call until it returns true. This" +
+                        " process will continue until all included flags are true."));
+
+        return isDBInstanceStabilizedAfterMutateResult;
     }
 
     protected boolean isDBInstanceStabilizedAfterReboot(
@@ -605,10 +627,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoTerminalStatus(dbInstance);
 
-        return isDBInstanceAvailable(dbInstance) &&
+        final boolean isDBClusterParameterGroupStabilized = !isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model);
+        final boolean isDBInstanceStabilizedAfterReboot = isDBInstanceAvailable(dbInstance) &&
                 isDBParameterGroupInSync(dbInstance) &&
                 isOptionGroupInSync(dbInstance) &&
-                (!isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model));
+                isDBClusterParameterGroupStabilized;
+
+        logger.log(String.format("isDBInstanceStabilizedAfterReboot: %b", isDBInstanceStabilizedAfterReboot),
+                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
+                        "isDBParameterGroupInSync", isDBParameterGroupInSync(dbInstance),
+                        "isOptionGroupInSync", isOptionGroupInSync(dbInstance),
+                        "isDBClusterParameterGroupStabilized", isDBClusterParameterGroupStabilized),
+                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterReboot method will be repeatedly" +
+                        " called with a backoff mechanism after the reboot call until it returns true. This" +
+                        " process will continue until all included flags are true."));
+
+        return isDBInstanceStabilizedAfterReboot;
     }
 
     boolean isDBInstanceAvailable(final DBInstance dbInstance) {
