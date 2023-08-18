@@ -27,8 +27,10 @@ import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfigurati
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
@@ -56,15 +58,46 @@ public class Translator {
                 .build();
     }
 
+    public static DescribeDbClustersRequest describeDbClusterByIdentifierRequest(final String dbClusterIdentifier) {
+        return DescribeDbClustersRequest.builder()
+                .dbClusterIdentifier(dbClusterIdentifier)
+                .build();
+    }
+
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final String nextToken) {
         return DescribeDbInstancesRequest.builder()
                 .marker(nextToken)
                 .build();
     }
 
+    public static DescribeDbInstancesRequest describeDbInstanceByDBInstanceIdentifierRequest(final String dbInstanceIdentifier) {
+        return DescribeDbInstancesRequest.builder()
+                .dbInstanceIdentifier(dbInstanceIdentifier)
+                .build();
+    }
+
+    public static DescribeDbInstancesRequest describeDbInstanceByResourceIdRequest(final String dbInstanceIdentifier) {
+        return DescribeDbInstancesRequest.builder()
+                .filters(software.amazon.awssdk.services.rds.model.Filter.builder()
+                        .name("dbi-resource-id").values(dbInstanceIdentifier).build())
+                .build();
+    }
+
+    public static DescribeDbInstanceAutomatedBackupsRequest describeDBInstanceAutomaticBackup(final String automaticBackupArn) {
+        return DescribeDbInstanceAutomatedBackupsRequest.builder()
+                .dbInstanceAutomatedBackupsArn(automaticBackupArn)
+                .build();
+    }
+
     public static DescribeDbSnapshotsRequest describeDbSnapshotsRequest(final ResourceModel model) {
         return DescribeDbSnapshotsRequest.builder()
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
+                .build();
+    }
+
+    public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model) {
+        return DescribeDbClusterSnapshotsRequest.builder()
+                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .build();
     }
 
@@ -104,6 +137,12 @@ public class Translator {
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
@@ -163,6 +202,12 @@ public class Translator {
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
@@ -306,7 +351,12 @@ public class Translator {
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
-
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
@@ -509,7 +559,7 @@ public class Translator {
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
-        if (ResourceModelHelper.isStorageParametersModified(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model) && ResourceModelHelper.isSqlServer(model)) {
             builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
             builder.storageThroughput(model.getStorageThroughput());

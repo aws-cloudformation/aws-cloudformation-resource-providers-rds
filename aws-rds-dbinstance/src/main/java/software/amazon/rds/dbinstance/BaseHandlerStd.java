@@ -26,7 +26,9 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
 import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
@@ -42,7 +44,10 @@ import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
@@ -67,6 +72,7 @@ import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -232,6 +238,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.GeneralServiceException),
                     InvalidSubnetException.class)
+            .build();
+
+    protected static final ErrorRuleSet DB_INSTANCE_FETCH_ENGINE_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    CfnInvalidRequestException.class)
             .build();
 
     public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
@@ -479,12 +491,56 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return response.dbInstances().get(0);
     }
 
+    protected DBInstance fetchDBInstance(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String dbInstanceIdentifier
+    ) {
+        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstanceByDBInstanceIdentifierRequest(dbInstanceIdentifier),
+                rdsProxyClient.client()::describeDBInstances
+        );
+        return response.dbInstances().get(0);
+    }
+
+    protected DBInstance fetchDBInstanceByResourceId(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String resourceId
+    ) {
+        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstanceByResourceIdRequest(resourceId),
+                rdsProxyClient.client()::describeDBInstances
+        );
+        return response.dbInstances().get(0);
+    }
+
+    protected DBInstanceAutomatedBackup fetchAutomaticBackup(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String automaticBackupArn
+    ) {
+        final DescribeDbInstanceAutomatedBackupsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDBInstanceAutomaticBackup(automaticBackupArn),
+                rdsProxyClient.client()::describeDBInstanceAutomatedBackups
+        );
+        return response.dbInstanceAutomatedBackups().get(0);
+    }
+
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
         final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersRequest(model),
+                rdsProxyClient.client()::describeDBClusters
+        );
+        return response.dbClusters().get(0);
+    }
+
+    protected DBCluster fetchDBCluster(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String dbClusterIdentifier
+    ) {
+        final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbClusterByIdentifierRequest(dbClusterIdentifier),
                 rdsProxyClient.client()::describeDBClusters
         );
         return response.dbClusters().get(0);
@@ -499,6 +555,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 rdsProxyClient.client()::describeDBSnapshots
         );
         return response.dbSnapshots().get(0);
+    }
+
+    protected DBClusterSnapshot fetchDBClusterSnapshot(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbClusterSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbClusterSnapshotsRequest(model),
+                rdsProxyClient.client()::describeDBClusterSnapshots
+        );
+        return response.dbClusterSnapshots().get(0);
     }
 
     protected SecurityGroup fetchSecurityGroup(

@@ -14,6 +14,7 @@ public final class ResourceModelHelper {
             "sqlserver-ee",
             "sqlserver-se"
     );
+    private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) ||
@@ -31,12 +32,19 @@ public final class ResourceModelHelper {
                                 StringUtils.hasValue(model.getMonitoringRoleArn()) ||
                                 Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0) > 0 ||
                                 Optional.ofNullable(model.getMonitoringInterval()).orElse(0) > 0 ||
-                                isStorageParametersModified(model) ||
+                                (isSqlServer(model) && isStorageParametersModified(model)) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
                                 BooleanUtils.isTrue(model.getEnablePerformanceInsights())
                 );
     }
+
+    public static boolean isSqlServer(final ResourceModel model) {
+        final String engine = model.getEngine();
+        // treat unknown engines as SQLServer
+        return engine == null || engine.startsWith(SQLSERVER_ENGINE_PREFIX);
+    }
+
 
     public static boolean isStorageParametersModified(final ResourceModel model) {
         return StringUtils.hasValue(model.getAllocatedStorage()) ||
@@ -54,8 +62,15 @@ public final class ResourceModelHelper {
     }
 
     public static boolean isReadReplica(final ResourceModel model) {
-        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier())
-                || StringUtils.hasValue(model.getSourceDBClusterIdentifier());
+        return isDBInstanceReadReplica(model) || isDBClusterReadReplica(model);
+    }
+
+    public static boolean isDBInstanceReadReplica(final ResourceModel model) {
+        return StringUtils.hasValue(model.getSourceDBInstanceIdentifier());
+    }
+
+    public static boolean isDBClusterReadReplica(final ResourceModel model) {
+        return StringUtils.hasValue(model.getSourceDBClusterIdentifier());
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
