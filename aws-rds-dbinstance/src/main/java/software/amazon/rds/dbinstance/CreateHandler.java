@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -86,6 +87,16 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> {
+                    if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                        try {
+                            model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress.getResourceModel()));
+                        } catch (Exception e) {
+                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET);
+                        }
+                    }
+                    return progress;
+                })
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
                         // restoreDBInstanceToPointInTime is not a versioned call.
@@ -173,6 +184,36 @@ public class CreateHandler extends BaseHandlerStd {
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
         return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
+    }
+
+    private String fetchEngine(final ProxyClient<RdsClient> client, final ResourceModel model) {
+        if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
+            return fetchDBSnapshot(client, model).engine();
+        }
+        if (ResourceModelHelper.isRestoreFromClusterSnapshot(model)) {
+            return fetchDBClusterSnapshot(client, model).engine();
+        }
+
+        if (ResourceModelHelper.isDBInstanceReadReplica(model)) {
+            return fetchDBInstance(client, model.getSourceDBInstanceIdentifier()).engine();
+        }
+        if (ResourceModelHelper.isDBClusterReadReplica(model)) {
+            return fetchDBCluster(client, model.getSourceDBClusterIdentifier()).engine();
+        }
+
+        if (ResourceModelHelper.isRestoreToPointInTime(model)) {
+            if (StringUtils.hasValue(model.getSourceDBInstanceIdentifier())) {
+                return fetchDBInstance(client, model.getSourceDBInstanceIdentifier()).engine();
+            }
+            if (StringUtils.hasValue(model.getSourceDbiResourceId())) {
+                return fetchDBInstanceByResourceId(client, model.getSourceDbiResourceId()).engine();
+            }
+            if (StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn())) {
+                return fetchAutomaticBackup(client, model.getSourceDBInstanceAutomatedBackupsArn()).engine();
+            }
+        }
+
+        throw new CfnInvalidRequestException("Cannot fetch the engine based on current template. Please add the Engine parameter to the template and try again.");
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(

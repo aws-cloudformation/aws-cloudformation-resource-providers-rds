@@ -316,8 +316,9 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_restoreFromSnapshotRequest_storageType_shouldBeSetOnUpdate() {
+    public void test_restoreFromSqlServerSnapshotRequest_storageType_shouldBeSetOnUpdate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_SQLSERVER_SE)
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp3")
                 .iops(100)
@@ -333,8 +334,27 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_restoreDbInstanceToPointInTimeRequest_shouldNotBeSetOnCreate() {
+    public void test_restoreFromAuroraPostgresSnapshotRequest_storageType_shouldBeSetOnUpdate() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
+                .build();
+
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
+    }
+
+    @Test
+    public void test_restoreDbInstanceToPointInTimeSqlServerRequest_shouldNotBeSetOnCreate() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_SQLSERVER_EE)
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp3")
                 .iops(100)
@@ -347,6 +367,24 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.iops()).isNull();
         assertThat(request.storageThroughput()).isNull();
         assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
+    public void test_restoreDbInstanceToPointInTimeAuroraPostgresRequest_shouldNotBeSetOnCreate() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
+                .build();
+
+        final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.storageThroughput()).isEqualTo(200);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
     }
 
     @Test
@@ -367,8 +405,21 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_restoreFromSnapshotRequest_storageTypeGp2() {
+    public void test_restoreFromAuroraPostgresSnapshotRequest_storageTypeGp2() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        final RestoreDbInstanceFromDbSnapshotRequest request = Translator.restoreDbInstanceFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP2);
+    }
+
+    @Test
+    public void test_restoreFromSqlServerSnapshotRequest_storageTypeGp2() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_SQLSERVER_SE)
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp2")
                 .build();
@@ -378,8 +429,21 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_restoreDbInstanceToPointInTimeRequest_storageTypeGp2() {
+    public void test_restoreAuroraPostgresDbInstanceToPointInTimeRequest_storageTypeGp2() {
         final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        final RestoreDbInstanceToPointInTimeRequest request = Translator.restoreDbInstanceToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP2);
+    }
+
+    @Test
+    public void test_restoreSqlServerDbInstanceToPointInTimeRequest_storageTypeGp2() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_SQLSERVER_EX)
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp2")
                 .build();
