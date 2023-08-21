@@ -76,10 +76,10 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbInstancesRequest describeDbInstanceByResourceIdRequest(final String dbInstanceIdentifier) {
+    public static DescribeDbInstancesRequest describeDbInstanceByResourceIdRequest(final String resourceId) {
         return DescribeDbInstancesRequest.builder()
                 .filters(software.amazon.awssdk.services.rds.model.Filter.builder()
-                        .name("dbi-resource-id").values(dbInstanceIdentifier).build())
+                        .name("dbi-resource-id").values(resourceId).build())
                 .build();
     }
 

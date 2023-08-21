@@ -213,7 +213,7 @@ public class CreateHandler extends BaseHandlerStd {
             }
         }
 
-        throw new CfnInvalidRequestException("Cannot fetch the engine based on current model");
+        throw new CfnInvalidRequestException("Cannot fetch the engine based on current template. Please add the Engine parameter to the template and try again.");
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(
