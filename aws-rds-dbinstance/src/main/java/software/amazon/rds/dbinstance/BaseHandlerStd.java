@@ -540,7 +540,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final String dbClusterIdentifier
     ) {
         final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbClusterByIdentifierRequest(dbClusterIdentifier),
+                Translator.describeDbClusterRequest(dbClusterIdentifier),
                 rdsProxyClient.client()::describeDBClusters
         );
         return response.dbClusters().get(0);

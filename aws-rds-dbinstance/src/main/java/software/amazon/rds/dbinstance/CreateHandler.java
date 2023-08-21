@@ -180,7 +180,7 @@ public class CreateHandler extends BaseHandlerStd {
                             logger
                     );
                 });
-    }final
+    }
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
         return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));

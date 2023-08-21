@@ -887,6 +887,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+
+        final ModifyDbInstanceRequest request = captor.getValue();
+        Assertions.assertThat(request.allocatedStorage()).isEqualTo(100);
+        Assertions.assertThat(request.iops()).isEqualTo(3000);
     }
 
     @Test

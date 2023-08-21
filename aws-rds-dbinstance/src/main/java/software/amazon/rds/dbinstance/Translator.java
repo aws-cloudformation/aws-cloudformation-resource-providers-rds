@@ -58,7 +58,7 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbClustersRequest describeDbClusterByIdentifierRequest(final String dbClusterIdentifier) {
+    public static DescribeDbClustersRequest describeDbClusterRequest(final String dbClusterIdentifier) {
         return DescribeDbClustersRequest.builder()
                 .dbClusterIdentifier(dbClusterIdentifier)
                 .build();
