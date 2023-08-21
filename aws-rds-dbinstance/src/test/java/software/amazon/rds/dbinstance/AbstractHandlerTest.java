@@ -171,6 +171,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Boolean STORAGE_ENCRYPTED_NO = false;
     protected static final String STORAGE_TYPE_STANDARD = "standard";
     protected static final String STORAGE_TYPE_GP2 = "gp2";
+    protected static final String STORAGE_TYPE_GP3 = "gp3";
+
     protected static final String STORAGE_TYPE_IO1 = "io1";
     protected static final String TIMEZONE_DEFAULT = null;
     protected static final Boolean USE_DEFAULT_PROCESSOR_FEATURES_YES = true;
