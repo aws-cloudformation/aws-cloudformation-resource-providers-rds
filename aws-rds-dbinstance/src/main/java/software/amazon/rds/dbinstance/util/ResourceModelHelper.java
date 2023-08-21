@@ -14,7 +14,7 @@ public final class ResourceModelHelper {
             "sqlserver-ee",
             "sqlserver-se"
     );
-    private static final String SQLSERVER_ENGINE_PREFIX = "sqlserver";
+    private static final String SQLSERVER_ENGINE = "sqlserver";
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) ||
@@ -42,7 +42,7 @@ public final class ResourceModelHelper {
     public static boolean isSqlServer(final ResourceModel model) {
         final String engine = model.getEngine();
         // treat unknown engines as SQLServer
-        return engine == null || engine.startsWith(SQLSERVER_ENGINE_PREFIX);
+        return engine == null || engine.contains(SQLSERVER_ENGINE);
     }
 
 
