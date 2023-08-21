@@ -5,14 +5,15 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 
 public enum ServiceProvider {
+    ASM("secretsmanager"),
+    CLOUDTRAIL("cloudtrail"),
     EC2("ec2"),
     IAM("iam"),
     KMS("kms"),
-    RDS("rds"),
-    SDK("sdk"),
-    S3("s3"),
     MEDIAIMPORT("mediaimport"),
-    ASM("secretsmanager");
+    RDS("rds"),
+    S3("s3"),
+    SDK("sdk");
 
     private final String name;
 
@@ -26,14 +27,15 @@ public enum ServiceProvider {
     }
 
     private static final Map<String, ServiceProvider> SERVICE_CLIENT_CLASSES = ImmutableMap.<String, ServiceProvider>builder()
+            .put("AsmClient", ASM)
             .put("Ec2Client", EC2)
             .put("IamClient", IAM)
             .put("KmsClient", KMS)
-            .put("RdsClient", RDS)
-            .put("SdkClient", SDK)
-            .put("AsmClient", ASM)
-            .put("S3Client", S3)
             .put("MediaimportClient", MEDIAIMPORT)
+            .put("RdsClient", RDS)
+            .put("S3Client", S3)
+            .put("SdkClient", SDK)
+            .put("CloudTrailClient", MEDIAIMPORT)
             .build();
 
 
