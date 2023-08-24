@@ -74,15 +74,14 @@
       "permissions": [
         "rds:CreateDBSubnetGroup",
         "rds:DescribeDBSubnetGroups",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource",
         "rds:ListTagsForResource"
       ]
     },
     "read": {
       "permissions": [
         "rds:DescribeDBSubnetGroups",
-        "rds:ListTagsForResource",
-        "rds:AddTagsToResource",
-        "rds:RemoveTagsFromResource",
         "rds:ListTagsForResource"
       ]
     },
