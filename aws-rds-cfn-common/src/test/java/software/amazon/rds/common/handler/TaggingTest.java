@@ -40,7 +40,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
-import software.amazon.rds.common.error.IgnoreErrorStatus;
 import software.amazon.rds.common.error.UnexpectedErrorStatus;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -145,9 +144,9 @@ public class TaggingTest extends ProxyClientTestBase {
                         .errorCode("AccessDenied")
                         .build())
                 .build();
-        final ErrorRuleSet ruleSet = Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET;
+        final ErrorRuleSet ruleSet = Tagging.STACK_TAGS_ERROR_RULE_SET;
         final ErrorStatus status = ruleSet.handle(exception);
-        assertThat(status).isInstanceOf(IgnoreErrorStatus.class);
+        assertThat(status).isInstanceOf(ErrorStatus.class);
     }
 
     @Test
@@ -157,7 +156,7 @@ public class TaggingTest extends ProxyClientTestBase {
                         .errorCode("InternalFailure")
                         .build())
                 .build();
-        final ErrorRuleSet ruleSet = Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET;
+        final ErrorRuleSet ruleSet = Tagging.STACK_TAGS_ERROR_RULE_SET;
         final ErrorStatus status = ruleSet.handle(exception);
         assertThat(status).isInstanceOf(UnexpectedErrorStatus.class);
     }
@@ -165,7 +164,7 @@ public class TaggingTest extends ProxyClientTestBase {
     @Test
     void test_SoftFailErrorRuleSet_OtherException() {
         final Exception exception = new RuntimeException("test exception");
-        final ErrorRuleSet ruleSet = Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET;
+        final ErrorRuleSet ruleSet = Tagging.STACK_TAGS_ERROR_RULE_SET;
         final ErrorStatus status = ruleSet.handle(exception);
         assertThat(status).isInstanceOf(UnexpectedErrorStatus.class);
     }
@@ -272,7 +271,7 @@ public class TaggingTest extends ProxyClientTestBase {
 
     @Test
     void test_bestEffortErrorRuleSet_emptyResourceTags() {
-        final ErrorRuleSet errorRuleSet = Tagging.bestEffortErrorRuleSet(
+        final ErrorRuleSet errorRuleSet = Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -283,12 +282,12 @@ public class TaggingTest extends ProxyClientTestBase {
                         .build()
         );
 
-        assertThat(errorRuleSet).isEqualTo(Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET);
+        assertThat(errorRuleSet).isEqualTo(Tagging.STACK_TAGS_ERROR_RULE_SET);
     }
 
     @Test
     void test_bestEffortErrorRuleSet_nonEmptyResourceTags() {
-        assertThat(Tagging.bestEffortErrorRuleSet(
+        assertThat(Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -299,9 +298,9 @@ public class TaggingTest extends ProxyClientTestBase {
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .resourceTags(Collections.singleton(Tag.builder().build()))
                         .build()
-        )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+        )).isEqualTo(Tagging.RESOURCE_TAG_ERROR_RULE_SET);
 
-        assertThat(Tagging.bestEffortErrorRuleSet(
+        assertThat(Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -312,9 +311,9 @@ public class TaggingTest extends ProxyClientTestBase {
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .resourceTags(Collections.singleton(Tag.builder().build()))
                         .build()
-        )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+        )).isEqualTo(Tagging.RESOURCE_TAG_ERROR_RULE_SET);
 
-        assertThat(Tagging.bestEffortErrorRuleSet(
+        assertThat(Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -325,7 +324,7 @@ public class TaggingTest extends ProxyClientTestBase {
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .resourceTags(Collections.emptySet())
                         .build()
-        )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+        )).isEqualTo(Tagging.RESOURCE_TAG_ERROR_RULE_SET);
     }
 
     @Test

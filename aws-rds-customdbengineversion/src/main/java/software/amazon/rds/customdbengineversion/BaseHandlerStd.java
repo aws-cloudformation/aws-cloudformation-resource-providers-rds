@@ -185,11 +185,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 progress,
                 exception,
                 DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET.extendWith(
-                        Tagging.bestEffortErrorRuleSet(
+                        Tagging.getUpdateTagsAccessDeniedRuleSet(
                                 tagsToAdd,
                                 tagsToRemove,
-                                Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
-                                Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                                Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET,
+                                Tagging.RESOURCE_TAG_ERROR_RULE_SET
                         )
                 )
         );
