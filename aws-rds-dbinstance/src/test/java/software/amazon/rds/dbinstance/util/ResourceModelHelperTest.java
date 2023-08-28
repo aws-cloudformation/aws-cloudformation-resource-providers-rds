@@ -4,6 +4,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 public class ResourceModelHelperTest {
@@ -70,11 +72,39 @@ public class ResourceModelHelperTest {
         assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
     }
 
-    @Test
-    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndAllocatedStorage() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "aurora-mysql",
+            "aurora-postgresql",
+            "custom-oracle-ee",
+            "mariadb",
+            "mysql",
+            "oracle-ee",
+            "oracle-ee-cdb",
+            "oracle-se2",
+            "oracle-se2-cdb",
+            "postgres"})
+    public void shouldUpdateAfterCreate_whenRestoreFromNonSqlServerSnapshotAndAllocatedStorage(final String engine) {
         final ResourceModel model = ResourceModel.builder()
                 .dBSnapshotIdentifier("identifier")
-                .engine("postgresql")
+                .engine(engine)
+                .allocatedStorage("100")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+    }
+
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "sqlserver-ee",
+            "sqlserver-se",
+            "sqlserver-ex",
+            "sqlserver-web"})
+    public void shouldUpdateAfterCreate_whenRestoreFromSqlServerSnapshotAndAllocatedStorage(final String engine) {
+        final ResourceModel model = ResourceModel.builder()
+                .dBSnapshotIdentifier("identifier")
+                .engine(engine)
                 .allocatedStorage("100")
                 .build();
 
@@ -229,9 +259,20 @@ public class ResourceModelHelperTest {
     }
 
     @Test
-    public void shouldUpdateAfterCreate_whenRestoreFromSnapshotAndAuroraEngineAndStorageTypeSpecified() {
+    public void shouldUpdateAfterCreate_whenRestoreFromAuroraPostgresSnapshotAndAuroraEngineAndStorageTypeSpecified() {
         final ResourceModel model = ResourceModel.builder()
                 .engine("aurora-postgres")
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp2")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromSqlServerSnapshotAndAuroraEngineAndStorageTypeSpecified() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine("sqlserver-ee")
                 .dBSnapshotIdentifier("snapshot")
                 .storageType("gp2")
                 .build();
