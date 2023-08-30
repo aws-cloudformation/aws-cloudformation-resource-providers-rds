@@ -1,6 +1,5 @@
 package software.amazon.rds.dbsubnetgroup;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 
 import com.amazonaws.util.StringUtils;
@@ -56,7 +55,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                   final Tagging.TagSet allTags) {
-        return Tagging.safeCreate(proxy, proxyClient, this::createDbSubnetGroup, progress, allTags)
+        return Tagging.createWithUnauthorizedTagging(proxy, proxyClient, this::createDbSubnetGroup, progress, allTags)
                 .then(p -> Commons.execOnce(p, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())
