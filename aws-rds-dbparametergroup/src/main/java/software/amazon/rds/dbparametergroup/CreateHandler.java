@@ -64,7 +64,7 @@ public class CreateHandler extends BaseHandlerStd {
             final RequestLogger logger
     ) {
         final HandlerMethod<ResourceModel, CallbackContext> createMethod = (pxy, pcl, prg, tgs) -> createDBParameterGroup(pxy, pcl, prg, tgs, logger);
-        return Tagging.createWithUnauthorizedTagging(proxy, proxyClient, createMethod, progress, allTags)
+        return Tagging.createWithTaggingFallback(proxy, proxyClient, createMethod, progress, allTags)
                 .then(p -> Commons.execOnce(p, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())

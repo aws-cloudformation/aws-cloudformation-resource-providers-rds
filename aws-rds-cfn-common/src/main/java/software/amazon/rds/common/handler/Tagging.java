@@ -207,7 +207,7 @@ public final class Tagging {
         return resourceTagsErrorRuleSet;
     }
 
-    public static <M, C extends TaggingContext.Provider> ProgressEvent<M, C> createWithUnauthorizedTagging(
+    public static <M, C extends TaggingContext.Provider> ProgressEvent<M, C> createWithTaggingFallback(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final HandlerMethod<M, C> handlerMethod,

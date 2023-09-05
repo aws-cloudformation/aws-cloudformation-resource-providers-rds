@@ -54,7 +54,7 @@ public class CreateHandler extends BaseHandlerStd {
                     .toString());
         }
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> Tagging.createWithUnauthorizedTagging(proxy, proxyClient, this::createDbClusterEndpoint, progress, allTags))
+                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbClusterEndpoint, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                                     .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))

@@ -55,7 +55,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                                                   final ProxyClient<RdsClient> proxyClient,
                                                                                   final ProgressEvent<ResourceModel, CallbackContext> progress,
                                                                                   final Tagging.TagSet allTags) {
-        return Tagging.createWithUnauthorizedTagging(proxy, proxyClient, this::createDbSubnetGroup, progress, allTags)
+        return Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbSubnetGroup, progress, allTags)
                 .then(p -> Commons.execOnce(p, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())

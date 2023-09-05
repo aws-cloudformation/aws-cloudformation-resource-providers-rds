@@ -48,7 +48,7 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
-                .then(progress -> Tagging.createWithUnauthorizedTagging(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
+                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())

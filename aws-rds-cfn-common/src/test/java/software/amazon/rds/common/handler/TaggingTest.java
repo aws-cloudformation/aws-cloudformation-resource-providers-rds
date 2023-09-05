@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -342,7 +341,7 @@ public class TaggingTest extends ProxyClientTestBase {
         Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
                 .thenReturn(ProgressEvent.success(null, progress.getCallbackContext()));
 
-        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithUnauthorizedTagging(null, null, handlerMethod, progress, allTags);
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithTaggingFallback(null, null, handlerMethod, progress, allTags);
 
         Assertions.assertThat(result.isSuccess()).isTrue();
         Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isTrue();
@@ -365,7 +364,7 @@ public class TaggingTest extends ProxyClientTestBase {
         Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
                 .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.AccessDenied, FAILED_MSG));
 
-        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithUnauthorizedTagging(null, null, handlerMethod, progress, allTags);
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithTaggingFallback(null, null, handlerMethod, progress, allTags);
 
         Assertions.assertThat(result.isFailed()).isTrue();
         Assertions.assertThat(result.getErrorCode()).isEqualTo(HandlerErrorCode.UnauthorizedTaggingOperation);
@@ -387,7 +386,7 @@ public class TaggingTest extends ProxyClientTestBase {
         Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
                 .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.InternalFailure, FAILED_MSG));
 
-        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithUnauthorizedTagging(null, null, handlerMethod, progress, allTags);
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithTaggingFallback(null, null, handlerMethod, progress, allTags);
 
         Assertions.assertThat(result.isFailed()).isTrue();
         Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isFalse();
