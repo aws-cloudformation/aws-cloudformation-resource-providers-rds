@@ -415,8 +415,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         logger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
-                " functioning properly. Please refer to the Translator's modifyDbInstanceRequestV12 method to verify" +
-                " supported features");
+                " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequestV12(
                         request.getPreviousResourceState(),
