@@ -110,10 +110,12 @@ public class Translator {
                 .build();
     }
 
-    public static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model) {
+    public static ResetDbClusterParameterGroupRequest resetDbClusterParameterGroupRequest(final ResourceModel model,
+                                                                                          final Map<String, Parameter> parametersToReset) {
+
         return ResetDbClusterParameterGroupRequest.builder()
+                .parameters(parametersToReset.values())
                 .dbClusterParameterGroupName(model.getDBClusterParameterGroupName())
-                .resetAllParameters(true)
                 .build();
     }
 

@@ -2,6 +2,7 @@ package software.amazon.rds.dbclusterparametergroup;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -192,15 +193,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, Object> desiredParams,
+            final Map<String, Parameter> currentClusterParameters,
             final RequestLogger logger
     ) {
-        final Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
-
-        final List<String> filterParameterNames = new ArrayList<String>(desiredParams.keySet());
-
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext())
-                .then(progressEvent -> describeCurrentDBClusterParameters(proxy, proxyClient, progressEvent, filterParameterNames, currentClusterParameters, logger))
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
                 .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
                         CallbackContext::isParametersModified, CallbackContext::setParametersModified))
@@ -451,13 +447,24 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return modifiedParameters;
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> resetAllParameters(
+    protected ProgressEvent<ResourceModel, CallbackContext> resetParameters(
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient
+            final ProxyClient<RdsClient> proxyClient,
+            final Map<String, Parameter> currentParameters,
+            final Map<String, Object> desiredParams
     ) {
+        // reset only parameters that are missing from desired params. If parameter is in desired param, its value will be updated anyway.
+        final Map<String, Parameter> toBeReset = currentParameters.keySet().stream()
+                .filter(p -> !desiredParams.containsKey(p))
+                .collect(Collectors.toMap(kv -> kv, currentParameters::get));
+
+        if (toBeReset.isEmpty()) {
+            return progress;
+        }
+
         return proxy.initiate("rds::reset-db-cluster-parameter-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::resetDbClusterParameterGroupRequest)
+                .translateToServiceRequest(m -> Translator.resetDbClusterParameterGroupRequest(m, toBeReset))
                 .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::resetDBClusterParameterGroup))
                 .handleError((resetDbClusterParameterGroupRequest, exception, client, resourceModel, ctx) ->
                         Commons.handleException(
