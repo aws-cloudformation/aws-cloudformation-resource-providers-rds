@@ -82,7 +82,7 @@ class LoggingProxyClientTest extends ProxyClientTestBase {
         ResponseBytes<AwsResponse> response = ResponseBytes.fromByteArray(awsResponse, awsResponse.toString().getBytes());
         when(proxy.injectCredentialsAndInvokeV2Bytes(any(), any())).thenReturn(response);
         proxyRdsClient.injectCredentialsAndInvokeV2Bytes(awsRequest, request -> response);
-        verify(logger, times(3)).log(captor.capture());
+        verify(logger, times(2)).log(captor.capture());
         assertThat(captor.getAllValues().get(0).contains(STACK_ID)).isTrue();
     }
 
@@ -91,7 +91,7 @@ class LoggingProxyClientTest extends ProxyClientTestBase {
         ProxyClient<RdsClient> proxyRdsClient = getProxyRdsClient(logger);
         when(proxy.injectCredentialsAndInvokeIterableV2(any(), any())).thenReturn(sdkIterable);
         proxyRdsClient.injectCredentialsAndInvokeIterableV2(awsRequest, request -> sdkIterable);
-        verify(logger, times(3)).log(captor.capture());
+        verify(logger, times(2)).log(captor.capture());
         assertThat(captor.getAllValues().get(0).contains(AWS_ACCOUNT_ID)).isTrue();
     }
 
@@ -100,7 +100,7 @@ class LoggingProxyClientTest extends ProxyClientTestBase {
         ProxyClient<RdsClient> proxyRdsClient = getProxyRdsClient(logger);
         when(proxy.injectCredentialsAndInvokeV2Async(any(), any())).thenReturn(awsResponseCompletableFuture);
         proxyRdsClient.injectCredentialsAndInvokeV2Async(awsRequest, request -> awsResponseCompletableFuture);
-        verify(logger, times(3)).log(captor.capture());
+        verify(logger, times(2)).log(captor.capture());
         assertThat(captor.getAllValues().get(0).contains(STACK_ID)).isTrue();
     }
 }

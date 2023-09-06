@@ -7,7 +7,6 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
@@ -26,8 +25,7 @@ public class ReadHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         return proxy.initiate("rds::describe-db-instance", rdsProxyClient.defaultClient(), request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbInstancesRequest)
