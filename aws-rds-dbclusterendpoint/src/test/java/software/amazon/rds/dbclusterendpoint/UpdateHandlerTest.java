@@ -264,7 +264,7 @@ null,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
@@ -291,7 +291,7 @@ null,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));

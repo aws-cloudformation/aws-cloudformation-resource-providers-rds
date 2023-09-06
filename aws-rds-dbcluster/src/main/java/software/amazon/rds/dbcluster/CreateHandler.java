@@ -71,11 +71,11 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (isRestoreToPointInTime(model)) {
-                        return Tagging.safeCreate(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
+                        return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
                     } else if (isRestoreFromSnapshot(model)) {
-                        return Tagging.safeCreate(proxy, rdsProxyClient, this::restoreDbClusterFromSnapshot, progress, allTags);
+                        return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterFromSnapshot, progress, allTags);
                     }
-                    return Tagging.safeCreate(proxy, rdsProxyClient, this::createDbCluster, progress, allTags);
+                    return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::createDbCluster, progress, allTags);
                 })
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
