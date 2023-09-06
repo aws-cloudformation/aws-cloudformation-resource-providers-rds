@@ -9,6 +9,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.NonNull;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
@@ -25,6 +26,7 @@ public class RequestLogger {
 
     public static final String THROWABLE_MARKER = "Throwable";
     public static final String CONTENT = "Content";
+    public static final String CONTENT_DETAIL = "ContentDetail";
     public static final String STACK_ID = "StackId";
     public static final String AWS_ACCOUNT_ID = "AwsAccountId";
     public static final String CLIENT_REQUEST_TOKEN = "ClientRequestToken";
@@ -100,6 +102,10 @@ public class RequestLogger {
         } catch (Throwable throwable) {
             logMessage(throwable);
         }
+    }
+
+    public void log(String message, String detail) {
+        log(message, ImmutableMap.of(CONTENT_DETAIL, detail), null);
     }
 
     public void log(String message, Object object) {

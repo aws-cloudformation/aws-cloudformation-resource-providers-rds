@@ -13,11 +13,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,6 +36,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.ResetDbClusterParameterGroupRequest;
@@ -134,6 +137,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
 
+        when(rdsClient.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
+                .thenReturn(DescribeDbClusterParametersResponse.builder().build());
+
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
 
@@ -146,7 +152,39 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
-        verify(rdsProxy.client(), times(1)).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ResetRemovedParameters() {
+        when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        when(rdsClient.addTagsToResource(any(AddTagsToResourceRequest.class)))
+                .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        when(rdsClient.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
+                .thenReturn(DescribeDbClusterParametersResponse.builder()
+                        .parameters(Parameter.builder().parameterName("parameter1").build()).build());
+
+        CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+
+        test_handleRequest_base(
+                callbackContext,
+                () -> DBClusterParameterGroup.builder().dbClusterParameterGroupArn(ARN).build(),
+                () -> RESOURCE_MODEL_PREV,
+                () -> RESOURCE_MODEL_UPD,
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ResetDbClusterParameterGroupRequest> captor = ArgumentCaptor.forClass(ResetDbClusterParameterGroupRequest.class);
+        verify(rdsProxy.client(), times(1)).resetDBClusterParameterGroup(captor.capture());
+        Assertions.assertThat(captor.getValue().parameters()).hasSize(1);
+        Assertions.assertThat(captor.getValue().parameters().get(0).parameterName()).isEqualTo("parameter1");
+
+
+        verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
