@@ -149,7 +149,8 @@
         "rds:CreateOptionGroup",
         "rds:DescribeOptionGroups",
         "rds:ListTagsForResource",
-        "rds:ModifyOptionGroup"
+        "rds:ModifyOptionGroup",
+        "rds:RemoveTagsFromResource"
       ]
     },
     "read": {
