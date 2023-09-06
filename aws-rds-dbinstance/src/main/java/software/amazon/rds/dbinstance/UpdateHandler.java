@@ -56,8 +56,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
             return ProgressEvent.failed(
@@ -158,7 +157,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(desiredTags)));
                     return Commons.reportResourceDrift(
                             model,
-                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient),
                             resourceTypeSchema,
                             logger
                     );

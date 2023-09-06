@@ -22,7 +22,6 @@ import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
@@ -65,8 +64,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
@@ -222,6 +220,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        logger.log("API version 12 create detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
                         "rds::create-db-instance-v12",
                         rdsProxyClient,
@@ -276,6 +277,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        logger.log("API version 12 restore detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                        " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
                         "rds::restore-db-instance-from-snapshot-v12",
                         rdsProxyClient,
@@ -384,6 +388,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        logger.log("API version 12 modify after create detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                        " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceAfterCreateRequestV12(request.getDesiredResourceState()))
                 .backoffDelay(config.getBackoff())
