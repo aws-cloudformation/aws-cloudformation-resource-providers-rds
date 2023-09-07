@@ -179,17 +179,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                 .awsErrorDetails(AwsErrorDetails.builder()
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
-                                ).build())
-                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
-
-        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder().build());
+                                ).build());
 
         final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                 .stackTags(TAG_SET.getStackTags())
                 .resourceTags(TAG_SET.getResourceTags())
+
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> progress = test_handleRequest_base(
@@ -197,65 +192,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                         .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 null,
-                () -> RESOURCE_MODEL.toBuilder()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
-                        .build(),
-                expectSuccess()
-        );
-
-        Assertions.assertThat(progress.getCallbackContext().isAddTagsComplete()).isTrue();
-        Assertions.assertThat(progress.getCallbackContext().getTaggingContext().isSoftFailTags()).isTrue();
-
-        ArgumentCaptor<CreateDbClusterEndpointRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterEndpointRequest.class);
-        verify(rdsProxy.client(), times(2)).createDBClusterEndpoint(createCaptor.capture());
-        final CreateDbClusterEndpointRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        final CreateDbClusterEndpointRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class));
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
-
-        verify(rdsProxy.client(), times(2)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
-    }
-
-
-    @Test
-    public void handleRequest_HardFailTagging() {
-        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build())
-                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
-
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build());
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
-
-        test_handleRequest_base(
-                new CallbackContext(),
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 null,
                 () -> RESOURCE_MODEL.toBuilder()
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
@@ -264,19 +201,47 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         ArgumentCaptor<CreateDbClusterEndpointRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterEndpointRequest.class);
-        verify(rdsProxy.client(), times(2)).createDBClusterEndpoint(createCaptor.capture());
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(createCaptor.capture());
         final CreateDbClusterEndpointRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        final CreateDbClusterEndpointRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
         Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class));
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class));
+    }
 
-        verify(rdsProxy.client(), times(1)).describeDBClusterEndpoints(any(DescribeDbClusterEndpointsRequest.class));
 
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        Assertions.assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class));
+    @Test
+    public void handleRequest_HardFailTagging() {
+        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+                .thenThrow(
+                        RdsException.builder()
+                                .message("Role not authorized to execute rds:AddTagsToResource")
+                                .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build());
+
+
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
+                null,
+                null,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .tags(null)
+                        .build(),
+                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
+        );
+
+        final Tagging.TagSet expectedRequestTags = Tagging.TagSet.builder()
+                .stackTags(TAG_SET.getStackTags())
+                .systemTags(TAG_SET.getSystemTags())
+                .build();
+        ArgumentCaptor<CreateDbClusterEndpointRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterEndpointRequest.class);
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(createCaptor.capture());
+        final CreateDbClusterEndpointRequest requestWithAllTags = createCaptor.getAllValues().get(0);
+        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
+                Iterables.toArray(Tagging.translateTagsToSdk(expectedRequestTags), software.amazon.awssdk.services.rds.model.Tag.class));
     }
 }

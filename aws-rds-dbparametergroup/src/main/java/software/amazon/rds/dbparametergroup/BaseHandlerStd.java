@@ -149,11 +149,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     progress,
                     exception,
                     DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(
-                            Tagging.bestEffortErrorRuleSet(
+                            Tagging.getUpdateTagsAccessDeniedRuleSet(
                                     tagsToAdd,
                                     tagsToRemove,
-                                    Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
-                                    Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                                    Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET,
+                                    Tagging.RESOURCE_TAG_ERROR_RULE_SET
                             )
                     )
             );
@@ -353,7 +353,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     }
                     final Parameter defaultParam = defaultParams.get(name);
                     //Parameter is not modifiable and input model contains different value from default value
-                    return value != null && !defaultParam.isModifiable() && !defaultParam.parameterValue().equals(value);
+                    return value != null && !defaultParam.isModifiable() && !value.equals(defaultParam.parameterValue());
                 })
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());

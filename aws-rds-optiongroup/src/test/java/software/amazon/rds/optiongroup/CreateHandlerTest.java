@@ -216,26 +216,11 @@ public class CreateHandlerTest extends AbstractTestBase {
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
                 .thenThrow(
                         RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build())
-                .thenReturn(CreateOptionGroupResponse.builder().build());
-
-        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
-
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
+                                .message("Role not authorized to execute rds:AddTagsToResource")
                                 .awsErrorDetails(AwsErrorDetails.builder()
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
                                 ).build());
-
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder().build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
@@ -248,33 +233,18 @@ public class CreateHandlerTest extends AbstractTestBase {
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-
-        verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        Assertions.assertThat(response).isNotNull();
+        Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        Assertions.assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        Assertions.assertThat(response.getMessage()).isNotNull();
+        Assertions.assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.UnauthorizedTaggingOperation);
+        Assertions.assertThat(response.getResourceModels()).isNull();
 
         ArgumentCaptor<CreateOptionGroupRequest> createOptionGroupCaptor = ArgumentCaptor.forClass(CreateOptionGroupRequest.class);
-        verify(proxyClient.client(), times(2)).createOptionGroup(createOptionGroupCaptor.capture());
+        verify(proxyClient.client(), times(1)).createOptionGroup(createOptionGroupCaptor.capture());
         final CreateOptionGroupRequest createOptionGroupWithAllTags = createOptionGroupCaptor.getAllValues().get(0);
         Assertions.assertThat(createOptionGroupWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(desiredTags), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-        final CreateOptionGroupRequest createOptionGroupWithSystemTags = createOptionGroupCaptor.getAllValues().get(1);
-        Assertions.assertThat(createOptionGroupWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(desiredTags.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxyClient.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        final AddTagsToResourceRequest requestWithStackTags = addTagsCaptor.getAllValues().get(0);
-        Assertions.assertThat(requestWithStackTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(desiredTags.getStackTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
 
@@ -288,19 +258,6 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .build();
 
         when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
-                .thenThrow(
-                        RdsException.builder()
-                                .awsErrorDetails(AwsErrorDetails.builder()
-                                        .errorCode(ErrorCode.AccessDeniedException.toString())
-                                        .build()
-                                ).build())
-                .thenReturn(CreateOptionGroupResponse.builder().build());
-
-        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
-                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
-        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
-
-        when(proxyClient.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder()
                                 .awsErrorDetails(AwsErrorDetails.builder()
@@ -324,25 +281,11 @@ public class CreateHandlerTest extends AbstractTestBase {
         Assertions.assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.AccessDenied);
         Assertions.assertThat(response.getResourceModels()).isNull();
 
-        verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-
         ArgumentCaptor<CreateOptionGroupRequest> createOptionGroupCaptor = ArgumentCaptor.forClass(CreateOptionGroupRequest.class);
-        verify(proxyClient.client(), times(2)).createOptionGroup(createOptionGroupCaptor.capture());
+        verify(proxyClient.client(), times(1)).createOptionGroup(createOptionGroupCaptor.capture());
         final CreateOptionGroupRequest createOptionGroupWithAllTags = createOptionGroupCaptor.getAllValues().get(0);
         Assertions.assertThat(createOptionGroupWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(desiredTags), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-        final CreateOptionGroupRequest createOptionGroupWithSystemTags = createOptionGroupCaptor.getAllValues().get(1);
-        Assertions.assertThat(createOptionGroupWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(desiredTags.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxyClient.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        final AddTagsToResourceRequest requestWithResourceTags = addTagsCaptor.getAllValues().get(0);
-        Assertions.assertThat(requestWithResourceTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(desiredTags.getResourceTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
 

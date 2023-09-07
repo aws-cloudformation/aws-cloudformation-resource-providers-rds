@@ -64,6 +64,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
@@ -164,6 +165,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private final JsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword");
 
+    protected static final ResourceTypeSchema resourceTypeSchema = ResourceTypeSchema.load(new Configuration().resourceSchemaJsonObject());
+
     protected HandlerConfig config;
 
     public BaseHandlerStd(final HandlerConfig config) {
@@ -177,7 +180,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -186,7 +189,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
         try {
             validateRequest(request);
@@ -214,7 +217,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         callbackContext != null ? callbackContext : new CallbackContext(),
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient)),
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient)),
-                        logger
+                        requestLogger
                 ));
     }
 
@@ -498,7 +501,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(tagsToAdd, tagsToRemove))
             );
         }
 

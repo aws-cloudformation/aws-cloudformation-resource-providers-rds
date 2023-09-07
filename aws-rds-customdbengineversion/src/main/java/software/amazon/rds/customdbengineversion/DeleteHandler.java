@@ -1,5 +1,7 @@
 package software.amazon.rds.customdbengineversion;
 
+import java.util.function.Function;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -27,18 +29,35 @@ public class DeleteHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
             final Logger logger) {
-        return proxy.initiate("rds::delete-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .translateToServiceRequest(Translator::deleteCustomDbEngineVersion)
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((deleteDbEngineVersionRequest, proxyInvocation) ->
-                        proxyInvocation.injectCredentialsAndInvokeV2(deleteDbEngineVersionRequest, proxyInvocation.client()::deleteCustomDBEngineVersion))
-                .stabilize((deleteRequest, deleteResponse, proxyInvocation, model, context) ->
-                        isDeleted(model, proxyInvocation))
-                .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, ctx),
-                        exception,
-                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
-                .done(progress -> ProgressEvent.defaultSuccessHandler(null));
+        return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
+                .then(progress -> proxy.initiate("rds::delete-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
+                        .translateToServiceRequest(Translator::deleteCustomDbEngineVersion)
+                        .backoffDelay(config.getBackoff())
+                        .makeServiceCall((deleteDbEngineVersionRequest, proxyInvocation) ->
+                                proxyInvocation.injectCredentialsAndInvokeV2(deleteDbEngineVersionRequest, proxyInvocation.client()::deleteCustomDBEngineVersion))
+                        .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                                ProgressEvent.progress(resourceModel, ctx),
+                                exception,
+                                ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
+                        .progress()
+                )
+                // Stabilization has been modified to handle a specific edge case during CEV deletion.
+                // If call chain encounters an InvalidCustomDbEngineVersionStateException error with the message "CustomDBEngineVersion is already being deleted"
+                // This will not call stabilize step. Hence we have separate stabilization chain step to handle the situation.
+                // This ensures that the deletion process is completed properly.
+                .then(progress -> proxy.initiate("rds::delete-custom-db-engine-version-stabilize", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                        .translateToServiceRequest(Function.identity())
+                        .backoffDelay(config.getBackoff())
+                        .makeServiceCall(NOOP_CALL)
+                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDeleted(model, proxyInvocation))
+                        .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
+                                ProgressEvent.progress(model, context),
+                                exception,
+                                DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET
+                        ))
+                        .progress()
+                )
+                .then(progress -> ProgressEvent.defaultSuccessHandler(null));
     }
 
     protected boolean isDeleted(final ResourceModel model,

@@ -5,16 +5,16 @@ import java.util.function.Function;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class DeleteHandler extends BaseHandlerStd {
@@ -41,8 +41,7 @@ public class DeleteHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ResourceModel resourceModel = request.getDesiredResourceState();
         String snapshotIdentifier = null;

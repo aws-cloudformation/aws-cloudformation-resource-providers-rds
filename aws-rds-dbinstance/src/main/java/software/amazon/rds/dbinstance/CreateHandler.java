@@ -17,8 +17,8 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -70,8 +70,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
@@ -92,6 +91,16 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
+                .then(progress -> {
+                    if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                        try {
+                            model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress.getResourceModel()));
+                        } catch (Exception e) {
+                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET);
+                        }
+                    }
+                    return progress;
+                })
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
                         // restoreDBInstanceToPointInTime is not a versioned call.
@@ -182,11 +191,49 @@ public class CreateHandler extends BaseHandlerStd {
                             return progress;
                         },
                         CallbackContext::isAutomaticBackupReplicationStarted, CallbackContext::setAutomaticBackupReplicationStarted))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> {
+                    model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
+                    return Commons.reportResourceDrift(
+                            model,
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            resourceTypeSchema,
+                            logger
+                    );
+                });
     }
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
-        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
+        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.createWithTaggingFallback(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
+    }
+
+    private String fetchEngine(final ProxyClient<RdsClient> client, final ResourceModel model) {
+        if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
+            return fetchDBSnapshot(client, model).engine();
+        }
+        if (ResourceModelHelper.isRestoreFromClusterSnapshot(model)) {
+            return fetchDBClusterSnapshot(client, model).engine();
+        }
+
+        if (ResourceModelHelper.isDBInstanceReadReplica(model)) {
+            return fetchDBInstance(client, model.getSourceDBInstanceIdentifier()).engine();
+        }
+        if (ResourceModelHelper.isDBClusterReadReplica(model)) {
+            return fetchDBCluster(client, model.getSourceDBClusterIdentifier()).engine();
+        }
+
+        if (ResourceModelHelper.isRestoreToPointInTime(model)) {
+            if (StringUtils.hasValue(model.getSourceDBInstanceIdentifier())) {
+                return fetchDBInstance(client, model.getSourceDBInstanceIdentifier()).engine();
+            }
+            if (StringUtils.hasValue(model.getSourceDbiResourceId())) {
+                return fetchDBInstanceByResourceId(client, model.getSourceDbiResourceId()).engine();
+            }
+            if (StringUtils.hasValue(model.getSourceDBInstanceAutomatedBackupsArn())) {
+                return fetchAutomaticBackup(client, model.getSourceDBInstanceAutomatedBackupsArn()).engine();
+            }
+        }
+
+        throw new CfnInvalidRequestException("Cannot fetch the engine based on current template. Please add the Engine parameter to the template and try again.");
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceV12(
@@ -195,6 +242,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        logger.log("API version 12 create detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
                         "rds::create-db-instance-v12",
                         rdsProxyClient,
@@ -249,6 +299,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        logger.log("API version 12 restore detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                        " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
                         "rds::restore-db-instance-from-snapshot-v12",
                         rdsProxyClient,
@@ -357,6 +410,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        logger.log("API version 12 modify after create detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                        " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceAfterCreateRequestV12(request.getDesiredResourceState()))
                 .backoffDelay(config.getBackoff())

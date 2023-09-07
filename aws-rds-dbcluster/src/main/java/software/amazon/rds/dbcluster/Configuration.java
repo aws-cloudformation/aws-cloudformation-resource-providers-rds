@@ -8,7 +8,7 @@ import org.json.JSONTokener;
 
 import com.amazonaws.util.CollectionUtils;
 
-class Configuration extends BaseConfiguration {
+public class Configuration extends BaseConfiguration {
     public Configuration() {
         super("aws-rds-dbcluster.json");
     }

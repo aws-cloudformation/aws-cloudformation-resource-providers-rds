@@ -3,6 +3,7 @@ package software.amazon.rds.customdbengineversion;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionAlreadyExistsException;
@@ -18,6 +19,7 @@ import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -37,9 +39,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "customdbengineversion";
-    protected static final String DEFAULT_ENGINE_NAME_PREFIX = "19";
-    protected static final String DEFAULT_ENGINE_NAME_SEPARATOR = ".";
     protected static final int RESOURCE_ID_MAX_LENGTH = 50;
+    protected static final String IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT = "is already being deleted";
+    protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
+
+    protected static final Function<Exception, ErrorStatus> ignoreCEVBeingDeletedConditionalErrorStatus = exception -> {
+        if (isCEVBeingDeletedException(exception)) {
+            return ErrorStatus.ignore(OperationStatus.IN_PROGRESS);
+        }
+        return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
+    };
 
     protected final static HandlerConfig CUSTOM_ENGINE_VERSION_HANDLER_CONFIG_10H = HandlerConfig.builder()
             .backoff(Constant.of()
@@ -67,6 +76,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .extend(DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     ErrorCode.AccessDenied)
+            .withErrorClasses(ErrorStatus.conditional(ignoreCEVBeingDeletedConditionalErrorStatus),
+                    InvalidCustomDbEngineVersionStateException.class)
             .build();
 
     private final FilteredJsonPrinter EMPTY_FILTER = new FilteredJsonPrinter();
@@ -174,11 +185,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 progress,
                 exception,
                 DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET.extendWith(
-                        Tagging.bestEffortErrorRuleSet(
+                        Tagging.getUpdateTagsAccessDeniedRuleSet(
                                 tagsToAdd,
                                 tagsToRemove,
-                                Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
-                                Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                                Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET,
+                                Tagging.RESOURCE_TAG_ERROR_RULE_SET
                         )
                 )
         );
@@ -199,5 +210,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         exception,
                         ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
                 .progress();
+    }
+
+    private static boolean looksLikeCEVBeingDeletedMessage(final String message) {
+        if (StringUtils.isBlank(message)) {
+            return false;
+        }
+        return message.contains(IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT);
+    }
+
+    private static boolean isCEVBeingDeletedException(final Exception e) {
+        if (e instanceof InvalidCustomDbEngineVersionStateException) {
+            return looksLikeCEVBeingDeletedMessage(e.getMessage());
+        }
+        return false;
     }
 }

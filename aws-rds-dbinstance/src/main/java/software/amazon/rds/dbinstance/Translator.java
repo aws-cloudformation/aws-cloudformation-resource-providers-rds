@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 import com.amazonaws.arn.Arn;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
@@ -28,11 +29,14 @@ import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfigurati
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.PromoteReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
@@ -59,15 +63,46 @@ public class Translator {
                 .build();
     }
 
+    public static DescribeDbClustersRequest describeDbClusterRequest(final String dbClusterIdentifier) {
+        return DescribeDbClustersRequest.builder()
+                .dbClusterIdentifier(dbClusterIdentifier)
+                .build();
+    }
+
     public static DescribeDbInstancesRequest describeDbInstancesRequest(final String nextToken) {
         return DescribeDbInstancesRequest.builder()
                 .marker(nextToken)
                 .build();
     }
 
+    public static DescribeDbInstancesRequest describeDbInstanceByDBInstanceIdentifierRequest(final String dbInstanceIdentifier) {
+        return DescribeDbInstancesRequest.builder()
+                .dbInstanceIdentifier(dbInstanceIdentifier)
+                .build();
+    }
+
+    public static DescribeDbInstancesRequest describeDbInstanceByResourceIdRequest(final String resourceId) {
+        return DescribeDbInstancesRequest.builder()
+                .filters(software.amazon.awssdk.services.rds.model.Filter.builder()
+                        .name("dbi-resource-id").values(resourceId).build())
+                .build();
+    }
+
+    public static DescribeDbInstanceAutomatedBackupsRequest describeDBInstanceAutomaticBackup(final String automaticBackupArn) {
+        return DescribeDbInstanceAutomatedBackupsRequest.builder()
+                .dbInstanceAutomatedBackupsArn(automaticBackupArn)
+                .build();
+    }
+
     public static DescribeDbSnapshotsRequest describeDbSnapshotsRequest(final ResourceModel model) {
         return DescribeDbSnapshotsRequest.builder()
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
+                .build();
+    }
+
+    public static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotsRequest(final ResourceModel model) {
+        return DescribeDbClusterSnapshotsRequest.builder()
+                .dbClusterSnapshotIdentifier(model.getDBClusterSnapshotIdentifier())
                 .build();
     }
 
@@ -85,7 +120,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .enablePerformanceInsights(model.getEnablePerformanceInsights())
@@ -107,6 +146,12 @@ public class Translator {
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
@@ -150,7 +195,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
@@ -166,6 +215,12 @@ public class Translator {
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
@@ -223,7 +278,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
@@ -286,7 +345,11 @@ public class Translator {
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
+                .domainAuthSecretArn(model.getDomainAuthSecretArn())
+                .domainDnsIps(model.getDomainDnsIps())
+                .domainFqdn(model.getDomainFqdn())
                 .domainIAMRoleName(model.getDomainIAMRoleName())
+                .domainOu(model.getDomainOu())
                 .enableCloudwatchLogsExports(model.getEnableCloudwatchLogsExports())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
                 .engine(model.getEngine())
@@ -309,7 +372,12 @@ public class Translator {
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
                 .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
-
+        if (!ResourceModelHelper.isSqlServer(model)) {
+            builder.allocatedStorage(getAllocatedStorage(model));
+            builder.iops(model.getIops());
+            builder.storageThroughput(model.getStorageThroughput());
+            builder.storageType(model.getStorageType());
+        }
         return builder.build();
     }
 
@@ -368,7 +436,11 @@ public class Translator {
                 .dbPortNumber(translatePortToSdk(diff(previousModel.getPort(), desiredModel.getPort())))
                 .deletionProtection(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
                 .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
+                .domainAuthSecretArn(desiredModel.getDomainAuthSecretArn())
+                .domainDnsIps(desiredModel.getDomainDnsIps())
+                .domainFqdn(desiredModel.getDomainFqdn())
                 .domainIAMRoleName(diff(previousModel.getDomainIAMRoleName(), desiredModel.getDomainIAMRoleName()))
+                .domainOu(desiredModel.getDomainOu())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
                 .licenseModel(diff(previousModel.getLicenseModel(), desiredModel.getLicenseModel()))
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
@@ -447,6 +519,9 @@ public class Translator {
             builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
         }
 
+        if(shouldDisableDomain(previousModel, desiredModel)) {
+            builder.disableDomain(Boolean.TRUE);
+        }
         return builder.build();
     }
 
@@ -461,6 +536,13 @@ public class Translator {
     private static Boolean isIo1Storage(final ResourceModel model) {
         return StorageType.IO1.toString().equalsIgnoreCase(model.getStorageType()) ||
                 (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
+    }
+
+    private static Boolean shouldDisableDomain(final ResourceModel previous, final ResourceModel desired) {
+        return ObjectUtils.allNull(desired.getDomain(), desired.getDomainAuthSecretArn(), desired.getDomainDnsIps(),
+                desired.getDomainFqdn(), desired.getDomainOu(), desired.getDomainIAMRoleName())
+                && ObjectUtils.anyNotNull(previous.getDomain(), previous.getDomainAuthSecretArn(), previous.getDomainDnsIps(),
+                previous.getDomainFqdn(), previous.getDomainOu(), previous.getDomainIAMRoleName());
     }
 
     private static Boolean getManageMasterUserPassword(final ResourceModel previous, final ResourceModel desired) {
@@ -512,7 +594,7 @@ public class Translator {
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());
 
-        if (ResourceModelHelper.isStorageParametersModified(model)) {
+        if (ResourceModelHelper.isStorageParametersModified(model) && ResourceModelHelper.isSqlServer(model)) {
             builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
             builder.storageThroughput(model.getStorageThroughput());
@@ -682,9 +764,18 @@ public class Translator {
 
         String domain = null;
         String domainIAMRoleName = null;
+        String domainAuthSecretArn = null;
+        String domainFqdn = null;
+        String domainOu = null;
+        List<String> domainDnsIps = null;
         if (CollectionUtils.isNotEmpty(dbInstance.domainMemberships())) {
-            domain = dbInstance.domainMemberships().get(0).domain();
-            domainIAMRoleName = dbInstance.domainMemberships().get(0).iamRoleName();
+            DomainMembership domainMembership = dbInstance.domainMemberships().get(0);
+            domain = domainMembership.domain();
+            domainIAMRoleName = domainMembership.iamRoleName();
+            domainAuthSecretArn = domainMembership.authSecretArn();
+            domainFqdn = domainMembership.fqdn();
+            domainOu = domainMembership.ou();
+            domainDnsIps = domainMembership.dnsIps();
         }
 
         String optionGroupName = null;
@@ -722,7 +813,11 @@ public class Translator {
                 .dbiResourceId(dbInstance.dbiResourceId())
                 .deletionProtection(dbInstance.deletionProtection())
                 .domain(domain)
+                .domainAuthSecretArn(domainAuthSecretArn)
+                .domainDnsIps(domainDnsIps)
+                .domainFqdn(domainFqdn)
                 .domainIAMRoleName(domainIAMRoleName)
+                .domainOu(domainOu)
                 .enableCloudwatchLogsExports(translateEnableCloudwatchLogsExport(dbInstance.enabledCloudwatchLogsExports()))
                 .enableIAMDatabaseAuthentication(dbInstance.iamDatabaseAuthenticationEnabled())
                 .enablePerformanceInsights(dbInstance.performanceInsightsEnabled())

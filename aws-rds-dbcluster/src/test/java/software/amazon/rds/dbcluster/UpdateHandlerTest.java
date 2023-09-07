@@ -138,7 +138,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SuccessRoleNotFound() {
+    void handleRequest_SuccessRoleNotFound() {
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenReturn(AddRoleToDbClusterResponse.builder().build());
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
@@ -166,7 +166,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_AddRoleAlreadyExistsExceptionNoRecoveryModeShouldFail() {
+    void handleRequest_AddRoleAlreadyExistsExceptionNoRecoveryModeShouldFail() {
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenThrow(DbClusterRoleAlreadyExistsException.builder().message(ERROR_MSG).build());
 
@@ -191,7 +191,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_AddRoleAlreadyExistsExceptionRecoveryModeShouldSucceed() {
+    void handleRequest_AddRoleAlreadyExistsExceptionRecoveryModeShouldSucceed() {
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
                 .thenThrow(DbClusterRoleAlreadyExistsException.builder().message(ERROR_MSG).build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -221,7 +221,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RemoveFromGlobalCluster() {
+    void handleRequest_RemoveFromGlobalCluster() {
         when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
                 .thenReturn(RemoveFromGlobalClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -256,7 +256,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RemoveFromGlobalClusterThrottling() {
+    void handleRequest_RemoveFromGlobalClusterThrottling() {
         when(rdsProxy.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class)))
                 .thenThrow(AwsServiceException.builder().awsErrorDetails(AwsErrorDetails.builder().errorCode(HandlerErrorCode.Throttling.toString()).build()).build());
         when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
@@ -278,7 +278,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_RemoveFromGlobalClusterStabilization() {
+    void handleRequest_RemoveFromGlobalClusterStabilization() {
         when(rdsProxy.client().removeFromGlobalCluster(any(RemoveFromGlobalClusterRequest.class)))
                 .thenReturn(RemoveFromGlobalClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -308,7 +308,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_AddToGlobalClusterIsImmutable() {
+    void handleRequest_AddToGlobalClusterIsImmutable() {
         expectServiceInvocation = false;
         test_handleRequest_base(
                 new CallbackContext(),
@@ -320,7 +320,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_Success() {
+    void handleRequest_Success() {
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -372,7 +372,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_StabilizeWithPendingActions() {
+    void handleRequest_StabilizeWithPendingActions() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -409,7 +409,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_WithUpdateToDefaultVPC() {
+    void handleRequest_WithUpdateToDefaultVPC() {
         when(rdsProxy.client().describeDBSubnetGroups(any(DescribeDbSubnetGroupsRequest.class)))
                 .thenReturn(DescribeDbSubnetGroupsResponse.builder().dbSubnetGroups(DBSubnetGroup.builder().vpcId("vpcId").build()).build());
         when(ec2Proxy.client().describeSecurityGroups(any(DescribeSecurityGroupsRequest.class)))
@@ -440,7 +440,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_WithUpdateToDefaultVpcFromDefaultVpc() {
+    void handleRequest_WithUpdateToDefaultVpcFromDefaultVpc() {
         final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
@@ -466,7 +466,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_HandleAssociatedRoleWithEmptyFeature() {
+    void handleRequest_HandleAssociatedRoleWithEmptyFeature() {
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -514,7 +514,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_HandleUpdateAssociatedRole() {
+    void handleRequest_HandleUpdateAssociatedRole() {
         when(rdsProxy.client().removeRoleFromDBCluster(any(RemoveRoleFromDbClusterRequest.class)))
                 .thenReturn(RemoveRoleFromDbClusterResponse.builder().build());
         when(rdsProxy.client().addRoleToDBCluster(any(AddRoleToDbClusterRequest.class)))
@@ -570,7 +570,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ImmutableUpdate_GlobalCluster() {
+    void handleRequest_ImmutableUpdate_GlobalCluster() {
         expectServiceInvocation = false;
         test_handleRequest_base(
                 new CallbackContext(),
@@ -582,7 +582,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ImmutableUpdate_Engine() {
+    void handleRequest_ImmutableUpdate_Engine() {
         expectServiceInvocation = false;
         test_handleRequest_base(
                 new CallbackContext(),
@@ -594,7 +594,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_NoMasterUserUpdateIfMatch() {
+    void handleRequest_NoMasterUserUpdateIfMatch() {
         final String masterUserPassword = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
@@ -631,7 +631,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_UpdateMasterUserPasswordIfMismatch() {
+    void handleRequest_UpdateMasterUserPasswordIfMismatch() {
         final String masterUserPassword1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String masterUserPassword2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
@@ -671,7 +671,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_NoEngineVersionUpdateIfMatch() {
+    void handleRequest_NoEngineVersionUpdateIfMatch() {
         final String engineVersion = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
         Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
@@ -714,7 +714,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_NoEngineVersionUpdateIfRollback() {
+    void handleRequest_NoEngineVersionUpdateIfRollback() {
         final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
@@ -755,7 +755,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_DoNotSetDefaultPortOnUpdate() {
+    void handleRequest_DoNotSetDefaultPortOnUpdate() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -784,7 +784,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_EngineVersionUpdateIfMismatch() {
+    void handleRequest_EngineVersionUpdateIfMismatch() {
         final String engineVersion1 = TestUtils.randomString(16, TestUtils.ALPHANUM);
         final String engineVersion2 = TestUtils.randomString(16, TestUtils.ALPHANUM);
 
@@ -825,7 +825,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ServerlessV2ScalingConfiguration_Success() {
+    void handleRequest_ServerlessV2ScalingConfiguration_Success() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
@@ -885,7 +885,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_FetchEventsFromUpdateMoment() {
+    void handleRequest_FetchEventsFromUpdateMoment() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -914,7 +914,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_FetchEventsThrowsAwsServiceExceptionIgnore() {
+    void handleRequest_FetchEventsThrowsAwsServiceExceptionIgnore() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -940,7 +940,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_ObserveFailureEvent() {
+    void handleRequest_ObserveFailureEvent() {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
@@ -982,7 +982,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
     @ParameterizedTest
     @ArgumentsSource(ModifyDBClusterExceptionArgumentsProvider.class)
-    public void handleRequest_ModifyDBCluster_HandleException(
+    void handleRequest_ModifyDBCluster_HandleException(
             final Object requestException,
             final HandlerErrorCode expectResponseCode
     ) {

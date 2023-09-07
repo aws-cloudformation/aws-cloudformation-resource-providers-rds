@@ -42,6 +42,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.test.common.core.AbstractTestBase;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.MethodCallExpectation;
@@ -71,6 +73,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final Integer PORT;
     protected static final String USER_NAME;
     protected static final String USER_PASSWORD;
+    protected static final String RESTORE_TYPE_COPY_ON_WRITE;
+    protected static final boolean USE_LATEST_RESTORABLE_TIME_YES;
     protected static final String ROLE_ARN;
     protected static final String OLD_ROLE_ARN;
     protected static final String NEW_ROLE_ARN;
@@ -132,6 +136,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         PORT = 3306;
         USER_NAME = "username";
         USER_PASSWORD = "xxx";
+        RESTORE_TYPE_COPY_ON_WRITE = "copy-on-write";
+        USE_LATEST_RESTORABLE_TIME_YES = true;
 
         ROLE_ARN = "sampleArn";
         OLD_ROLE_ARN = "oldRoleArn";
@@ -349,7 +355,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), logger);
+        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), getEc2Proxy(), new RequestLogger(logger, request, new FilteredJsonPrinter()));
     }
 
     @Override

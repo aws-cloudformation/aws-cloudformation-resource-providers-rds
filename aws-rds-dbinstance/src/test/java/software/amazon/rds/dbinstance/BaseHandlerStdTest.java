@@ -19,13 +19,12 @@ import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.ProcessorFeature;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 
 class BaseHandlerStdTest {
 
@@ -41,8 +40,7 @@ class BaseHandlerStdTest {
                 ValidatedRequest<ResourceModel> request,
                 CallbackContext context,
                 VersionedProxyClient<RdsClient> rdsProxyClient,
-                VersionedProxyClient<Ec2Client> ec2ProxyClient,
-                Logger logger
+                VersionedProxyClient<Ec2Client> ec2ProxyClient
         ) {
             return null;
         }
@@ -146,9 +144,9 @@ class BaseHandlerStdTest {
     @Test
     void isNoPendingChanges_EmptyPendingChangesReturnsTrue() {
         Assertions.assertThat(handler.isNoPendingChanges(
-                        DBInstance.builder()
-                                .pendingModifiedValues(PendingModifiedValues.builder().build())
-                                .build()
+                DBInstance.builder()
+                        .pendingModifiedValues(PendingModifiedValues.builder().build())
+                        .build()
         )).isTrue();
     }
 

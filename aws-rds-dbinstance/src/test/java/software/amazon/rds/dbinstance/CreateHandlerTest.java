@@ -36,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.core.util.SdkAutoConstructList;
@@ -51,13 +52,22 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequ
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackupsReplication;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
@@ -245,14 +255,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenThrow(
                         RdsException.builder()
+                                .message("Role not authorized to execute rds:AddTagsToResource")
                                 .awsErrorDetails(AwsErrorDetails.builder()
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
                                 ).build())
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
-
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
                 .thenReturn(DescribeDbSnapshotsResponse.builder()
@@ -267,9 +275,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         context.setRebooted(true);
         context.setUpdatedRoles(true);
 
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+        final Tagging.TagSet expectedRequestTags = Tagging.TagSet.builder()
                 .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
+                .systemTags(TAG_SET.getSystemTags())
                 .build();
 
         test_handleRequest_base(
@@ -277,35 +285,22 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                         .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_INSTANCE_ACTIVE,
+                null,
                 null,
                 () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .tags(null)
                         .build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
         );
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
-        verify(rdsProxy.client(), times(2)).restoreDBInstanceFromDBSnapshot(createCaptor.capture());
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(createCaptor.capture());
+
 
         final RestoreDbInstanceFromDbSnapshotRequest requestWithAllTags = createCaptor.getAllValues().get(0);
         Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
+                Iterables.toArray(Tagging.translateTagsToSdk(expectedRequestTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
-        final RestoreDbInstanceFromDbSnapshotRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
     @Test
@@ -430,10 +425,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                 .awsErrorDetails(AwsErrorDetails.builder()
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
-                                ).build())
-                .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+                                ).build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -448,36 +440,15 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_INSTANCE_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL_READ_REPLICA.toBuilder()
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.AccessDenied)
         );
 
         ArgumentCaptor<CreateDbInstanceReadReplicaRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
-        verify(rdsProxy.client(), times(2)).createDBInstanceReadReplica(createCaptor.capture());
-
-        final CreateDbInstanceReadReplicaRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-        final CreateDbInstanceReadReplicaRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
+        verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(createCaptor.capture());
     }
 
     @Test
@@ -574,7 +545,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
-        verify(rdsProxy.client(), times(2)).createDBInstance(any(CreateDbInstanceRequest.class));
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 
     @Test
@@ -642,86 +613,49 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                 .awsErrorDetails(AwsErrorDetails.builder()
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
-                                ).build())
-                .thenReturn(CreateDbInstanceResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+                                ).build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
-        context.setUpdated(true);
-        context.setRebooted(true);
-        context.setUpdatedRoles(true);
-
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
 
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_INSTANCE_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL_BLDR()
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.AccessDenied)
         );
-
-        ArgumentCaptor<CreateDbInstanceRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
-        verify(rdsProxy.client(), times(2)).createDBInstance(createCaptor.capture());
-
-        final CreateDbInstanceRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-        final CreateDbInstanceRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
+        verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
 
     @Test
-    public void handleRequest_CreateDBInstance_SoftFailTagsReentrance() {
+    public void handleRequest_CreateDBInstance_FailTagsNoReentranceForSystemTagsOnly() {
         when(rdsProxy.client().createDBInstance(any(CreateDbInstanceRequest.class)))
-                .thenReturn(CreateDbInstanceResponse.builder().build());
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
+                .thenThrow(
+                        RdsException.builder()
+                            .message("Role not authorized to execute rds:AddTagsToResource")
+                            .awsErrorDetails(AwsErrorDetails.builder()
+                                        .errorCode(ErrorCode.AccessDeniedException.toString())
+                                        .build()
+                                ).build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
-        context.getTaggingContext().setSoftFailTags(true);
         context.setUpdated(true);
         context.setRebooted(true);
         context.setUpdatedRoles(true);
 
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
-
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
-                        .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_INSTANCE_ACTIVE,
+                        .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags()))),
+                null,
                 null,
                 () -> RESOURCE_MODEL_BLDR()
-                        .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
+                        .tags(null)
                         .build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
         );
 
         ArgumentCaptor<CreateDbInstanceRequest> createCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
@@ -732,13 +666,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
     }
 
     @Test
@@ -884,6 +811,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+
+        ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
+
+        final ModifyDbInstanceRequest request = captor.getValue();
+        Assertions.assertThat(request.allocatedStorage()).isEqualTo(100);
+        Assertions.assertThat(request.iops()).isEqualTo(3000);
     }
 
     @Test
@@ -970,9 +904,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class)))
                 .thenReturn(CreateDbInstanceReadReplicaResponse.builder().build());
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
-
         test_handleRequest_base(
                 context,
                 () -> DB_INSTANCE_ACTIVE,
@@ -987,15 +918,44 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
-        Assertions.assertThat(captor.getValue().allocatedStorage()).isNull();
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
-        Assertions.assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        Assertions.assertThat(captor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
-    public void handleRequest_RestoreDBInstanceFromSnapshot_AllocatedStorage_ShouldNotUpdate_Success() {
+    public void handleRequest_RestoreDBInstanceFromSnapshot_AllocatedStorage_MySQL() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(false);
+        context.setRebooted(false);
+        context.setUpdatedRoles(true);
+
+        when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
+                .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(ImmutableList.of(DBSnapshot.builder().build())).build());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .engine(ENGINE_MYSQL)
+                        .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_NON_EMPTY)
+                        .allocatedStorage(ALLOCATED_STORAGE.toString())
+                        .build(),
+                expectSuccess()
+        );
+
+
+        ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
+        Assertions.assertThat(captor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreDBInstanceFromSnapshot_AllocatedStorage_SqlServer() {
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
         context.setUpdated(false);
@@ -1014,7 +974,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 context,
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BAREBONE_BLDR()
-                        .engine(ENGINE_MYSQL)
+                        .engine(ENGINE_SQLSERVER_EE)
                         .dBSnapshotIdentifier(DB_SNAPSHOT_IDENTIFIER_NON_EMPTY)
                         .allocatedStorage(ALLOCATED_STORAGE.toString())
                         .build(),
@@ -1309,7 +1269,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 () -> DB_INSTANCE_ACTIVE,
-                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                () -> RESOURCE_MODEL_BLDR()
                         .port("")
                         .build(),
                 expectSuccess()
@@ -1338,7 +1298,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 null,
-                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                () -> RESOURCE_MODEL_BLDR()
                         .dBClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
                         .build(),
                 expectFailed(HandlerErrorCode.NotFound)
@@ -1365,7 +1325,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 null,
-                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                () -> RESOURCE_MODEL_BLDR()
                         .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                         .build(),
                 expectFailed(HandlerErrorCode.NotFound)
@@ -1387,7 +1347,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                     .status(OptionGroupStatus.Failed.toString())
                                     .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
                                     .build()).build(),
-                    () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                    () -> RESOURCE_MODEL_BLDR().build(),
                     expectFailed(HandlerErrorCode.NotStabilized)
             );
         }).isInstanceOf(CfnNotStabilizedException.class);
@@ -1408,7 +1368,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                     .status(DomainMembershipStatus.Failed.toString())
                                     .domain("domain")
                                     .build()).build(),
-                    () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                    () -> RESOURCE_MODEL_BLDR().build(),
                     expectFailed(HandlerErrorCode.NotStabilized)
             );
         }).isInstanceOf(CfnNotStabilizedException.class);
@@ -1553,8 +1513,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -1574,12 +1532,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
-        Assertions.assertThat(restoreCaptor.getValue().storageType()).isNull();
-
-        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
-        Assertions.assertThat(modifyCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
-        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+        Assertions.assertThat(restoreCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
     }
 
     @Test
@@ -1593,9 +1546,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         when(rdsProxy.client().restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class)))
                 .thenReturn(RestoreDbInstanceFromDbSnapshotResponse.builder().build());
-
-        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
-                .thenReturn(DescribeEventsResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -1616,11 +1566,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(restoreCaptor.capture());
-        Assertions.assertThat(restoreCaptor.getValue().storageType()).isNull();
-
-        ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
-        verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
-        Assertions.assertThat(modifyCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
+        Assertions.assertThat(restoreCaptor.getValue().storageType()).isEqualTo(STORAGE_TYPE_GP2);
     }
 
     @Test
@@ -1953,8 +1899,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                         .build()
                                 ).build())
                 .thenReturn(restoreResponse);
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
@@ -1962,43 +1906,27 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         context.setRebooted(true);
         context.setUpdatedRoles(true);
 
-        final Tagging.TagSet extraTags = Tagging.TagSet.builder()
-                .stackTags(TAG_SET.getStackTags())
-                .resourceTags(TAG_SET.getResourceTags())
-                .build();
 
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                         .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                () -> DB_INSTANCE_ACTIVE,
+                null,
                 null,
                 () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
                         .useLatestRestorableTime(true)
                         .build(),
-                expectSuccess()
+                expectFailed(HandlerErrorCode.AccessDenied)
         );
 
         ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
-        verify(rdsProxy.client(), times(2)).restoreDBInstanceToPointInTime(createCaptor.capture());
+        verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(createCaptor.capture());
 
         final RestoreDbInstanceToPointInTimeRequest requestWithAllTags = createCaptor.getAllValues().get(0);
         Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
                 Iterables.toArray(Tagging.translateTagsToSdk(TAG_SET), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-        final RestoreDbInstanceToPointInTimeRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
-        Assertions.assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(TAG_SET.getSystemTags(), software.amazon.awssdk.services.rds.model.Tag.class)
-        );
-
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagCaptor.capture());
-        Assertions.assertThat(addTagCaptor.getValue().tags()).containsExactlyInAnyOrder(
-                Iterables.toArray(Tagging.translateTagsToSdk(extraTags), software.amazon.awssdk.services.rds.model.Tag.class)
         );
     }
 
@@ -2116,5 +2044,213 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void fetchEngineFromDBInstanceSnapshot() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+                .thenReturn(DescribeDbSnapshotsResponse.builder()
+                        .dbSnapshots(DBSnapshot.builder().engine("mysql").build())
+                        .build());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBSnapshotIdentifier("snapshot")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbSnapshotsRequest> captor = ArgumentCaptor.forClass(DescribeDbSnapshotsRequest.class);
+        verify(rdsProxy.client(), times(1)).describeDBSnapshots(captor.capture());
+        Assertions.assertThat(captor.getValue().dbSnapshotIdentifier()).isEqualTo("snapshot");
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void fetchEngineFromDBClusterSnapshot() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder()
+                        .dbClusterSnapshots(DBClusterSnapshot.builder().engine("mysql").build())
+                        .build());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .dBClusterSnapshotIdentifier("cluster-snapshot")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbClusterSnapshotsRequest> captor = ArgumentCaptor.forClass(DescribeDbClusterSnapshotsRequest.class);
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(captor.capture());
+        Assertions.assertThat(captor.getValue().dbClusterSnapshotIdentifier()).isEqualTo("cluster-snapshot");
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void fetchEngineForDBInstanceReadReplica() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBInstanceIdentifier("rr-source")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
+        verify(rdsProxy.client(), times(2)).describeDBInstances(captor.capture());
+        Assertions.assertThat(captor.getAllValues().get(0).dbInstanceIdentifier()).isEqualTo("rr-source");
+    }
+
+    @Test
+    public void fetchEngineForDBClusterReadReplica() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        when(rdsProxy.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder().engine("mysql").build())
+                        .build());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBClusterIdentifier("rr-source")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbClustersRequest> captor = ArgumentCaptor.forClass(DescribeDbClustersRequest.class);
+        verify(rdsProxy.client(), times(1)).describeDBClusters(captor.capture());
+        Assertions.assertThat(captor.getValue().dbClusterIdentifier()).isEqualTo("rr-source");
+    }
+
+    @Test
+    public void fetchEngineForPointInTimeRestoreFromDBinstance() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .useLatestRestorableTime(true)
+                        .sourceDBInstanceIdentifier("pitr-source")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
+        verify(rdsProxy.client(), times(2)).describeDBInstances(captor.capture());
+        Assertions.assertThat(captor.getAllValues().get(0).dbInstanceIdentifier()).isEqualTo("pitr-source");
+    }
+
+    @Test
+    public void fetchEngineForPointInTimeRestoreFromDBinstanceByDbiResourceId() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .useLatestRestorableTime(true)
+                        .sourceDbiResourceId("pitr-source")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
+        verify(rdsProxy.client(), times(2)).describeDBInstances(captor.capture());
+        Assertions.assertThat(captor.getAllValues().get(0).filters()).hasSize(1);
+
+        Assertions.assertThat(captor.getAllValues().get(0).filters().get(0).name()).isEqualTo("dbi-resource-id");
+        Assertions.assertThat(captor.getAllValues().get(0).filters().get(0).values()).containsExactlyInAnyOrder("pitr-source");
+    }
+
+    @Test
+    public void fetchEngineForPointInTimeRestoreFromAutomatedBackup() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        when(rdsProxy.client().describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class)))
+                .thenReturn(DescribeDbInstanceAutomatedBackupsResponse.builder()
+                        .dbInstanceAutomatedBackups(DBInstanceAutomatedBackup.builder().engine("mysql").build())
+                        .build());
+
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .useLatestRestorableTime(true)
+                        .sourceDBInstanceAutomatedBackupsArn("backup-arn")
+                        .build(),
+                expectSuccess()
+        );
+
+        ArgumentCaptor<DescribeDbInstanceAutomatedBackupsRequest> captor = ArgumentCaptor.forClass(DescribeDbInstanceAutomatedBackupsRequest.class);
+        verify(rdsProxy.client(), times(1)).describeDBInstanceAutomatedBackups(captor.capture());
+        Assertions.assertThat(captor.getValue().dbInstanceAutomatedBackupsArn()).isEqualTo("backup-arn");
+    }
+
+    @Test
+    public void fetchEngineForUnknownScenario() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
     }
 }

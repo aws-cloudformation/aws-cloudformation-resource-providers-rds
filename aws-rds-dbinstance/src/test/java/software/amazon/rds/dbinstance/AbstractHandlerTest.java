@@ -42,6 +42,8 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.test.common.core.AbstractTestBase;
@@ -169,6 +171,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Boolean STORAGE_ENCRYPTED_NO = false;
     protected static final String STORAGE_TYPE_STANDARD = "standard";
     protected static final String STORAGE_TYPE_GP2 = "gp2";
+    protected static final String STORAGE_TYPE_GP3 = "gp3";
+
     protected static final String STORAGE_TYPE_IO1 = "io1";
     protected static final String TIMEZONE_DEFAULT = null;
     protected static final Boolean USE_DEFAULT_PROCESSOR_FEATURES_YES = true;
@@ -696,7 +700,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                         .register(ApiVersion.V12, getRdsProxy(API_VERSION_V12))
                         .register(ApiVersion.DEFAULT, getRdsProxy()),
                 new VersionedProxyClient<Ec2Client>().register(ApiVersion.DEFAULT, getEc2Proxy()),
-                logger
+                new RequestLogger(logger, request, new FilteredJsonPrinter())
         );
     }
 

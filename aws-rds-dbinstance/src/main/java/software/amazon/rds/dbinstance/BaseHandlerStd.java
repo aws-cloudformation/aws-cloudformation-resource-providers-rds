@@ -20,6 +20,7 @@ import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
@@ -27,7 +28,9 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
 import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
@@ -43,7 +46,9 @@ import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
@@ -69,6 +74,7 @@ import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -78,6 +84,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
@@ -149,9 +156,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected final HandlerConfig config;
 
+    protected RequestLogger logger;
+
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
 
-    private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
+    protected final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter("MasterUsername", "MasterUserPassword", "TdeCredentialPassword");
 
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
 
@@ -234,6 +243,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.GeneralServiceException),
                     InvalidSubnetException.class)
+            .build();
+
+    protected static final ErrorRuleSet DB_INSTANCE_FETCH_ENGINE_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    CfnInvalidRequestException.class)
             .build();
 
     public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
@@ -333,6 +348,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbSnapshotAlreadyExistsException.class)
             .build();
 
+    protected static final ResourceTypeSchema resourceTypeSchema = ResourceTypeSchema.load(new Configuration().resourceSchemaJsonObject());
+
     public BaseHandlerStd(final HandlerConfig config) {
         super();
         this.config = config;
@@ -367,8 +384,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -377,15 +393,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final Logger logger
+            final RequestLogger logger
     ) {
+        this.logger = logger;
         try {
             validateRequest(request);
         } catch (RequestValidationException exception) {
             return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
         }
 
-        return handleRequest(proxy, new ValidatedRequest<ResourceModel>(request), context, rdsProxyClient, ec2ProxyClient, logger);
+        return handleRequest(proxy, new ValidatedRequest<ResourceModel>(request), context, rdsProxyClient, ec2ProxyClient);
     }
 
     @Override
@@ -408,7 +425,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new RdsClientProvider()::getClient))),
                         new VersionedProxyClient<Ec2Client>()
                                 .register(ApiVersion.DEFAULT, new LoggingProxyClient<>(requestLogger, proxy.newProxy(new Ec2ClientProvider()::getClient))),
-                        logger
+                        requestLogger
                 ));
     }
 
@@ -418,6 +435,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        logger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequestV12(
                         request.getPreviousResourceState(),
@@ -487,12 +507,56 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return response.dbInstances().get(0);
     }
 
+    protected DBInstance fetchDBInstance(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String dbInstanceIdentifier
+    ) {
+        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstanceByDBInstanceIdentifierRequest(dbInstanceIdentifier),
+                rdsProxyClient.client()::describeDBInstances
+        );
+        return response.dbInstances().get(0);
+    }
+
+    protected DBInstance fetchDBInstanceByResourceId(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String resourceId
+    ) {
+        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbInstanceByResourceIdRequest(resourceId),
+                rdsProxyClient.client()::describeDBInstances
+        );
+        return response.dbInstances().get(0);
+    }
+
+    protected DBInstanceAutomatedBackup fetchAutomaticBackup(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String automaticBackupArn
+    ) {
+        final DescribeDbInstanceAutomatedBackupsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDBInstanceAutomaticBackup(automaticBackupArn),
+                rdsProxyClient.client()::describeDBInstanceAutomatedBackups
+        );
+        return response.dbInstanceAutomatedBackups().get(0);
+    }
+
     protected DBCluster fetchDBCluster(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
         final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbClustersRequest(model),
+                rdsProxyClient.client()::describeDBClusters
+        );
+        return response.dbClusters().get(0);
+    }
+
+    protected DBCluster fetchDBCluster(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final String dbClusterIdentifier
+    ) {
+        final DescribeDbClustersResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbClusterRequest(dbClusterIdentifier),
                 rdsProxyClient.client()::describeDBClusters
         );
         return response.dbClusters().get(0);
@@ -507,6 +571,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 rdsProxyClient.client()::describeDBSnapshots
         );
         return response.dbSnapshots().get(0);
+    }
+
+    protected DBClusterSnapshot fetchDBClusterSnapshot(
+            final ProxyClient<RdsClient> rdsProxyClient,
+            final ResourceModel model
+    ) {
+        final DescribeDbClusterSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                Translator.describeDbClusterSnapshotsRequest(model),
+                rdsProxyClient.client()::describeDBClusterSnapshots
+        );
+        return response.dbClusterSnapshots().get(0);
     }
 
     protected SecurityGroup fetchSecurityGroup(
@@ -595,7 +670,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoTerminalStatus(dbInstance);
 
-        return isDBInstanceAvailable(dbInstance) &&
+        final boolean isDBInstanceStabilizedAfterMutateResult = isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
                 isNoPendingChanges(dbInstance) &&
@@ -603,6 +678,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isVpcSecurityGroupsActive(dbInstance) &&
                 isDomainMembershipsJoined(dbInstance) &&
                 isMasterUserSecretStabilized(dbInstance);
+
+        logger.log(String.format("isDBInstanceStabilizedAfterMutate: %b", isDBInstanceStabilizedAfterMutateResult),
+                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
+                        "isReplicationComplete", isReplicationComplete(dbInstance),
+                        "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
+                        "isNoPendingChanges", isNoPendingChanges(dbInstance),
+                        "isCaCertificateChangesApplied", isCaCertificateChangesApplied(dbInstance, model),
+                        "isVpcSecurityGroupsActive", isVpcSecurityGroupsActive(dbInstance),
+                        "isDomainMembershipsJoined", isDomainMembershipsJoined(dbInstance),
+                        "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbInstance)),
+                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterMutate method will be repeatedly" +
+                        " called with a backoff mechanism after the modify call until it returns true. This" +
+                        " process will continue until all included flags are true."));
+
+        return isDBInstanceStabilizedAfterMutateResult;
     }
 
     protected boolean isInstanceStabilizedAfterReplicationStop(final ProxyClient<RdsClient> rdsProxyClient,
@@ -635,10 +725,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoTerminalStatus(dbInstance);
 
-        return isDBInstanceAvailable(dbInstance) &&
+        final boolean isDBClusterParameterGroupStabilized = !isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model);
+        final boolean isDBInstanceStabilizedAfterReboot = isDBInstanceAvailable(dbInstance) &&
                 isDBParameterGroupInSync(dbInstance) &&
                 isOptionGroupInSync(dbInstance) &&
-                (!isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model));
+                isDBClusterParameterGroupStabilized;
+
+        logger.log(String.format("isDBInstanceStabilizedAfterReboot: %b", isDBInstanceStabilizedAfterReboot),
+                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
+                        "isDBParameterGroupInSync", isDBParameterGroupInSync(dbInstance),
+                        "isOptionGroupInSync", isOptionGroupInSync(dbInstance),
+                        "isDBClusterParameterGroupStabilized", isDBClusterParameterGroupStabilized),
+                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterReboot method will be repeatedly" +
+                        " called with a backoff mechanism after the reboot call until it returns true. This" +
+                        " process will continue until all included flags are true."));
+
+        return isDBInstanceStabilizedAfterReboot;
     }
 
     boolean isDBInstanceAvailable(final DBInstance dbInstance) {
@@ -962,7 +1064,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
+                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(tagsToAdd, tagsToRemove))
             );
         }
 
