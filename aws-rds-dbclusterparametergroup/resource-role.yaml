@@ -30,6 +30,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "iam:CreateServiceLinkedRole"
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBClusterParameterGroup"
                 - "rds:DeleteDBClusterParameterGroup"
