@@ -9,6 +9,7 @@ import software.amazon.rds.common.handler.TaggingContext;
 @lombok.EqualsAndHashCode(callSuper = true)
 public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider {
     private TaggingContext taggingContext;
+    private String optionGroupGroupArn;
 
     public CallbackContext() {
         super();
