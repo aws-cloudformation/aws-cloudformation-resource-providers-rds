@@ -137,9 +137,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(
                                     Tagging.getUpdateTagsAccessDeniedRuleSet(
                                             tagsToAdd,
-                                            tagsToRemove,
-                                            Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET,
-                                            Tagging.RESOURCE_TAG_ERROR_RULE_SET
+                                            tagsToRemove
                                     )
                             )
             );

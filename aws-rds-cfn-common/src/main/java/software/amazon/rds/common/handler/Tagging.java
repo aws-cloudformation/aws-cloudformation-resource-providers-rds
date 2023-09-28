@@ -22,7 +22,6 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.error.ErrorCode;
@@ -32,7 +31,7 @@ import software.amazon.rds.common.error.ErrorStatus;
 public final class Tagging {
     public static final ErrorRuleSet IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET = ErrorRuleSet
             .extend(ErrorRuleSet.EMPTY_RULE_SET)
-            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+            .withErrorCodes(ErrorStatus.ignore(),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException)
             .build();

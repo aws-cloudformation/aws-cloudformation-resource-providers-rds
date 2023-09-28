@@ -1,8 +1,6 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -178,9 +176,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(
                             Tagging.getUpdateTagsAccessDeniedRuleSet(
                                     tagsToAdd,
-                                    tagsToRemove,
-                                    Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET,
-                                    Tagging.RESOURCE_TAG_ERROR_RULE_SET
+                                    tagsToRemove
                             )
                     )
             );
