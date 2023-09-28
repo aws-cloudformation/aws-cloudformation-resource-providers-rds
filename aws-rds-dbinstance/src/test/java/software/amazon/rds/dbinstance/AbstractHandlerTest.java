@@ -192,6 +192,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String MSG_ALREADY_EXISTS_ERR = "DBInstance already exists";
     protected static final String MSG_NOT_FOUND_ERR = "DBInstance not found";
     protected static final String MSG_GENERIC_ERR = "Error";
+    protected static final String AUTOMATIC_BACKUP_REPLICATION_REGION = "eu-west-1";
+    protected static final String AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER = "eu-west-2";
+
 
     protected static final ResourceModel RESOURCE_MODEL_NO_IDENTIFIER;
     protected static final ResourceModel RESOURCE_MODEL_ALTER;
@@ -852,5 +855,9 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 return captor;
             }
         };
+    }
+
+    protected static String getAutomaticBackupArn(final String region) {
+        return String.format("arn:aws:rds:%s:1234567890:auto-backup:ab-test", region);
     }
 }

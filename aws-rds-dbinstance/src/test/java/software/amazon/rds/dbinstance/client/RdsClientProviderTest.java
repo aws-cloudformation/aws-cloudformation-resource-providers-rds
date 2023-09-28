@@ -11,7 +11,6 @@ import org.apache.commons.io.IOUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -97,5 +96,12 @@ class RdsClientProviderTest {
         // Ensure UserAgent is modified to reflect the resource handler client signature.
         final String userAgent = httpExecuteRequest.httpRequest().headers().get("User-Agent").get(0);
         Assertions.assertThat(userAgent).startsWith(SDK_CLIENT_USER_AGENT_PREFIX);
+    }
+
+    @Test
+    public void test_getClientForRegion() {
+        final RdsClient client = new RdsClientProvider().getClientForRegion("eu-west-1");
+        Assertions.assertThat(client.serviceClientConfiguration().region().id()).isEqualTo("eu-west-1");
+        Assertions.assertThat(client).isNotNull();
     }
 }

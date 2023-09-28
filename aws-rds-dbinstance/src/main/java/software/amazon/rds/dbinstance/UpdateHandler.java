@@ -151,6 +151,30 @@ public class UpdateHandler extends BaseHandlerStd {
                                 updateAssociatedRoles(proxy, rdsClient, progress, previousRoles, desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles)
                 )
+                .then(progress -> Commons.execOnce(progress, () -> {
+                    if ((ResourceModelHelper.shouldStopAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())
+                            || ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState()))
+                            && StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn())) {
+                        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                        callbackContext.setDbInstanceArn(dbInstance.dbInstanceArn());
+                    }
+                    return progress;
+                    },  (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {}))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                            if (ResourceModelHelper.shouldStopAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                                return stopAutomaticBackupReplicationInRegion(callbackContext.getDbInstanceArn(), proxy, progress, rdsProxyClient.defaultClient(),
+                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getPreviousResourceState()));
+                            }
+                            return progress;},
+                        CallbackContext::isAutomaticBackupReplicationStopped, CallbackContext::setAutomaticBackupReplicationStopped))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                            if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                                return startAutomaticBackupReplicationInRegion(callbackContext.getDbInstanceArn(), proxy, progress, rdsProxyClient.defaultClient(),
+                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState()));
+                            }
+                            return progress;
+                        },
+                        CallbackContext::isAutomaticBackupReplicationStarted, CallbackContext::setAutomaticBackupReplicationStarted))
                 .then(progress -> updateTags(proxy, rdsClient, progress, previousTags, desiredTags))
                 .then(progress -> {
                     final ResourceModel model = request.getDesiredResourceState();
