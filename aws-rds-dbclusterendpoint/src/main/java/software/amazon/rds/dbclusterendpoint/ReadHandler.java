@@ -1,5 +1,8 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import java.util.Optional;
+import java.util.Set;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -11,9 +14,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-
-import java.util.Optional;
-import java.util.Set;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -73,7 +73,7 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.STACK_TAGS_ERROR_RULE_SET)
+                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
             );
         }
         return ProgressEvent.success(model, context);
