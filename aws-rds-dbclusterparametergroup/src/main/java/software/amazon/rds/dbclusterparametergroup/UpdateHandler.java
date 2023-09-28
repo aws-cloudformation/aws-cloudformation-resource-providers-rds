@@ -1,8 +1,11 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.util.ArrayList;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -49,16 +52,23 @@ public class UpdateHandler extends BaseHandlerStd {
         final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
         final boolean shouldUpdateParameters = !DifferenceUtils.diff(previousParams, desiredParams).isEmpty();
 
+        final Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
+
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> {
                     if (shouldUpdateParameters) {
-                        return resetAllParameters(progress, proxy, proxyClient);
+                        return describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters, logger);
+                    }
+                    return progress;
+                }).then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+                .then(progress -> {
+                    if (shouldUpdateParameters) {
+                        return resetParameters(progress, proxy, proxyClient, currentClusterParameters, desiredParams);
                     }
                     return progress;
                 }).then(progress -> Commons.execOnce(progress, () -> {
                     if (shouldUpdateParameters) {
-                        return applyParameters(proxy, proxyClient, progress, desiredParams, logger);
+                        return applyParameters(proxy, proxyClient, progress, currentClusterParameters, logger);
                     }
                     return progress;
                 }, CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))

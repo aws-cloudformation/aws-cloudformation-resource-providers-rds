@@ -1,9 +1,12 @@
 package software.amazon.rds.dbclusterparametergroup;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import com.amazonaws.util.StringUtils;
+import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -45,10 +48,11 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
+        final Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
-                .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
+                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbClusterParameterGroup, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())
@@ -56,7 +60,10 @@ public class CreateHandler extends BaseHandlerStd {
                             .build();
                     return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
-                .then(progress -> Commons.execOnce(progress, () -> applyParameters(proxy, proxyClient, progress, desiredParams, logger),
+                .then(progress -> Commons.execOnce(progress, () ->
+                                describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters, logger)
+                                        .then(p -> applyParameters(proxy, proxyClient, progress, currentClusterParameters, logger)
+                        ),
                         CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }

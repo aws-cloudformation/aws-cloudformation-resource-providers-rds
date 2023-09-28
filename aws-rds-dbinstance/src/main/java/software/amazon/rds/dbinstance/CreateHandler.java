@@ -3,12 +3,17 @@ package software.amazon.rds.dbinstance;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
@@ -22,12 +27,12 @@ import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
@@ -65,8 +70,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
@@ -171,6 +175,22 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> Commons.execOnce(progress, () ->
                                 updateAssociatedRoles(proxy, rdsProxyClient.defaultClient(), progress, Collections.emptyList(), desiredRoles),
                         CallbackContext::isUpdatedRoles, CallbackContext::setUpdatedRoles))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                    if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())
+                            && StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn())) {
+                        final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                        callbackContext.setDbInstanceArn(dbInstance.dbInstanceArn());
+                    }
+                    return progress;
+                },  (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {}))
+                .then(progress -> Commons.execOnce(progress, () -> {
+                            if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                                return startAutomaticBackupReplicationInRegion(callbackContext.getDbInstanceArn(), proxy, progress, rdsProxyClient.defaultClient(),
+                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState()));
+                            }
+                            return progress;
+                        },
+                        CallbackContext::isAutomaticBackupReplicationStarted, CallbackContext::setAutomaticBackupReplicationStarted))
                 .then(progress -> {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
                     return Commons.reportResourceDrift(
@@ -183,7 +203,7 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
-        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
+        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.createWithTaggingFallback(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
     }
 
     private String fetchEngine(final ProxyClient<RdsClient> client, final ResourceModel model) {
@@ -222,6 +242,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        logger.log("API version 12 create detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
                         "rds::create-db-instance-v12",
                         rdsProxyClient,
@@ -276,6 +299,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        logger.log("API version 12 restore detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                        " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
                         "rds::restore-db-instance-from-snapshot-v12",
                         rdsProxyClient,
@@ -384,6 +410,9 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        logger.log("API version 12 modify after create detected",
+                "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
+                        " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceAfterCreateRequestV12(request.getDesiredResourceState()))
                 .backoffDelay(config.getBackoff())

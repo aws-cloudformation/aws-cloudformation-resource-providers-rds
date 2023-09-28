@@ -130,6 +130,10 @@
       "type": "boolean",
       "description": "A value that indicates whether minor engine upgrades are applied automatically to the DB instance during the maintenance window. By default, minor engine upgrades are applied automatically."
     },
+    "AutomaticBackupReplicationRegion": {
+      "type": "string",
+      "description": "Enables replication of automated backups to a different Amazon Web Services Region."
+    },
     "AvailabilityZone": {
       "type": "string",
       "description": "The Availability Zone (AZ) where the database will be created. For information on AWS Regions and Availability Zones."
@@ -232,9 +236,28 @@
       "type": "string",
       "description": "The Active Directory directory ID to create the DB instance in. Currently, only MySQL, Microsoft SQL Server, Oracle, and PostgreSQL DB instances can be created in an Active Directory Domain."
     },
+    "DomainAuthSecretArn": {
+      "type": "string",
+      "description": "The ARN for the Secrets Manager secret with the credentials for the user joining the domain."
+    },
+    "DomainDnsIps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The IPv4 DNS IP addresses of your primary and secondary Active Directory domain controllers."
+    },
+    "DomainFqdn": {
+      "type": "string",
+      "description": "The fully qualified domain name (FQDN) of an Active Directory domain."
+    },
     "DomainIAMRoleName": {
       "type": "string",
       "description": "Specify the name of the IAM role to be used when making API calls to the Directory Service."
+    },
+    "DomainOu": {
+      "type": "string",
+      "description": "The Active Directory organizational unit for your DB instance to join."
     },
     "EnableCloudwatchLogsExports": {
       "type": "array",
@@ -559,6 +582,7 @@
         "rds:RebootDBInstance",
         "rds:RestoreDBInstanceFromDBSnapshot",
         "rds:RestoreDBInstanceToPointInTime",
+        "rds:StartDBInstanceAutomatedBackupsReplication",
         "secretsmanager:CreateSecret",
         "secretsmanager:TagResource"
       ],
@@ -603,6 +627,8 @@
         "rds:RebootDBInstance",
         "rds:RemoveRoleFromDBInstance",
         "rds:RemoveTagsFromResource",
+        "rds:StartDBInstanceAutomatedBackupsReplication",
+        "rds:StopDBInstanceAutomatedBackupsReplication",
         "secretsmanager:CreateSecret",
         "secretsmanager:TagResource"
       ],

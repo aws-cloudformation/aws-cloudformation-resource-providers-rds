@@ -121,11 +121,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     progress,
                     exception,
                     DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET.extendWith(
-                            Tagging.bestEffortErrorRuleSet(
+                            Tagging.getUpdateTagsAccessDeniedRuleSet(
                                     tagsToAdd,
-                                    tagsToRemove,
-                                    Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
-                                    Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
+                                    tagsToRemove
                             )
                     )
             );
