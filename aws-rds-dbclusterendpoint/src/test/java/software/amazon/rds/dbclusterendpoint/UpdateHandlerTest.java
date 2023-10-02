@@ -1,12 +1,24 @@
 package software.amazon.rds.dbclusterendpoint;
 
-import lombok.Getter;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
@@ -28,17 +40,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.test.common.core.HandlerName;
-
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest extends AbstractHandlerTest {
@@ -264,7 +265,7 @@ null,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
+                expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));
@@ -291,7 +292,7 @@ null,
                 () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
+                expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBClusterEndpoint(any(ModifyDbClusterEndpointRequest.class));

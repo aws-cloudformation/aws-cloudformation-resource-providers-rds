@@ -1,5 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import java.util.HashSet;
+
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -11,8 +13,6 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.IdentifierFactory;
-
-import java.util.HashSet;
 
 public class CreateHandler extends BaseHandlerStd {
     private final IdentifierFactory dbClusterEndpointIdentifierFactory = new IdentifierFactory(
@@ -54,7 +54,7 @@ public class CreateHandler extends BaseHandlerStd {
                     .toString());
         }
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbClusterEndpoint, progress, allTags))
+                .then(progress -> Tagging.safeCreate(proxy, proxyClient, this::createDbClusterEndpoint, progress, allTags))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                                     .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
