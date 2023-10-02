@@ -1,5 +1,8 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import java.time.Duration;
+import java.util.Optional;
+
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
 import software.amazon.awssdk.services.rds.model.DbClusterEndpointAlreadyExistsException;
@@ -23,9 +26,6 @@ import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-
-import java.time.Duration;
-import java.util.Optional;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
@@ -111,7 +111,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(tagsToAdd, tagsToRemove))
+                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
             );
         }
         return progress;

@@ -60,7 +60,7 @@ _Required_: No
 
 _Type_: String
 
-_Maximum_: <code>255</code>
+_Maximum Length_: <code>255</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 

@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.error.ErrorCode;
@@ -29,27 +30,26 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 
 public final class Tagging {
-    public static final ErrorRuleSet IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET = ErrorRuleSet
+    public static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET = ErrorRuleSet
             .extend(ErrorRuleSet.EMPTY_RULE_SET)
-            .withErrorCodes(ErrorStatus.ignore(),
+            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException)
             .build();
 
-    public static final ErrorRuleSet STACK_TAGS_ERROR_RULE_SET = ErrorRuleSet
+    public static final ErrorRuleSet SOFT_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet
             .extend(ErrorRuleSet.EMPTY_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.UnauthorizedTaggingOperation),
+            .withErrorCodes(ErrorStatus.ignore(),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException
             ).build();
 
-    public static final ErrorRuleSet RESOURCE_TAG_ERROR_RULE_SET = ErrorRuleSet
+    public static final ErrorRuleSet HARD_FAIL_TAG_ERROR_RULE_SET = ErrorRuleSet
             .extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
                     ErrorCode.AccessDenied,
                     ErrorCode.AccessDeniedException
             ).build();
-    public static final String RDS_ADD_TAGS_TO_RESOURCE_ACTION = "rds:AddTagsToResource";
 
     public static TagSet exclude(final TagSet from, final TagSet what) {
         final Set<Tag> systemTags = new LinkedHashSet<>(from.getSystemTags());
@@ -184,52 +184,56 @@ public final class Tagging {
                 .build();
     }
 
-    public static ErrorRuleSet getUpdateTagsAccessDeniedRuleSet(
+    public static ErrorRuleSet bestEffortErrorRuleSet(
             final TagSet tagsToAdd,
             final TagSet tagsToRemove
     ) {
-        return getUpdateTagsAccessDeniedRuleSet(tagsToAdd, tagsToRemove, STACK_TAGS_ERROR_RULE_SET, RESOURCE_TAG_ERROR_RULE_SET);
+        return bestEffortErrorRuleSet(tagsToAdd, tagsToRemove, SOFT_FAIL_TAG_ERROR_RULE_SET, HARD_FAIL_TAG_ERROR_RULE_SET);
     }
 
-    public static ErrorRuleSet getUpdateTagsAccessDeniedRuleSet(
+    public static ErrorRuleSet bestEffortErrorRuleSet(
             final TagSet tagsToAdd,
             final TagSet tagsToRemove,
-            final ErrorRuleSet stackTagsErrorRuleSet,
-            final ErrorRuleSet resourceTagsErrorRuleSet
+            final ErrorRuleSet softFailErrorRuleSet,
+            final ErrorRuleSet hardFailErrorRuleSet
     ) {
-        /* If the tagging operation comes across an AccessDenied error, we will throw an UnauthorizedTaggingOperation
-        errorCode for stack level tags. For Resource tags, if they are included, we will throw an AccessDenied error.
-        This is done to ensure backward compatibility. */
+        // Only soft fail if the customer provided no resource-level tags
         if (tagsToAdd.getResourceTags().isEmpty() && tagsToRemove.getResourceTags().isEmpty()) {
-            return stackTagsErrorRuleSet;
+            return softFailErrorRuleSet;
         }
-        return resourceTagsErrorRuleSet;
+        return hardFailErrorRuleSet;
     }
 
-    public static <M, C extends TaggingContext.Provider> ProgressEvent<M, C> createWithTaggingFallback(
+    public static <M, C extends TaggingContext.Provider> ProgressEvent<M, C> safeCreate(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final HandlerMethod<M, C> handlerMethod,
             final ProgressEvent<M, C> progress,
             final Tagging.TagSet allTags
     ) {
-        final ProgressEvent<M, C> allTagsResult = handlerMethod.invoke(proxy, rdsProxyClient, progress, allTags);
-        if (allTagsResult.isFailed()) {
-            if (isUnauthorizedTaggingFailure(allTagsResult, allTags)) {
-                allTagsResult.setErrorCode(HandlerErrorCode.UnauthorizedTaggingOperation);
+        return progress.then(p -> {
+            final C context = p.getCallbackContext();
+            if (context.getTaggingContext().isSoftFailTags()) {
+                return p;
             }
+            final ProgressEvent<M, C> allTagsResult = handlerMethod.invoke(proxy, rdsProxyClient, p, allTags);
+            if (allTagsResult.isFailed()) {
+                if (HandlerErrorCode.AccessDenied.equals(allTagsResult.getErrorCode())) {
+                    context.getTaggingContext().setSoftFailTags(true);
+                    return ProgressEvent.progress(allTagsResult.getResourceModel(), context);
+                }
+                return allTagsResult;
+            }
+            allTagsResult.getCallbackContext().getTaggingContext().setAddTagsComplete(true);
             return allTagsResult;
-        }
-        allTagsResult.getCallbackContext().getTaggingContext().setAddTagsComplete(true);
-        return allTagsResult;
-    }
-
-    private static <M, C extends TaggingContext.Provider> boolean isUnauthorizedTaggingFailure(final ProgressEvent<M, C> allTagsResult,
-                                                                                               final TagSet allTags) {
-        return HandlerErrorCode.AccessDenied.equals(allTagsResult.getErrorCode()) &&
-                        allTags.getResourceTags().isEmpty() &&
-                        allTagsResult.getMessage() != null &&
-                        allTagsResult.getMessage().contains(RDS_ADD_TAGS_TO_RESOURCE_ACTION);
+        }).then(p -> {
+            final C context = p.getCallbackContext();
+            if (!context.getTaggingContext().isSoftFailTags()) {
+                return p;
+            }
+            final Tagging.TagSet systemTags = Tagging.TagSet.builder().systemTags(allTags.getSystemTags()).build();
+            return handlerMethod.invoke(proxy, rdsProxyClient, p, systemTags);
+        });
     }
 
     private static void addToMapIfAbsent(Map<String, Tag> allTags, Collection<Tag> tags) {

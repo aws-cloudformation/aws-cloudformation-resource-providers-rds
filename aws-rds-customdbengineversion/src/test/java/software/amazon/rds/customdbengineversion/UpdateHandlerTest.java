@@ -215,9 +215,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_HardFailWithUnauthorizedTagsOnRemove() {
-        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
-                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
+    public void handleRequest_SoftFailingTaggingOnRemoveTags() {
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -228,22 +226,19 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 context,
                 ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
+                        .previousSystemTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .systemTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
                 () -> DB_ENGINE_VERSION_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER().status("inactive").build(),
-                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 
     @Test
-    public void handleRequest_HardFailWithUnauthorizedTagsOnAdd() {
-        when(rdsProxy.client().modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class)))
-                .thenReturn(ModifyCustomDbEngineVersionResponse.builder().build());
+    public void handleRequest_SoftFailingTaggingOnAddTags() {
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenThrow(
                         RdsException.builder().awsErrorDetails(AwsErrorDetails.builder()
@@ -258,11 +253,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .systemTags(Translator.translateTagsToRequest(TAG_LIST)),
                 () -> DB_ENGINE_VERSION_AVAILABLE,
                 () -> RESOURCE_MODEL_BUILDER().build(),
-                () -> RESOURCE_MODEL_BUILDER().status("inactive").build(),
-                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).modifyCustomDBEngineVersion(any(ModifyCustomDbEngineVersionRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 }

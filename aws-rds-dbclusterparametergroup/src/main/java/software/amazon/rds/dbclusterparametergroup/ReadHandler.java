@@ -89,7 +89,7 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET)
             );
         }
         return ProgressEvent.success(model, context);
