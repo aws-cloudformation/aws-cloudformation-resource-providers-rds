@@ -16,11 +16,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.amazonaws.arn.Arn;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
+import com.amazonaws.arn.Arn;
 import com.google.common.annotations.VisibleForTesting;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
@@ -152,6 +152,11 @@ public class Translator {
             builder.storageThroughput(model.getStorageThroughput());
             builder.storageType(model.getStorageType());
         }
+
+        if (ResourceModelHelper.isMySQL(model)) {
+            builder.dbParameterGroupName(model.getDBParameterGroupName());
+        }
+
         return builder.build();
     }
 

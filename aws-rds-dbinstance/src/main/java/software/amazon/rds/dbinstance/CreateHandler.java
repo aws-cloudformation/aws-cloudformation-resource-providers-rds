@@ -23,11 +23,13 @@ import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
+import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
@@ -70,6 +72,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
         final boolean isMultiAZ = BooleanUtils.isTrue(model.getMultiAZ());
+        final String currentRegion = request.getRegion();
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
             model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
@@ -89,7 +92,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> {
                     if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
                         try {
-                            model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress.getResourceModel()));
+                            model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress.getResourceModel(), currentRegion, proxy));
                         } catch (Exception e) {
                             return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET);
                         }
@@ -201,7 +204,10 @@ public class CreateHandler extends BaseHandlerStd {
         return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
     }
 
-    private String fetchEngine(final ProxyClient<RdsClient> client, final ResourceModel model) {
+    private String fetchEngine(final ProxyClient<RdsClient> client,
+                               final ResourceModel model,
+                               final String currentRegion,
+                               final AmazonWebServicesClientProxy proxy) {
         if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
             return fetchDBSnapshot(client, model).engine();
         }
@@ -210,10 +216,29 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         if (ResourceModelHelper.isDBInstanceReadReplica(model)) {
-            return fetchDBInstance(client, model.getSourceDBInstanceIdentifier()).engine();
+            final String sourceDBInstanceArn = model.getSourceDBInstanceIdentifier();
+            final String sourceDBInstance = ResourceModelHelper.isValidArn(sourceDBInstanceArn) ?
+                    ResourceModelHelper.getResourceNameFromArn(sourceDBInstanceArn) : sourceDBInstanceArn;
+            if (ResourceModelHelper.isCrossRegionDBInstanceReadReplica(model, currentRegion)) {
+                final String sourceRegion = ResourceModelHelper.getRegionFromArn(sourceDBInstanceArn);
+                final ProxyClient<RdsClient> sourceRegionClient = new LoggingProxyClient<>(logger,
+                        proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(sourceRegion)));
+                return fetchDBInstance(sourceRegionClient, sourceDBInstance).engine();
+            } else {
+                return fetchDBInstance(client, sourceDBInstance ).engine();
+            }
         }
         if (ResourceModelHelper.isDBClusterReadReplica(model)) {
-            return fetchDBCluster(client, model.getSourceDBClusterIdentifier()).engine();
+            final String sourceDBClusterArn = model.getSourceDBClusterIdentifier();
+            final String sourceDBCluster = ResourceModelHelper.isValidArn(sourceDBClusterArn) ?
+                    ResourceModelHelper.getResourceNameFromArn(sourceDBClusterArn) : sourceDBClusterArn;
+            if (ResourceModelHelper.isCrossRegionDBClusterReadReplica(model, currentRegion)) {
+                final String sourceRegion = ResourceModelHelper.getRegionFromArn(sourceDBClusterArn);
+                final ProxyClient<RdsClient> sourceRegionClient = proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(sourceRegion));
+                return fetchDBCluster(sourceRegionClient, sourceDBCluster).engine();
+            } else {
+                return fetchDBCluster(client, sourceDBCluster).engine();
+            }
         }
 
         if (ResourceModelHelper.isRestoreToPointInTime(model)) {

@@ -281,8 +281,23 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void test_createReadReplicaRequest_parameterGroupNotSet() {
+    public void test_createReadReplicaRequest_parameterGroupSetForMySql() {
         final ResourceModel model = RESOURCE_MODEL_BLDR().build();
+
+        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
+        Assertions.assertNotNull(request.dbParameterGroupName());
+    }
+
+    @Test
+    public void test_createReadReplicaRequest_parameterGroupNotSetForSqlServer() {
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .engine(ENGINE_SQLSERVER_SE)
+                .dBSnapshotIdentifier("snapshot")
+                .storageType("gp3")
+                .iops(100)
+                .storageThroughput(200)
+                .allocatedStorage("300")
+                .build();
 
         final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
         Assertions.assertNull(request.dbParameterGroupName());
