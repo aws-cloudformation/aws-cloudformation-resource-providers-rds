@@ -58,6 +58,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterPara
 
     protected static final DBClusterParameterGroup DB_CLUSTER_PARAMETER_GROUP;
     protected static final List<Tag> TAG_SET;
+    protected static final List<Tag> TAG_SET_ALTER;
+
     protected static final Parameter PARAM_1, PARAM_2;
 
     protected static final String ARN = "arn";
@@ -65,6 +67,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterPara
     protected static final String FAMILY = "default.aurora.5";
     protected static final String TAG_KEY = "key";
     protected static final String TAG_VALUE = "value";
+    protected static final String TAG_VALUE_ALTER = "value-alter";
+
     protected static final String UPDATED_DESCRIPTION = "updated description";
 
     static {
@@ -108,6 +112,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterPara
                 .build();
 
         TAG_SET = Lists.newArrayList(Tag.builder().key(TAG_KEY).value(TAG_VALUE).build());
+        TAG_SET_ALTER = Lists.newArrayList(Tag.builder().key(TAG_KEY).value(TAG_VALUE_ALTER).build());
 
         DB_CLUSTER_PARAMETER_GROUP = DBClusterParameterGroup.builder()
                 .dbClusterParameterGroupArn(ARN)

@@ -13,7 +13,10 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.RESOURCE_UPDATED_AT;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
@@ -295,14 +298,14 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdatedRoles(true);
         context.setStorageAllocated(true);
 
+        List<Tag> updatedTags = new ArrayList<>(TAG_LIST);
+        updatedTags.add(Tag.builder().key("updated").value("tag").build());
+
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(Collections.emptyMap())
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().tags(updatedTags).build(),
                 expectSuccess()
         );
 
@@ -323,12 +326,9 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().tags(Collections.emptyList()).build(),
                 expectSuccess()
         );
 
