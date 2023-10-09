@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.Sets;
-import javafx.util.Pair;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
