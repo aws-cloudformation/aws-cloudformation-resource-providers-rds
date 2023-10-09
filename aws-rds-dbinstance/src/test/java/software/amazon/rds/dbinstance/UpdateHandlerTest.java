@@ -13,7 +13,11 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.RESOURCE_UPDATED_AT;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
@@ -295,18 +299,53 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setUpdatedRoles(true);
         context.setStorageAllocated(true);
 
+        List<Tag> updatedTags = new ArrayList<>(TAG_LIST);
+        updatedTags.add(Tag.builder().key("updated").value("tag").build());
+
         test_handleRequest_base(
                 context,
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .previousResourceTags(Collections.emptyMap())
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().tags(updatedTags).build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_ResourceTagsPrioritizedOverStackTags() {
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setStorageAllocated(true);
+
+        List<Tag> updatedTags = new ArrayList<>(TAG_LIST);
+        updatedTags.add(Tag.builder().key("tag-key").value("resource-level").build());
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(Collections.emptyMap())
+                        .desiredResourceTags(Translator.translateTagsToRequest(Collections.singleton(
+                                Tag.builder().key("tag-key").value("stack-level").build()
+                        ))),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().tags(updatedTags).build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client()).addTagsToResource(captor.capture());
+        Assertions.assertThat(captor.getValue().tags())
+                .containsExactlyInAnyOrder(
+                        software.amazon.awssdk.services.rds.model.Tag .builder().key("tag-key").value("resource-level").build());
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
@@ -323,16 +362,69 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 context,
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().build(),
+                () -> RESOURCE_MODEL_BLDR().tags(Collections.emptyList()).build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_StackLevelTagsRemovalDoesNotRemoveTagsIfTheyExistOnResourceLevel() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setStorageAllocated(true);
+
+        test_handleRequest_base(
+                context,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
-                        .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_EMPTY)),
+                        .desiredResourceTags(Collections.emptyMap()),
                 () -> DB_INSTANCE_ACTIVE,
                 () -> RESOURCE_MODEL_BLDR().build(),
                 () -> RESOURCE_MODEL_BLDR().build(),
                 expectSuccess()
         );
 
+        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_FallBackToStackLevelTagsIfResourceLevelWasRemoved() {
+        final AddTagsToResourceResponse addTagsToResourceResponse = AddTagsToResourceResponse.builder().build();
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(addTagsToResourceResponse);
+
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setStorageAllocated(true);
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceTags(Translator.translateTagsToRequest(Collections.singleton(
+                                Tag.builder().key("tag-key").value("stack-level").build())))
+                        .desiredResourceTags(Translator.translateTagsToRequest(Collections.singleton(
+                                Tag.builder().key("tag-key").value("stack-level").build()))),
+                () -> DB_INSTANCE_ACTIVE,
+                () -> RESOURCE_MODEL_BLDR().tags(Collections.singletonList(Tag.builder().key("tag-key").value("resource-level").build())).build(),
+                () -> RESOURCE_MODEL_BLDR().tags(Collections.emptyList()).build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(rdsProxy.client()).addTagsToResource(captor.capture());
+        Assertions.assertThat(captor.getValue().tags())
+                .containsExactlyInAnyOrder(
+                        software.amazon.awssdk.services.rds.model.Tag .builder().key("tag-key").value("stack-level").build());
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 

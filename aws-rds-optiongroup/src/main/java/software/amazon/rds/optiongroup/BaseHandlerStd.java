@@ -1,13 +1,13 @@
 package software.amazon.rds.optiongroup;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.Collection;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
 import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.OptionGroupQuotaExceededException;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -119,12 +119,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         DEFAULT_OPTION_GROUP_ERROR_RULE_SET
                 ))
                 .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
-                    final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-                    final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+                    final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
+                    final Collection<Tag> effectiveDesiredTags = Tagging.translateTagsToSdk(desiredTags);
 
-                    if (tagsToRemove.isEmpty() && tagsToAdd.isEmpty()) {
+                    final Collection<Tag> tagsToRemove = Tagging.exclude(effectivePreviousTags, effectiveDesiredTags);
+                    final Collection<Tag> tagsToAdd = Tagging.exclude(effectiveDesiredTags, effectivePreviousTags);
+
+                    if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
                         return progress;
                     }
+
+                    final Tagging.TagSet rulesetTagsToAdd = Tagging.exclude(desiredTags, previousTags);
+                    final Tagging.TagSet rulesetTagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
 
                     final String arn = describeResponse.optionGroupsList().stream().findFirst().get().optionGroupArn();
                     try {
@@ -136,8 +143,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 exception,
                                 DEFAULT_OPTION_GROUP_ERROR_RULE_SET.extendWith(
                                         Tagging.bestEffortErrorRuleSet(
-                                                tagsToAdd,
-                                                tagsToRemove,
+                                                rulesetTagsToAdd,
+                                                rulesetTagsToRemove,
                                                 Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
                                                 Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
                                         )
@@ -146,13 +153,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     }
                     return ProgressEvent.progress(resourceModel, ctx);
                 });
-    }
-
-    protected List<Tag> listTags(final ProxyClient<RdsClient> proxyClient, final String arn) {
-        final ListTagsForResourceResponse listTagsForResourceResponse = proxyClient.injectCredentialsAndInvokeV2(
-                Translator.listTagsForResourceRequest(arn),
-                proxyClient.client()::listTagsForResource
-        );
-        return Translator.translateTagsFromSdk(listTagsForResourceResponse.tagList());
     }
 }

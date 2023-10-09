@@ -73,6 +73,7 @@ import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAz
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
@@ -1040,12 +1041,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags
     ) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+
+        final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
+        final Collection<Tag> effectiveDesiredTags = Tagging.translateTagsToSdk(desiredTags);
+
+        final Collection<Tag> tagsToRemove = Tagging.exclude(effectivePreviousTags, effectiveDesiredTags);
+        final Collection<Tag> tagsToAdd = Tagging.exclude(effectiveDesiredTags, effectivePreviousTags);
 
         if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
             return progress;
         }
+
+        final Tagging.TagSet rulesetTagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet rulesetTagsToRemove = Tagging.exclude(previousTags, desiredTags);
 
         DBInstance dbInstance;
         try {
@@ -1063,7 +1071,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
+                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(rulesetTagsToAdd, rulesetTagsToRemove))
             );
         }
 

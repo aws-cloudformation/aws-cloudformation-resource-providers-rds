@@ -7,6 +7,7 @@ import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -21,6 +22,8 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+
+import java.util.Collection;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final int DB_SUBNET_GROUP_NAME_LENGTH = 255;
@@ -105,8 +108,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags
     ) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+        final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
+        final Collection<Tag> effectiveDesiredTags = Tagging.translateTagsToSdk(desiredTags);
+
+        final Collection<Tag> tagsToRemove = Tagging.exclude(effectivePreviousTags, effectiveDesiredTags);
+        final Collection<Tag> tagsToAdd = Tagging.exclude(effectiveDesiredTags, effectivePreviousTags);
+
+        if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
+            return progress;
+        }
+
+        final Tagging.TagSet rulesetTagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet rulesetTagsToRemove = Tagging.exclude(previousTags, desiredTags);
 
         if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
             return progress;
@@ -122,8 +135,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     exception,
                     DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET.extendWith(
                             Tagging.bestEffortErrorRuleSet(
-                                    tagsToAdd,
-                                    tagsToRemove,
+                                    rulesetTagsToAdd,
+                                    rulesetTagsToRemove,
                                     Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
                                     Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
                             )
@@ -133,6 +146,4 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         return progress;
     }
-
-
 }

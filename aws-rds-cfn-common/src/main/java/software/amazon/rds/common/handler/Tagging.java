@@ -68,11 +68,21 @@ public final class Tagging {
                 .build();
     }
 
-    public static <K, V> Map<K, V> mergeTags(Map<K, V> tagsMap1, Map<K, V> tagsMap2) {
-        final Map<K, V> result = new LinkedHashMap<>();
-        result.putAll(Optional.ofNullable(tagsMap1).orElse(Collections.emptySortedMap()));
-        result.putAll(Optional.ofNullable(tagsMap2).orElse(Collections.emptySortedMap()));
+    public static Collection<Tag> exclude(final Collection<Tag> from, final Collection<Tag> what) {
+        final Set<Tag> result = new LinkedHashSet<>(from);
+        result.removeAll(what);
         return result;
+    }
+
+
+    public static Set<Tag> translateTagsToSdk(final Collection<Tag> tags) {
+        return Optional.ofNullable(tags).orElse(Collections.emptySet())
+                .stream()
+                .map(tag -> Tag.builder()
+                        .key(tag.key())
+                        .value(tag.value())
+                        .build())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static Collection<Tag> translateTagsToSdk(final TagSet tagSet) {
