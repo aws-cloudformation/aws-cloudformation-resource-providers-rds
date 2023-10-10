@@ -217,27 +217,27 @@ public class CreateHandler extends BaseHandlerStd {
 
         if (ResourceModelHelper.isDBInstanceReadReplica(model)) {
             final String sourceDBInstanceArn = model.getSourceDBInstanceIdentifier();
-            final String sourceDBInstance = ResourceModelHelper.isValidArn(sourceDBInstanceArn) ?
+            final String sourceDBInstanceIdOrArn = ResourceModelHelper.isValidArn(sourceDBInstanceArn) ?
                     ResourceModelHelper.getResourceNameFromArn(sourceDBInstanceArn) : sourceDBInstanceArn;
             if (ResourceModelHelper.isCrossRegionDBInstanceReadReplica(model, currentRegion)) {
                 final String sourceRegion = ResourceModelHelper.getRegionFromArn(sourceDBInstanceArn);
                 final ProxyClient<RdsClient> sourceRegionClient = new LoggingProxyClient<>(logger,
                         proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(sourceRegion)));
-                return fetchDBInstance(sourceRegionClient, sourceDBInstance).engine();
+                return fetchDBInstance(sourceRegionClient, sourceDBInstanceIdOrArn).engine();
             } else {
-                return fetchDBInstance(client, sourceDBInstance ).engine();
+                return fetchDBInstance(client, sourceDBInstanceIdOrArn ).engine();
             }
         }
         if (ResourceModelHelper.isDBClusterReadReplica(model)) {
             final String sourceDBClusterArn = model.getSourceDBClusterIdentifier();
-            final String sourceDBCluster = ResourceModelHelper.isValidArn(sourceDBClusterArn) ?
+            final String sourceDBClusterIdOrArn = ResourceModelHelper.isValidArn(sourceDBClusterArn) ?
                     ResourceModelHelper.getResourceNameFromArn(sourceDBClusterArn) : sourceDBClusterArn;
             if (ResourceModelHelper.isCrossRegionDBClusterReadReplica(model, currentRegion)) {
                 final String sourceRegion = ResourceModelHelper.getRegionFromArn(sourceDBClusterArn);
                 final ProxyClient<RdsClient> sourceRegionClient = proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(sourceRegion));
-                return fetchDBCluster(sourceRegionClient, sourceDBCluster).engine();
+                return fetchDBCluster(sourceRegionClient, sourceDBClusterIdOrArn).engine();
             } else {
-                return fetchDBCluster(client, sourceDBCluster).engine();
+                return fetchDBCluster(client, sourceDBClusterIdOrArn).engine();
             }
         }
 
