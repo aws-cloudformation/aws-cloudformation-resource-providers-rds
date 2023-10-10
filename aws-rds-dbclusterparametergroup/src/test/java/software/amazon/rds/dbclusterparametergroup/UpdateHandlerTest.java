@@ -201,16 +201,16 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         test_handleRequest_base(
                 callbackContext,
-                ResourceHandlerRequest.<ResourceModel>builder()
-                        .desiredResourceTags(translateTagsToMap(TAG_SET)),
                 () -> DBClusterParameterGroup.builder().dbClusterParameterGroupArn(ARN).build(),
                 () -> RESOURCE_MODEL,
-                () -> RESOURCE_MODEL,
+                () -> RESOURCE_MODEL.toBuilder().tags(TAG_SET_ALTER).build(),
                 expectSuccess()
         );
 
         verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
+
     }
 
     @Test

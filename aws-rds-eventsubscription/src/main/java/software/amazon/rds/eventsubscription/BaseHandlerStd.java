@@ -1,5 +1,6 @@
 package software.amazon.rds.eventsubscription;
 
+import java.util.Collection;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -10,6 +11,7 @@ import software.amazon.awssdk.services.rds.model.SnsTopicArnNotFoundException;
 import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.awssdk.services.rds.model.SubscriptionAlreadyExistException;
 import software.amazon.awssdk.services.rds.model.SubscriptionNotFoundException;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -111,12 +113,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+        final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
+        final Collection<Tag> effectiveDesiredTags = Tagging.translateTagsToSdk(desiredTags);
+
+        final Collection<Tag> tagsToRemove = Tagging.exclude(effectivePreviousTags, effectiveDesiredTags);
+        final Collection<Tag> tagsToAdd = Tagging.exclude(effectiveDesiredTags, effectivePreviousTags);
 
         if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
             return progress;
         }
+
+        final Tagging.TagSet rulesetTagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet rulesetTagsToRemove = Tagging.exclude(previousTags, desiredTags);
 
         String arn = progress.getCallbackContext().getEventSubscriptionArn();
         if (arn == null) {
@@ -136,8 +144,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     exception,
                     DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(
                                     Tagging.bestEffortErrorRuleSet(
-                                            tagsToAdd,
-                                            tagsToRemove,
+                                            rulesetTagsToAdd,
+                                            rulesetTagsToRemove,
                                             Tagging.SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
                                             Tagging.HARD_FAIL_TAG_ERROR_RULE_SET
                                     )

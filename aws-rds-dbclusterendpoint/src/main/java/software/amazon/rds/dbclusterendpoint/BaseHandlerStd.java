@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Optional;
 
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterEndpointsRespo
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterEndpointStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -97,12 +99,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final Tagging.TagSet previousTags,
             final Tagging.TagSet desiredTags
     ) {
-        final Tagging.TagSet tagsToAdd = Tagging.exclude(desiredTags, previousTags);
-        final Tagging.TagSet tagsToRemove = Tagging.exclude(previousTags, desiredTags);
+        final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
+        final Collection<Tag> effectiveDesiredTags = Tagging.translateTagsToSdk(desiredTags);
+
+        final Collection<Tag> tagsToRemove = Tagging.exclude(effectivePreviousTags, effectiveDesiredTags);
+        final Collection<Tag> tagsToAdd = Tagging.exclude(effectiveDesiredTags, effectivePreviousTags);
 
         if (tagsToAdd.isEmpty() && tagsToRemove.isEmpty()) {
             return progress;
         }
+
+        final Tagging.TagSet rulesetTagsToAdd = Tagging.exclude(desiredTags, previousTags);
+        final Tagging.TagSet rulesetTagsToRemove = Tagging.exclude(previousTags, desiredTags);
 
         try {
             Tagging.removeTags(proxyClient, dbClusterEndpointArn, Tagging.translateTagsToSdk(tagsToRemove));
@@ -111,7 +119,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(tagsToAdd, tagsToRemove))
+                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(rulesetTagsToAdd, rulesetTagsToRemove))
             );
         }
         return progress;
