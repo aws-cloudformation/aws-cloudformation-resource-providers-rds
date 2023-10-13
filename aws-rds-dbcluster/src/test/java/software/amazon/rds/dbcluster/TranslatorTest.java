@@ -414,6 +414,19 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void restoreDBClusterToPointInTimePort() {
+        final ResourceModel model = ResourceModel.builder()
+                .engineMode(EngineMode.Provisioned.toString())
+                .enableIAMDatabaseAuthentication(true)
+                .useLatestRestorableTime(true)
+                .port(1155)
+                .build();
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+
+        assertThat(request.port()).isEqualTo(1155);
+    }
+
+    @Test
     public void translateDbClusterFromSdk_setDefaultStorageType() {
         final ResourceModel model = Translator.translateDbClusterFromSdk(
                 DBCluster.builder().build()

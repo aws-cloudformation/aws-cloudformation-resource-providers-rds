@@ -111,6 +111,7 @@ public class Translator {
                 .iops(model.getIops())
                 .kmsKeyId(model.getKmsKeyId())
                 .networkType(model.getNetworkType())
+                .port(model.getPort())
                 .publiclyAccessible(model.getPubliclyAccessible())
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
