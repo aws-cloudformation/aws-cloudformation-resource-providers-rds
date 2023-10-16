@@ -27,7 +27,7 @@ public class Translator {
                 .description(model.getDescription())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
-                .sourceCustomDbEngineVersionIdentifier(model.getSourceCustomDBEngineVersionArn())
+                .sourceCustomDbEngineVersionIdentifier(model.getSourceCustomDBEngineVersionIdentifier())
                 .useAwsProvidedLatestImage(model.getUseAwsProvidedLatestImage())
                 .kmsKeyId(model.getKMSKeyId())
                 .manifest(model.getManifest())

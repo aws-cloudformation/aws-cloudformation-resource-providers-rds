@@ -76,9 +76,9 @@
       "type": "string",
       "description": "The ARN of the custom engine version."
     },
-    "SourceCustomDBEngineVersionArn": {
+    "SourceCustomDBEngineVersionIdentifier": {
       "type": "string",
-      "description": "The ARN of the source custom engine version."
+      "description": "The identifier of the source custom engine version."
     },
     "UseAwsProvidedLatestImage": {
       "type": "boolean",

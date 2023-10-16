@@ -19,7 +19,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
         "<a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>" : <i>String</i>,
         "<a href="#manifest" title="Manifest">Manifest</a>" : <i>String</i>,
-        "<a href="#sourcecustomdbengineversionarn" title="SourceCustomDBEngineVersionArn">SourceCustomDBEngineVersionArn</a>" : <i>String</i>,
+        "<a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDBEngineVersionIdentifier">SourceCustomDBEngineVersionIdentifier</a>" : <i>String</i>,
         "<a href="#useawsprovidedlatestimage" title="UseAwsProvidedLatestImage">UseAwsProvidedLatestImage</a>" : <i>Boolean</i>,
         "<a href="#status" title="Status">Status</a>" : <i>String</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>
@@ -39,7 +39,7 @@ Properties:
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
     <a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>: <i>String</i>
     <a href="#manifest" title="Manifest">Manifest</a>: <i>String</i>
-    <a href="#sourcecustomdbengineversionarn" title="SourceCustomDBEngineVersionArn">SourceCustomDBEngineVersionArn</a>: <i>String</i>
+    <a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDBEngineVersionIdentifier">SourceCustomDBEngineVersionIdentifier</a>: <i>String</i>
     <a href="#useawsprovidedlatestimage" title="UseAwsProvidedLatestImage">UseAwsProvidedLatestImage</a>: <i>Boolean</i>
     <a href="#status" title="Status">Status</a>: <i>String</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
@@ -146,9 +146,9 @@ _Maximum Length_: <code>51000</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
-#### SourceCustomDBEngineVersionArn
+#### SourceCustomDBEngineVersionIdentifier
 
-The ARN of the source custom engine version.
+The identifier of the source custom engine version.
 
 _Required_: No
 
