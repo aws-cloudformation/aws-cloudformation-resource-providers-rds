@@ -76,6 +76,14 @@
       "type": "string",
       "description": "The ARN of the custom engine version."
     },
+    "SourceCustomDBEngineVersionArn": {
+      "type": "string",
+      "description": "The ARN of the source custom engine version."
+    },
+    "UseAwsProvidedLatestImage": {
+      "type": "boolean",
+      "description": "A value that indicates whether AWS provided latest image is applied automatically to the Custom Engine Version. By default, AWS provided latest image is applied automatically."
+    },
     "Status": {
       "type": "string",
       "description": "The availability status to be assigned to the CEV.",
