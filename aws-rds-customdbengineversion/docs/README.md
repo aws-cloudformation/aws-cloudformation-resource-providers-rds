@@ -199,4 +199,3 @@ For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::G
 #### DBEngineVersionArn
 
 The ARN of the custom engine version.
-
