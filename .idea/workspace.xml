@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e2be75fc-9a9d-4b91-a568-3fc2352b25a3" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/aws-rds-customdbengineversion/aws-rds-customdbengineversion.json" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-customdbengineversion/aws-rds-customdbengineversion.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-customdbengineversion/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-customdbengineversion/docs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-customdbengineversion/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-customdbengineversion/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-customdbengineversion/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-customdbengineversion/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-customdbengineversion/src/main/java/software/amazon/rds/customdbengineversion/Translator.java" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-customdbengineversion/src/main/java/software/amazon/rds/customdbengineversion/Translator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/dbclusterrole.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/dbclusterrole.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/endpoint.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/endpoint.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/masterusersecret.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/masterusersecret.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/readendpoint.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/readendpoint.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/scalingconfiguration.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/scalingconfiguration.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/serverlessv2scalingconfiguration.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/serverlessv2scalingconfiguration.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbcluster/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbcluster/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbclusterendpoint/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbclusterendpoint/docs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbclusterendpoint/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbclusterendpoint/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbclusterparametergroup/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbclusterparametergroup/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/certificatedetails.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/certificatedetails.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/dbinstancerole.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/dbinstancerole.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/endpoint.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/endpoint.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/masterusersecret.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/masterusersecret.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/processorfeature.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/processorfeature.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbinstance/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbinstance/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbparametergroup/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbparametergroup/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-dbsubnetgroup/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-dbsubnetgroup/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-eventsubscription/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-eventsubscription/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-optiongroup/docs/optionconfiguration.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-optiongroup/docs/optionconfiguration.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-optiongroup/docs/optionsetting.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-optiongroup/docs/optionsetting.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws-rds-optiongroup/docs/tag.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-rds-optiongroup/docs/tag.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2WYWoy0gl9IFijMcSshOkTw49lo" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Volumes/workplace/aws-cloudformation-fork/resource-providers-rds&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e2be75fc-9a9d-4b91-a568-3fc2352b25a3" name="Changes" comment="" />
+      <created>1696910175458</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1696910175458</updated>
+      <workItem from="1696910176680" duration="3341000" />
+      <workItem from="1697416793839" duration="18625000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
