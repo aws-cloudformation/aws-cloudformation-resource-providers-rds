@@ -19,6 +19,9 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
         "<a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>" : <i>String</i>,
         "<a href="#manifest" title="Manifest">Manifest</a>" : <i>String</i>,
+        "<a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDBEngineVersionIdentifier">SourceCustomDBEngineVersionIdentifier</a>" : <i>String</i>,
+        "<a href="#useawsprovidedlatestimage" title="UseAwsProvidedLatestImage">UseAwsProvidedLatestImage</a>" : <i>Boolean</i>,
+        "<a href="#imageid" title="ImageId">ImageId</a>" : <i>String</i>,
         "<a href="#status" title="Status">Status</a>" : <i>String</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>
     }
@@ -37,6 +40,9 @@ Properties:
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
     <a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>: <i>String</i>
     <a href="#manifest" title="Manifest">Manifest</a>: <i>String</i>
+    <a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDBEngineVersionIdentifier">SourceCustomDBEngineVersionIdentifier</a>: <i>String</i>
+    <a href="#useawsprovidedlatestimage" title="UseAwsProvidedLatestImage">UseAwsProvidedLatestImage</a>: <i>Boolean</i>
+    <a href="#imageid" title="ImageId">ImageId</a>: <i>String</i>
     <a href="#status" title="Status">Status</a>: <i>String</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
@@ -48,7 +54,7 @@ Properties:
 
 The name of an Amazon S3 bucket that contains database installation files for your CEV. For example, a valid bucket name is `my-custom-installation-files`.
 
-_Required_: Yes
+_Required_: No
 
 _Type_: String
 
@@ -141,6 +147,36 @@ _Minimum Length_: <code>1</code>
 _Maximum Length_: <code>51000</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### SourceCustomDBEngineVersionIdentifier
+
+The identifier of the source custom engine version.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### UseAwsProvidedLatestImage
+
+A value that indicates whether AWS provided latest image is applied automatically to the Custom Engine Version. By default, AWS provided latest image is applied automatically.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### ImageId
+
+The identifier of Amazon Machine Image (AMI) used for CEV.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### Status
 
