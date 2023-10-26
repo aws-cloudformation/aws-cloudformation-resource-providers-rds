@@ -282,9 +282,11 @@ class TranslatorTest extends AbstractHandlerTest {
 
     @Test
     public void test_createReadReplicaRequest_parameterGroupSetForMySql() {
-        final ResourceModel model = RESOURCE_MODEL_BLDR().build();
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .sourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_ARN)
+                .build();
 
-        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
+        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build(), CURRENT_REGION);
         Assertions.assertNotNull(request.dbParameterGroupName());
     }
 
@@ -299,7 +301,7 @@ class TranslatorTest extends AbstractHandlerTest {
                 .allocatedStorage("300")
                 .build();
 
-        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
+        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build(), CURRENT_REGION);
         Assertions.assertNull(request.dbParameterGroupName());
     }
 
@@ -308,7 +310,7 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel model = ResourceModel.builder()
                 .sourceRegion("")
                 .build();
-        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
+        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build(), CURRENT_REGION);
         Assertions.assertNull(request.sourceRegion());
     }
 
@@ -318,7 +320,7 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel model = ResourceModel.builder()
                 .sourceRegion(sourceRegion)
                 .build();
-        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build());
+        final CreateDbInstanceReadReplicaRequest request = Translator.createDbInstanceReadReplicaRequest(model, Tagging.TagSet.builder().build(), CURRENT_REGION);
         Assertions.assertEquals(sourceRegion, request.sourceRegion());
     }
 

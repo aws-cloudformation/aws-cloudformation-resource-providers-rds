@@ -184,6 +184,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String RESTORE_TIME_UTC_PLUS_5 = "2007-04-05T17:30:00+05:00";
     protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_EMPTY = null;
     protected static final String SOURCE_DB_INSTANCE_AUTOMATED_BACKUPS_ARN_NON_EMPTY = "arn:aws:rds:us-east-1:123456789012:snapshot:rds:backup-name";
+    protected static final String SOURCE_DB_INSTANCE_ARN = "arn:aws:rds:us-east-1:123456789012:instance:rds:source-db-instance";
     protected static final String SOURCE_DBI_RESOURCE_ID_EMPTY = null;
     protected static final String SOURCE_DBI_RESOURCE_ID_NON_EMPTY = "dbi-instance-identifier";
     protected static final boolean USE_LATEST_RESTORABLE_TIME_NO = false;
@@ -194,6 +195,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String MSG_GENERIC_ERR = "Error";
     protected static final String AUTOMATIC_BACKUP_REPLICATION_REGION = "eu-west-1";
     protected static final String AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER = "eu-west-2";
+    protected static final String CURRENT_REGION = "eu-west-1";
 
 
     protected static final ResourceModel RESOURCE_MODEL_NO_IDENTIFIER;

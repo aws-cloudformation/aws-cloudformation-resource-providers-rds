@@ -108,7 +108,8 @@ public class Translator {
 
     public static CreateDbInstanceReadReplicaRequest createDbInstanceReadReplicaRequest(
             final ResourceModel model,
-            final Tagging.TagSet tagSet
+            final Tagging.TagSet tagSet,
+            final String currentRegion
     ) {
         final CreateDbInstanceReadReplicaRequest.Builder builder = CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -153,7 +154,7 @@ public class Translator {
             builder.storageType(model.getStorageType());
         }
 
-        if (ResourceModelHelper.isMySQL(model)) {
+        if (ResourceModelHelper.isCrossRegionDBInstanceReadReplica(model, currentRegion) && ResourceModelHelper.isMySQL(model) ) {
             builder.dbParameterGroupName(model.getDBParameterGroupName());
         }
 

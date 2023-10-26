@@ -18,6 +18,7 @@ public final class ResourceModelHelper {
     );
     private static final String SQLSERVER_ENGINE = "sqlserver";
     private static final String MYSQL_ENGINE_PREFIX = "mysql";
+    private static final String ORACLE_ENGINE_PREFIX = "oracle";
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) ||
@@ -50,7 +51,7 @@ public final class ResourceModelHelper {
 
     public static boolean isMySQL(final ResourceModel model) {
         final String engine = model.getEngine();
-        return engine != null && engine.startsWith(MYSQL_ENGINE_PREFIX);
+        return engine != null && engine.toLowerCase().startsWith(MYSQL_ENGINE_PREFIX);
     }
 
     public static boolean isStorageParametersModified(final ResourceModel model) {

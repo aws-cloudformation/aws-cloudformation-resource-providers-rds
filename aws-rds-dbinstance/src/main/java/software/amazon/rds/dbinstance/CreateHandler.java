@@ -72,7 +72,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
         final Collection<DBInstanceRole> desiredRoles = model.getAssociatedRoles();
         final boolean isMultiAZ = BooleanUtils.isTrue(model.getMultiAZ());
-        final String currentRegion = request.getRegion();
+        callbackContext.setCurrentRegion(request.getRegion());
 
         if (StringUtils.isNullOrEmpty(model.getDBInstanceIdentifier())) {
             model.setDBInstanceIdentifier(instanceIdentifierFactory.newIdentifier()
@@ -92,7 +92,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .then(progress -> {
                     if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
                         try {
-                            model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress.getResourceModel(), currentRegion, proxy));
+                            model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress, proxy));
                         } catch (Exception e) {
                             return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET);
                         }
@@ -205,9 +205,11 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private String fetchEngine(final ProxyClient<RdsClient> client,
-                               final ResourceModel model,
-                               final String currentRegion,
+                               final ProgressEvent<ResourceModel, CallbackContext> progress,
                                final AmazonWebServicesClientProxy proxy) {
+        final ResourceModel model = progress.getResourceModel();
+        final String currentRegion = progress.getCallbackContext().getCurrentRegion();
+
         if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
             return fetchDBSnapshot(client, model).engine();
         }
@@ -403,12 +405,13 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        final String currentRegion = progress.getCallbackContext().getCurrentRegion();
         return proxy.initiate(
                         "rds::create-db-instance-read-replica",
                         rdsProxyClient,
                         progress.getResourceModel(),
                         progress.getCallbackContext()
-                ).translateToServiceRequest(model -> Translator.createDbInstanceReadReplicaRequest(model, tagSet))
+                ).translateToServiceRequest(model -> Translator.createDbInstanceReadReplicaRequest(model, tagSet, currentRegion))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         createRequest,
