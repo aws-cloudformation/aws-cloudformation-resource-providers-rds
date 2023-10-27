@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -56,6 +57,7 @@ import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -305,15 +307,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         return isDBClusterAvailable(dbCluster) &&
                 isNoPendingChanges(dbCluster) &&
-                isMasterUserSecretStabilized(dbCluster);
+                isMasterUserSecretStabilized(dbCluster) &&
+                isGlobalWriteForwardingStabilized(dbCluster);
     }
 
-    private static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
+    protected static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
         if (dbCluster.masterUserSecret() == null ||
                 CollectionUtils.isEmpty(dbCluster.dbClusterMembers())) {
             return true;
         }
         return MASTER_USER_SECRET_ACTIVE.equalsIgnoreCase(dbCluster.masterUserSecret().secretStatus());
+    }
+
+    protected static boolean isGlobalWriteForwardingStabilized(DBCluster dbCluster) {
+        return BooleanUtils.isNotTrue(dbCluster.globalWriteForwardingRequested()) ||
+                // Even if GWF is requested the WF will not start until a replica is created by customers
+                (dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.ENABLING &&
+                dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.DISABLING);
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(
