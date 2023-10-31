@@ -1,16 +1,15 @@
 package software.amazon.rds.dbinstance.util;
 
-import com.amazonaws.util.StringUtils;
-import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang3.BooleanUtils;
-import software.amazon.awssdk.utils.CollectionUtils;
-import software.amazon.rds.dbinstance.ResourceModel;
-
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
+import org.apache.commons.lang3.BooleanUtils;
+
+import com.amazonaws.arn.Arn;
+import com.amazonaws.util.StringUtils;
+import com.google.common.collect.ImmutableSet;
+import software.amazon.awssdk.utils.CollectionUtils;
+import software.amazon.rds.dbinstance.ResourceModel;
 
 public final class ResourceModelHelper {
     private static final Set<String> SQLSERVER_ENGINES_WITH_MIRRORING = ImmutableSet.of(
@@ -18,6 +17,8 @@ public final class ResourceModelHelper {
             "sqlserver-se"
     );
     private static final String SQLSERVER_ENGINE = "sqlserver";
+    private static final String MYSQL_ENGINE_PREFIX = "mysql";
+    private static final String ORACLE_ENGINE_PREFIX = "oracle";
 
     public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return (isReadReplica(model) ||
@@ -48,6 +49,10 @@ public final class ResourceModelHelper {
         return engine == null || engine.contains(SQLSERVER_ENGINE);
     }
 
+    public static boolean isMySQL(final ResourceModel model) {
+        final String engine = model.getEngine();
+        return engine != null && engine.toLowerCase().startsWith(MYSQL_ENGINE_PREFIX);
+    }
 
     public static boolean isStorageParametersModified(final ResourceModel model) {
         return StringUtils.hasValue(model.getAllocatedStorage()) ||
@@ -72,8 +77,38 @@ public final class ResourceModelHelper {
         return StringUtils.hasValue(model.getSourceDBInstanceIdentifier());
     }
 
+    public static boolean isCrossRegionDBInstanceReadReplica(final ResourceModel model, final String currentRegion) {
+        final String sourceDBInstanceIdentifier = model.getSourceDBInstanceIdentifier();
+        return isDBInstanceReadReplica(model) &&
+                isValidArn(sourceDBInstanceIdentifier) &&
+                !getRegionFromArn(sourceDBInstanceIdentifier).equals(currentRegion);
+    }
     public static boolean isDBClusterReadReplica(final ResourceModel model) {
         return StringUtils.hasValue(model.getSourceDBClusterIdentifier());
+    }
+
+    public static boolean isCrossRegionDBClusterReadReplica(final ResourceModel model, final String currentRegion) {
+        final String sourceDBClusterIdentifier = model.getSourceDBClusterIdentifier();
+        return isDBClusterReadReplica(model) &&
+                isValidArn(sourceDBClusterIdentifier) &&
+                !getRegionFromArn(sourceDBClusterIdentifier).equals(currentRegion);
+    }
+
+    public static boolean isValidArn(final String arn) {
+        try {
+            Arn.fromString(arn);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+
+    }
+    public static String getRegionFromArn(final String arn) {
+        return Arn.fromString(arn).getRegion();
+    }
+
+    public static String getResourceNameFromArn(final String arn) {
+        return Arn.fromString(arn).getResource().getResource();
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
