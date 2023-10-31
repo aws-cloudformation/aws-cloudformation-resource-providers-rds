@@ -1101,7 +1101,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> sourceRegionClient,
             final String region
     ) {
-        final ProxyClient<RdsClient> rdsClient = proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region));
+        final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(logger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
 
         return proxy.initiate("rds::stop-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.stopDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
@@ -1127,7 +1127,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> sourceRegionClient,
             final String region
     ) {
-        final ProxyClient<RdsClient> rdsClient = proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region));
+        final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(logger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
 
         return proxy.initiate("rds::start-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))

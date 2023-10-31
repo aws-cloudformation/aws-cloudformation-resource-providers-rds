@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
@@ -26,6 +27,14 @@ public class TranslatorTest extends AbstractHandlerTest {
     private final static String STORAGE_TYPE_AURORA = "aurora";
     private final static String STORAGE_TYPE_AURORA_IOPT1 = "aurora-opt1";
 
+
+    @Test
+    public void createDbClusterRequest_enableGlobalWriteForwarding() {
+        final ResourceModel model = RESOURCE_MODEL.toBuilder().enableGlobalWriteForwarding(true).build();
+
+        final CreateDbClusterRequest request = Translator.createDbClusterRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.enableGlobalWriteForwarding()).isEqualTo(Boolean.TRUE);
+    }
 
     @Test
     public void modifyDbClusterRequest_omitPreferredMaintenanceWindowIfUnchanged() {
@@ -83,6 +92,16 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, isRollback);
         assertThat(request.enableIAMDatabaseAuthentication()).isEqualTo(Boolean.TRUE);
+    }
+
+    @Test
+    public void modifyDbClusterRequest_setEnableGlobalWriteForwarding() {
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().enableGlobalWriteForwarding(false).build();
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().enableGlobalWriteForwarding(true).build();
+        final Boolean isRollback = false;
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.enableGlobalWriteForwarding()).isEqualTo(Boolean.TRUE);
     }
 
     @Test
