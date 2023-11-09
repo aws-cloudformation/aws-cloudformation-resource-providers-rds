@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -40,7 +39,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
-import software.amazon.rds.common.error.IgnoreErrorStatus;
 import software.amazon.rds.common.error.UnexpectedErrorStatus;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -48,7 +46,7 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public class TaggingTest extends ProxyClientTestBase {
 
-    private final static String FAILED_MSG = "Test message: failed";
+    private final static String FAILED_MSG = "User is not authorized to do rds:AddTagsToResource action";
 
     final Set<Tag> SYSTEM_TAGS = Stream.of(
             Tag.builder().key("system-tag-key-1").value("system-tag-value-1").build(),
@@ -145,9 +143,9 @@ public class TaggingTest extends ProxyClientTestBase {
                         .errorCode("AccessDenied")
                         .build())
                 .build();
-        final ErrorRuleSet ruleSet = Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET;
+        final ErrorRuleSet ruleSet = Tagging.STACK_TAGS_ERROR_RULE_SET;
         final ErrorStatus status = ruleSet.handle(exception);
-        assertThat(status).isInstanceOf(IgnoreErrorStatus.class);
+        assertThat(status).isInstanceOf(ErrorStatus.class);
     }
 
     @Test
@@ -157,7 +155,7 @@ public class TaggingTest extends ProxyClientTestBase {
                         .errorCode("InternalFailure")
                         .build())
                 .build();
-        final ErrorRuleSet ruleSet = Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET;
+        final ErrorRuleSet ruleSet = Tagging.STACK_TAGS_ERROR_RULE_SET;
         final ErrorStatus status = ruleSet.handle(exception);
         assertThat(status).isInstanceOf(UnexpectedErrorStatus.class);
     }
@@ -165,7 +163,7 @@ public class TaggingTest extends ProxyClientTestBase {
     @Test
     void test_SoftFailErrorRuleSet_OtherException() {
         final Exception exception = new RuntimeException("test exception");
-        final ErrorRuleSet ruleSet = Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET;
+        final ErrorRuleSet ruleSet = Tagging.STACK_TAGS_ERROR_RULE_SET;
         final ErrorStatus status = ruleSet.handle(exception);
         assertThat(status).isInstanceOf(UnexpectedErrorStatus.class);
     }
@@ -272,7 +270,7 @@ public class TaggingTest extends ProxyClientTestBase {
 
     @Test
     void test_bestEffortErrorRuleSet_emptyResourceTags() {
-        final ErrorRuleSet errorRuleSet = Tagging.bestEffortErrorRuleSet(
+        final ErrorRuleSet errorRuleSet = Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -283,12 +281,12 @@ public class TaggingTest extends ProxyClientTestBase {
                         .build()
         );
 
-        assertThat(errorRuleSet).isEqualTo(Tagging.SOFT_FAIL_TAG_ERROR_RULE_SET);
+        assertThat(errorRuleSet).isEqualTo(Tagging.STACK_TAGS_ERROR_RULE_SET);
     }
 
     @Test
     void test_bestEffortErrorRuleSet_nonEmptyResourceTags() {
-        assertThat(Tagging.bestEffortErrorRuleSet(
+        assertThat(Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -299,9 +297,9 @@ public class TaggingTest extends ProxyClientTestBase {
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .resourceTags(Collections.singleton(Tag.builder().build()))
                         .build()
-        )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+        )).isEqualTo(Tagging.RESOURCE_TAG_ERROR_RULE_SET);
 
-        assertThat(Tagging.bestEffortErrorRuleSet(
+        assertThat(Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -312,9 +310,9 @@ public class TaggingTest extends ProxyClientTestBase {
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .resourceTags(Collections.singleton(Tag.builder().build()))
                         .build()
-        )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+        )).isEqualTo(Tagging.RESOURCE_TAG_ERROR_RULE_SET);
 
-        assertThat(Tagging.bestEffortErrorRuleSet(
+        assertThat(Tagging.getUpdateTagsAccessDeniedRuleSet(
                 Tagging.TagSet.builder()
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .stackTags(Collections.singleton(Tag.builder().build()))
@@ -325,7 +323,7 @@ public class TaggingTest extends ProxyClientTestBase {
                         .stackTags(Collections.singleton(Tag.builder().build()))
                         .resourceTags(Collections.emptySet())
                         .build()
-        )).isEqualTo(Tagging.HARD_FAIL_TAG_ERROR_RULE_SET);
+        )).isEqualTo(Tagging.RESOURCE_TAG_ERROR_RULE_SET);
     }
 
     @Test
@@ -343,7 +341,7 @@ public class TaggingTest extends ProxyClientTestBase {
         Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
                 .thenReturn(ProgressEvent.success(null, progress.getCallbackContext()));
 
-        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.safeCreate(null, null, handlerMethod, progress, allTags);
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithTaggingFallback(null, null, handlerMethod, progress, allTags);
 
         Assertions.assertThat(result.isSuccess()).isTrue();
         Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isTrue();
@@ -359,29 +357,18 @@ public class TaggingTest extends ProxyClientTestBase {
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(SYSTEM_TAGS)
                 .stackTags(STACK_TAGS)
-                .resourceTags(RESOURCE_TAGS)
                 .build();
 
         final HandlerMethod<Void, CommonsTest.TaggingCallbackContext> handlerMethod = Mockito.mock(HandlerMethod.class);
 
         Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
-                .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.AccessDenied, FAILED_MSG))
-                .thenReturn(ProgressEvent.success(null, progress.getCallbackContext()));
+                .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.AccessDenied, FAILED_MSG));
 
-        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.safeCreate(null, null, handlerMethod, progress, allTags);
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithTaggingFallback(null, null, handlerMethod, progress, allTags);
 
-        Assertions.assertThat(result.isSuccess()).isTrue();
-        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isSoftFailTags()).isTrue();
+        Assertions.assertThat(result.isFailed()).isTrue();
+        Assertions.assertThat(result.getErrorCode()).isEqualTo(HandlerErrorCode.UnauthorizedTaggingOperation);
         Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isFalse();
-
-        ArgumentCaptor<Tagging.TagSet> captor = ArgumentCaptor.forClass(Tagging.TagSet.class);
-        Mockito.verify(handlerMethod, Mockito.times(2)).invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), captor.capture());
-
-        final Tagging.TagSet tagSetInvoke1 = captor.getAllValues().get(0);
-        final Tagging.TagSet tagSetInvoke2 = captor.getAllValues().get(1);
-
-        Assertions.assertThat(tagSetInvoke1).isEqualTo(allTags);
-        Assertions.assertThat(tagSetInvoke2).isEqualTo(Tagging.TagSet.builder().systemTags(SYSTEM_TAGS).build());
     }
 
     @Test
@@ -399,11 +386,10 @@ public class TaggingTest extends ProxyClientTestBase {
         Mockito.when(handlerMethod.invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class)))
                 .thenReturn(ProgressEvent.failed(null, progress.getCallbackContext(), HandlerErrorCode.InternalFailure, FAILED_MSG));
 
-        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.safeCreate(null, null, handlerMethod, progress, allTags);
+        final ProgressEvent<Void, CommonsTest.TaggingCallbackContext> result = Tagging.createWithTaggingFallback(null, null, handlerMethod, progress, allTags);
 
         Assertions.assertThat(result.isFailed()).isTrue();
         Assertions.assertThat(result.getCallbackContext().getTaggingContext().isAddTagsComplete()).isFalse();
-        Assertions.assertThat(result.getCallbackContext().getTaggingContext().isSoftFailTags()).isFalse();
 
         Mockito.verify(handlerMethod, Mockito.times(1))
                 .invoke(Mockito.any(), Mockito.any(), Mockito.any(ProgressEvent.class), Mockito.any(Tagging.TagSet.class));

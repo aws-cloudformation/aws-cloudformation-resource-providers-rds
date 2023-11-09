@@ -201,7 +201,7 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private HandlerMethod<ResourceModel, CallbackContext> safeAddTags(final HandlerMethod<ResourceModel, CallbackContext> handlerMethod) {
-        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.safeCreate(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
+        return (proxy, rdsProxyClient, progress, tagSet) -> progress.then(p -> Tagging.createWithTaggingFallback(proxy, rdsProxyClient, handlerMethod, progress, tagSet));
     }
 
     private String fetchEngine(final ProxyClient<RdsClient> client,

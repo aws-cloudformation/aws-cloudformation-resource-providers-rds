@@ -32,6 +32,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#domain" title="Domain">Domain</a>" : <i>String</i>,
         "<a href="#domainiamrolename" title="DomainIAMRoleName">DomainIAMRoleName</a>" : <i>String</i>,
         "<a href="#enablecloudwatchlogsexports" title="EnableCloudwatchLogsExports">EnableCloudwatchLogsExports</a>" : <i>[ String, ... ]</i>,
+        "<a href="#enableglobalwriteforwarding" title="EnableGlobalWriteForwarding">EnableGlobalWriteForwarding</a>" : <i>Boolean</i>,
         "<a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>" : <i>Boolean</i>,
         "<a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>" : <i>Boolean</i>,
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
@@ -98,6 +99,7 @@ Properties:
     <a href="#domainiamrolename" title="DomainIAMRoleName">DomainIAMRoleName</a>: <i>String</i>
     <a href="#enablecloudwatchlogsexports" title="EnableCloudwatchLogsExports">EnableCloudwatchLogsExports</a>: <i>
       - String</i>
+    <a href="#enableglobalwriteforwarding" title="EnableGlobalWriteForwarding">EnableGlobalWriteForwarding</a>: <i>Boolean</i>
     <a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>: <i>Boolean</i>
     <a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>: <i>Boolean</i>
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
@@ -345,6 +347,16 @@ The list of log types that need to be enabled for exporting to CloudWatch Logs. 
 _Required_: No
 
 _Type_: List of String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### EnableGlobalWriteForwarding
+
+Specifies whether to enable this DB cluster to forward write operations to the primary cluster of a global cluster (Aurora global database). By default, write operations are not allowed on Aurora DB clusters that are secondary clusters in an Aurora global database.
+
+_Required_: No
+
+_Type_: Boolean
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

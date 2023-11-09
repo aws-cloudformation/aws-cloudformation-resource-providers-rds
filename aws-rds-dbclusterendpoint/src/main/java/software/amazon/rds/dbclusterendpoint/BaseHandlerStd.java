@@ -119,7 +119,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.bestEffortErrorRuleSet(rulesetTagsToAdd, rulesetTagsToRemove))
+                    DEFAULT_DB_CLUSTER_ENDPOINT_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove))
             );
         }
         return progress;
