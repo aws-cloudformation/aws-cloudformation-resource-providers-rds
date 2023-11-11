@@ -25,15 +25,21 @@ import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 
-class EventsTest extends ProxyClientTestBase {
+class EventsTest {
+    private static final Credentials MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
+    private static final LoggerProxy logger = new LoggerProxy();
+
     public static final String FAILED_TO_CREATE_MESSAGE = "failed to create";
     public static final String SERVICE_INTERNAL_FAILURE_MESSAGE = "Service Internal Failure";
 
@@ -51,7 +57,7 @@ class EventsTest extends ProxyClientTestBase {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rds = mock(RdsClient.class);
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
-        proxyRdsClient = new LoggingProxyClient<>(new RequestLogger(null, request, new FilteredJsonPrinter()), MOCK_PROXY(proxy, rds));
+        proxyRdsClient = new LoggingProxyClient<>(new RequestLogger(null, request, new FilteredJsonPrinter()), new BaseProxyClient<>(proxy, rds));
     }
 
     @Test

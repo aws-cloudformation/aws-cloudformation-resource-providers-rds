@@ -8,8 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +30,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.WaitStrategy;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 
 @ExtendWith(MockitoExtension.class)
 public class DeleteHandlerWithProgressTest extends AbstractTestBase {
@@ -53,7 +52,7 @@ public class DeleteHandlerWithProgressTest extends AbstractTestBase {
         rds = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY,
                 WaitStrategy.scheduleForCallbackStrategy());
-        proxyRdsClient = MOCK_PROXY(proxy, rds);
+        proxyRdsClient = new BaseProxyClient<>(proxy, rds);
     }
 
     @Test

@@ -34,7 +34,9 @@ import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -45,8 +47,11 @@ import software.amazon.rds.common.error.UnexpectedErrorStatus;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 
-public class TaggingTest extends ProxyClientTestBase {
+public class TaggingTest {
+    private static final Credentials MOCK_CREDENTIALS = new Credentials("accessKey", "secretKey", "token");
+    private static final LoggerProxy logger = new LoggerProxy();
 
     private final static String FAILED_MSG = "Test message: failed";
 
@@ -79,7 +84,7 @@ public class TaggingTest extends ProxyClientTestBase {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rds = mock(RdsClient.class);
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
-        proxyRdsClient = new LoggingProxyClient<>(new RequestLogger(null, request, new FilteredJsonPrinter()), MOCK_PROXY(proxy, rds));
+        proxyRdsClient = new LoggingProxyClient<>(new RequestLogger(null, request, new FilteredJsonPrinter()), new BaseProxyClient<>(proxy, rds));
     }
 
     @Test

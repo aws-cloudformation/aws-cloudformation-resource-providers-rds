@@ -92,3 +92,8 @@ jobs:
         cd "${GITHUB_WORKSPACE}/aws-rds-customdbengineversion"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
+    - name: Verify AWS::RDS::DBSnapshot
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-dbsnapshot"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log

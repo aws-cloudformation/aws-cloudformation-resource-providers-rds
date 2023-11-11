@@ -76,6 +76,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -123,8 +124,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         rdsClient = mock(RdsClient.class);
         ec2Client = mock(Ec2Client.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        rdsProxy = MOCK_PROXY(proxy, rdsClient);
-        ec2Proxy = MOCK_PROXY(proxy, ec2Client);
+        rdsProxy = new BaseProxyClient<>(proxy, rdsClient);
+        ec2Proxy = new BaseProxyClient<>(proxy, ec2Client);
         expectServiceInvocation = true;
     }
 

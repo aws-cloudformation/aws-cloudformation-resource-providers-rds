@@ -47,6 +47,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -79,7 +80,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .build());
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
-        proxyClient = MOCK_PROXY(proxy, rdsClient);
+        proxyClient = new BaseProxyClient<>(proxy, rdsClient);
     }
 
     @AfterEach
@@ -180,10 +181,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         ResourceModel RESOURCE_MODEL_WITH_RESOURCE_TAGS = RESOURCE_MODEL_WITH_RESOURCE_TAGS_BUILDER().build();
         ResourceModel RESOURCE_MODEL_WITH_UPDATED_RESOURCE_TAGS = RESOURCE_MODEL_BUILDER()
                 .tags(
-                    Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
-                        ImmutableMap.of("desiredKey", "desiredValue")
-                    )
-                )).build();
+                        Translator.translateTagsFromSdk(Translator.translateTagsToSdk(
+                                        ImmutableMap.of("desiredKey", "desiredValue")
+                                )
+                        )).build();
 
 
         when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))

@@ -29,6 +29,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.test.common.core.BaseProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,7 +56,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         handler = new DeleteHandler();
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
-        proxyRdsClient = MOCK_PROXY(proxy, rdsClient);
+        proxyRdsClient = new BaseProxyClient<>(proxy, rdsClient);
     }
 
     @AfterEach
