@@ -1,0 +1,28 @@
+{
+    "artifact_type": "RESOURCE",
+    "typeName": "AWS::RDS::BlueGreenDeployment",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.bluegreendeployment.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.bluegreendeployment.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "version": false,
+        "subparser_name": null,
+        "verbose": 0,
+        "force": false,
+        "type_name": "AWS::RDS::BlueGreenDeployment",
+        "artifact_type": null,
+        "endpoint_url": null,
+        "region": null,
+        "target_schemas": [],
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "bluegreendeployment"
+        ],
+        "codegen_template_path": "default",
+        "protocolVersion": "2.0.0"
+    },
+    "executableEntrypoint": "software.amazon.rds.bluegreendeployment.HandlerWrapperExecutable"
+}

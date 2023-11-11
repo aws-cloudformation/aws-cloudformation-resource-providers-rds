@@ -1,0 +1,186 @@
+{
+  "typeName": "AWS::RDS::BlueGreenDeployment",
+  "description": "An example resource schema demonstrating some basic constructs and validation rules.",
+  "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+  "definitions": {
+    "Tag": {
+      "description": "A key-value pair to associate with a resource.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Key": {
+          "type": "string",
+          "description": "The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "Value": {
+          "type": "string",
+          "description": "The value for the tag. You can specify a value that is 0 to 256 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. ",
+          "minLength": 0,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "Key"
+      ]
+    },
+    "SwitchoverDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "SourceMember": {
+          "type": "string"
+        },
+        "TargetMember": {
+          "type": "string"
+        },
+        "Status": {
+          "type": "string"
+        }
+      }
+    },
+    "Task": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Status": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "properties": {
+    "BlueGreenDeploymentIdentifier": {
+      "type": "string"
+    },
+    "BlueGreenDeploymentName": {
+      "type": "string"
+    },
+    "DeleteTarget": {
+      "type": "boolean"
+    },
+    "DeleteSource": {
+      "type": "boolean"
+    },
+    "Stage": {
+      "type": "string",
+      "enum": [
+        "blue",
+        "green"
+      ]
+    },
+    "Status": {
+      "type": "string"
+    },
+    "SwitchoverDetails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SwitchoverDetail"
+      }
+    },
+    "SwitchoverTimeout": {
+      "type": "integer"
+    },
+    "Source": {
+      "type": "string"
+    },
+    "Tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Task"
+      }
+    },
+    "Target": {
+      "type": "string"
+    },
+    "TargetEngineVersion": {
+      "type": "string"
+    },
+    "TargetDBParameterGroupName": {
+      "type": "string"
+    },
+    "TargetDBClusterParameterGroupName": {
+      "type": "string"
+    },
+    "Tags": {
+      "type": "array",
+      "maxItems": 50,
+      "uniqueItems": true,
+      "insertionOrder": false,
+      "description": "An array of key-value pairs to apply to this resource.",
+      "items": {
+        "$ref": "#/definitions/Tag"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "Source",
+    "Stage"
+  ],
+  "readOnlyProperties": [
+    "/properties/BlueGreenDeploymentIdentifier",
+    "/properties/Status",
+    "/properties/SwitchoverDetails",
+    "/properties/Target",
+    "/properties/Tasks"
+  ],
+  "primaryIdentifier": [
+    "/properties/BlueGreenDeploymentIdentifier"
+  ],
+  "createOnlyProperties": [
+    "/properties/Source",
+    "/properties/Tags",
+    "/properties/TargetDBClusterParameterGroupName",
+    "/properties/TargetDBParameterGroupName",
+    "/properties/TargetEngineVersion"
+  ],
+  "writeOnlyProperties": [
+    "/properties/DeleteTarget",
+    "/properties/DeleteSource",
+    "/properties/Source",
+    "/properties/Stage",
+    "/properties/SwitchoverTimeout",
+    "/properties/TargetDBClusterParameterGroupName",
+    "/properties/TargetDBParameterGroupName",
+    "/properties/TargetEngineVersion"
+  ],
+  "handlers": {
+    "create": {
+      "permissions": [
+        "rds:CreateBlueGreenDeployment",
+        "rds:DescribeBlueGreenDeployments",
+        "rds:DescribeDBInstances"
+      ]
+    },
+    "read": {
+      "permissions": [
+        "rds:DescribeBlueGreenDeployments"
+      ]
+    },
+    "update": {
+      "permissions": [
+        "rds:SwitchoverBlueGreenDeployment",
+        "rds:DescribeBlueGreenDeployments",
+        "rds:DescribeDBInstances"
+      ]
+    },
+    "delete": {
+      "permissions": [
+        "rds:DeleteBlueGreenDeployment",
+        "rds:DeleteDBInstance",
+        "rds:DescribeBlueGreenDeployments",
+        "rds:DescribeDBInstances"
+      ]
+    },
+    "list": {
+      "permissions": [
+        "rds:DescribeBlueGreenDeployments"
+      ]
+    }
+  }
+}
