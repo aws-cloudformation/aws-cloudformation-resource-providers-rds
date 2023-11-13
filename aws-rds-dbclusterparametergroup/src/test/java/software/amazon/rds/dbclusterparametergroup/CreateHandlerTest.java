@@ -153,29 +153,20 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_SuccessOnSoftCreate() {
+    public void handleRequest_UnauthorizedTaggingOperationOnCreate() {
         when(rdsProxy.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
                 .thenThrow(RdsException.builder()
+                        .message("Role not authorized to execute rds:AddTagsToResource")
                         .awsErrorDetails(AwsErrorDetails.builder()
                                 .errorCode(ErrorCode.AccessDeniedException.toString())
                                 .build()
-                        ).build())
-                .thenReturn(CreateDbClusterParameterGroupResponse.builder()
-                        .dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP)
-                        .build());
+                        ).build());
 
-        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder()
-                        .tagList(Tag.builder().key(TAG_KEY).value(TAG_VALUE).build())
-                        .build());
 
-        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
-                .thenReturn(AddTagsToResourceResponse.builder().build());
-
-        Map<String, String> resourceTags = ImmutableMap.of(TAG_KEY, TAG_VALUE);
+        Map<String, String> stackTags = ImmutableMap.of(TAG_KEY, TAG_VALUE);
         Map<String, String> systemTags = ImmutableMap.of("systemTag1", "value2", "systemTag2", "value3");
         Map<String, String> allTags = ImmutableMap.<String, String>builder()
-                .putAll(resourceTags)
+                .putAll(stackTags)
                 .putAll(systemTags)
                 .build();
 
@@ -186,29 +177,20 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 callbackContext,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .systemTags(systemTags)
-                        .desiredResourceTags(resourceTags),
-                () -> DBClusterParameterGroup.builder().build(),
+                        .desiredResourceTags(stackTags),
                 null,
-                () -> RESOURCE_MODEL,
-                expectSuccess()
+                null,
+                () -> RESOURCE_MODEL.toBuilder()
+                        .tags(null)
+                        .build(),
+                expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
         );
 
-        assertThat(response.getCallbackContext().isAddTagsComplete()).isTrue();
-        assertThat(response.getCallbackContext().getTaggingContext().isSoftFailTags()).isTrue();
-
         ArgumentCaptor<CreateDbClusterParameterGroupRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterParameterGroupRequest.class);
-        verify(rdsProxy.client(), times(2)).createDBClusterParameterGroup(createCaptor.capture());
+        verify(rdsProxy.client(), times(1)).createDBClusterParameterGroup(createCaptor.capture());
 
         final CreateDbClusterParameterGroupRequest requestWithAllTags = createCaptor.getAllValues().get(0);
-        final CreateDbClusterParameterGroupRequest requestWithSystemTags = createCaptor.getAllValues().get(1);
         assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(asSdkTagArray(allTags));
-        assertThat(requestWithSystemTags.tags()).containsExactlyInAnyOrder(asSdkTagArray(systemTags));
-
-        verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
-
-        ArgumentCaptor<AddTagsToResourceRequest> addTagsCaptor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(rdsProxy.client(), times(1)).addTagsToResource(addTagsCaptor.capture());
-        assertThat(addTagsCaptor.getValue().tags()).containsExactlyInAnyOrder(asSdkTagArray(resourceTags));
     }
 
     @Test
@@ -231,7 +213,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.AccessDenied)
         );
 
-        verify(rdsProxy.client(), times(2)).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(rdsProxy.client(), times(1)).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
     }
 
     @Test
