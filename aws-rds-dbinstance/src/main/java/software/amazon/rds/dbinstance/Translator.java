@@ -444,7 +444,7 @@ public class Translator {
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbPortNumber(translatePortToSdk(diff(previousModel.getPort(), desiredModel.getPort())))
-                .dedicatedLogVolume(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
+                .dedicatedLogVolume(diff(previousModel.getDedicatedLogVolume(), desiredModel.getDedicatedLogVolume()))
                 .deletionProtection(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
                 .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
                 .domainAuthSecretArn(desiredModel.getDomainAuthSecretArn())
