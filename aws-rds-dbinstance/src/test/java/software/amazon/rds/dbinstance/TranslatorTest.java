@@ -1124,6 +1124,19 @@ class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.copyTagsToSnapshot()).isTrue();
     }
 
+    @Test
+    public void test_modifyDBInstance_dedicatedLogVolumeSplit() {
+        final ResourceModel previous = ResourceModel.builder()
+                .dedicatedLogVolume(false)
+                .build();
+        final ResourceModel desired = ResourceModel.builder()
+                .dedicatedLogVolume(true)
+                .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        assertThat(request.dedicatedLogVolume()).isTrue();
+    }
+
     // Stub methods to satisfy the interface. This is a 1-time thing.
 
     @Override
