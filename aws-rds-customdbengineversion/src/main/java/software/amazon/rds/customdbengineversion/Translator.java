@@ -12,11 +12,15 @@ import software.amazon.awssdk.services.rds.model.CreateCustomDbEngineVersionRequ
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.awssdk.services.rds.model.DeleteCustomDbEngineVersionRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
+import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.ModifyCustomDbEngineVersionRequest;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.util.DifferenceUtils;
 
 public class Translator {
+
+    public static final String ENGINE_FILTER_NAME = "engine";
+
     public static CreateCustomDbEngineVersionRequest createCustomDbEngineVersionRequest(
             final ResourceModel model,
             final Tagging.TagSet tags
@@ -110,13 +114,17 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbEngineVersionsRequest describeDbEngineVersionsRequest(final ResourceModel model,
+    public static DescribeDbEngineVersionsRequest describeDbEngineVersionsRequest(final ResourceModel model, final Collection<String> engines,
                                                                                   final String nextToken) {
         return DescribeDbEngineVersionsRequest.builder()
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
-                .marker(nextToken)
+                .filters(Filter.builder()
+                        .name(ENGINE_FILTER_NAME)
+                        .values(engines)
+                        .build())
                 .includeAll(true)
+                .marker(nextToken)
                 .build();
     }
 
