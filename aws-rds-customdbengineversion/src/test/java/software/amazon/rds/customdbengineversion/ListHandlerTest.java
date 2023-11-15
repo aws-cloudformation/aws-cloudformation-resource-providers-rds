@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableList;
 import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
@@ -32,6 +33,7 @@ import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractHandlerTest {
+    public static final String ARN_123456789123_UE_EAST_1_RDS_ENGINVEVERSION = "arn:123456789123:ue-east-1:rds:enginveversion:";
     final String DB_ENGINE_VERSION = "db-engine-version";
     final String ENGINE = "engine";
 
@@ -74,6 +76,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
                         DBEngineVersion.builder()
                                 .engineVersion(DB_ENGINE_VERSION)
                                 .engine(ENGINE)
+                                .dbEngineVersionArn(ARN_123456789123_UE_EAST_1_RDS_ENGINVEVERSION + "test-oracle-ee")
                                 .tagList(Lists.newArrayList())
                                 .build()
                 ))
@@ -93,11 +96,59 @@ public class ListHandlerTest extends AbstractHandlerTest {
         final ResourceModel expectedModel = ResourceModel.builder()
                 .engineVersion(DB_ENGINE_VERSION)
                 .engine(ENGINE)
+                .dBEngineVersionArn(ARN_123456789123_UE_EAST_1_RDS_ENGINVEVERSION + "test-oracle-ee")
                 .tags(Lists.newArrayList())
                 .build();
 
         assertThat(response.getResourceModels()).isNotNull();
         assertThat(response.getResourceModels()).containsExactly(expectedModel);
+
+        verify(rdsProxy.client()).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_retrieveOnlyCustomEngineVersion() {
+        final DescribeDbEngineVersionsResponse describeDBEngineVersionsResponse = DescribeDbEngineVersionsResponse.builder()
+                .dbEngineVersions(ImmutableList.of(
+                        DBEngineVersion.builder()
+                                .engineVersion("92.1")
+                                .engine("custom-oracle-ee")
+                                .dbEngineVersionArn(ARN_123456789123_UE_EAST_1_RDS_ENGINVEVERSION + "test-oracle-ee")
+                                .tagList(Lists.newArrayList())
+                                .build(),
+                        DBEngineVersion.builder()
+                                .engineVersion(DB_ENGINE_VERSION)
+                                .engine("custom-oracle-ee-cdb")
+                                .dbEngineVersionArn(ARN_123456789123_UE_EAST_1_RDS_ENGINVEVERSION + "test-oracle-ee-cdb")
+                                .tagList(Lists.newArrayList())
+                                .build(),
+                        DBEngineVersion.builder()
+                                .engineVersion(DB_ENGINE_VERSION)
+                                .engine("custom-sqlserver-se")
+                                .dbEngineVersionArn(ARN_123456789123_UE_EAST_1_RDS_ENGINVEVERSION + "test-sqlserver-se")
+                                .tagList(Lists.newArrayList())
+                                .build(),
+                        DBEngineVersion.builder()
+                                .engineVersion(DB_ENGINE_VERSION)
+                                .engine("custom-sqlserver-web")
+                                .tagList(Lists.newArrayList())
+                                .build()
+                ))
+                .marker(DESCRIBE_DB_ENGINE_VERSIONS_MARKER)
+                .build();
+        when(rdsProxy.client().describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class)))
+                .thenReturn(describeDBEngineVersionsResponse);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                new CallbackContext(),
+                null,
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                () -> RESOURCE_MODEL_BUILDER().build(),
+                expectSuccess()
+        );
+
+        assertThat(response.getResourceModels()).isNotNull();
+        assertThat(response.getResourceModels().size()).isEqualTo(3);
 
         verify(rdsProxy.client()).describeDBEngineVersions(any(DescribeDbEngineVersionsRequest.class));
     }

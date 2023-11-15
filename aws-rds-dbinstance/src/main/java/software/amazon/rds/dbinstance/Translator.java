@@ -16,11 +16,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.amazonaws.arn.Arn;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
+import com.amazonaws.arn.Arn;
 import com.google.common.annotations.VisibleForTesting;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.Filter;
@@ -108,7 +108,8 @@ public class Translator {
 
     public static CreateDbInstanceReadReplicaRequest createDbInstanceReadReplicaRequest(
             final ResourceModel model,
-            final Tagging.TagSet tagSet
+            final Tagging.TagSet tagSet,
+            final String currentRegion
     ) {
         final CreateDbInstanceReadReplicaRequest.Builder builder = CreateDbInstanceReadReplicaRequest.builder()
                 .autoMinorVersionUpgrade(model.getAutoMinorVersionUpgrade())
@@ -119,6 +120,7 @@ public class Translator {
                 .dbInstanceIdentifier(model.getDBInstanceIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
+                .dedicatedLogVolume(model.getDedicatedLogVolume())
                 .domain(model.getDomain())
                 .domainAuthSecretArn(model.getDomainAuthSecretArn())
                 .domainDnsIps(model.getDomainDnsIps())
@@ -152,6 +154,11 @@ public class Translator {
             builder.storageThroughput(model.getStorageThroughput());
             builder.storageType(model.getStorageType());
         }
+
+        if (ResourceModelHelper.isCrossRegionDBInstanceReadReplica(model, currentRegion) && ResourceModelHelper.isMySQL(model) ) {
+            builder.dbParameterGroupName(model.getDBParameterGroupName());
+        }
+
         return builder.build();
     }
 
@@ -194,6 +201,7 @@ public class Translator {
                 .dbSnapshotIdentifier(model.getDBSnapshotIdentifier())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
                 .deletionProtection(model.getDeletionProtection())
+                .dedicatedLogVolume(model.getDedicatedLogVolume())
                 .domain(model.getDomain())
                 .domainAuthSecretArn(model.getDomainAuthSecretArn())
                 .domainDnsIps(model.getDomainDnsIps())
@@ -276,6 +284,7 @@ public class Translator {
                 .dbName(model.getDBName())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .dedicatedLogVolume(model.getDedicatedLogVolume())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
                 .domainAuthSecretArn(model.getDomainAuthSecretArn())
@@ -343,6 +352,7 @@ public class Translator {
                 .dbName(model.getDBName())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .dedicatedLogVolume(model.getDedicatedLogVolume())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
                 .domainAuthSecretArn(model.getDomainAuthSecretArn())
@@ -434,6 +444,7 @@ public class Translator {
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
                 .dbParameterGroupName(diff(previousModel.getDBParameterGroupName(), desiredModel.getDBParameterGroupName()))
                 .dbPortNumber(translatePortToSdk(diff(previousModel.getPort(), desiredModel.getPort())))
+                .dedicatedLogVolume(diff(previousModel.getDedicatedLogVolume(), desiredModel.getDedicatedLogVolume()))
                 .deletionProtection(diff(previousModel.getDeletionProtection(), desiredModel.getDeletionProtection()))
                 .domain(diff(previousModel.getDomain(), desiredModel.getDomain()))
                 .domainAuthSecretArn(desiredModel.getDomainAuthSecretArn())
@@ -811,6 +822,7 @@ public class Translator {
                 .dBSubnetGroupName(translateDbSubnetGroupFromSdk(dbInstance.dbSubnetGroup()))
                 .dBSystemId(dbInstance.dbSystemId())
                 .dbiResourceId(dbInstance.dbiResourceId())
+                .dedicatedLogVolume(dbInstance.dedicatedLogVolume())
                 .deletionProtection(dbInstance.deletionProtection())
                 .domain(domain)
                 .domainAuthSecretArn(domainAuthSecretArn)
