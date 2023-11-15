@@ -36,6 +36,7 @@ Resources:
                 - "rds:AddRoleToDBCluster"
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBCluster"
+                - "rds:CreateDBClusterSnapshot"
                 - "rds:CreateDBInstance"
                 - "rds:DeleteDBCluster"
                 - "rds:DeleteDBInstance"

@@ -47,6 +47,7 @@ Resources:
                 - "rds:AddTagsToResource"
                 - "rds:CreateDBInstance"
                 - "rds:CreateDBInstanceReadReplica"
+                - "rds:CreateDBSnapshot"
                 - "rds:DeleteDBInstance"
                 - "rds:DescribeDBClusterSnapshots"
                 - "rds:DescribeDBClusters"
