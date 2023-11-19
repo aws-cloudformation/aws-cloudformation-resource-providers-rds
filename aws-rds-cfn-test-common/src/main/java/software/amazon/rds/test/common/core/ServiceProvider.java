@@ -12,7 +12,8 @@ public enum ServiceProvider {
     SDK("sdk"),
     S3("s3"),
     MEDIAIMPORT("mediaimport"),
-    ASM("secretsmanager");
+    ASM("secretsmanager"),
+    REDSHIFT("redshift");
 
     private final String name;
 
