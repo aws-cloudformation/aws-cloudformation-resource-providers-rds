@@ -243,8 +243,6 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 )
         );
 
-        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
-                .thenReturn(ListTagsForResourceResponse.builder().build());
         final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
                 .optionGroupsList(OPTION_GROUP_ACTIVE).build();
         when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class)))
@@ -269,15 +267,14 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getMessage()).isNotNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.UnauthorizedTaggingOperation);
         assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
-        verify(proxyClient.client(), times(2)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
-        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
     }
 
     @Test
