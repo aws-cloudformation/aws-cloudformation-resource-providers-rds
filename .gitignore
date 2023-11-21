@@ -1,2 +1,4 @@
 aws-rds-handlers.iml
 rpdk.log
+# for IntelliJ IDEA
+.idea/
