@@ -385,8 +385,6 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^$|^[_a-zA-Z][a-zA-Z0-9_]{0,63}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### DBParameterGroupName
