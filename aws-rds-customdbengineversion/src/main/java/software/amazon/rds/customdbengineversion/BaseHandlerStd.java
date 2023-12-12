@@ -41,6 +41,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String RESOURCE_IDENTIFIER = "customdbengineversion";
     protected static final int RESOURCE_ID_MAX_LENGTH = 50;
     protected static final String IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT = "is already being deleted";
+    protected static final String SQL_SERVER_ENGINES = "custom-sqlserver";
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
 
     protected static final Function<Exception, ErrorStatus> ignoreCEVBeingDeletedConditionalErrorStatus = exception -> {
@@ -130,7 +131,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         try {
             final String status = fetchDBEngineVersion(model, proxyClient).status();
             assertNoCustomDbEngineVersionTerminalStatus(status);
-            return status != null && CustomDBEngineVersionStatus.fromString(status).isStable();
+            return status != null && (CustomDBEngineVersionStatus.fromString(status).isStable() ||
+                // SQL Server CEVs will remain in PendingValidation state until a new RDS Custom for SQL Server DB instance using the CEV is created.
+                model.getEngine().contains(SQL_SERVER_ENGINES) &&
+                CustomDBEngineVersionStatus.fromString(status) == CustomDBEngineVersionStatus.PendingValidation
+            );
         } catch (CustomDbEngineVersionNotFoundException exception) {
             return false;
         }
