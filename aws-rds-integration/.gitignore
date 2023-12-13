@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+._*
+
+# Maven outputs
+.classpath
+/aws-rds-integration.zip
+
+# IntelliJ
+*.iml
+.idea
+out.java
+out/
+.settings
+.project
+
+# auto-generated files
+target/
+/build/
+
+# our logs
+rpdk.log
+
+# contains credentials
+sam-tests/
+
+# auto-generated sam file
+.aws-sam/build.toml
