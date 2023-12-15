@@ -59,9 +59,19 @@ public class UpdateHandler extends BaseHandlerStd {
             final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ProxyClient<RdsClient> rdsClient = rdsProxyClient.defaultClient();
+        DBInstance instance;
 
-        final DBInstance instance = StringUtils.isNullOrEmpty(request.getPreviousResourceState().getEngine()) ?
-                fetchDBInstance(rdsClient, request.getPreviousResourceState()) : null;
+        try {
+            instance = StringUtils.isNullOrEmpty(request.getPreviousResourceState().getEngine()) ?
+                    fetchDBInstance(rdsClient, request.getPreviousResourceState()) : null;
+        } catch (Exception ex) {
+            return Commons.handleException(
+                    ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
+                    ex,
+                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+            );
+        }
+        
         if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState(), instance)) {
             return ProgressEvent.failed(
                     request.getDesiredResourceState(),
