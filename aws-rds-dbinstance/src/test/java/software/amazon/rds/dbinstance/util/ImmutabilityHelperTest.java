@@ -57,7 +57,7 @@ class ImmutabilityHelperTest {
                 ResourceModelTestCase.builder().previous(ResourceModel.builder().engine("oracle-se2").build()).desired(ResourceModel.builder().engine("oracle-se2").build()).expect(false).build()
         );
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isOracleConvertToCDB(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isOracleConvertToCDB(test.previous.getEngine(), test.desired)).isEqualTo(test.expect);
         }
     }
 
@@ -136,7 +136,7 @@ class ImmutabilityHelperTest {
                         .build()
         );
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -164,7 +164,7 @@ class ImmutabilityHelperTest {
                         .expect(true)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -192,7 +192,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -220,7 +220,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -248,7 +248,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -302,7 +302,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 }
