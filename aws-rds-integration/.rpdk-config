@@ -1,0 +1,20 @@
+{
+    "artifact_type": "RESOURCE",
+    "typeName": "AWS::RDS::Integration",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.integration.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.integration.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "integration"
+        ],
+        "codegen_template_path": "guided_aws",
+        "protocolVersion": "2.0.0"
+    },
+    "logProcessorEnabled": "true",
+    "executableEntrypoint": "software.amazon.rds.integration.HandlerWrapperExecutable"
+}

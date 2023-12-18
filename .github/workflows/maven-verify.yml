@@ -77,6 +77,11 @@ jobs:
         cd "${GITHUB_WORKSPACE}/aws-rds-globalcluster"
         mvn clean verify --no-transfer-progress
         cat rpdk.log
+    - name: Verify AWS::RDS::Integration
+      run: |
+        cd "${GITHUB_WORKSPACE}/aws-rds-integration"
+        mvn clean verify --no-transfer-progress
+        cat rpdk.log
     - name: Verify AWS::RDS::OptionGroup
       run: |
         cd "${GITHUB_WORKSPACE}/aws-rds-optiongroup"
