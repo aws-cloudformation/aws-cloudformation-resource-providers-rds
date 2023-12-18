@@ -71,7 +71,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     DEFAULT_DB_INSTANCE_ERROR_RULE_SET
             );
         }
-        
+
         if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState(), instance)) {
             return ProgressEvent.failed(
                     request.getDesiredResourceState(),
