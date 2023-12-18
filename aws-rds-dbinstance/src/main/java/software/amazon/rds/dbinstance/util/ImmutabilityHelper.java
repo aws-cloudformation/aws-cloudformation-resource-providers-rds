@@ -7,6 +7,8 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 public final class ImmutabilityHelper {
@@ -14,6 +16,9 @@ public final class ImmutabilityHelper {
     private static final String ORACLE_SE = "oracle-se";
     private static final String ORACLE_SE1 = "oracle-se1";
     private static final String ORACLE_SE2 = "oracle-se2";
+    private static final String ORACLE_SE2_CDB = "oracle-se2-cdb";
+    private static final String ORACLE_EE = "oracle-ee";
+    private static final String ORACLE_EE_CDB = "oracle-ee-cdb";
 
     private static final String AURORA = "aurora";
     private static final String AURORA_MYSQL = "aurora-mysql";
@@ -29,6 +34,14 @@ public final class ImmutabilityHelper {
                 ORACLE_SE2.equalsIgnoreCase(desired.getEngine());
     }
 
+    static boolean isOracleConvertToCDB(final String previous, final ResourceModel desired) {
+        return previous != null &&
+            (
+                (ORACLE_EE.equalsIgnoreCase(previous) && ORACLE_EE_CDB.equalsIgnoreCase(desired.getEngine())) ||
+                (ORACLE_SE2.equalsIgnoreCase(previous) && ORACLE_SE2_CDB.equalsIgnoreCase(desired.getEngine()))
+            );
+    }
+
     static boolean isUpgradeToAuroraMySQL(final ResourceModel previous, final ResourceModel desired) {
         return previous.getEngine() != null &&
                 desired.getEngine() != null &&
@@ -36,10 +49,11 @@ public final class ImmutabilityHelper {
                 desired.getEngine().equals(AURORA_MYSQL);
     }
 
-    static boolean isEngineMutable(final ResourceModel previous, final ResourceModel desired) {
-        return Objects.equal(previous.getEngine(), desired.getEngine()) ||
+    static boolean isEngineMutable(final ResourceModel previous, final ResourceModel desired, final String currentEngine) {
+        return Objects.equal(currentEngine, desired.getEngine()) ||
                 isUpgradeToAuroraMySQL(previous, desired) ||
-                isUpgradeToOracleSE2(previous, desired);
+                isUpgradeToOracleSE2(previous, desired) ||
+                isOracleConvertToCDB(currentEngine, desired);
     }
 
     static boolean isPerformanceInsightsKMSKeyIdMutable(final ResourceModel previous, final ResourceModel desired) {
@@ -93,8 +107,9 @@ public final class ImmutabilityHelper {
                 StringUtils.isNullOrEmpty(desired.getSourceDbiResourceId());
     }
 
-    public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired) {
-        return isEngineMutable(previous, desired) &&
+    public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired, final DBInstance instance) {
+        final String currentEngine = (!StringUtils.isNullOrEmpty(previous.getEngine()) || instance == null) ? previous.getEngine() : instance.engine();
+        return isEngineMutable(previous, desired, currentEngine) &&
                 isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
                 isAvailabilityZoneChangeMutable(previous, desired) &&
                 isSourceDBInstanceIdentifierMutable(previous, desired) &&

@@ -48,6 +48,20 @@ class ImmutabilityHelperTest {
     }
 
     @Test
+    public void test_isOracleConvertToCDB() {
+        final List<ResourceModelTestCase> tests = Arrays.asList(
+                ResourceModelTestCase.builder().previous(ResourceModel.builder().engine("oracle-ee").build()).desired(ResourceModel.builder().engine("oracle-ee-cdb").build()).expect(true).build(),
+                ResourceModelTestCase.builder().previous(ResourceModel.builder().engine("oracle-se2").build()).desired(ResourceModel.builder().engine("oracle-se2-cdb").build()).expect(true).build(),
+                ResourceModelTestCase.builder().previous(ResourceModel.builder().engine("oracle-ee").build()).desired(ResourceModel.builder().engine("oracle-se2-cdb").build()).expect(false).build(),
+                ResourceModelTestCase.builder().previous(ResourceModel.builder().engine("oracle-se2").build()).desired(ResourceModel.builder().engine("oracle-ee-cdb").build()).expect(false).build(),
+                ResourceModelTestCase.builder().previous(ResourceModel.builder().engine("oracle-se2").build()).desired(ResourceModel.builder().engine("oracle-se2").build()).expect(false).build()
+        );
+        for (final ResourceModelTestCase test : tests) {
+            assertThat(ImmutabilityHelper.isOracleConvertToCDB(test.previous.getEngine(), test.desired)).isEqualTo(test.expect);
+        }
+    }
+
+    @Test
     public void test_isUpgradeToAuroraMySQL() {
         final List<EngineTestCase> tests = Arrays.asList(
                 EngineTestCase.builder().previous("aurora").desired("aurora-mysql").expect(true).build(),
@@ -122,7 +136,7 @@ class ImmutabilityHelperTest {
                         .build()
         );
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -150,7 +164,7 @@ class ImmutabilityHelperTest {
                         .expect(true)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -178,7 +192,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -206,7 +220,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -234,7 +248,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 
@@ -288,7 +302,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
         }
     }
 }

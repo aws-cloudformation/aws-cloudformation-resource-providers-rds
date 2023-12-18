@@ -58,7 +58,21 @@ public class UpdateHandler extends BaseHandlerStd {
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
-        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+        final ProxyClient<RdsClient> rdsClient = rdsProxyClient.defaultClient();
+        DBInstance instance;
+
+        try {
+            instance = StringUtils.isNullOrEmpty(request.getPreviousResourceState().getEngine()) ?
+                    fetchDBInstance(rdsClient, request.getPreviousResourceState()) : null;
+        } catch (Exception ex) {
+            return Commons.handleException(
+                    ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
+                    ex,
+                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+            );
+        }
+
+        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState(), instance)) {
             return ProgressEvent.failed(
                     request.getDesiredResourceState(),
                     callbackContext,
@@ -70,8 +84,6 @@ public class UpdateHandler extends BaseHandlerStd {
         if (BooleanUtils.isTrue(request.getDriftable())) {
             return handleResourceDrift(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger);
         }
-
-        final ProxyClient<RdsClient> rdsClient = rdsProxyClient.defaultClient();
 
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))

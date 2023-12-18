@@ -773,6 +773,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 pending.backupRetentionPeriod() == null &&
                 pending.multiAZ() == null &&
                 pending.engineVersion() == null &&
+                pending.engine() == null &&
                 pending.iops() == null &&
                 pending.dbInstanceIdentifier() == null &&
                 pending.licenseModel() == null &&
