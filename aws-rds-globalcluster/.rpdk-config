@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::GlobalCluster",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java11",
     "entrypoint": "software.amazon.rds.globalcluster.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.globalcluster.HandlerWrapper::testEntrypoint",
     "settings": {
