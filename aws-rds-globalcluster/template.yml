@@ -12,12 +12,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: software.amazon.rds.globalcluster.HandlerWrapper::handleRequest
-      Runtime: java8
+      Runtime: java11
       CodeUri: ./target/aws-rds-globalcluster-handler-1.0-SNAPSHOT.jar
 
   TestEntrypoint:
     Type: AWS::Serverless::Function
     Properties:
       Handler: software.amazon.rds.globalcluster.HandlerWrapper::testEntrypoint
-      Runtime: java8
+      Runtime: java11
       CodeUri: ./target/aws-rds-globalcluster-handler-1.0-SNAPSHOT.jar
