@@ -53,7 +53,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isMasterUserSecretStabilized_masterUserSecretIsNull() {
-        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+        Assertions.assertThat(BaseHandlerStd.isMasterUserSecretStabilized(
                 DBCluster.builder()
                         .build()
         )).isTrue();
@@ -61,7 +61,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isMasterUserSecretStabilized_masterUserSecretStatusActive() {
-        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+        Assertions.assertThat(BaseHandlerStd.isMasterUserSecretStabilized(
                 DBCluster.builder()
                         .masterUserSecret(MasterUserSecret.builder()
                                 .secretStatus("Active")
@@ -78,12 +78,12 @@ class BaseHandlerStdTest {
                         .build())
                 .build();
         Assertions.assertThat(CollectionUtils.isEmpty(dbCluster.dbClusterMembers()));
-        Assertions.assertThat(handler.isMasterUserSecretStabilized(dbCluster)).isTrue();
+        Assertions.assertThat(BaseHandlerStd.isMasterUserSecretStabilized(dbCluster)).isTrue();
     }
 
     @Test
     void isGlobalWriteForwardingStabilized_globalWriteForwardingNotRequested() {
-        Assertions.assertThat(handler.isGlobalWriteForwardingStabilized(
+        Assertions.assertThat(BaseHandlerStd.isGlobalWriteForwardingStabilized(
                 DBCluster.builder()
                         .build()
         )).isTrue();
@@ -91,7 +91,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isGlobalWriteForwardingStabilized_globalWriteForwardingRequested() {
-        Assertions.assertThat(handler.isGlobalWriteForwardingStabilized(
+        Assertions.assertThat(BaseHandlerStd.isGlobalWriteForwardingStabilized(
                 DBCluster.builder()
                         .globalWriteForwardingRequested(true)
                         .build()
@@ -100,7 +100,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isGlobalWriteForwardingStabilized_globalWriteForwardingEnabled() {
-        Assertions.assertThat(handler.isGlobalWriteForwardingStabilized(
+        Assertions.assertThat(BaseHandlerStd.isGlobalWriteForwardingStabilized(
                 DBCluster.builder()
                         .globalWriteForwardingRequested(true)
                         .globalWriteForwardingStatus(WriteForwardingStatus.ENABLED)
@@ -110,7 +110,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isGlobalWriteForwardingStabilized_globalWriteForwardingEnabling() {
-        Assertions.assertThat(handler.isGlobalWriteForwardingStabilized(
+        Assertions.assertThat(BaseHandlerStd.isGlobalWriteForwardingStabilized(
                 DBCluster.builder()
                         .globalWriteForwardingRequested(true)
                         .globalWriteForwardingStatus(WriteForwardingStatus.ENABLING)
@@ -123,7 +123,7 @@ class BaseHandlerStdTest {
         // GlobalWriteForwarding status will not enable until a replica is requested by customer
         // This prevents customers from creating a stack with only primary and setting the property
         // As WS does not validate this parameter the stack will wait on stabilization until timeout.
-        Assertions.assertThat(handler.isGlobalWriteForwardingStabilized(
+        Assertions.assertThat(BaseHandlerStd.isGlobalWriteForwardingStabilized(
                 DBCluster.builder()
                         .globalWriteForwardingRequested(true)
                         .globalWriteForwardingStatus(WriteForwardingStatus.DISABLED)
@@ -133,7 +133,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isGlobalWriteForwardingStabilized_globalWriteForwardingDisabling() {
-        Assertions.assertThat(handler.isGlobalWriteForwardingStabilized(
+        Assertions.assertThat(BaseHandlerStd.isGlobalWriteForwardingStabilized(
                 DBCluster.builder()
                         .globalWriteForwardingRequested(true)
                         .globalWriteForwardingStatus(WriteForwardingStatus.DISABLING)

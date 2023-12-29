@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::Integration",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.integration.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.integration.HandlerWrapper::testEntrypoint",
     "settings": {

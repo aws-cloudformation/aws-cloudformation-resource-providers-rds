@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::DBSubnetGroup",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.dbsubnetgroup.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.dbsubnetgroup.HandlerWrapper::testEntrypoint",
     "settings": {
