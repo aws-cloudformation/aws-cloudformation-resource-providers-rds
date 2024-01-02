@@ -730,6 +730,17 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_createDbInstanceRequest_AllowMajorVersionUpgrade() {
+        ResourceModel model = ResourceModel.builder()
+                .allowMajorVersionUpgrade(true)
+                .build();
+        final ModifyDbInstanceRequest modifyAfterCreateRequest = Translator.modifyDbInstanceAfterCreateRequest(
+                model
+        );
+        assertThat(modifyAfterCreateRequest.allowMajorVersionUpgrade()).isTrue();
+    }
+
+    @Test
     public void test_createDbInstanceRequest_SetPerformanceInsightsKMSKeyIdIfEnabled() {
         final String kmsKeyId = "test-kms-key-id";
         final CreateDbInstanceRequest request = Translator.createDbInstanceRequest(

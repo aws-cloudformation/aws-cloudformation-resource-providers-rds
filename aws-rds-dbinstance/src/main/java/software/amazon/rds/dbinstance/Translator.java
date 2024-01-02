@@ -588,6 +588,7 @@ public class Translator {
 
     public static ModifyDbInstanceRequest modifyDbInstanceAfterCreateRequest(final ResourceModel model) {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
+                .allowMajorVersionUpgrade(model.getAllowMajorVersionUpgrade())
                 .applyImmediately(Boolean.TRUE)
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
                 .caCertificateIdentifier(model.getCACertificateIdentifier())
