@@ -44,6 +44,8 @@ Resources:
                 - "rds:DescribeDBSubnetGroups"
                 - "rds:DescribeEvents"
                 - "rds:DescribeGlobalClusters"
+                - "rds:DisableHttpEndpoint"
+                - "rds:EnableHttpEndpoint"
                 - "rds:ModifyDBCluster"
                 - "rds:ModifyDBInstance"
                 - "rds:RemoveFromGlobalCluster"

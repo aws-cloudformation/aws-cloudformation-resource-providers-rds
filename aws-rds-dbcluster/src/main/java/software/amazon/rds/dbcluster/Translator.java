@@ -28,6 +28,8 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
+import software.amazon.awssdk.services.rds.model.DisableHttpEndpointRequest;
+import software.amazon.awssdk.services.rds.model.EnableHttpEndpointRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
@@ -214,7 +216,6 @@ public class Translator {
                 .domain(desiredModel.getDomain())
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
-                .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(desiredModel.getMasterUserPassword())
@@ -232,6 +233,8 @@ public class Translator {
                     .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
                     .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
                     .preferredBackupWindow(desiredModel.getPreferredBackupWindow());
+        } else {
+            builder.enableHttpEndpoint(desiredModel.getEnableHttpEndpoint());
         }
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
@@ -265,7 +268,6 @@ public class Translator {
                 .domain(desiredModel.getDomain())
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
-                .enableHttpEndpoint(desiredModel.getEnableHttpEndpoint())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
@@ -301,6 +303,10 @@ public class Translator {
             builder.masterUserSecretKmsKeyId(desiredModel.getMasterUserSecret() != null ? desiredModel.getMasterUserSecret().getKmsKeyId() : null);
         } else {
             builder.manageMasterUserPassword(getManageMasterUserPassword(previousModel, desiredModel));
+        }
+
+        if (EngineMode.fromString(desiredModel.getEngineMode()) == EngineMode.Serverless) {
+            builder.enableHttpEndpoint(desiredModel.getEnableHttpEndpoint());
         }
 
         return builder.build();
@@ -375,6 +381,22 @@ public class Translator {
     ) {
         return DescribeDbClustersRequest.builder()
                 .marker(nextToken)
+                .build();
+    }
+
+    static EnableHttpEndpointRequest enableHttpEndpointRequest(
+            final String clusterArn
+    ) {
+        return EnableHttpEndpointRequest.builder()
+                .resourceArn(clusterArn)
+                .build();
+    }
+
+    static DisableHttpEndpointRequest disableHttpEndpointRequest(
+            final String clusterArn
+    ) {
+        return DisableHttpEndpointRequest.builder()
+                .resourceArn(clusterArn)
                 .build();
     }
 
