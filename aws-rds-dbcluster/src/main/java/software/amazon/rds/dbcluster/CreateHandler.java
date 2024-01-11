@@ -3,6 +3,8 @@ package software.amazon.rds.dbcluster;
 import java.time.Instant;
 import java.util.HashSet;
 
+import org.apache.commons.lang3.BooleanUtils;
+
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -91,6 +93,12 @@ public class CreateHandler extends BaseHandlerStd {
                                 () -> {
                                     progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
                                     return modifyDBCluster(proxy, rdsProxyClient, progress)
+                                            .then(p -> {
+                                                if (shouldEnableHttpEndpointV2AfterCreate(progress.getResourceModel())) {
+                                                    return enableHttpEndpointV2(proxy, rdsProxyClient, progress);
+                                                }
+                                                return p;
+                                            })
                                             .then(p -> Events.checkFailedEvents(
                                                     rdsProxyClient,
                                                     p.getResourceModel().getDBClusterIdentifier(),
@@ -224,5 +232,9 @@ public class CreateHandler extends BaseHandlerStd {
 
     private boolean shouldUpdateAfterCreate(final ResourceModel model) {
         return isRestoreFromSnapshot(model) || isRestoreToPointInTime(model);
+    }
+
+    private boolean shouldEnableHttpEndpointV2AfterCreate(final ResourceModel model) {
+        return BooleanUtils.isTrue(model.getEnableHttpEndpoint()) && !EngineMode.Serverless.equals(EngineMode.fromString(model.getEngineMode()))  ;
     }
 }

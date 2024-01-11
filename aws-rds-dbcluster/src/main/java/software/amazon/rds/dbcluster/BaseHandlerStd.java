@@ -15,6 +15,7 @@ import java.util.function.Predicate;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -60,9 +61,11 @@ import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
+import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -85,6 +88,7 @@ import software.amazon.rds.common.request.Validations;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
+    public static final String ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
     private static final String MASTER_USER_SECRET_ACTIVE = "active";
     public static final String STACK_NAME = "rds";
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
@@ -126,7 +130,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     DbInstanceNotFoundException.class,
                     DbSubnetGroupNotFoundException.class,
                     DomainNotFoundException.class,
-                    GlobalClusterNotFoundException.class)
+                    GlobalClusterNotFoundException.class,
+                    ResourceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbClusterQuotaExceededException.class,
                     InsufficientStorageClusterCapacityException.class,
@@ -159,6 +164,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .extend(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(),
                     DbClusterRoleNotFoundException.class)
+            .build();
+
+    protected static final ErrorRuleSet DISABLE_HTTP_ENDPOINT_V2_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_DB_CLUSTER_ERROR_RULE_SET)
+            .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+                    ErrorCode.InvalidParameterCombination,
+                    ErrorCode.InvalidParameterValue)
             .build();
 
     protected final static HandlerConfig DB_CLUSTER_HANDLER_CONFIG_36H = HandlerConfig.builder()
@@ -447,6 +459,65 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(model, callbackContext);
     }
 
+    boolean isHttpEndpointV2Set(ProxyClient<RdsClient> proxyClient, ResourceModel model, Boolean expectedValue) {
+        final DBCluster dbCluster = fetchDBCluster(proxyClient, model);
+        return dbCluster.httpEndpointEnabled().equals(expectedValue);
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> enableHttpEndpointV2(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext callbackContext = progress.getCallbackContext();
+        final String dbClusterArn = fetchDBCluster(proxyClient, model).dbClusterArn();
+
+        return proxy.initiate("rds::enable-http-endpoint-v2", proxyClient, model, callbackContext)
+                    .translateToServiceRequest(modelRequest -> Translator.enableHttpEndpointRequest(dbClusterArn))
+                    .backoffDelay(config.getBackoff())
+                    .makeServiceCall((enableRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                            enableRequest,
+                            proxyInvocation.client()::enableHttpEndpoint
+                    ))
+                    .stabilize((enableHttpRequest, enableHttpResponse, client, resourceModel, context) ->
+                            isHttpEndpointV2Set(client, resourceModel, true)
+                    )
+                    .handleError((enableHttpRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
+                            ProgressEvent.progress(resourceModel, callbackCtxt),
+                            exception,
+                            DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                    ))
+                    .progress();
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> disableHttpEndpointV2(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
+    ) {
+        final ResourceModel model = progress.getResourceModel();
+        final CallbackContext callbackContext = progress.getCallbackContext();
+        final String dbClusterArn = fetchDBCluster(proxyClient, model).dbClusterArn();
+
+        return proxy.initiate("rds::disable-http-endpoint-v2", proxyClient, model, callbackContext)
+                .translateToServiceRequest(modelRequest -> Translator.disableHttpEndpointRequest(dbClusterArn))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((enableRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        enableRequest,
+                        proxyInvocation.client()::disableHttpEndpoint
+                ))
+                .stabilize((disableHttpRequest, disableHttpResponse, client, resourceModel, context) ->
+                        isHttpEndpointV2Set(client, resourceModel, false)
+                )
+                .handleError((disableHttpRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, callbackCtxt),
+                        exception,
+                        DISABLE_HTTP_ENDPOINT_V2_ERROR_RULE_SET
+                ))
+                .progress();
+    }
+
     protected boolean isAssociatedRoleAttached(
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model,
@@ -597,6 +668,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             }
         }
         return CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds());
+    }
+
+    protected boolean shouldUpdateHttpEndpointV2(final ResourceModel previousState, final ResourceModel desiredState) {
+        return ENGINE_AURORA_POSTGRESQL.equalsIgnoreCase(desiredState.getEngine()) &&
+                !EngineMode.Serverless.equals(EngineMode.fromString(desiredState.getEngineMode())) &&
+                ObjectUtils.notEqual(previousState.getEnableHttpEndpoint(), desiredState.getEnableHttpEndpoint());
     }
 
     private void assertNoDBClusterTerminalStatus(final DBCluster dbCluster) throws CfnNotStabilizedException {
