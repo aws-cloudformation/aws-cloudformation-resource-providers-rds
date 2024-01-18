@@ -1,7 +1,10 @@
 aws-rds-handlers.iml
 rpdk.log
-.github
 /build/
+# python helper scripts
+bin/
+lib/
+env/
 # for IntelliJ IDEA
 .idea/
 # Gradle

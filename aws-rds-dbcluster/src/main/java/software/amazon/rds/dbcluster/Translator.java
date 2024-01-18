@@ -567,6 +567,7 @@ public class Translator {
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfigurationFromSdk(dbCluster.serverlessV2ScalingConfiguration()))
                 .scalingConfiguration(translateScalingConfigurationFromSdk(dbCluster.scalingConfigurationInfo()))
                 .storageEncrypted(dbCluster.storageEncrypted())
+                .storageThroughput(dbCluster.storageThroughput())
                 .storageType(Optional.ofNullable(dbCluster.storageType()).orElse(STORAGE_TYPE_AURORA))
                 .tags(translateTagsFromSdk(dbCluster.tagList()))
                 .vpcSecurityGroupIds(
