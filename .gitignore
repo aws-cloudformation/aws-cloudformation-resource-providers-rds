@@ -1,4 +1,10 @@
 aws-rds-handlers.iml
 rpdk.log
+.github
+/build/
 # for IntelliJ IDEA
 .idea/
+# Gradle
+.gradle
+/gradle/
+/wrapper/

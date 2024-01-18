@@ -44,6 +44,7 @@ import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.Event;
 import software.amazon.awssdk.services.rds.model.GlobalCluster;
 import software.amazon.awssdk.services.rds.model.GlobalClusterNotFoundException;
+import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityException;
 import software.amazon.awssdk.services.rds.model.InsufficientStorageClusterCapacityException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterSnapshotStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
@@ -136,6 +137,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbClusterQuotaExceededException.class,
                     InsufficientStorageClusterCapacityException.class,
+                    InsufficientDbInstanceCapacityException.class,
                     StorageQuotaExceededException.class,
                     SnapshotQuotaExceededException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
