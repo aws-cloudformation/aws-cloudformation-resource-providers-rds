@@ -74,7 +74,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET, requestLogger))
                 .progress();
     }
 
@@ -99,7 +99,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         .handleError((removeSourceIdentifierFromSubscriptionRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                REMOVE_SOURCE_ERROR_RULE_SET))
+                                REMOVE_SOURCE_ERROR_RULE_SET, requestLogger))
                         .progress())
                 .filter(ProgressEvent::isFailed)
                 .findFirst()
@@ -127,7 +127,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         .handleError((addSourceIdentifierToSubscriptionRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET, requestLogger))
                         .progress())
                 .filter(ProgressEvent::isFailed)
                 .findFirst()

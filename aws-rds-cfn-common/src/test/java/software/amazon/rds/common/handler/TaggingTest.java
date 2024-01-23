@@ -46,6 +46,9 @@ import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 public class TaggingTest extends ProxyClientTestBase {
 
+    @Mock
+    RequestLogger requestLogger;
+
     private final static String FAILED_MSG = "User is not authorized to do rds:AddTagsToResource action";
 
     final Set<Tag> SYSTEM_TAGS = Stream.of(
@@ -89,7 +92,7 @@ public class TaggingTest extends ProxyClientTestBase {
         when(proxyRdsClient.client().addTagsToResource(any(AddTagsToResourceRequest.class))).thenReturn(AddTagsToResourceResponse.builder().build());
         when(proxyRdsClient.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class))).thenReturn(RemoveTagsFromResourceResponse.builder().build());
 
-        ProgressEvent<Void, Void> resultEvent = Tagging.updateTags(proxyRdsClient, event, "test-arn", previousTags, desiredTags, Commons.DEFAULT_ERROR_RULE_SET);
+        ProgressEvent<Void, Void> resultEvent = Tagging.updateTags(proxyRdsClient, event, "test-arn", previousTags, desiredTags, Commons.DEFAULT_ERROR_RULE_SET, requestLogger);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isFalse();
     }
@@ -99,7 +102,7 @@ public class TaggingTest extends ProxyClientTestBase {
         final ProgressEvent<Void, Void> event = new ProgressEvent<>();
         Map<String, String> previousTags = ImmutableMap.of("key1", "value1", "key2", "value2");
 
-        ProgressEvent<Void, Void> resultEvent = Tagging.updateTags(proxyRdsClient, event, "test-arn", previousTags, previousTags, Commons.DEFAULT_ERROR_RULE_SET);
+        ProgressEvent<Void, Void> resultEvent = Tagging.updateTags(proxyRdsClient, event, "test-arn", previousTags, previousTags, Commons.DEFAULT_ERROR_RULE_SET, requestLogger);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isFalse();
     }

@@ -51,6 +51,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private static final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
     protected HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -96,7 +97,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -116,7 +118,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 )).handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
                     final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
@@ -146,7 +149,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                 rulesetTagsToAdd,
                                                 rulesetTagsToRemove
                                         )
-                                )
+                                ),
+                                requestLogger
                         );
                     }
                     return ProgressEvent.progress(resourceModel, ctx);

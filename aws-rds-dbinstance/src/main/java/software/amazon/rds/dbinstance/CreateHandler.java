@@ -94,7 +94,7 @@ public class CreateHandler extends BaseHandlerStd {
                         try {
                             model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress, proxy));
                         } catch (Exception e) {
-                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET);
+                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET, logger);
                         }
                     }
                     return progress;
@@ -121,7 +121,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
                                 }
                             } catch (Exception e) {
-                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET, logger);
                             }
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
@@ -283,7 +283,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET
+                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -310,7 +311,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET
+                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -340,7 +342,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -367,7 +370,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -394,7 +398,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -422,7 +427,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET
+                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -447,7 +453,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -469,7 +476,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }

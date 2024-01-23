@@ -40,7 +40,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final DBCluster dbCluster = describeResponse.dbClusters().get(0);

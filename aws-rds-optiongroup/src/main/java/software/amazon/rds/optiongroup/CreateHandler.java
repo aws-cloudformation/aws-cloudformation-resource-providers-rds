@@ -85,7 +85,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((createRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }

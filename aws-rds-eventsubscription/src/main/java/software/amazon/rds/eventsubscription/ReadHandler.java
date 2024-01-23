@@ -27,7 +27,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET, requestLogger))
                 .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, model, context) -> {
                     final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
                     context.setEventSubscriptionArn(eventSubscription.eventSubscriptionArn());
@@ -49,7 +49,8 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET),
+                    requestLogger
             );
         }
         return ProgressEvent.success(model, context);

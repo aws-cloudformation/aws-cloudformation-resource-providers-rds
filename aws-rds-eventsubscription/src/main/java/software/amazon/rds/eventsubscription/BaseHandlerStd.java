@@ -32,6 +32,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "eventsubscription";
     protected static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
+    protected RequestLogger requestLogger;
 
     protected static final ErrorRuleSet DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -147,7 +148,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                             rulesetTagsToAdd,
                                             rulesetTagsToRemove
                                     )
-                            )
+                            ), requestLogger
+
             );
         }
 
@@ -164,7 +166,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
+                                DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET,
+                                requestLogger
                         ))
                 .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, resourceModel, context) -> {
                     final String arn = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get().eventSubscriptionArn();

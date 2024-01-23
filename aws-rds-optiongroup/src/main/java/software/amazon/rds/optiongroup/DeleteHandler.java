@@ -38,7 +38,8 @@ public class DeleteHandler extends BaseHandlerStd {
                 .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }

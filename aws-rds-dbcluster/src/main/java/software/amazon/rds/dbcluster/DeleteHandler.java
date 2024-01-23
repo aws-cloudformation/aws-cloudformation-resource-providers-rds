@@ -74,7 +74,7 @@ public class DeleteHandler extends BaseHandlerStd {
                 return ProgressEvent.failed(model, context, HandlerErrorCode.NotUpdatable, errorMessage);
             }
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
         }
         return progress;
     }
@@ -107,7 +107,8 @@ public class DeleteHandler extends BaseHandlerStd {
                 .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }

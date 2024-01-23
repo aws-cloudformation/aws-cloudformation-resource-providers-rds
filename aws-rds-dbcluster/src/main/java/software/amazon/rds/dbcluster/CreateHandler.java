@@ -146,7 +146,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -170,7 +171,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -194,7 +196,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -217,7 +220,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtxt),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }

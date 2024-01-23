@@ -183,6 +183,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final ResourceTypeSchema resourceTypeSchema = ResourceTypeSchema.load(new Configuration().resourceSchemaJsonObject());
 
     protected HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -411,7 +412,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((addRoleRequest, exception, client, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            isRollback ? ADD_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET : DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                            isRollback ? ADD_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET : DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                            requestLogger
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -449,7 +451,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((removeRoleRequest, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            REMOVE_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET
+                            REMOVE_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET,
+                            requestLogger
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -486,7 +489,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((enableHttpRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, callbackCtxt),
                             exception,
-                            DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                            DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                            requestLogger
                     ))
                     .progress();
     }
@@ -513,7 +517,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((disableHttpRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtxt),
                         exception,
-                        DISABLE_HTTP_ENDPOINT_V2_ERROR_RULE_SET
+                        DISABLE_HTTP_ENDPOINT_V2_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -577,7 +582,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         try {
             dbCluster = fetchDBCluster(rdsProxyClient, progress.getResourceModel());
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
         }
 
         final String arn = dbCluster.dbClusterArn();
@@ -589,7 +594,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove))
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
+                    requestLogger
             );
         }
 
@@ -610,7 +616,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
                     exception,
-                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
         }
         final String clusterArn = cluster.dbClusterArn();
         return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
@@ -626,7 +632,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((removeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -651,7 +658,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
                     exception,
-                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
         }
     }
 

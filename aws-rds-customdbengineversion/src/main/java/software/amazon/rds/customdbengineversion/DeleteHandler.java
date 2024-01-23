@@ -23,6 +23,7 @@ public class DeleteHandler extends BaseHandlerStd {
         super(config);
     }
 
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
@@ -53,7 +54,8 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET
+                                DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET,
+                                requestLogger
                         ))
                         .progress()
                 )

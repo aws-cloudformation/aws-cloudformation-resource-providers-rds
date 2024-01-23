@@ -83,6 +83,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private final FilteredJsonPrinter EMPTY_FILTER = new FilteredJsonPrinter();
 
     protected final HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -189,7 +190,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 tagsToAdd,
                                 tagsToRemove
                         )
-                )
+                ),
+                requestLogger
         );
     }
 
@@ -206,7 +208,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
+                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET), requestLogger)
                 .progress();
     }
 

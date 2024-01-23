@@ -32,7 +32,8 @@ public class ListHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     e,
-                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET
+                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET,
+                    requestLogger
             );
         }
 

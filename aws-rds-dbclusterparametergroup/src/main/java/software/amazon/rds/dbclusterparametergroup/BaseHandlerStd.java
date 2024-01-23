@@ -119,6 +119,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .build();
 
     protected HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -186,7 +187,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                     rulesetTagsToAdd,
                                     rulesetTagsToRemove
                             )
-                    )
+                    ),
+                    requestLogger
             );
         }
 
@@ -223,7 +225,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((describeDbClusterParameterGroupsRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET));
+                        SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET, requestLogger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(
@@ -324,7 +326,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 accumulator.put(parameter.parameterName(), parameter);
             }
         } catch (Exception e) {
-            return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+            return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET, requestLogger);
         }
         return progress;
     }
@@ -403,7 +405,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 accumulator.put(parameter.parameterName(), parameter);
             }
         } catch (Exception e) {
-            return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+            return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET, requestLogger);
         }
 
         return progress;
@@ -474,7 +476,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET, requestLogger))
                 .progress();
     }
 
@@ -498,7 +500,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         } catch (Exception exception) {
             return Commons.handleException(ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET);
+                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET, requestLogger);
         }
 
         return ProgressEvent.progress(model, context);
@@ -547,7 +549,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET))
+                                DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET, requestLogger))
                 .progress();
     }
 }

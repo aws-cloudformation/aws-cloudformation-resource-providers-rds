@@ -453,7 +453,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -479,7 +480,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -927,7 +929,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
+                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                            logger
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -958,7 +961,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
+                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                            logger
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -987,7 +991,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        REBOOT_DB_INSTANCE_ERROR_RULE_SET
+                        REBOOT_DB_INSTANCE_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -1018,7 +1023,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET
+                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -1033,7 +1039,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
                 model.setEngine(dbInstance.engine());
             } catch (Exception e) {
-                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, logger);
             }
         }
         return progress;
@@ -1064,7 +1070,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         try {
             dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET);
+            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, logger);
         }
 
         final String arn = dbInstance.dbInstanceArn();
@@ -1076,7 +1082,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove))
+                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
+                    logger
             );
         }
 
@@ -1120,7 +1127,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }
@@ -1146,7 +1154,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                        logger
                 ))
                 .progress();
     }

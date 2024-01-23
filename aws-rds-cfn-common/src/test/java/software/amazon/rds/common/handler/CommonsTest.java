@@ -6,12 +6,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.codehaus.plexus.util.ExceptionUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -28,9 +28,12 @@ import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
+import static software.amazon.rds.common.handler.Commons.getRoot_Cause_Exception_Message;
 
 class CommonsTest {
 
+    @Mock
+    RequestLogger logger = Mockito.mock(RequestLogger.class);
     @Test
     void test_handle_ClientUnavailable() {
         final ErrorStatus status = Commons.DEFAULT_ERROR_RULE_SET.handle(newAwsServiceException(ErrorCode.ClientUnavailable));
@@ -59,7 +62,8 @@ class CommonsTest {
                 .build();
 
         final ProgressEvent<Void, Void> progress = new ProgressEvent<>();
-        final ProgressEvent<Void, Void> handledExceptionProgress = Commons.handleException(progress, new RuntimeException(), errorRuleSet);
+        Mockito.doNothing().when(logger).log(any(String.class));
+        final ProgressEvent<Void, Void> handledExceptionProgress = Commons.handleException(progress, new RuntimeException(), errorRuleSet, logger);
         assertThat(handledExceptionProgress.getResourceModel()).isNull();
         assertThat(handledExceptionProgress.getCallbackContext()).isNull();
     }
@@ -113,7 +117,8 @@ class CommonsTest {
         final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
                 .withErrorClasses(ErrorStatus.ignore(), RuntimeException.class)
                 .build();
-        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
+        Mockito.doNothing().when(logger).log(any(String.class));
+        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet, logger);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isSuccess()).isTrue();
     }
@@ -125,7 +130,8 @@ class CommonsTest {
         final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
                 .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest), RuntimeException.class)
                 .build();
-        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
+        Mockito.doNothing().when(logger).log(any(String.class));
+        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet, logger);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
         assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InvalidRequest);
@@ -136,10 +142,32 @@ class CommonsTest {
         final ProgressEvent<Void, Void> event = new ProgressEvent<>();
         final Exception exception = new RuntimeException("test exception");
         final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
-        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet);
+        Mockito.doNothing().when(logger).log(any(String.class));
+        final ProgressEvent<Void, Void> resultEvent = Commons.handleException(event, exception, ruleSet, logger);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
         assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
+    }
+
+    @Test
+    void test_RootCauseMessage_UnexpectedErrorStatus()
+    {
+        final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
+        final Exception ex = new RuntimeException();
+        final Throwable exRootCause = ExceptionUtils.getRootCause(ex);
+        final String exceptionCanonicalName = ex.getClass().getCanonicalName();
+        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
+        Mockito.doNothing().when(logger).log(any(String.class));
+        final ProgressEvent <Void, Void> resultEvent = Commons.handleException(progressEvent, ex, ruleSet, logger);
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(logger).log(captor.capture());
+
+        final String logLine = captor.getValue();
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isTrue();
+
+        assertThat(logLine).contains("UnexpectedErrorStatus: " + getRoot_Cause_Exception_Message(exRootCause) + " " + exceptionCanonicalName);
     }
 
     @Test

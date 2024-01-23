@@ -48,6 +48,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected HandlerConfig config;
 
+    protected RequestLogger requestLogger;
+
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
     public BaseHandlerStd(final HandlerConfig config) {
@@ -71,7 +73,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         request,
                         context,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        logger
+                        requestLogger
                 ));
     }
 
@@ -79,8 +81,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             AmazonWebServicesClientProxy proxy,
             ResourceHandlerRequest<ResourceModel> request,
             CallbackContext callbackContext,
+            ProxyClient<RdsClient> proxyClient);
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            AmazonWebServicesClientProxy proxy,
+            ResourceHandlerRequest<ResourceModel> request,
+            CallbackContext callbackContext,
             ProxyClient<RdsClient> proxyClient,
-            Logger logger);
+            final RequestLogger logger
+    ) {
+        this.requestLogger = logger;
+        return handleRequest(proxy, request, callbackContext, proxyClient);
+    }
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final String status = proxyClient.injectCredentialsAndInvokeV2(
@@ -138,7 +150,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                     rulesetTagsToAdd,
                                     rulesetTagsToRemove
                             )
-                    )
+                    ),
+                    requestLogger
             );
         }
 

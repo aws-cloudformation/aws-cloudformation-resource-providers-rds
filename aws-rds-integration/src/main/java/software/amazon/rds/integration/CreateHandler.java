@@ -82,7 +82,8 @@ public class CreateHandler extends BaseHandlerStd {
                     return Commons.handleException(
                             ProgressEvent.progress(resourceModel, ctx),
                             exception,
-                            DEFAULT_INTEGRATION_ERROR_RULE_SET);
+                            DEFAULT_INTEGRATION_ERROR_RULE_SET,
+                            requestLogger);
                 })
                 .progress();
     }

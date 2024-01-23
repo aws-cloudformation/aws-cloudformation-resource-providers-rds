@@ -70,7 +70,8 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DELETE_DB_INSTANCE_ERROR_RULE_SET
+                                DELETE_DB_INSTANCE_ERROR_RULE_SET,
+                                logger
                         )).progress()
                 )
                 // The reason we split a pretty trivial execution chain in 2 is because of the error handling.
@@ -87,7 +88,8 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DEFAULT_DB_INSTANCE_ERROR_RULE_SET
+                                DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                                logger
                         ))
                         .progress()
                 )

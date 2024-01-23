@@ -90,7 +90,7 @@ public class CreateHandler extends BaseHandlerStd {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET))
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET, logger))
                 .done((request, response, proxyInvocation, resourceModel, context) -> {
                     context.setDbParameterGroupArn(response.dbParameterGroup().dbParameterGroupArn());
                     return ProgressEvent.progress(resourceModel, context);

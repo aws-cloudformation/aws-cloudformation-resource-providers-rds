@@ -50,6 +50,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     /** Custom handler config, mostly to facilitate faster unit test */
     final HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     public BaseHandlerStd() {
         this(HandlerConfig.builder().build());
@@ -154,7 +155,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     progress,
                     exception,
                     // Integration resource will NOT allow soft fail on tag updates.
-                    DEFAULT_INTEGRATION_ERROR_RULE_SET
+                    DEFAULT_INTEGRATION_ERROR_RULE_SET,
+                    requestLogger
             );
         }
 
@@ -171,7 +173,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_INTEGRATION_ERROR_RULE_SET
+                                DEFAULT_INTEGRATION_ERROR_RULE_SET,
+                                requestLogger
                         ))
                 .done((describeIntegrationsRequest, describeIntegrationsResponse, proxyInvocation, resourceModel, context) -> {
                     final String arn = describeIntegrationsResponse.integrations().stream().findFirst().get().integrationArn();

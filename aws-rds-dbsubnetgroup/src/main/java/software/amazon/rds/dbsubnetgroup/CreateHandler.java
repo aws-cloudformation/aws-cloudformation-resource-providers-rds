@@ -5,7 +5,6 @@ import java.util.LinkedHashSet;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -34,8 +33,7 @@ public class CreateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final ProxyClient<RdsClient> proxyClient) {
 
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
@@ -48,7 +46,7 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbSubnetGroupNameIfEmpty(request, progress))
                 .then(progress -> safeCreateDbSubnetGroup(proxy, proxyClient, progress, allTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreateDbSubnetGroup(final AmazonWebServicesClientProxy proxy,
@@ -77,7 +75,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((awsRequest, exception, client, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET))
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET, requestLogger))
                 .done((subnetGroupRequest, subnetGroupResponse, proxyInvocation, resourceModel, context) -> {
                     context.setDbSubnetGroupArn(subnetGroupResponse.dbSubnetGroup().dbSubnetGroupArn());
                     return ProgressEvent.progress(resourceModel, context);

@@ -34,7 +34,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_INTEGRATION_ERROR_RULE_SET))
+                        DEFAULT_INTEGRATION_ERROR_RULE_SET, requestLogger))
                 .done((describeIntegrationsRequest, describeIntegrationsResponse, proxyInvocation, model, context) -> {
                     final Integration integration = describeIntegrationsResponse.integrations().stream().findFirst().get();
                     // it's possible the model does not have the ARN populated yet,

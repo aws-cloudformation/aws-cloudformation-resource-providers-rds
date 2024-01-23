@@ -151,7 +151,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((createRequest, exception, client, resourceModel, callbackCtx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtx),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }

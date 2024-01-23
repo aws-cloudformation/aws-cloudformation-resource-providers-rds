@@ -42,7 +42,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     final OptionGroup optionGroup = describeResponse.optionGroupsList().stream().findFirst().get();
@@ -75,7 +76,8 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET),
+                    requestLogger
             );
         }
         return ProgressEvent.success(model, context);

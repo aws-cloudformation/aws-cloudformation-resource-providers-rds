@@ -27,6 +27,8 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
+import software.amazon.rds.common.logging.RequestLogger;
+
 
 public final class Tagging {
     public static final ErrorRuleSet IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET = ErrorRuleSet
@@ -67,6 +69,8 @@ public final class Tagging {
                 .resourceTags(resourceTags)
                 .build();
     }
+
+
 
     public static Collection<Tag> exclude(final Collection<Tag> from, final Collection<Tag> what) {
         final Set<Tag> result = new LinkedHashSet<>(from);
@@ -123,7 +127,8 @@ public final class Tagging {
             final String resourceArn,
             final Map<String, String> previousTags,
             final Map<String, String> desiredTags,
-            final ErrorRuleSet errorRuleSet
+            final ErrorRuleSet errorRuleSet,
+            final RequestLogger requestLogger
     ) {
         final Set<Tag> desiredTagSet = new LinkedHashSet<>(translateTagsToSdk(desiredTags));
         final Set<Tag> previousTagSet = new LinkedHashSet<>(translateTagsToSdk(previousTags));
@@ -136,7 +141,7 @@ public final class Tagging {
             addTags(rdsProxyClient, resourceArn, tagsToAdd);
             return progress;
         } catch (Exception e) {
-            return Commons.handleException(progress, e, errorRuleSet);
+            return Commons.handleException(progress, e, errorRuleSet, requestLogger);
         }
     }
 

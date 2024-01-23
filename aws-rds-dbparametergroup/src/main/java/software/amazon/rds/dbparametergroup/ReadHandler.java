@@ -41,7 +41,8 @@ public class ReadHandler extends BaseHandlerStd {
                         Commons.handleException(
                                 ProgressEvent.progress(model, ctx),
                                 exception,
-                                SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET
+                                SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
+                                logger
                         ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     try {
@@ -56,7 +57,8 @@ public class ReadHandler extends BaseHandlerStd {
                         return Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                logger
                         );
                     }
                 })
@@ -103,7 +105,8 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET),
+                    requestLogger
             );
         }
         return ProgressEvent.success(model, context);

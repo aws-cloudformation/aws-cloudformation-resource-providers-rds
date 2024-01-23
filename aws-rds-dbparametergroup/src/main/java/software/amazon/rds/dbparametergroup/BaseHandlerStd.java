@@ -88,6 +88,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
 
     protected HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
@@ -161,7 +162,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 rulesetTagsToAdd,
                                 rulesetTagsToRemove
                             )
-                    )
+                    ), logger
             );
         }
 
@@ -291,7 +292,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                logger
                         ))
                 .progress();
     }
@@ -311,7 +313,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET
+                                DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
+                                logger
                         ))
                 .progress();
     }
@@ -468,7 +471,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 accumulator.put(parameter.parameterName(), parameter);
             }
         } catch (Exception e) {
-            return Commons.handleException(progress, e, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+            return Commons.handleException(progress, e, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET, logger);
         }
         return progress;
     }
@@ -547,7 +550,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 accumulator.put(parameter.parameterName(), parameter);
             }
         } catch (Exception e) {
-            return Commons.handleException(progress, e, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET);
+            return Commons.handleException(progress, e, DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET, logger);
         }
 
         return progress;

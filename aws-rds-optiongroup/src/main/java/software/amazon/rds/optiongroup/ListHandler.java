@@ -42,7 +42,8 @@ public class ListHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     e,
-                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                    requestLogger
             );
         }
 
