@@ -45,9 +45,10 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> modifyDBSubnetGroup(final AmazonWebServicesClientProxy proxy,
-                                                                              final ProxyClient<RdsClient> proxyClient,
-                                                                              final ProgressEvent<ResourceModel, CallbackContext> progress
+    private ProgressEvent<ResourceModel, CallbackContext> modifyDBSubnetGroup(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate("rds::update-dbsubnet-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::modifyDbSubnetGroupRequest)
@@ -57,7 +58,8 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((awsRequest, exception, client, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET,
+                        requestLogger))
                 .done((subnetGroupRequest, subnetGroupResponse, proxyInvocation, resourceModel, context) -> {
                     context.setDbSubnetGroupArn(subnetGroupResponse.dbSubnetGroup().dbSubnetGroupArn());
                     return ProgressEvent.progress(resourceModel, context);

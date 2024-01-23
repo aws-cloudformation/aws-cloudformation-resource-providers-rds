@@ -62,19 +62,29 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 PARAMETERS_FILTER,
                 requestLogger -> handleRequest(
                         proxy,
-                        request,
-                        callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        logger
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)), request,
+                        callbackContext != null ? callbackContext : new CallbackContext()
                 ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext);
+
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger);
+            final RequestLogger requestLogger
+    )
+    {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, proxyClient, request, callbackContext);
+    }
 
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {

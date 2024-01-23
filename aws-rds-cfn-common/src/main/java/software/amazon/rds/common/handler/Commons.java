@@ -2,6 +2,7 @@ package software.amazon.rds.common.handler;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -55,7 +56,11 @@ public final class Commons {
     private Commons() {
     }
 
-    public static final int STATUS_MESSAGE_MAXIMUM_LENGTH = 31;
+    public static final int STATUS_MESSAGE_MAXIMUM_LENGTH = 100;
+    /* The metric name limit is 255 as per CloudWatch documentation.
+    Setting this as 100 will ensure it will capture as much of the error message without making
+    the metric name too large.
+    */
 
     public static <M, C> ProgressEvent<M, C> handleException(
             final ProgressEvent<M, C> progress,
@@ -85,15 +90,8 @@ public final class Commons {
                 return ProgressEvent.failed(null, null, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
             }
             return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
-        } else if (errorStatus instanceof UnexpectedErrorStatus) {
-            try
-            {
-                requestLogger.log("UnexpectedErrorStatus: " + getRoot_Cause_Exception_Message(rootCause) + " " + exceptionClass);
-            }
-            catch(NullPointerException ex)
-            {
-                return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
-            }
+        } if (errorStatus instanceof UnexpectedErrorStatus && requestLogger != null) {
+            requestLogger.log("UnexpectedErrorStatus: " + getRoot_Cause_Exception_Message(rootCause) + " " + exceptionClass);
         }
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
     }
@@ -142,7 +140,7 @@ public final class Commons {
             return null;
         }
         String statusMessage = t.getMessage();
-        if(statusMessage != null) {
+         if(statusMessage != null) {
             statusMessage = statusMessage.substring(0, Math.min(statusMessage.length(), STATUS_MESSAGE_MAXIMUM_LENGTH));
         }
         return statusMessage;

@@ -5,7 +5,6 @@ import java.util.function.Function;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -71,7 +70,7 @@ public class DeleteHandler extends BaseHandlerStd {
                                 ProgressEvent.progress(model, context),
                                 exception,
                                 DELETE_DB_INSTANCE_ERROR_RULE_SET,
-                                logger
+                                requestLogger
                         )).progress()
                 )
                 // The reason we split a pretty trivial execution chain in 2 is because of the error handling.
@@ -89,7 +88,7 @@ public class DeleteHandler extends BaseHandlerStd {
                                 ProgressEvent.progress(model, context),
                                 exception,
                                 DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
-                                logger
+                                requestLogger
                         ))
                         .progress()
                 )

@@ -37,7 +37,7 @@ public class ReadHandler extends BaseHandlerStd {
                         ProgressEvent.progress(model, context),
                         exception,
                         DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
                     final DBInstance dbInstance = describeResponse.dbInstances().get(0);

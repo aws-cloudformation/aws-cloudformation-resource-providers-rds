@@ -58,10 +58,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     @Override
-    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
-                                                                             final ResourceHandlerRequest<ResourceModel> request,
-                                                                             final CallbackContext callbackContext,
-                                                                             final Logger logger) {
+    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final Logger logger) {
         final CallbackContext context = callbackContext != null ? callbackContext : new CallbackContext();
         context.setDbSubnetGroupArn(Translator.buildParameterGroupArn(request).toString());
         return RequestLogger.handleRequest(
@@ -88,9 +89,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             ResourceHandlerRequest<ResourceModel> request,
             CallbackContext callbackContext,
             ProxyClient<RdsClient> proxyClient,
-            final RequestLogger logger
+            final RequestLogger requestLogger
     ) {
-        this.requestLogger = logger;
+        this.requestLogger = requestLogger;
         return handleRequest(proxy, request, callbackContext, proxyClient);
     }
 

@@ -7,7 +7,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.logging.RequestLogger;
 
 public class DeleteHandler extends BaseHandlerStd {
 
@@ -22,10 +21,8 @@ public class DeleteHandler extends BaseHandlerStd {
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger logger
+            final ProxyClient<RdsClient> proxyClient, final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         return proxy.initiate("rds::delete-db-cluster-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbClusterParameterGroupRequest)

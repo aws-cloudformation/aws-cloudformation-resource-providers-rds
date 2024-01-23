@@ -29,10 +29,8 @@ public class ReadHandler extends BaseHandlerStd {
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger logger
+            final ProxyClient<RdsClient> proxyClient, final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         final ResourceModel model = request.getDesiredResourceState();
 
@@ -48,7 +46,7 @@ public class ReadHandler extends BaseHandlerStd {
                 })
                 .then(progress -> {
                     if (progress.getResourceModel().getParameters() == null) {
-                        return readParameters(proxy, proxyClient, progress, logger);
+                        return readParameters(proxy, proxyClient, progress, requestLogger);
                     }
                     return progress;
                 })

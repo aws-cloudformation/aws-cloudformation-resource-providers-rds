@@ -9,7 +9,6 @@ import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -29,10 +28,9 @@ public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         final ResourceModel desiredModel = request.getDesiredResourceState();
         final ResourceModel previousModel = request.getPreviousResourceState();
@@ -58,7 +56,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> removeSourceIds(proxy, proxyClient, desiredSourceIds, previousSourceIds, progress))
                 .then(progress -> waitForEventSubscription(proxy, proxyClient, progress))
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> updateEventSubscription(final AmazonWebServicesClientProxy proxy,

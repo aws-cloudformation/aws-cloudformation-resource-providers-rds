@@ -2,7 +2,6 @@ package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -26,10 +25,9 @@ public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
@@ -48,7 +46,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(desiredModel, callbackContext)
                 .then(progress -> updateEndpoint(proxy, request, callbackContext, proxyClient))
                 .then(progress -> updateTags(proxy, proxyClient, progress, progress.getResourceModel().getDBClusterEndpointArn(), previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateEndpoint(

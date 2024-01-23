@@ -140,19 +140,28 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 request,
                 PARAMETERS_FILTER,
                 requestLogger -> handleRequest(proxy,
-                        request,
-                        context,
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        requestLogger));
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)), request,
+                        context
+                ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             AmazonWebServicesClientProxy proxy,
-            ResourceHandlerRequest<ResourceModel> request,
-            CallbackContext callbackContext,
             ProxyClient<RdsClient> client,
-            RequestLogger logger
+            ResourceHandlerRequest<ResourceModel> request,
+            CallbackContext callbackContext
     );
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final RequestLogger requestLogger
+    ) {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, proxyClient, request, callbackContext);
+    }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
             final AmazonWebServicesClientProxy proxy,

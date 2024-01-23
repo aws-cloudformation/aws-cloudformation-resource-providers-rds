@@ -205,15 +205,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final RequestLogger requestLogger
     ) {
+        this.requestLogger = requestLogger;
         try {
             validateRequest(request);
         } catch (RequestValidationException exception) {
             return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
         }
 
-        return handleRequest(proxy, new ValidatedRequest<>(request), callbackContext, rdsProxyClient, ec2ProxyClient, logger);
+        return handleRequest(proxy, new ValidatedRequest<>(request), callbackContext, rdsProxyClient, ec2ProxyClient, requestLogger);
     }
 
     @Override

@@ -29,8 +29,7 @@ public class ListHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final RequestLogger logger
+            final CallbackContext callbackContext
     ) {
         final DescribeDbParameterGroupsRequest describeRequest = Translator.describeDbParameterGroupsRequest(request.getNextToken());
         final DescribeDbParameterGroupsResponse describeResponse;
@@ -41,7 +40,7 @@ public class ListHandler extends BaseHandlerStd {
                     ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     exception,
                     DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                    logger
+                    requestLogger
             );
         }
 

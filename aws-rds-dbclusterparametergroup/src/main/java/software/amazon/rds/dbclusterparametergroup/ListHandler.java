@@ -11,7 +11,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.logging.RequestLogger;
 
 public class ListHandler extends BaseHandlerStd {
 
@@ -26,10 +25,9 @@ public class ListHandler extends BaseHandlerStd {
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger logger
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         DescribeDbClusterParameterGroupsResponse describeDbClusterParameterGroupsResponse;
         try {

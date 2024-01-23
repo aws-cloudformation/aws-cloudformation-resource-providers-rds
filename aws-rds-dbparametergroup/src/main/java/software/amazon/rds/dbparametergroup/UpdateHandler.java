@@ -26,8 +26,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final RequestLogger requestLogger
+            final CallbackContext callbackContext
     ) {
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getPreviousSystemTags()))
@@ -45,7 +44,7 @@ public class UpdateHandler extends BaseHandlerStd {
         final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
-                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags, requestLogger))
+                .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
                 .then(progress -> applyParametersWithReset(proxy, proxyClient, progress, previousParams, desiredParams, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, requestLogger));
     }

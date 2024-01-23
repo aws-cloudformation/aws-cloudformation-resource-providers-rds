@@ -31,7 +31,8 @@ public class DeleteHandler extends BaseHandlerStd {
                 .handleError((deleteDbSubnetGroupRequest, exception, client, resourceModel, cxt) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, cxt),
                         exception,
-                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET,
+                        requestLogger))
                 .done((deleteDbSubnetGroupRequest, deleteDbSubnetGroupResponse, client, model, cxt) -> ProgressEvent.defaultSuccessHandler(null));
     }
 }

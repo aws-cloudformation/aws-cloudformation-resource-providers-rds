@@ -124,17 +124,26 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final RequestLogger logger
+            final CallbackContext callbackContext
     );
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final RequestLogger requestLogger
+    ) {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, proxyClient, request, callbackContext);
+    };
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet previousTags,
-            final Tagging.TagSet desiredTags,
-            final RequestLogger logger
+            final Tagging.TagSet desiredTags
     ) {
         final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
         final Collection<Tag> effectiveDesiredTags = Tagging.translateTagsToSdk(desiredTags);
@@ -162,7 +171,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                 rulesetTagsToAdd,
                                 rulesetTagsToRemove
                             )
-                    ), logger
+                    ), requestLogger
             );
         }
 

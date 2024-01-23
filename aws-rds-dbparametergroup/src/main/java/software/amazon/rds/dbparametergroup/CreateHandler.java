@@ -36,8 +36,7 @@ public class CreateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final RequestLogger logger
+            final CallbackContext callbackContext
     ) {
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
@@ -51,9 +50,9 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(desiredModel, callbackContext)
                 .then(progress -> setDBParameterGroupNameIfEmpty(request, progress))
-                .then(progress -> safeCreateDBParameterGroup(proxy, proxyClient, progress, allTags, logger))
-                .then(progress -> applyParameters(proxy, proxyClient, progress, desiredParams, logger))
-                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, logger));
+                .then(progress -> safeCreateDBParameterGroup(proxy, proxyClient, progress, allTags, requestLogger))
+                .then(progress -> applyParameters(proxy, proxyClient, progress, desiredParams, requestLogger))
+                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, requestLogger));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> safeCreateDBParameterGroup(
@@ -70,7 +69,7 @@ public class CreateHandler extends BaseHandlerStd {
                             .stackTags(allTags.getStackTags())
                             .resourceTags(allTags.getResourceTags())
                             .build();
-                    return updateTags(proxy, proxyClient, p, Tagging.TagSet.emptySet(), extraTags, logger);
+                    return updateTags(proxy, proxyClient, p, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete));
     }
 

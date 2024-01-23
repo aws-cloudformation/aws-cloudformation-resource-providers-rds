@@ -115,7 +115,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -161,7 +161,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -204,7 +204,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -264,7 +264,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -320,7 +320,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -365,7 +365,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -411,7 +411,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -459,7 +459,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -490,7 +490,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -520,7 +520,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);

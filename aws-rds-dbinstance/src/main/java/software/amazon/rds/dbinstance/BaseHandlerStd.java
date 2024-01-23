@@ -156,7 +156,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected final HandlerConfig config;
 
-    protected RequestLogger logger;
+    protected RequestLogger requestLogger;
 
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
 
@@ -393,9 +393,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final CallbackContext context,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
             final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final RequestLogger requestLogger
     ) {
-        this.logger = logger;
+        this.requestLogger = requestLogger;
         try {
             validateRequest(request);
         } catch (RequestValidationException exception) {
@@ -435,7 +435,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        logger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
+        requestLogger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                 " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
@@ -454,7 +454,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .progress();
     }
@@ -481,7 +481,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .progress();
     }
@@ -685,7 +685,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isDomainMembershipsJoined(dbInstance) &&
                 isMasterUserSecretStabilized(dbInstance);
 
-        logger.log(String.format("isDBInstanceStabilizedAfterMutate: %b", isDBInstanceStabilizedAfterMutateResult),
+        requestLogger.log(String.format("isDBInstanceStabilizedAfterMutate: %b", isDBInstanceStabilizedAfterMutateResult),
                 ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
                         "isReplicationComplete", isReplicationComplete(dbInstance),
                         "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
@@ -737,7 +737,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 isOptionGroupInSync(dbInstance) &&
                 isDBClusterParameterGroupStabilized;
 
-        logger.log(String.format("isDBInstanceStabilizedAfterReboot: %b", isDBInstanceStabilizedAfterReboot),
+        requestLogger.log(String.format("isDBInstanceStabilizedAfterReboot: %b", isDBInstanceStabilizedAfterReboot),
                 ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
                         "isDBParameterGroupInSync", isDBParameterGroupInSync(dbInstance),
                         "isOptionGroupInSync", isOptionGroupInSync(dbInstance),
@@ -930,7 +930,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             ProgressEvent.progress(resourceModel, context),
                             exception,
                             UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
-                            logger
+                            requestLogger
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -962,7 +962,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                             ProgressEvent.progress(resourceModel, context),
                             exception,
                             UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
-                            logger
+                            requestLogger
                     ))
                     .success();
             if (!progressEvent.isSuccess()) {
@@ -992,7 +992,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         ProgressEvent.progress(model, context),
                         exception,
                         REBOOT_DB_INSTANCE_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .progress();
     }
@@ -1024,7 +1024,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         ProgressEvent.progress(resourceModel, context),
                         exception,
                         UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .progress();
     }
@@ -1039,7 +1039,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
                 model.setEngine(dbInstance.engine());
             } catch (Exception e) {
-                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, logger);
+                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
             }
         }
         return progress;
@@ -1070,7 +1070,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         try {
             dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, logger);
+            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
         }
 
         final String arn = dbInstance.dbInstanceArn();
@@ -1083,7 +1083,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     progress,
                     exception,
                     DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
-                    logger
+                    requestLogger
             );
         }
 
@@ -1113,7 +1113,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> sourceRegionClient,
             final String region
     ) {
-        final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(logger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
+        final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
 
         return proxy.initiate("rds::stop-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.stopDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
@@ -1128,7 +1128,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .progress();
     }
@@ -1140,7 +1140,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> sourceRegionClient,
             final String region
     ) {
-        final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(logger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
+        final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
 
         return proxy.initiate("rds::start-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
@@ -1155,7 +1155,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         ProgressEvent.progress(model, context),
                         exception,
                         MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
-                        logger
+                        requestLogger
                 ))
                 .progress();
     }

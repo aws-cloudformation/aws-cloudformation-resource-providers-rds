@@ -14,7 +14,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -36,10 +35,9 @@ public class CreateHandler extends BaseHandlerStd {
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger logger
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
@@ -61,11 +59,11 @@ public class CreateHandler extends BaseHandlerStd {
                     return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> Commons.execOnce(progress, () ->
-                                describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters, logger)
-                                        .then(p -> applyParameters(proxy, proxyClient, progress, currentClusterParameters, logger)
+                                describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters, requestLogger)
+                                        .then(p -> applyParameters(proxy, proxyClient, progress, currentClusterParameters, requestLogger)
                         ),
                         CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbClusterParameterGroup(

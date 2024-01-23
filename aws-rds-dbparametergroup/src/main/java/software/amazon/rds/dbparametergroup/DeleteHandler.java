@@ -23,8 +23,7 @@ public class DeleteHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final RequestLogger logger) {
+            final CallbackContext callbackContext) {
         return proxy.initiate("rds::delete-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::deleteDbParameterGroupRequest)
                 .makeServiceCall((deleteGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteGroupRequest, proxyInvocation.client()::deleteDBParameterGroup))
@@ -33,7 +32,7 @@ public class DeleteHandler extends BaseHandlerStd {
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
                                 DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                logger
+                                requestLogger
                         ))
                 .done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(null));
     }

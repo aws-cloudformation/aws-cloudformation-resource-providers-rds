@@ -52,7 +52,7 @@ public class CreateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final RequestLogger requestLogger
     ) {
         final ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
 
@@ -106,7 +106,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                     p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
                                                     p,
                                                     this::isFailureEvent,
-                                                    logger
+                                                    requestLogger
                                             ));
                                 },
                                 CallbackContext::isModified,
@@ -120,9 +120,9 @@ public class CreateHandler extends BaseHandlerStd {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
                     return Commons.reportResourceDrift(
                             model,
-                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, requestLogger),
                             resourceTypeSchema,
-                            logger
+                            requestLogger
                     );
                 });
     }

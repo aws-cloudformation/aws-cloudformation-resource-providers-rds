@@ -26,12 +26,12 @@ public class ReadHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
-            final RequestLogger logger
+            final CallbackContext callbackContext
     ) {
         return proxy.initiate("rds::read-db-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbParameterGroupsRequest)
@@ -42,7 +42,7 @@ public class ReadHandler extends BaseHandlerStd {
                                 ProgressEvent.progress(model, ctx),
                                 exception,
                                 SOFT_FAIL_IN_PROGRESS_TAGGING_ERROR_RULE_SET,
-                                logger
+                                requestLogger
                         ))
                 .done((describeRequest, describeResponse, proxyInvocation, model, context) -> {
                     try {
@@ -58,13 +58,13 @@ public class ReadHandler extends BaseHandlerStd {
                                 ProgressEvent.progress(model, context),
                                 exception,
                                 DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET,
-                                logger
+                                requestLogger
                         );
                     }
                 })
                 .then(progress -> {
                     if (progress.getResourceModel().getParameters() == null) {
-                        return readParameters(proxy, proxyClient, progress, logger);
+                        return readParameters(proxy, proxyClient, progress, requestLogger);
                     }
                     return progress;
                 })

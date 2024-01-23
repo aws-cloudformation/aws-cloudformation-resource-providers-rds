@@ -57,8 +57,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     BaseHandlerStd(HandlerConfig config) {
-         this.config = config;
-         this.integrationStatusUtil = new IntegrationStatusUtil();
+        this.config = config;
+        this.integrationStatusUtil = new IntegrationStatusUtil();
     }
 
     @Override
@@ -73,19 +73,28 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 PARAMETERS_FILTER,
                 requestLogger -> handleRequest(
                         proxy,
-                        request,
-                        callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        logger
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)), request,
+                        callbackContext != null ? callbackContext : new CallbackContext()
                 ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger);
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext);
+
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext context,
+            final RequestLogger requestLogger
+    ) {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, proxyClient, request, context);
+    };
 
 
     /**
@@ -96,8 +105,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
      */
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final IntegrationStatus status = proxyClient.injectCredentialsAndInvokeV2(
-                    Translator.describeIntegrationsRequest(model),
-                    proxyClient.client()::describeIntegrations)
+                        Translator.describeIntegrationsRequest(model),
+                        proxyClient.client()::describeIntegrations)
                 .integrations().stream().findFirst().get().status();
 
         assertIntegrationInValidCreatingState(status);
@@ -164,8 +173,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> fetchIntegrationArn(final AmazonWebServicesClientProxy proxy,
-                                                                                      final ProxyClient<RdsClient> proxyClient,
-                                                                                      final ProgressEvent<ResourceModel, CallbackContext> progress) {
+                                                                                final ProxyClient<RdsClient> proxyClient,
+                                                                                final ProgressEvent<ResourceModel, CallbackContext> progress) {
         return proxy.initiate("rds::read-integration-arn", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(Translator::describeIntegrationsRequest)
                 .makeServiceCall((describeIntegrationsRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeIntegrationsRequest, proxyInvocation.client()::describeIntegrations))
