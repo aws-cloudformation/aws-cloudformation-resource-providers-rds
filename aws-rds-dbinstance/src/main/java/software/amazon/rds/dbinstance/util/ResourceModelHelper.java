@@ -19,8 +19,11 @@ public final class ResourceModelHelper {
     private static final String SQLSERVER_ENGINE = "sqlserver";
     private static final String MYSQL_ENGINE_PREFIX = "mysql";
     private static final String ORACLE_ENGINE_PREFIX = "oracle";
+    private static final String ORACLE_SE2_CDB = "oracle-se2-cdb";
+    private static final String ORACLE_EE_CDB = "oracle-ee-cdb";
 
-    public static boolean shouldUpdateAfterCreate(final ResourceModel model) {
+    public static boolean shouldUpdateAfterCreate(final ResourceModel model,
+                                                  final String dbInstanceEngine) {
         return (isReadReplica(model) ||
                 isRestoreFromSnapshot(model) ||
                 isRestoreFromClusterSnapshot(model) ||
@@ -39,7 +42,8 @@ public final class ResourceModelHelper {
                                 (isSqlServer(model) && isStorageParametersModified(model)) ||
                                 BooleanUtils.isTrue(model.getManageMasterUserPassword()) ||
                                 BooleanUtils.isTrue(model.getDeletionProtection()) ||
-                                BooleanUtils.isTrue(model.getEnablePerformanceInsights())
+                                BooleanUtils.isTrue(model.getEnablePerformanceInsights()) ||
+                                ImmutabilityHelper.isOracleConvertToCDB(dbInstanceEngine, model)
                 );
     }
 
@@ -172,5 +176,9 @@ public final class ResourceModelHelper {
             return null;
         }
         return model.getAutomaticBackupReplicationRegion();
+    }
+
+    public static boolean isOracleCDBEngine(final String engine) {
+        return ORACLE_EE_CDB.equalsIgnoreCase(engine) || ORACLE_SE2_CDB.equalsIgnoreCase(engine);
     }
 }
