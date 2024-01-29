@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.rds.model.DeleteIntegrationRequest;
 import software.amazon.awssdk.services.rds.model.DescribeIntegrationsRequest;
 import software.amazon.awssdk.services.rds.model.Filter;
 import software.amazon.awssdk.services.rds.model.Integration;
+import software.amazon.awssdk.services.rds.model.ModifyIntegrationRequest;
 import software.amazon.rds.common.handler.Tagging;
 
 import java.text.DateFormat;
@@ -40,6 +41,17 @@ public class Translator {
                 .targetArn(model.getTargetArn())
                 .additionalEncryptionContext(model.getAdditionalEncryptionContext())
                 .tags(Tagging.translateTagsToSdk(tags))
+                .dataFilter(model.getDataFilter())
+                .description(model.getDescription())
+                .build();
+            }
+            static ModifyIntegrationRequest modifyIntegrationRequest(
+          final ResourceModel model
+    ) {
+                return ModifyIntegrationRequest.builder()
+                                .integrationName(model.getIntegrationName())
+                                .description(model.getDescription())
+                                .dataFilter(model.getDataFilter())
                 .build();
     }
 
@@ -108,6 +120,8 @@ public class Translator {
                 .targetArn(integration.targetArn())
                 .kMSKeyId(integration.kmsKeyId())
                 .tags(translateTags(integration.tags()))
+                .dataFilter(integration.dataFilter())
+                .description(integration.description())
                 .additionalEncryptionContext(integration.additionalEncryptionContext())
                 .build();
     }
