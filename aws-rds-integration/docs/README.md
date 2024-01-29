@@ -13,7 +13,9 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "Type" : "AWS::RDS::Integration",
     "Properties" : {
         "<a href="#integrationname" title="IntegrationName">IntegrationName</a>" : <i>String</i>,
+        "<a href="#description" title="Description">Description</a>" : <i>String</i>,
         "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>,
+        "<a href="#datafilter" title="DataFilter">DataFilter</a>" : <i>String</i>,
         "<a href="#sourcearn" title="SourceArn">SourceArn</a>" : <i>String</i>,
         "<a href="#targetarn" title="TargetArn">TargetArn</a>" : <i>String</i>,
         "<a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>" : <i>String</i>,
@@ -28,8 +30,10 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 Type: AWS::RDS::Integration
 Properties:
     <a href="#integrationname" title="IntegrationName">IntegrationName</a>: <i>String</i>
+    <a href="#description" title="Description">Description</a>: <i>String</i>
     <a href="#tags" title="Tags">Tags</a>: <i>
       - <a href="tag.md">Tag</a></i>
+    <a href="#datafilter" title="DataFilter">DataFilter</a>: <i>String</i>
     <a href="#sourcearn" title="SourceArn">SourceArn</a>: <i>String</i>
     <a href="#targetarn" title="TargetArn">TargetArn</a>: <i>String</i>
     <a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>: <i>String</i>
@@ -52,6 +56,18 @@ _Maximum Length_: <code>64</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
+#### Description
+
+_Required_: No
+
+_Type_: String
+
+_Minimum Length_: <code>1</code>
+
+_Maximum Length_: <code>1000</code>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
 #### Tags
 
 An array of key-value pairs to apply to this resource.
@@ -59,6 +75,20 @@ An array of key-value pairs to apply to this resource.
 _Required_: No
 
 _Type_: List of <a href="tag.md">Tag</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### DataFilter
+
+_Required_: No
+
+_Type_: String
+
+_Minimum Length_: <code>1</code>
+
+_Maximum Length_: <code>25600</code>
+
+_Pattern_: <code>[a-zA-Z0-9_ "\\\-$,*.:?+\/]*</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
