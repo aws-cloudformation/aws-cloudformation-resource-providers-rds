@@ -12,6 +12,8 @@ import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeIntegrationsRequest;
 import software.amazon.awssdk.services.rds.model.Integration;
+import software.amazon.awssdk.services.rds.model.ModifyIntegrationRequest;
+import software.amazon.awssdk.services.rds.model.ModifyIntegrationResponse;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -82,6 +84,8 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RemoveTagsFromResourceResponse.builder().build());
         when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
                 .thenReturn(AddTagsToResourceResponse.builder().build());
+        when(rdsProxy.client().modifyIntegration(any(ModifyIntegrationRequest.class)))
+                .thenReturn(ModifyIntegrationResponse.builder().build());
 
         Queue<Integration> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(INTEGRATION_ACTIVE);
@@ -89,23 +93,36 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 new CallbackContext(),
                 ResourceHandlerRequest.<ResourceModel>builder()
+                        .previousResourceState(Translator.translateToModel(INTEGRATION_ACTIVE))
                         .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                        .desiredResourceState(Translator.translateToModel(INTEGRATION_ACTIVE.toBuilder()
+                                .description(DESCRIPTION_ALTER)
+                                .dataFilter(DATA_FILTER_ALTER)
+                                .integrationName(INTEGRATION_NAME_ALTER)
+                                .build()))
                         .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
                 () -> Optional.ofNullable(transitions.poll())
                         .orElse(INTEGRATION_ACTIVE
                                 .toBuilder()
                                 .tags(toAPITags(TAG_LIST_ALTER))
+                                .description(DESCRIPTION_ALTER)
+                                .dataFilter(DATA_FILTER_ALTER)
+                                .integrationName(INTEGRATION_NAME_ALTER)
                                 .build()),
                 () -> INTEGRATION_ACTIVE_MODEL,
                 () -> INTEGRATION_ACTIVE_MODEL.toBuilder()
                         .tags(TAG_LIST_ALTER)
+                        .description(DESCRIPTION_ALTER)
+                        .dataFilter(DATA_FILTER_ALTER)
+                        .integrationName(INTEGRATION_NAME_ALTER)
                         .build(),
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeIntegrations(any(DescribeIntegrationsRequest.class));
+        verify(rdsProxy.client(), times(3)).describeIntegrations(any(DescribeIntegrationsRequest.class));
         verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyIntegration(any(ModifyIntegrationRequest.class));
     }
 
 }
