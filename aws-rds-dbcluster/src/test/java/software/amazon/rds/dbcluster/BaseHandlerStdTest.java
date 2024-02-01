@@ -1,13 +1,9 @@
 package software.amazon.rds.dbcluster;
 
-import java.time.Instant;
-import java.util.Collections;
-
+import org.apache.commons.collections.CollectionUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import org.apache.commons.collections.CollectionUtils;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;

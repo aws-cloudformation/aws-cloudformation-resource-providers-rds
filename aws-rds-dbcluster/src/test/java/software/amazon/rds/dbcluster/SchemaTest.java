@@ -141,6 +141,21 @@ class SchemaTest {
     }
 
     @Test
+    void testDrift_EnableHttpEndpoint_Aurora_Postgresql_Drifted() {
+        final ResourceModel input = ResourceModel.builder()
+                .enableHttpEndpoint(true)
+                .engine("aurora-postgresql")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .enableHttpEndpoint(false)
+                .engine("aurora-postgresql")
+                .build();
+        Assertions.assertThatThrownBy(() -> {
+            assertResourceNotDrifted(input, output, resourceSchema);
+        }).isInstanceOf(AssertionError.class);
+    }
+
+    @Test
     void testDrift_EnableHttpEndpoint_Provisioned() {
         final ResourceModel input = ResourceModel.builder()
                 .enableHttpEndpoint(true)

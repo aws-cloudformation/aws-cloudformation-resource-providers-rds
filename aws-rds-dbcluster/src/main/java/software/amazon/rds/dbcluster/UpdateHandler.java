@@ -84,7 +84,17 @@ public class UpdateHandler extends BaseHandlerStd {
                         progress,
                         () -> {
                             progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
-                            return modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback);
+                            return modifyDBCluster(proxy, rdsProxyClient, progress, previousResourceState, desiredResourceState, isRollback)
+                                    .then(p -> {
+                                        if (shouldUpdateHttpEndpointV2(previousResourceState, desiredResourceState)) {
+                                            if (BooleanUtils.isTrue(desiredResourceState.getEnableHttpEndpoint())) {
+                                                return enableHttpEndpointV2(proxy, rdsProxyClient, p);
+                                            } else {
+                                                return disableHttpEndpointV2(proxy, rdsProxyClient, p);
+                                            }
+                                        }
+                                        return p;
+                                    });
                         },
                         CallbackContext::isModified,
                         CallbackContext::setModified))

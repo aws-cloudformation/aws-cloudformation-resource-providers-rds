@@ -29,7 +29,7 @@ import java.util.Collection;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "integration";
-    protected static final int MAX_LENGTH_INTEGRATION = 64;
+    protected static final int MAX_LENGTH_INTEGRATION = 63;
 
     protected static final ErrorRuleSet DEFAULT_INTEGRATION_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
