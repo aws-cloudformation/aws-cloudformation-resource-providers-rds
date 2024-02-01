@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::OptionGroup",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.optiongroup.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.optiongroup.HandlerWrapper::testEntrypoint",
     "settings": {
