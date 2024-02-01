@@ -15,7 +15,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 
@@ -33,8 +32,7 @@ class BaseHandlerStdTest {
                 final ValidatedRequest<ResourceModel> request,
                 final CallbackContext callbackContext,
                 final ProxyClient<RdsClient> rdsProxyClient,
-                final ProxyClient<Ec2Client> ec2ProxyClient,
-                final RequestLogger logger
+                final ProxyClient<Ec2Client> ec2ProxyClient
         ) {
             return null;
         }

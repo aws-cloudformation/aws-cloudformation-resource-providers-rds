@@ -17,7 +17,6 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
@@ -51,8 +50,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger requestLogger
+            final ProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
 
@@ -120,7 +118,7 @@ public class CreateHandler extends BaseHandlerStd {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
                     return Commons.reportResourceDrift(
                             model,
-                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, requestLogger),
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient),
                             resourceTypeSchema,
                             requestLogger
                     );

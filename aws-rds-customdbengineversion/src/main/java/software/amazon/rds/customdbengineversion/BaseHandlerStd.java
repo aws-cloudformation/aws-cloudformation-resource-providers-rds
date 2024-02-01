@@ -104,8 +104,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxy,
                         request,
                         callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        logger
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient))
                 ));
     }
 
@@ -113,8 +112,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
+            final ProxyClient<RdsClient> proxyClient);
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger);
+            final RequestLogger requestLogger)
+    {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, request, callbackContext, proxyClient, requestLogger);
+    }
 
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
@@ -208,7 +217,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET), requestLogger)
+                        ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET,
+                        requestLogger))
                 .progress();
     }
 

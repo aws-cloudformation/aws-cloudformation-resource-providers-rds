@@ -6,7 +6,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -28,8 +27,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final ProxyClient<RdsClient> proxyClient) {
 
         final ResourceModel desiredModel = request.getDesiredResourceState();
         final ResourceModel previousModel = request.getPreviousResourceState();
@@ -58,7 +56,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     return progress;
                 })
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient));
     }
 
 

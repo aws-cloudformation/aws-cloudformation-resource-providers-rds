@@ -26,12 +26,12 @@ public class ReadHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final ProxyClient<RdsClient> proxyClient
     ) {
         return proxy.initiate("rds::read-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbEngineVersionsRequest)

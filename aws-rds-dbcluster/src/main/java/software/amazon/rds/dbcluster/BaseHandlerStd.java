@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -195,8 +196,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final ProxyClient<Ec2Client> ec2ProxyClient
     );
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -214,7 +214,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return ProgressEvent.defaultFailureHandler(exception, HandlerErrorCode.InvalidRequest);
         }
 
-        return handleRequest(proxy, new ValidatedRequest<>(request), callbackContext, rdsProxyClient, ec2ProxyClient, requestLogger);
+        return handleRequest(proxy, new ValidatedRequest<>(request), callbackContext, rdsProxyClient, ec2ProxyClient);
     }
 
     @Override
@@ -319,10 +319,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoDBClusterTerminalStatus(dbCluster);
 
-        return isDBClusterAvailable(dbCluster) &&
+        final boolean isDBClusterStabilizedResult = isDBClusterAvailable(dbCluster) &&
                 isNoPendingChanges(dbCluster) &&
                 isMasterUserSecretStabilized(dbCluster) &&
                 isGlobalWriteForwardingStabilized(dbCluster);
+
+        requestLogger.log(String.format("isDbClusterAvailable: $b", isDBClusterStabilizedResult),
+                ImmutableMap.of("isDbClusterAvailable", isDBClusterAvailable(dbCluster),
+                        "isNoPendingChanges", isNoPendingChanges(dbCluster),
+                        "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbCluster),
+                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilized(dbCluster)),
+                ImmutableMap.of("Description", "isDBClusterStabilized method will be repeatedly" +
+                        " called with a backoff mechanism after the modify call until it returns true. This" +
+                        " process will continue until all included flags are true."));
+        return isDBClusterStabilizedResult;
     }
 
     protected static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
