@@ -1,7 +1,7 @@
 package software.amazon.rds.common.printer;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.json.JSONObject;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonFilter;
@@ -50,10 +50,10 @@ public class FilteredJsonPrinter implements JsonPrinter {
     @Override
     public String print(final Throwable throwable) {
         try {
-            final StringWriter sw = new StringWriter();
-            final PrintWriter pw = new PrintWriter(sw, true);
-            throwable.printStackTrace(pw);
-            return sw.getBuffer().toString();
+            //throwable is not serializable
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.append(STACK_TRACE, ExceptionUtils.getStackTrace(throwable));
+            return jsonObject.toString();
         } catch (Exception exception) {
             return String.format("<failed to print object> %s", exception);
         }
