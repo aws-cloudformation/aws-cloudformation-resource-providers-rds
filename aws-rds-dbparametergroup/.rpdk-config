@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::DBParameterGroup",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.dbparametergroup.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.dbparametergroup.HandlerWrapper::testEntrypoint",
     "settings": {

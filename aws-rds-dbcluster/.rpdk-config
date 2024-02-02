@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::DBCluster",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.dbcluster.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.dbcluster.HandlerWrapper::testEntrypoint",
     "settings": {

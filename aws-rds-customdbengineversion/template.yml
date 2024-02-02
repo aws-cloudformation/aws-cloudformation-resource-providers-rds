@@ -12,12 +12,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: software.amazon.rds.customdbengineversion.HandlerWrapper::handleRequest
-      Runtime: java8
+      Runtime: java17
       CodeUri: ./target/aws-rds-customdbengineversion-handler-1.0-SNAPSHOT.jar
 
   TestEntrypoint:
     Type: AWS::Serverless::Function
     Properties:
       Handler: software.amazon.rds.customdbengineversion.HandlerWrapper::testEntrypoint
-      Runtime: java8
+      Runtime: java17
       CodeUri: ./target/aws-rds-customdbengineversion-handler-1.0-SNAPSHOT.jar

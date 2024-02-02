@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::CustomDBEngineVersion",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.customdbengineversion.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.customdbengineversion.HandlerWrapper::testEntrypoint",
     "settings": {

@@ -11,12 +11,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: software.amazon.rds.dbclusterparametergroup.HandlerWrapper::handleRequest
-      Runtime: java8
+      Runtime: java17
       CodeUri: ./target/aws-rds-dbclusterparametergroup-handler-1.0-SNAPSHOT.jar
 
   TestEntrypoint:
     Type: AWS::Serverless::Function
     Properties:
       Handler: software.amazon.rds.dbclusterparametergroup.HandlerWrapper::testEntrypoint
-      Runtime: java8
+      Runtime: java17
       CodeUri: ./target/aws-rds-dbclusterparametergroup-handler-1.0-SNAPSHOT.jar

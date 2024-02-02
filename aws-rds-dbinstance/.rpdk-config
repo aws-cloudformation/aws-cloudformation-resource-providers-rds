@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::DBInstance",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java17",
     "entrypoint": "software.amazon.rds.dbinstance.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.dbinstance.HandlerWrapper::testEntrypoint",
     "settings": {
