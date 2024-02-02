@@ -319,20 +319,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
         assertNoDBClusterTerminalStatus(dbCluster);
 
-        final boolean isDBClusterStabilizedResult = isDBClusterAvailable(dbCluster) &&
-                isNoPendingChanges(dbCluster) &&
-                isMasterUserSecretStabilized(dbCluster) &&
-                isGlobalWriteForwardingStabilized(dbCluster);
+        final boolean isDBClusterStabilizedResult = isDBClusterAvailable(dbCluster);
+        final boolean isNoPendingChangesResult = isNoPendingChanges(dbCluster);
+        final boolean isMasterUserSecretStabilizedResult = isMasterUserSecretStabilized(dbCluster);
+        final boolean isGlobalWriteForwardingStabilizedResult = isGlobalWriteForwardingStabilized(dbCluster);
 
-        requestLogger.log(String.format("isDbClusterAvailable: $b", isDBClusterStabilizedResult),
-                ImmutableMap.of("isDbClusterAvailable", isDBClusterAvailable(dbCluster),
-                        "isNoPendingChanges", isNoPendingChanges(dbCluster),
-                        "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbCluster),
-                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilized(dbCluster)),
+        requestLogger.log(String.format("isDbClusterStabilized: $b", isDBClusterStabilizedResult),
+                ImmutableMap.of("isDbClusterAvailable", isDBClusterStabilizedResult,
+                        "isNoPendingChanges", isNoPendingChangesResult,
+                        "isMasterUserSecretStabilized", isMasterUserSecretStabilizedResult,
+                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilizedResult),
                 ImmutableMap.of("Description", "isDBClusterStabilized method will be repeatedly" +
                         " called with a backoff mechanism after the modify call until it returns true. This" +
                         " process will continue until all included flags are true."));
-        return isDBClusterStabilizedResult;
+        return isDBClusterStabilizedResult && isNoPendingChangesResult && isMasterUserSecretStabilizedResult && isGlobalWriteForwardingStabilizedResult;
     }
 
     protected static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
@@ -627,7 +627,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
                     exception,
-                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                    requestLogger);
         }
         final String clusterArn = cluster.dbClusterArn();
         return proxy.initiate("rds::remove-from-global-cluster", proxyClient, resourceModel, progress.getCallbackContext())
@@ -669,7 +670,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     ProgressEvent.progress(resourceModel, progress.getCallbackContext()),
                     exception,
-                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                    requestLogger);
         }
     }
 

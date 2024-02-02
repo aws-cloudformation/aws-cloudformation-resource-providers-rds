@@ -435,6 +435,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        requestLogger.log("UpdateDbInstanceAPIv12Invoked");
         requestLogger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                 " functioning properly. Please refer to the API model for supported parameters");
@@ -675,6 +676,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
         assertNoTerminalStatus(dbInstance);
+
 
         final boolean isDBInstanceStabilizedAfterMutateResult = isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&

@@ -10,7 +10,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 
 public class UpdateHandler extends BaseHandlerStd {
 
@@ -45,7 +44,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> applyParametersWithReset(proxy, proxyClient, progress, previousParams, desiredParams, requestLogger))
+                .then(progress -> applyParametersWithReset(proxy, proxyClient, progress, previousParams, desiredParams))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, requestLogger));
     }
 }

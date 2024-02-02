@@ -59,7 +59,7 @@ public class CreateHandler extends BaseHandlerStd {
                     return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> Commons.execOnce(progress, () ->
-                                describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters, requestLogger)
+                                describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters)
                                         .then(p -> applyParameters(proxy, proxyClient, progress, currentClusterParameters, requestLogger)
                         ),
                         CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
@@ -82,7 +82,8 @@ public class CreateHandler extends BaseHandlerStd {
                         Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET, requestLogger))
+                                DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET,
+                                requestLogger))
                 .done((paramGroupRequest, paramGroupResponse, proxyInvocation, resourceModel, context) -> {
                     context.setDbClusterParameterGroupArn(paramGroupResponse.dbClusterParameterGroup().dbClusterParameterGroupArn());
                     return ProgressEvent.progress(resourceModel, context);

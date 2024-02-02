@@ -44,7 +44,8 @@ public class DeleteHandler extends BaseHandlerStd {
                                 // but only once we started the deletion process
                                 ErrorRuleSet.extend(DEFAULT_INTEGRATION_ERROR_RULE_SET)
                                         .withErrorClasses(ErrorStatus.ignore(), IntegrationNotFoundException.class)
-                                        .build(), requestLogger
+                                        .build(),
+                                requestLogger
                         ))
                         .progress()
                         .then((e) -> delay(e, POST_DELETION_DELAY_SEC))

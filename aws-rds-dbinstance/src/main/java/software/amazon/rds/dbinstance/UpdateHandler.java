@@ -32,7 +32,6 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
@@ -83,7 +82,7 @@ public class UpdateHandler extends BaseHandlerStd {
         }
 
         if (BooleanUtils.isTrue(request.getDriftable())) {
-            return handleResourceDrift(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, requestLogger);
+            return handleResourceDrift(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient);
         }
 
         final Tagging.TagSet previousTags = Tagging.TagSet.builder()
@@ -206,8 +205,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final VersionedProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final VersionedProxyClient<Ec2Client> ec2ProxyClient
     ) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
@@ -225,7 +223,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, rdsProxyClient, ec2ProxyClient, requestLogger));
     }
 
     private boolean shouldReboot(

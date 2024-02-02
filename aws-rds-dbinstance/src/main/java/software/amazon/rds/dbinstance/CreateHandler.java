@@ -265,6 +265,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        requestLogger.log("CreateDbInstanceAPIv12Invoked");
         requestLogger.log("API version 12 create detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                 " functioning properly. Please refer to the API model for supported parameters");
@@ -324,6 +325,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        requestLogger.log("RestoreDbInstanceFromSnapshotAPIv12Invoked");
         requestLogger.log("API version 12 restore detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                         " functioning properly. Please refer to the API model for supported parameters");
@@ -440,6 +442,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        requestLogger.log("UpdateDbInstanceAfterCreateAPIv12Invoked");
         requestLogger.log("API version 12 modify after create detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                         " functioning properly. Please refer to the API model for supported parameters");

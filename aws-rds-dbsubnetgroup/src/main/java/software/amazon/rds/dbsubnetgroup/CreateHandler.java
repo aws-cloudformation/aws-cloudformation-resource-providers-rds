@@ -75,7 +75,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((awsRequest, exception, client, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET,
+                        requestLogger))
                 .done((subnetGroupRequest, subnetGroupResponse, proxyInvocation, resourceModel, context) -> {
                     context.setDbSubnetGroupArn(subnetGroupResponse.dbSubnetGroup().dbSubnetGroupArn());
                     return ProgressEvent.progress(resourceModel, context);

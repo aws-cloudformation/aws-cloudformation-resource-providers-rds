@@ -25,7 +25,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET,
+                        requestLogger))
                 .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, model, context) -> {
                     final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
                     context.setEventSubscriptionArn(eventSubscription.eventSubscriptionArn());

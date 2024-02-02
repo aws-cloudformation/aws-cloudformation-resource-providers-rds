@@ -21,7 +21,8 @@ public class DeleteHandler extends BaseHandlerStd {
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient, final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext
     ) {
         return proxy.initiate("rds::delete-db-cluster-parameter-group", proxyClient, request.getDesiredResourceState(), callbackContext)
@@ -30,7 +31,8 @@ public class DeleteHandler extends BaseHandlerStd {
                 .handleError((deleteGroupRequest, exception, client, resourceModel, cxt) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, cxt),
                         exception,
-                        DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET,
+                        requestLogger))
                 .done((deleteGroupRequest, deleteGroupResponse, proxyInvocation, resourceModel, context) -> ProgressEvent.defaultSuccessHandler(null));
     }
 }

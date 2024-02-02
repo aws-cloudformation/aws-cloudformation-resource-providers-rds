@@ -122,7 +122,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger)
     {
         this.requestLogger = requestLogger;
-        return handleRequest(proxy, request, callbackContext, proxyClient, requestLogger);
+        return handleRequest(proxy, request, callbackContext, proxyClient);
     }
 
 

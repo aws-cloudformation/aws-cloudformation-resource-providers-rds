@@ -45,7 +45,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((awsRequest, exception, client, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET,
+                        requestLogger))
                 .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, model, context) -> {
                     final DBSubnetGroup dbSubnetGroup = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get();
                     context.setDbSubnetGroupArn(dbSubnetGroup.dbSubnetGroupArn());

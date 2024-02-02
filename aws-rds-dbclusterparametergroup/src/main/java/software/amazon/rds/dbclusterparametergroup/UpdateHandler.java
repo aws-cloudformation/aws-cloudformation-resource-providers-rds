@@ -28,7 +28,8 @@ public class UpdateHandler extends BaseHandlerStd {
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient, final ResourceHandlerRequest<ResourceModel> request,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext
     ) {
         final ResourceModel model = request.getDesiredResourceState();
@@ -54,7 +55,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (shouldUpdateParameters) {
-                        return describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters, requestLogger);
+                        return describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters);
                     }
                     return progress;
                 }).then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))

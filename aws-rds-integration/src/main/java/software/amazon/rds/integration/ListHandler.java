@@ -9,7 +9,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import javax.annotation.Nullable;
+
 
 import java.util.stream.Collectors;
 
@@ -24,7 +24,6 @@ public class ListHandler extends BaseHandlerStd {
     }
 
     @Override
-    @Nullable
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,

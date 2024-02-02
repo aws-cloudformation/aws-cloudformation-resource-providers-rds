@@ -51,7 +51,7 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(desiredModel, callbackContext)
                 .then(progress -> setDBParameterGroupNameIfEmpty(request, progress))
                 .then(progress -> safeCreateDBParameterGroup(proxy, proxyClient, progress, allTags, requestLogger))
-                .then(progress -> applyParameters(proxy, proxyClient, progress, desiredParams, requestLogger))
+                .then(progress -> applyParameters(proxy, proxyClient, progress, desiredParams))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, requestLogger));
     }
 
