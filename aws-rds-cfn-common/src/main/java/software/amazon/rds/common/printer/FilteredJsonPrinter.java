@@ -1,9 +1,7 @@
 package software.amazon.rds.common.printer;
 
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.json.JSONObject;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonFilter;
@@ -27,13 +25,10 @@ public class FilteredJsonPrinter implements JsonPrinter {
     static class PropertyFilterMixIn {
     }
 
-    final private String[] filterFields;
-
     final protected ObjectMapper mapper;
     final protected ObjectWriter writer;
 
     public FilteredJsonPrinter(String... filterFields) {
-        this.filterFields = filterFields;
         mapper = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
                 .enable(SerializationFeature.INDENT_OUTPUT)
@@ -55,11 +50,10 @@ public class FilteredJsonPrinter implements JsonPrinter {
     @Override
     public String print(final Throwable throwable) {
         try {
-            //throwable is not serializable
-            String jsonThrowable = ReflectionToStringBuilder.toString(throwable, ToStringStyle.JSON_STYLE);
-            JSONObject jsonObject = new JSONObject(jsonThrowable);
-            jsonObject.append(STACK_TRACE, ExceptionUtils.getStackTrace(throwable));
-            return jsonObject.toString();
+            final StringWriter sw = new StringWriter();
+            final PrintWriter pw = new PrintWriter(sw, true);
+            throwable.printStackTrace(pw);
+            return sw.getBuffer().toString();
         } catch (Exception exception) {
             return String.format("<failed to print object> %s", exception);
         }
