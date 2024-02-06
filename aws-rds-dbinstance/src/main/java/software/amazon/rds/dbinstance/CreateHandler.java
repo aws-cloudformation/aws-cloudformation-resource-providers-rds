@@ -144,7 +144,8 @@ public class CreateHandler extends BaseHandlerStd {
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> ensureEngineSet(rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
-                    if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
+                    final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), model);
+                    if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel(), dbInstance.engine())) {
                         return Commons.execOnce(progress, () -> {
                                             progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
                                             return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
