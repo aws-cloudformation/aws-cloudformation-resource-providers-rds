@@ -1,7 +1,5 @@
 package software.amazon.rds.common.printer;
 
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 
@@ -27,13 +25,10 @@ public class FilteredJsonPrinter implements JsonPrinter {
     static class PropertyFilterMixIn {
     }
 
-    final private String[] filterFields;
-
     final protected ObjectMapper mapper;
     final protected ObjectWriter writer;
 
     public FilteredJsonPrinter(String... filterFields) {
-        this.filterFields = filterFields;
         mapper = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
                 .enable(SerializationFeature.INDENT_OUTPUT)
@@ -56,8 +51,7 @@ public class FilteredJsonPrinter implements JsonPrinter {
     public String print(final Throwable throwable) {
         try {
             //throwable is not serializable
-            String jsonThrowable = ReflectionToStringBuilder.toString(throwable, ToStringStyle.JSON_STYLE);
-            JSONObject jsonObject = new JSONObject(jsonThrowable);
+            JSONObject jsonObject = new JSONObject();
             jsonObject.append(STACK_TRACE, ExceptionUtils.getStackTrace(throwable));
             return jsonObject.toString();
         } catch (Exception exception) {
