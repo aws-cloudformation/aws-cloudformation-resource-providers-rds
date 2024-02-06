@@ -50,7 +50,7 @@ public final class ImmutabilityHelper {
     }
 
     static boolean isEngineMutable(final ResourceModel previous, final ResourceModel desired, final String currentEngine) {
-        return Objects.equal(currentEngine, desired.getEngine()) ||
+        return Objects.equal(previous.getEngine(), desired.getEngine()) ||
                 isUpgradeToAuroraMySQL(previous, desired) ||
                 isUpgradeToOracleSE2(previous, desired) ||
                 isOracleConvertToCDB(currentEngine, desired);

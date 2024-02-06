@@ -204,7 +204,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
 
@@ -244,7 +244,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxyV12.client(), times(1)).restoreDBInstanceFromDBSnapshot(argumentCaptor.capture());
         verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
     }
@@ -326,7 +326,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -354,7 +354,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -386,7 +386,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(any(DescribeDbSnapshotsRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> argument = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(argument.capture());
@@ -413,7 +413,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -473,7 +473,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
@@ -499,7 +499,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
@@ -522,7 +522,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(any(CreateDbInstanceReadReplicaRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -565,7 +565,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
@@ -598,7 +598,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<CreateDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxyV12.client(), times(1)).createDBInstance(argumentCaptor.capture());
         verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
 
         Assertions.assertThat(argumentCaptor.getValue().dbSecurityGroups()).containsExactly(Iterables.toArray(DB_SECURITY_GROUPS, String.class));
@@ -680,6 +680,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
                 .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES))
                 .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .associatedRoles(Translator.translateAssociatedRolesToSdk(ASSOCIATED_ROLES))
+                .build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -694,7 +697,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(5)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(6)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(3)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
@@ -718,6 +721,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
                 .associatedRoles(Translator.translateAssociatedRolesToSdk(associatedRoles))
                 .build());
+        transitions.add(DB_INSTANCE_ACTIVE.toBuilder()
+                .associatedRoles(Translator.translateAssociatedRolesToSdk(associatedRoles))
+                .build());
 
         final CallbackContext context = new CallbackContext();
         context.setCreated(true);
@@ -737,7 +743,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addRoleToDBInstance(any(AddRoleToDbInstanceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
@@ -758,7 +764,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -782,7 +788,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final CreateDbInstanceRequest requestWithCertificate = createCaptor.getValue();
         Assertions.assertThat(requestWithCertificate.caCertificateIdentifier()).isEqualTo(CA_CERTIFICATE_IDENTIFIER_NON_EMPTY);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -808,7 +814,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
@@ -837,7 +843,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -858,7 +864,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
@@ -889,7 +895,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxyV12.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxyV12.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -918,7 +924,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
         Assertions.assertThat(captor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -950,7 +956,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
         Assertions.assertThat(captor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -984,7 +990,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
         Assertions.assertThat(captor.getValue().allocatedStorage()).isNull();
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         ArgumentCaptor<ModifyDbInstanceRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(modifyCaptor.capture());
         Assertions.assertThat(modifyCaptor.getValue().allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
@@ -1014,7 +1020,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1042,7 +1048,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1070,7 +1076,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1098,7 +1104,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1126,7 +1132,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1154,7 +1160,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1182,7 +1188,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1210,7 +1216,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1238,7 +1244,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1402,7 +1408,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<RestoreDbInstanceFromDbSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceFromDbSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(captor.capture());
@@ -1432,7 +1438,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<CreateDbInstanceRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstance(captor.capture());
@@ -1464,7 +1470,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client()).modifyDBInstance(captor.capture());
@@ -1493,7 +1499,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<CreateDbInstanceReadReplicaRequest> captor = ArgumentCaptor.forClass(CreateDbInstanceReadReplicaRequest.class);
         verify(rdsProxy.client(), times(1)).createDBInstanceReadReplica(captor.capture());
@@ -1604,7 +1610,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).restoreDBInstanceFromDBSnapshot(any(RestoreDbInstanceFromDbSnapshotRequest.class));
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
@@ -1739,7 +1745,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1764,7 +1770,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(any(RestoreDbInstanceToPointInTimeRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1791,7 +1797,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         // Both identifiers are passed as null. DBInstanceIdentifier will be random and the same value will be used for TargetDBInstanceIdentifier
         // All of these InstanceIdentifier tests are non-perfect since we can't tell the value of DBInstanceIdentifier. So this is only half the picture
@@ -1823,7 +1829,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         // Specific DBInstanceIdentifier. The same value will be used for TargetDBInstanceIdentifier
         Assertions.assertThat(captor.getValue().targetDBInstanceIdentifier()).isEqualTo(DB_INSTANCE_IDENTIFIER_NON_EMPTY);
@@ -1853,7 +1859,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
     }
@@ -1882,7 +1888,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<RestoreDbInstanceToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbInstanceToPointInTimeRequest.class);
 
         verify(rdsProxy.client(), times(1)).restoreDBInstanceToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         Assertions.assertThat(captor.getValue().restoreTime()).isEqualTo(RESTORE_TIME_UTC);
     }
@@ -1954,7 +1960,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
@@ -1982,7 +1988,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).rebootDBInstance(any(RebootDbInstanceRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
     }
 
@@ -2017,7 +2023,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(crossRegionRdsProxy.client(), times(1)).startDBInstanceAutomatedBackupsReplication(any(StartDbInstanceAutomatedBackupsReplicationRequest.class));
         verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
         verifyNoMoreInteractions(crossRegionRdsProxy.client());
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -2042,7 +2048,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -2071,7 +2077,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<DescribeDbSnapshotsRequest> captor = ArgumentCaptor.forClass(DescribeDbSnapshotsRequest.class);
         verify(rdsProxy.client(), times(1)).describeDBSnapshots(captor.capture());
         Assertions.assertThat(captor.getValue().dbSnapshotIdentifier()).isEqualTo("snapshot");
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -2100,7 +2106,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<DescribeDbClusterSnapshotsRequest> captor = ArgumentCaptor.forClass(DescribeDbClusterSnapshotsRequest.class);
         verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(captor.capture());
         Assertions.assertThat(captor.getValue().dbClusterSnapshotIdentifier()).isEqualTo("cluster-snapshot");
-        verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -2122,7 +2128,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(captor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBInstances(captor.capture());
         Assertions.assertThat(captor.getAllValues().get(0).dbInstanceIdentifier()).isEqualTo("rr-source");
     }
 
@@ -2174,7 +2180,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(captor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBInstances(captor.capture());
         Assertions.assertThat(captor.getAllValues().get(0).dbInstanceIdentifier()).isEqualTo("pitr-source");
     }
 
@@ -2198,7 +2204,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         ArgumentCaptor<DescribeDbInstancesRequest> captor = ArgumentCaptor.forClass(DescribeDbInstancesRequest.class);
-        verify(rdsProxy.client(), times(2)).describeDBInstances(captor.capture());
+        verify(rdsProxy.client(), times(3)).describeDBInstances(captor.capture());
         Assertions.assertThat(captor.getAllValues().get(0).filters()).hasSize(1);
 
         Assertions.assertThat(captor.getAllValues().get(0).filters().get(0).name()).isEqualTo("dbi-resource-id");

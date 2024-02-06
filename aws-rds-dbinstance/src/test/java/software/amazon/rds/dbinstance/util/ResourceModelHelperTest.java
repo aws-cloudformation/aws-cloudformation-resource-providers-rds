@@ -69,7 +69,7 @@ public class ResourceModelHelperTest {
         final ResourceModel model = ResourceModel.builder()
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isFalse();
     }
 
     @ParameterizedTest
@@ -80,9 +80,7 @@ public class ResourceModelHelperTest {
             "mariadb",
             "mysql",
             "oracle-ee",
-            "oracle-ee-cdb",
             "oracle-se2",
-            "oracle-se2-cdb",
             "postgres"})
     public void shouldUpdateAfterCreate_whenRestoreFromNonSqlServerSnapshotAndAllocatedStorage(final String engine) {
         final ResourceModel model = ResourceModel.builder()
@@ -91,7 +89,7 @@ public class ResourceModelHelperTest {
                 .allocatedStorage("100")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isFalse();
     }
 
 
@@ -108,7 +106,7 @@ public class ResourceModelHelperTest {
                 .allocatedStorage("100")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -118,7 +116,7 @@ public class ResourceModelHelperTest {
                 .masterUserPassword("password")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -128,7 +126,7 @@ public class ResourceModelHelperTest {
                 .preferredMaintenanceWindow("window")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -138,7 +136,7 @@ public class ResourceModelHelperTest {
                 .maxAllocatedStorage(100)
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -149,7 +147,7 @@ public class ResourceModelHelperTest {
                 .dBSnapshotIdentifier("identifier")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -159,7 +157,7 @@ public class ResourceModelHelperTest {
                 .storageThroughput(100)
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -170,7 +168,7 @@ public class ResourceModelHelperTest {
                 .engine("sqlserver")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -180,7 +178,7 @@ public class ResourceModelHelperTest {
                 .manageMasterUserPassword(true)
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -189,7 +187,7 @@ public class ResourceModelHelperTest {
                 .sourceDBInstanceIdentifier("source-db-instance-identifier")
                 .deletionProtection(true)
                 .build();
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -198,7 +196,7 @@ public class ResourceModelHelperTest {
                 .dBSnapshotIdentifier("db-snapshot-identifier")
                 .enablePerformanceInsights(true)
                 .build();
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -207,7 +205,7 @@ public class ResourceModelHelperTest {
                 .dBSnapshotIdentifier("db-snapshot-identifier")
                 .enablePerformanceInsights(false)
                 .build();
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isFalse();
     }
 
     @Test
@@ -216,7 +214,7 @@ public class ResourceModelHelperTest {
                 .dBSnapshotIdentifier("db-snapshot-identifier")
                 .enablePerformanceInsights(null)
                 .build();
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isFalse();
     }
 
     @Test
@@ -225,7 +223,7 @@ public class ResourceModelHelperTest {
                 .dBSnapshotIdentifier("db-snapshot-identifier")
                 .monitoringInterval(42)
                 .build();
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -234,7 +232,7 @@ public class ResourceModelHelperTest {
                 .dBSnapshotIdentifier("db-snapshot-identifier")
                 .monitoringRoleArn("monitoring-role-arn")
                 .build();
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -244,7 +242,7 @@ public class ResourceModelHelperTest {
                 .storageType("gp2")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -255,7 +253,7 @@ public class ResourceModelHelperTest {
                 .storageType("gp2")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
     }
 
     @Test
@@ -266,7 +264,7 @@ public class ResourceModelHelperTest {
                 .storageType("gp2")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isFalse();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isFalse();
     }
 
     @Test
@@ -277,7 +275,27 @@ public class ResourceModelHelperTest {
                 .storageType("gp2")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model)).isTrue();
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, null)).isTrue();
+    }
+
+    @Test
+    public void shouldUpdateAfterCreate_whenRestoreFromOracleEESnapshotAndCDBEngineSpecified() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine("oracle-ee-cdb")
+                .dBSnapshotIdentifier("snapshot")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, "oracle-ee")).isTrue();
+    }
+
+    @Test
+    public void shouldNotUpdateAfterCreate_whenRestoreFromOracleCDBEESnapshotAndCDBEngineSpecified() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine("oracle-ee-cdb")
+                .dBSnapshotIdentifier("snapshot")
+                .build();
+
+        assertThat(ResourceModelHelper.shouldUpdateAfterCreate(model, "oracle-ee-cdb")).isFalse();
     }
 
     @Test
