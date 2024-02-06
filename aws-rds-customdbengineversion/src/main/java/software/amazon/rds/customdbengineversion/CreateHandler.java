@@ -97,7 +97,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((createRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET, requestLogger))
+                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET,
+                        requestLogger))
                 .done((createRequest, createResponse, proxyInvocation, model, context) ->
                 {
                     model.setDBEngineVersionArn(createResponse.dbEngineVersionArn());
