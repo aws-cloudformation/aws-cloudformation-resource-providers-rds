@@ -1,6 +1,6 @@
 # AWS::RDS::Integration
 
-An example resource schema demonstrating some basic constructs and validation rules.
+Creates a zero-ETL integration with Amazon Redshift.
 
 ## Syntax
 
