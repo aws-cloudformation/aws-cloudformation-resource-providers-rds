@@ -229,6 +229,11 @@ public class Translator {
             builder.storageThroughput(model.getStorageThroughput());
             builder.storageType(model.getStorageType());
         }
+
+        if (ResourceModelHelper.isOracleCDBEngine(model.getEngine())) {
+            builder.engine(null);
+        }
+
         return builder.build();
     }
 
@@ -388,6 +393,11 @@ public class Translator {
             builder.storageThroughput(model.getStorageThroughput());
             builder.storageType(model.getStorageType());
         }
+
+        if (ResourceModelHelper.isOracleCDBEngine(model.getEngine())) {
+            builder.engine(null);
+        }
+
         return builder.build();
     }
 
@@ -599,7 +609,6 @@ public class Translator {
                 .engineVersion(model.getEngineVersion())
                 .manageMasterUserPassword(model.getManageMasterUserPassword())
                 .masterUserPassword(model.getMasterUserPassword())
-                .masterUserPassword(model.getMasterUserPassword())
                 .masterUserSecretKmsKeyId(model.getMasterUserSecret() != null ? model.getMasterUserSecret().getKmsKeyId() : null)
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
@@ -614,6 +623,11 @@ public class Translator {
             builder.storageThroughput(model.getStorageThroughput());
             builder.storageType(model.getStorageType());
         }
+
+        if (ResourceModelHelper.isOracleCDBEngine(model.getEngine())) {
+            builder.engine(model.getEngine());
+        }
+
         return builder.build();
     }
 
