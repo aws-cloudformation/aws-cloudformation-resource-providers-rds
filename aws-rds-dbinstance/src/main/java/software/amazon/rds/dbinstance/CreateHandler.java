@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 
+import com.diffplug.spotless.maven.ArtifactResolutionException;
 import org.apache.commons.lang3.BooleanUtils;
 
 import com.amazonaws.util.StringUtils;
@@ -94,7 +95,7 @@ public class CreateHandler extends BaseHandlerStd {
                         try {
                             model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress, proxy));
                         } catch (Exception e) {
-                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET);
+                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET, requestLogger);
                         }
                     }
                     return progress;
@@ -121,7 +122,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
                                 }
                             } catch (Exception e) {
-                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET);
+                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
                             }
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
@@ -158,7 +159,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                             p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
                                                             p,
                                                             this::isFailureEvent,
-                                                            logger
+                                                            requestLogger
                                                     ));
                                         },
                                         CallbackContext::isUpdated, CallbackContext::setUpdated)
@@ -194,9 +195,9 @@ public class CreateHandler extends BaseHandlerStd {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
                     return Commons.reportResourceDrift(
                             model,
-                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, requestLogger),
                             resourceTypeSchema,
-                            logger
+                            requestLogger
                     );
                 });
     }
@@ -224,7 +225,7 @@ public class CreateHandler extends BaseHandlerStd {
                     ResourceModelHelper.getResourceNameFromArn(sourceDBInstanceArn) : sourceDBInstanceArn;
             if (ResourceModelHelper.isCrossRegionDBInstanceReadReplica(model, currentRegion)) {
                 final String sourceRegion = ResourceModelHelper.getRegionFromArn(sourceDBInstanceArn);
-                final ProxyClient<RdsClient> sourceRegionClient = new LoggingProxyClient<>(logger,
+                final ProxyClient<RdsClient> sourceRegionClient = new LoggingProxyClient<>(requestLogger,
                         proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(sourceRegion)));
                 return fetchDBInstance(sourceRegionClient, sourceDBInstanceIdOrArn).engine();
             } else {
@@ -265,7 +266,8 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
-        logger.log("API version 12 create detected",
+        requestLogger.log("CreateDbInstanceAPIv12Invoked");
+        requestLogger.log("API version 12 create detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                 " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
@@ -284,7 +286,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET
+                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -311,7 +314,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET
+                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -322,7 +326,8 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
-        logger.log("API version 12 restore detected",
+        requestLogger.log("RestoreDbInstanceFromSnapshotAPIv12Invoked");
+        requestLogger.log("API version 12 restore detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                         " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate(
@@ -341,7 +346,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -368,7 +374,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -395,7 +402,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET
+                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -423,7 +431,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET
+                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -434,7 +443,8 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        logger.log("API version 12 modify after create detected",
+        requestLogger.log("UpdateDbInstanceAfterCreateAPIv12Invoked");
+        requestLogger.log("API version 12 modify after create detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
                         " functioning properly. Please refer to the API model for supported parameters");
         return proxy.initiate("rds::modify-db-instance-v12", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
@@ -448,7 +458,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -470,7 +481,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET
+                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }

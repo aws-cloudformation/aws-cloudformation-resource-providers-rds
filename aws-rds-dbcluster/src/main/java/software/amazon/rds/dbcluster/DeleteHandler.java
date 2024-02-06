@@ -13,7 +13,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.util.IdentifierFactory;
 
@@ -43,8 +42,7 @@ public class DeleteHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final ProxyClient<Ec2Client> ec2ProxyClient
     ) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> Commons.execOnce(progress, () ->
@@ -74,7 +72,7 @@ public class DeleteHandler extends BaseHandlerStd {
                 return ProgressEvent.failed(model, context, HandlerErrorCode.NotUpdatable, errorMessage);
             }
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET);
+            return Commons.handleException(progress, exception, DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
         }
         return progress;
     }
@@ -107,7 +105,8 @@ public class DeleteHandler extends BaseHandlerStd {
                 .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((deleteRequest, deleteResponse, proxyInvocation, model, context) -> ProgressEvent.defaultSuccessHandler(null));
     }

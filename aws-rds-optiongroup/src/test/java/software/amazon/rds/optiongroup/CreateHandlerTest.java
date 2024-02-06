@@ -15,7 +15,6 @@ import com.google.common.collect.Iterables;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateOptionGroupResponse;
 import software.amazon.awssdk.services.rds.model.DescribeOptionGroupsRequest;
@@ -114,7 +112,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -148,7 +146,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -189,7 +187,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -230,7 +228,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
 
         Assertions.assertThat(response).isNotNull();
@@ -272,7 +270,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         Assertions.assertThat(response).isNotNull();
         Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -303,7 +301,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -329,7 +327,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
                 .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
                 .build();
-        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, new CallbackContext());
 
         Assertions.assertThat(response).isNotNull();
         Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);

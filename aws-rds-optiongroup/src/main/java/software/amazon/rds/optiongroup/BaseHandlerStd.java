@@ -51,6 +51,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private static final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
     protected HandlerConfig config;
+    protected RequestLogger requestLogger;
 
     public BaseHandlerStd(final HandlerConfig config) {
         super();
@@ -69,19 +70,27 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 PARAMETERS_FILTER,
                 requestLogger -> handleRequest(
                         proxy,
-                        request,
-                        callbackContext != null ? callbackContext : new CallbackContext(),
-                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientBuilder()::getClient)),
-                        logger
+                        new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientBuilder()::getClient)), request,
+                        callbackContext != null ? callbackContext : new CallbackContext()
                 ));
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext);
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ProxyClient<RdsClient> proxyClient,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger);
+            final RequestLogger requestLogger
+    ) {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, proxyClient, request, callbackContext);
+    };
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateOptionGroupConfigurations(
             final AmazonWebServicesClientProxy proxy,
@@ -96,7 +105,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -116,7 +126,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 )).handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                        DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .done((describeRequest, describeResponse, invocation, resourceModel, ctx) -> {
                     final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
@@ -146,7 +157,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                                 rulesetTagsToAdd,
                                                 rulesetTagsToRemove
                                         )
-                                )
+                                ),
+                                requestLogger
                         );
                     }
                     return ProgressEvent.progress(resourceModel, ctx);

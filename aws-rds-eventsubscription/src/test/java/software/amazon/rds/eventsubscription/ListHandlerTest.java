@@ -70,7 +70,7 @@ public class ListHandlerTest extends AbstractTestBase {
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, null, proxyRdsClient, logger);
+                handler.handleRequest(proxy, proxyRdsClient, request, null);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -101,7 +101,7 @@ public class ListHandlerTest extends AbstractTestBase {
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, null, proxyRdsClient, logger);
+                handler.handleRequest(proxy, proxyRdsClient, request, null);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);

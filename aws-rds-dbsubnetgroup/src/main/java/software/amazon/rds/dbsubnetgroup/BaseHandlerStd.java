@@ -48,6 +48,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected HandlerConfig config;
 
+    protected RequestLogger requestLogger;
+
     private final FilteredJsonPrinter PARAMETERS_FILTER = new FilteredJsonPrinter();
 
     public BaseHandlerStd(final HandlerConfig config) {
@@ -56,10 +58,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     @Override
-    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
-                                                                             final ResourceHandlerRequest<ResourceModel> request,
-                                                                             final CallbackContext callbackContext,
-                                                                             final Logger logger) {
+    public final ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext,
+            final Logger logger) {
         final CallbackContext context = callbackContext != null ? callbackContext : new CallbackContext();
         context.setDbSubnetGroupArn(Translator.buildParameterGroupArn(request).toString());
         return RequestLogger.handleRequest(
@@ -71,7 +74,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         request,
                         context,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)),
-                        logger
+                        requestLogger
                 ));
     }
 
@@ -79,8 +82,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             AmazonWebServicesClientProxy proxy,
             ResourceHandlerRequest<ResourceModel> request,
             CallbackContext callbackContext,
+            ProxyClient<RdsClient> proxyClient);
+
+    protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+            AmazonWebServicesClientProxy proxy,
+            ResourceHandlerRequest<ResourceModel> request,
+            CallbackContext callbackContext,
             ProxyClient<RdsClient> proxyClient,
-            Logger logger);
+            final RequestLogger requestLogger
+    ) {
+        this.requestLogger = requestLogger;
+        return handleRequest(proxy, request, callbackContext, proxyClient);
+    }
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final String status = proxyClient.injectCredentialsAndInvokeV2(
@@ -138,7 +151,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                                     rulesetTagsToAdd,
                                     rulesetTagsToRemove
                             )
-                    )
+                    ),
+                    requestLogger
             );
         }
 

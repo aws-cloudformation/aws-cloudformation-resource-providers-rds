@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.amazonaws.Request;
 import org.json.JSONObject;
 import org.mockito.internal.util.collections.Sets;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;

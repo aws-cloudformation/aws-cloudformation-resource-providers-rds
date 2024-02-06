@@ -5,7 +5,6 @@ import java.util.stream.Collectors;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -28,8 +27,7 @@ public class ListHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final ProxyClient<RdsClient> proxyClient) {
 
         final DescribeDbSubnetGroupsResponse describeDbSubnetGroupsResponse;
         try {
@@ -40,7 +38,8 @@ public class ListHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(request.getDesiredResourceState(), callbackContext),
                     exception,
-                    DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET);
+                    DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET,
+                    requestLogger);
         }
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()

@@ -229,6 +229,6 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterEndp
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), logger);
+        return getHandler().handleRequest(getProxy(), getRdsProxy(), request, context);
     }
 }

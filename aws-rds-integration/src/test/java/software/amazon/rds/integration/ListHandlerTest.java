@@ -18,11 +18,11 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.error.ErrorCode;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.test.common.core.HandlerName;
 
 import java.time.Duration;
 import java.util.function.Supplier;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -31,6 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
 
 @ExtendWith(MockitoExtension.class)
 public class ListHandlerTest extends AbstractHandlerTest {
@@ -42,6 +43,7 @@ public class ListHandlerTest extends AbstractHandlerTest {
     @Mock
     @Getter
     private ProxyClient<RdsClient> rdsProxy;
+
 
     @Mock
     RdsClient rdsClient;
@@ -101,23 +103,23 @@ public class ListHandlerTest extends AbstractHandlerTest {
 
     @Test
     public void handleRequest_onException_followsDefaultErrorChain() {
-        when(rdsProxy.client().describeIntegrations(any(DescribeIntegrationsRequest.class)))
-                .thenAnswer((a) -> AwsServiceException.builder()
-                        .awsErrorDetails(AwsErrorDetails.builder()
-                                .errorCode(ErrorCode.InternalFailure.toString())
-                                .build())
-                        .build());
+            when(rdsProxy.client().describeIntegrations(any(DescribeIntegrationsRequest.class)))
+                    .thenAnswer((a) -> AwsServiceException.builder()
+                            .awsErrorDetails(AwsErrorDetails.builder()
+                                    .errorCode(ErrorCode.InternalFailure.toString())
+                                    .build())
+                            .build());
 
-        expectServiceInvocation = false;
+            expectServiceInvocation = false;
 
-        final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
-                new CallbackContext(),
-                null,
-                () -> INTEGRATION_ACTIVE_MODEL,
-                expectFailed(HandlerErrorCode.InternalFailure)
-        );
 
-        verify(rdsProxy.client(), times(1)).describeIntegrations(any(DescribeIntegrationsRequest.class));
+            final ProgressEvent<ResourceModel, CallbackContext> response = test_handleRequest_base(
+                    new CallbackContext(),
+                    null,
+                    () -> INTEGRATION_ACTIVE_MODEL,
+                    expectFailed(HandlerErrorCode.InternalFailure)
+            );
+            verify(rdsProxy.client(), times(1)).describeIntegrations(any(DescribeIntegrationsRequest.class));
     }
 
     @Override

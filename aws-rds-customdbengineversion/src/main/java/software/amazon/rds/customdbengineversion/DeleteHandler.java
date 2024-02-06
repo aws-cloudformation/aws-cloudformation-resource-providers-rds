@@ -23,12 +23,12 @@ public class DeleteHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final ProxyClient<RdsClient> proxyClient) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> proxy.initiate("rds::delete-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
                         .translateToServiceRequest(Translator::deleteCustomDbEngineVersion)
@@ -38,7 +38,8 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
-                                ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET))
+                                ACCESS_DENIED_TO_NOT_FOUND_ERROR_RULE_SET,
+                                requestLogger))
                         .progress()
                 )
                 // Stabilization has been modified to handle a specific edge case during CEV deletion.
@@ -53,7 +54,8 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET
+                                DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET,
+                                requestLogger
                         ))
                         .progress()
                 )
