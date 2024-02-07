@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import static software.amazon.rds.common.handler.Commons.getRootCauseExceptionMessage;
 
+
 class CommonsTest {
 
     @Mock
@@ -171,7 +172,6 @@ class CommonsTest {
         final String logLine = captor.getValue();
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
-
         assertThat(logLine).contains("UnexpectedErrorStatus: " + getRootCauseExceptionMessage(exRootCause) + " " + exceptionClass);
     }
 

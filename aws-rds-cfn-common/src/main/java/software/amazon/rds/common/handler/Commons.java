@@ -2,6 +2,7 @@ package software.amazon.rds.common.handler;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
