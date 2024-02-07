@@ -2,7 +2,6 @@ package software.amazon.rds.common.handler;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -91,7 +90,7 @@ public final class Commons {
             }
             return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
         } if (errorStatus instanceof UnexpectedErrorStatus && requestLogger != null) {
-            requestLogger.log("UnexpectedErrorStatus: " + getRoot_Cause_Exception_Message(rootCause) + " " + exceptionClass);
+            requestLogger.log("UnexpectedErrorStatus: " + getRootCauseExceptionMessage(rootCause) + " " + exceptionClass);
         }
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
     }
@@ -134,7 +133,7 @@ public final class Commons {
     }
 
     @Nullable
-    public static String getRoot_Cause_Exception_Message(final Throwable t)
+    public static String getRootCauseExceptionMessage(final Throwable t)
     {
         if(t == null){
             return null;
