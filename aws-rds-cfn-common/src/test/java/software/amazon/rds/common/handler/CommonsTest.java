@@ -27,8 +27,11 @@ import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
-import static org.mockito.Mockito.*;
-import static software.amazon.rds.common.handler.Commons.getRoot_Cause_Exception_Message;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import static software.amazon.rds.common.handler.Commons.getRootCauseExceptionMessage;
+
 
 class CommonsTest {
 
@@ -169,8 +172,7 @@ class CommonsTest {
         final String logLine = captor.getValue();
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
-
-        assertThat(logLine).contains("UnexpectedErrorStatus: " + getRoot_Cause_Exception_Message(exRootCause) + " " + exceptionClass);
+        assertThat(logLine).contains("UnexpectedErrorStatus: " + getRootCauseExceptionMessage(exRootCause) + " " + exceptionClass);
     }
 
     @Test
