@@ -14,7 +14,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -29,10 +28,9 @@ public class ReadHandler extends BaseHandlerStd {
     @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final RequestLogger logger
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         final ResourceModel model = request.getDesiredResourceState();
 
@@ -48,7 +46,7 @@ public class ReadHandler extends BaseHandlerStd {
                 })
                 .then(progress -> {
                     if (progress.getResourceModel().getParameters() == null) {
-                        return readParameters(proxy, proxyClient, progress, logger);
+                        return readParameters(proxy, proxyClient, progress);
                     }
                     return progress;
                 })
@@ -58,15 +56,14 @@ public class ReadHandler extends BaseHandlerStd {
     private ProgressEvent<ResourceModel, CallbackContext> readParameters(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final RequestLogger logger
+            final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         final Map<String, Parameter> engineDefaultClusterParameters = new HashMap<>();
         final Map<String, Parameter> currentDBClusterParameters = new HashMap<>();
 
         return progress
-                .then(p -> describeEngineDefaultClusterParameters(proxy, proxyClient, p, null, engineDefaultClusterParameters, logger))
-                .then(p -> describeCurrentDBClusterParameters(proxy, proxyClient, p, null, currentDBClusterParameters, logger))
+                .then(p -> describeEngineDefaultClusterParameters(proxy, proxyClient, p, null, engineDefaultClusterParameters))
+                .then(p -> describeCurrentDBClusterParameters(proxy, proxyClient, p, null, currentDBClusterParameters))
                 .then(p -> {
                     p.getResourceModel().setParameters(
                             Translator.translateParametersFromSdk(computeModifiedDBParameters(engineDefaultClusterParameters, currentDBClusterParameters))
@@ -89,7 +86,8 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_DB_CLUSTER_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET),
+                    requestLogger
             );
         }
         return ProgressEvent.success(model, context);

@@ -183,6 +183,6 @@ public abstract class AbstractTestBase extends software.amazon.rds.test.common.c
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getProxyClient(), logger);
+        return getHandler().handleRequest(getProxy(), getProxyClient(), request, context);
     }
 }

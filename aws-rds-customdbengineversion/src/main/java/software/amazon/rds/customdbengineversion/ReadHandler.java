@@ -26,12 +26,12 @@ public class ReadHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final ProxyClient<RdsClient> proxyClient
     ) {
         return proxy.initiate("rds::read-custom-db-engine-version", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeDbEngineVersionsRequest)
@@ -40,7 +40,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET))
+                        DEFAULT_CUSTOM_DB_ENGINE_VERSION_ERROR_RULE_SET,
+                        requestLogger))
                 .done((describeCustomDbEngineVersionRequest, describeCustomDbEngineVersionResponse, proxyInvocation, model, context) -> {
                     final List<DBEngineVersion> engineVersions = describeCustomDbEngineVersionResponse.dbEngineVersions();
 

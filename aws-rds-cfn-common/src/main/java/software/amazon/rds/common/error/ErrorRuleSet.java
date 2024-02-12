@@ -36,6 +36,7 @@ public class ErrorRuleSet implements Cloneable {
         return new Builder(base);
     }
 
+    @NonNull
     public ErrorStatus handle(final Exception exception) {
         if (errorClassMap.containsKey(exception.getClass())) {
             return errorClassMap.get(exception.getClass()).interpret(exception);

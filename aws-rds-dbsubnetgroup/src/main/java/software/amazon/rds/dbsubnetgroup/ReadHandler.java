@@ -5,7 +5,6 @@ import java.util.List;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -27,8 +26,7 @@ public class ReadHandler extends BaseHandlerStd {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
-            final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final ProxyClient<RdsClient> proxyClient
     ) {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> describeDbSubnetGroup(proxy, request, callbackContext, proxyClient))
@@ -47,7 +45,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((awsRequest, exception, client, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET))
+                        DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET,
+                        requestLogger))
                 .done((describeDbSubnetGroupsRequest, describeDbSubnetGroupsResponse, proxyInvocation, model, context) -> {
                     final DBSubnetGroup dbSubnetGroup = describeDbSubnetGroupsResponse.dbSubnetGroups().stream().findFirst().get();
                     context.setDbSubnetGroupArn(dbSubnetGroup.dbSubnetGroupArn());
@@ -70,7 +69,8 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET),
+                    requestLogger
             );
         }
         return ProgressEvent.success(model, context);

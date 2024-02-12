@@ -17,7 +17,6 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
-import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
@@ -51,8 +50,7 @@ public class CreateHandler extends BaseHandlerStd {
             final ValidatedRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final RequestLogger logger
+            final ProxyClient<Ec2Client> ec2ProxyClient
     ) {
         final ResourceModel model = ModelAdapter.setDefaults(request.getDesiredResourceState());
 
@@ -106,7 +104,7 @@ public class CreateHandler extends BaseHandlerStd {
                                                     p.getCallbackContext().getTimestamp(RESOURCE_UPDATED_AT),
                                                     p,
                                                     this::isFailureEvent,
-                                                    logger
+                                                    requestLogger
                                             ));
                                 },
                                 CallbackContext::isModified,
@@ -120,9 +118,9 @@ public class CreateHandler extends BaseHandlerStd {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));
                     return Commons.reportResourceDrift(
                             model,
-                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, logger),
+                            new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient),
                             resourceTypeSchema,
-                            logger
+                            requestLogger
                     );
                 });
     }
@@ -146,7 +144,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -170,7 +169,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -194,7 +194,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }
@@ -217,7 +218,8 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((createRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, callbackCtxt),
                         exception,
-                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
                 ))
                 .progress();
     }

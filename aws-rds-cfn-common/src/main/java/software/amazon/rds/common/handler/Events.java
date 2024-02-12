@@ -100,7 +100,7 @@ public class Events {
             }
         } catch (Exception e) {
             logger.log(String.format("Failed to fetch events: %s", e.getMessage()));
-            return Commons.handleException(progress, e, DESCRIBE_EVENTS_ERROR_RULE_SET);
+            return Commons.handleException(progress, e, DESCRIBE_EVENTS_ERROR_RULE_SET, logger);
         }
         return progress;
     }

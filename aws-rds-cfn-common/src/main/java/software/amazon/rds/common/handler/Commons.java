@@ -2,27 +2,33 @@ package software.amazon.rds.common.handler;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
 import lombok.NonNull;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.resource.ResourceTypeSchema;
-import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
-import software.amazon.rds.common.error.HandlerErrorStatus;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.IgnoreErrorStatus;
+import software.amazon.rds.common.error.UnexpectedErrorStatus;
+import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.util.DriftDetector;
 import software.amazon.rds.common.util.DriftDetectorReport;
 import software.amazon.rds.common.util.Mutation;
+import javax.annotation.Nullable;
+
 
 public final class Commons {
+
 
     public static final ErrorRuleSet DEFAULT_ERROR_RULE_SET = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceInternalError),
@@ -50,15 +56,23 @@ public final class Commons {
     private Commons() {
     }
 
+    public static final int STATUS_MESSAGE_MAXIMUM_LENGTH = 100;
+    /* The metric name limit is 255 as per CloudWatch documentation.
+    Setting this as 100 will ensure it will capture as much of the error message without making
+    the metric name too large.
+    */
+
     public static <M, C> ProgressEvent<M, C> handleException(
             final ProgressEvent<M, C> progress,
             final Exception exception,
-            final ErrorRuleSet errorRuleSet
+            final ErrorRuleSet errorRuleSet,
+            final RequestLogger requestLogger
     ) {
         final M model = progress.getResourceModel();
         final C context = progress.getCallbackContext();
-
         final ErrorStatus errorStatus = errorRuleSet.handle(exception);
+        final Throwable rootCause = ExceptionUtils.getRootCause(exception);
+        final String exceptionClass = exception.getClass().getCanonicalName();
 
         if (errorStatus instanceof IgnoreErrorStatus) {
             switch (((IgnoreErrorStatus) errorStatus).getStatus()) {
@@ -76,8 +90,9 @@ public final class Commons {
                 return ProgressEvent.failed(null, null, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
             }
             return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
+        } if (errorStatus instanceof UnexpectedErrorStatus && requestLogger != null) {
+            requestLogger.log("UnexpectedErrorStatus: " + getRootCauseExceptionMessage(rootCause) + " " + exceptionClass);
         }
-
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
     }
 
@@ -116,5 +131,18 @@ public final class Commons {
             logger.log("Drift detector internal error", e);
         }
         return progress;
+    }
+
+    @Nullable
+    public static String getRootCauseExceptionMessage(final Throwable t)
+    {
+        if(t == null){
+            return null;
+        }
+        String statusMessage = t.getMessage();
+         if(statusMessage != null) {
+            statusMessage = statusMessage.substring(0, Math.min(statusMessage.length(), STATUS_MESSAGE_MAXIMUM_LENGTH));
+        }
+        return statusMessage;
     }
 }

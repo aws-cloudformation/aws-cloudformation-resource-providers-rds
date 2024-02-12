@@ -29,7 +29,6 @@ import software.amazon.rds.test.common.verification.AccessPermissionVerification
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -170,7 +169,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<Integration, 
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext context
     ) {
-        return getHandler().handleRequest(getProxy(), request, context, getRdsProxy(), logger);
+        return getHandler().handleRequest(getProxy(), getRdsProxy(), request, context);
     }
 
     @Override

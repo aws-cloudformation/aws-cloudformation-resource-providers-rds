@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -34,10 +33,9 @@ public class UpdateHandler extends BaseHandlerStd {
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger) {
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext) {
 
         final ResourceModel previousModel = request.getPreviousResourceState();
         final ResourceModel desiredModel = request.getDesiredResourceState();
@@ -85,12 +83,13 @@ public class UpdateHandler extends BaseHandlerStd {
                             .handleError((modifyRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                                     ProgressEvent.progress(resourceModel, ctx),
                                     exception,
-                                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET
+                                    DEFAULT_OPTION_GROUP_ERROR_RULE_SET,
+                                    requestLogger
                             ))
                             .progress();
                 })
                 .then(progress -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags))
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
     protected static boolean isOptionVersionDowngrade(

@@ -37,8 +37,7 @@ public class ListHandler extends BaseHandlerStd {
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                           final ResourceHandlerRequest<ResourceModel> request,
                                                                           final CallbackContext callbackContext,
-                                                                          final ProxyClient<RdsClient> proxyClient,
-                                                                          final Logger logger) {
+                                                                          final ProxyClient<RdsClient> proxyClient) {
         return proxy.initiate("rds::list-db-engine-versions", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(resourceModel -> Translator.describeDbEngineVersionsRequest(resourceModel, CUSTOM_ENGINES, request.getNextToken()))
                 .backoffDelay(config.getBackoff())

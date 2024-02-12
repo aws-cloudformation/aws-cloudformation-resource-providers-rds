@@ -19,6 +19,7 @@
         <module>aws-rds-eventsubscription</module>
         <module>aws-rds-globalcluster</module>
         <module>aws-rds-integration</module>
+        <module>aws-rds-customdbengineversion</module>
         <module>aws-rds-optiongroup</module>
         <module>aws-rds-dbclusterendpoint</module>
     </modules>

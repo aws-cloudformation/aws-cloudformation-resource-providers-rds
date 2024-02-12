@@ -6,7 +6,6 @@ import java.util.List;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.EventSubscription;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -16,10 +15,9 @@ import software.amazon.rds.common.handler.Tagging;
 public class ReadHandler extends BaseHandlerStd {
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<ResourceModel> request,
-            final CallbackContext callbackContext,
             final ProxyClient<RdsClient> proxyClient,
-            final Logger logger
+            final ResourceHandlerRequest<ResourceModel> request,
+            final CallbackContext callbackContext
     ) {
         return proxy.initiate("rds::read-event-subscription", proxyClient, request.getDesiredResourceState(), callbackContext)
                 .translateToServiceRequest(Translator::describeEventSubscriptionsRequest)
@@ -27,7 +25,8 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,
-                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET))
+                        DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET,
+                        requestLogger))
                 .done((describeEventSubscriptionsRequest, describeEventSubscriptionsResponse, proxyInvocation, model, context) -> {
                     final EventSubscription eventSubscription = describeEventSubscriptionsResponse.eventSubscriptionsList().stream().findFirst().get();
                     context.setEventSubscriptionArn(eventSubscription.eventSubscriptionArn());
@@ -49,7 +48,8 @@ public class ReadHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(model, context),
                     exception,
-                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET)
+                    DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(Tagging.IGNORE_LIST_TAGS_PERMISSION_DENIED_ERROR_RULE_SET),
+                    requestLogger
             );
         }
         return ProgressEvent.success(model, context);

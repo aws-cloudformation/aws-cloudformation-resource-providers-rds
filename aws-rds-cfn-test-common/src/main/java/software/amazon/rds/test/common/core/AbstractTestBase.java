@@ -5,7 +5,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
-
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -163,7 +162,6 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
                 desiredStateSupplier,
                 expectFailed(expectErrorCode)
         );
-
         expectation.verify();
     }
 }
