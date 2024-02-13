@@ -8,9 +8,13 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import lombok.Builder;
+import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 class ImmutabilityHelperTest {
+    RequestLogger logger = new RequestLogger(null, new ResourceHandlerRequest<>(), new FilteredJsonPrinter());
 
     @Builder
     private static class EngineTestCase {
@@ -133,10 +137,20 @@ class ImmutabilityHelperTest {
                         .previous(ResourceModel.builder().engine("oracle-se").build())
                         .desired(ResourceModel.builder().engine("oracle-se2").build())
                         .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().engine("oracle-ee").build())
+                        .desired(ResourceModel.builder().engine("oracle-ee-cdb").build())
+                        .expect(true)
+                        .build(),
+                ResourceModelTestCase.builder()
+                        .previous(ResourceModel.builder().engine("oracle-ee-cdb").build())
+                        .desired(ResourceModel.builder().engine("oracle-ee-cdb").build())
+                        .expect(true)
                         .build()
         );
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null, logger)).isEqualTo(test.expect);
         }
     }
 
@@ -164,7 +178,7 @@ class ImmutabilityHelperTest {
                         .expect(true)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null, logger)).isEqualTo(test.expect);
         }
     }
 
@@ -192,7 +206,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null, logger)).isEqualTo(test.expect);
         }
     }
 
@@ -220,7 +234,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null, logger)).isEqualTo(test.expect);
         }
     }
 
@@ -248,7 +262,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null, logger)).isEqualTo(test.expect);
         }
     }
 
@@ -302,7 +316,7 @@ class ImmutabilityHelperTest {
                         .expect(false)
                         .build());
         for (final ResourceModelTestCase test : tests) {
-            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null)).isEqualTo(test.expect);
+            assertThat(ImmutabilityHelper.isChangeMutable(test.previous, test.desired, null, logger)).isEqualTo(test.expect);
         }
     }
 }

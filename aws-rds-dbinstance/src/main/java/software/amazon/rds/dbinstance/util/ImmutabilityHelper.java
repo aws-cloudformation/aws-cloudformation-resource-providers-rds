@@ -1,6 +1,7 @@
 package software.amazon.rds.dbinstance.util;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -9,6 +10,8 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.utils.MapUtils;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.dbinstance.ResourceModel;
 
 public final class ImmutabilityHelper {
@@ -42,6 +45,14 @@ public final class ImmutabilityHelper {
             );
     }
 
+    static boolean isOracleCDBMutable(final String previous, final ResourceModel desired) {
+        return org.apache.commons.lang3.StringUtils.equalsIgnoreCase(previous, desired.getEngine()) &&
+                (
+                        (ORACLE_EE_CDB.equalsIgnoreCase(desired.getEngine())) || (ORACLE_SE2_CDB.equalsIgnoreCase(desired.getEngine()))
+                );
+
+    }
+
     static boolean isUpgradeToAuroraMySQL(final ResourceModel previous, final ResourceModel desired) {
         return previous.getEngine() != null &&
                 desired.getEngine() != null &&
@@ -53,7 +64,8 @@ public final class ImmutabilityHelper {
         return Objects.equal(previous.getEngine(), desired.getEngine()) ||
                 isUpgradeToAuroraMySQL(previous, desired) ||
                 isUpgradeToOracleSE2(previous, desired) ||
-                isOracleConvertToCDB(currentEngine, desired);
+                isOracleConvertToCDB(currentEngine, desired) ||
+                isOracleCDBMutable(currentEngine, desired);
     }
 
     static boolean isPerformanceInsightsKMSKeyIdMutable(final ResourceModel previous, final ResourceModel desired) {
@@ -107,9 +119,9 @@ public final class ImmutabilityHelper {
                 StringUtils.isNullOrEmpty(desired.getSourceDbiResourceId());
     }
 
-    public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired, final DBInstance instance) {
+    public static boolean isChangeMutable(final ResourceModel previous, final ResourceModel desired, final DBInstance instance, RequestLogger requestLogger) {
         final String currentEngine = (!StringUtils.isNullOrEmpty(previous.getEngine()) || instance == null) ? previous.getEngine() : instance.engine();
-        return isEngineMutable(previous, desired, currentEngine) &&
+        final boolean isChangeMutable = isEngineMutable(previous, desired, currentEngine) &&
                 isPerformanceInsightsKMSKeyIdMutable(previous, desired) &&
                 isAvailabilityZoneChangeMutable(previous, desired) &&
                 isSourceDBInstanceIdentifierMutable(previous, desired) &&
@@ -120,5 +132,23 @@ public final class ImmutabilityHelper {
                 isSourceDBInstanceAutomatedBackupsArnMutable(previous, desired) &&
                 isSourceDbiResourceIdMutable(previous, desired) &&
                 isSourceDBClusterIdentifierMutable(previous, desired);
+
+        if (!isChangeMutable) {
+            final Map<String, Boolean> checksMap = MapUtils.of("isEngineMutable", isEngineMutable(previous, desired, currentEngine),
+                    "isPerformanceInsightsKMSKeyIdMutable", isPerformanceInsightsKMSKeyIdMutable(previous, desired),
+                    "isAvailabilityZoneChangeMutable", isAvailabilityZoneChangeMutable(previous, desired),
+                    "isSourceDBInstanceIdentifierMutable", isSourceDBInstanceIdentifierMutable(previous, desired),
+                    "isDBSnapshotIdentifierMutable", isDBSnapshotIdentifierMutable(previous, desired),
+                    "isDBClusterSnapshotIdentifierMutable", isDBClusterSnapshotIdentifierMutable(previous, desired));
+
+            checksMap.put("isUseLatestRestorableTimeMutable", isUseLatestRestorableTimeMutable(previous, desired));
+            checksMap.put("isRestoreTimeMutable", isRestoreTimeMutable(previous, desired));
+            checksMap.put("isSourceDBInstanceAutomatedBackupsArnMutable", isSourceDBInstanceAutomatedBackupsArnMutable(previous, desired));
+            checksMap.put("isSourceDbiResourceIdMutable", isSourceDbiResourceIdMutable(previous, desired));
+            checksMap.put("isSourceDBClusterIdentifierMutable", isSourceDBClusterIdentifierMutable(previous, desired));
+            requestLogger.log(String.format("isChangeMutable: %b", isChangeMutable), checksMap);
+        }
+
+        return isChangeMutable;
     }
 }

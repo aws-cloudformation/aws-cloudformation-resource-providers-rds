@@ -72,7 +72,7 @@ public class UpdateHandler extends BaseHandlerStd {
             );
         }
 
-        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState(), instance)) {
+        if (!ImmutabilityHelper.isChangeMutable(request.getPreviousResourceState(), request.getDesiredResourceState(), instance, requestLogger)) {
             return ProgressEvent.failed(
                     request.getDesiredResourceState(),
                     callbackContext,
