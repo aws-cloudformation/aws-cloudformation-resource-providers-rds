@@ -64,17 +64,18 @@ public class CreateHandler extends BaseHandlerStd {
                 .makeServiceCall((createIntegrationRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createIntegrationRequest, proxyInvocation.client()::createIntegration))
                 .stabilize((createIntegrationRequest, createIntegrationResponse, proxyInvocation, resourceModel, context) -> {
                     // with the response, now we'd know what the ARN is.
-                    resourceModel.setIntegrationArn(
-                            Optional.ofNullable(resourceModel.getIntegrationArn()).orElse(createIntegrationResponse.integrationArn())
-                    );
+                    resourceModel.setIntegrationArn(createIntegrationResponse.integrationArn());
                     return isStabilized(resourceModel, proxyInvocation);
                 })
                 .handleError((createRequest, exception, client, resourceModel, ctx) -> {
-                    // it's a little strange that IntegrationConflictOperationException is thrown instead of AlreadyExists exception
-                    // we need to override the default error handling because in this case we need to tell CFN that it's an AlreadyExists.
                     if (IntegrationConflictOperationException.class.isAssignableFrom(exception.getClass())) {
-                        if (Optional.ofNullable(exception.getMessage()).orElse("").contains(INTEGRATION_NAME_CONFLICT_ERROR_MESSAGE)) {
+                        // it's a little strange that IntegrationConflictOperationException is thrown instead of AlreadyExists exception
+                        // we need to override the default error handling because in this case we need to tell CFN that it's an AlreadyExists.
+                        String nonNullErrorMessage = Optional.ofNullable(exception.getMessage()).orElse("");
+                        if (nonNullErrorMessage.contains(INTEGRATION_NAME_CONFLICT_ERROR_MESSAGE)) {
                             return ProgressEvent.failed(null, null, HandlerErrorCode.AlreadyExists, exception.getMessage());
+                        } else if (nonNullErrorMessage.contains(INTEGRATION_RETRIABLE_CONFLICT_MESSAGE)) {
+                            return ProgressEvent.failed(null, null, HandlerErrorCode.ResourceConflict, exception.getMessage());
                         }
                     }
                     return Commons.handleException(

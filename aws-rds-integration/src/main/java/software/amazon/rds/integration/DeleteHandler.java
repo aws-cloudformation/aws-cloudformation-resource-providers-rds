@@ -1,6 +1,7 @@
 package software.amazon.rds.integration;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.IntegrationConflictOperationException;
 import software.amazon.awssdk.services.rds.model.IntegrationNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -10,6 +11,8 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
+
+import java.util.Optional;
 
 public class DeleteHandler extends BaseHandlerStd {
     // Currently, if you re-create an Integration within 500 seconds of deletion against the same cluster,
@@ -25,6 +28,7 @@ public class DeleteHandler extends BaseHandlerStd {
         super(config);
     }
 
+    @Override
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
@@ -37,16 +41,26 @@ public class DeleteHandler extends BaseHandlerStd {
                         .makeServiceCall((deleteIntegrationRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(deleteIntegrationRequest, proxyInvocation.client()::deleteIntegration))
                         .stabilize((deleteIntegrationRequest, deleteIntegrationResponse, proxyInvocation, model, context) ->
                                 isDeleted(model, proxyInvocation))
-                        .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                // if the integration is already deleted, this should be ignored,
-                                // but only once we started the deletion process
-                                ErrorRuleSet.extend(DEFAULT_INTEGRATION_ERROR_RULE_SET)
-                                        .withErrorClasses(ErrorStatus.ignore(), IntegrationNotFoundException.class)
-                                        .build(),
-                                requestLogger
-                        ))
+                        .handleError((deleteRequest, exception, client, resourceModel, ctx) -> {
+                            if (IntegrationConflictOperationException.class.isAssignableFrom(exception.getClass())) {
+                                String nonNullErrorMessage = Optional.ofNullable(exception.getMessage()).orElse("");
+                                if (nonNullErrorMessage.contains(INTEGRATION_RETRIABLE_CONFLICT_MESSAGE)) {
+                                    // this tells the cfn framework to come back in a bit.
+                                    return ProgressEvent.defaultInProgressHandler(ctx, CALLBACK_DELAY, resourceModel);
+                                }
+                            }
+                            return Commons.handleException(
+                                    ProgressEvent.progress(resourceModel, ctx),
+                                    exception,
+                                    // if the integration is already deleted, this should be ignored,
+                                    // but only once we started the deletion process
+                                    ErrorRuleSet.extend(DEFAULT_INTEGRATION_ERROR_RULE_SET)
+                                            .withErrorClasses(ErrorStatus.ignore(), IntegrationNotFoundException.class)
+                                            .build(),
+                                    requestLogger
+                            );
+                        }
+                        )
                         .progress()
                         .then((e) -> delay(e, POST_DELETION_DELAY_SEC))
                         .then((e) -> ProgressEvent.defaultSuccessHandler(null)));
