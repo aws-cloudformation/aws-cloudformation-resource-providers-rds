@@ -83,6 +83,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_CreateIntegration_withAllFields_success() {
         when(rdsProxy.client().createIntegration(any(CreateIntegrationRequest.class)))
                 .thenReturn(CreateIntegrationResponse.builder()
+                        .integrationArn(INTEGRATION_CREATING.integrationArn())
                         .build());
 
 
@@ -119,6 +120,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_CreateIntegration_withNoName_shouldGenerateName() {
         when(rdsProxy.client().createIntegration(any(CreateIntegrationRequest.class)))
                 .thenReturn(CreateIntegrationResponse.builder()
+                        .integrationArn(INTEGRATION_CREATING.integrationArn())
                         .build());
 
         // Integration goes from CREATING -> ACTIVE, when everything is normal
@@ -151,6 +153,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_CreateIntegration_withTerminalFailureState_returnFailure() {
         when(rdsProxy.client().createIntegration(any(CreateIntegrationRequest.class)))
                 .thenReturn(CreateIntegrationResponse.builder()
+                        .integrationArn(INTEGRATION_CREATING.integrationArn())
                         .build());
 
         // Integration goes from CREATING -> ACTIVE, when everything is normal

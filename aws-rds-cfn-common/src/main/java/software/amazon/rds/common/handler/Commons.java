@@ -18,6 +18,7 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.error.IgnoreErrorStatus;
+import software.amazon.rds.common.error.RetryErrorStatus;
 import software.amazon.rds.common.error.UnexpectedErrorStatus;
 import software.amazon.rds.common.error.HandlerErrorStatus;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -81,6 +82,9 @@ public final class Commons {
                 default:
                     return ProgressEvent.success(model, context);
             }
+        } else if (errorStatus instanceof RetryErrorStatus) {
+            RetryErrorStatus retryErrorStatus = (RetryErrorStatus) errorStatus;
+            return ProgressEvent.defaultInProgressHandler(context, retryErrorStatus.getCallbackDelay(), model);
         } else if (errorStatus instanceof HandlerErrorStatus) {
             final HandlerErrorStatus handlerErrorStatus = (HandlerErrorStatus) errorStatus;
             // We need to set model and context to null in case of AlreadyExists errors

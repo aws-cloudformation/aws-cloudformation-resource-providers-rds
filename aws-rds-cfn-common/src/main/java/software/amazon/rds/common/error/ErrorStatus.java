@@ -19,6 +19,10 @@ public interface ErrorStatus {
         return new IgnoreErrorStatus(status);
     }
 
+    static ErrorStatus retry(final int callbackDelay) {
+        return new RetryErrorStatus(OperationStatus.IN_PROGRESS, callbackDelay);
+    }
+
     static ErrorStatus conditional(Function<Exception, ErrorStatus> condition) {
         return new ConditionalErrorStatus(condition);
     }

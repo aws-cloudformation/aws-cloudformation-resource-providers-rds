@@ -25,11 +25,20 @@ import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
 import java.util.Collection;
+import java.util.Optional;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
+    protected final static String INTEGRATION_NAME_CONFLICT_ERROR_MESSAGE = "Integration names must be unique within an account";
+    /** If this message is given with IntegrationConflictOperationFault, then it is a retriable error.
+     * This is thrown when the underlying Redshift cluster is busy with other operations, but they are always
+     * transient, unless something is really wrong. */
+    protected final static String INTEGRATION_RETRIABLE_CONFLICT_MESSAGE = "because another operation is in progress for the " +
+            "Amazon Redshift data warehouse specified by the Amazon Resource Name (ARN). " +
+            "Try again after the current operation completes.";
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "integration";
     protected static final int MAX_LENGTH_INTEGRATION = 63;
+    protected static final int CALLBACK_DELAY = 6;
 
     protected static final ErrorRuleSet DEFAULT_INTEGRATION_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -37,6 +46,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     IntegrationAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     IntegrationNotFoundException.class)
+            .withErrorClasses(ErrorStatus.conditional((e) -> {
+                // this condition happens on create-integration.
+                // it's a little strange that IntegrationConflictOperationException is thrown instead of AlreadyExists exception
+                // we need to override the default error handling because in this case we need to tell CFN that it's an AlreadyExists.
+                // otherwise,
+                String nonNullErrorMessage = Optional.ofNullable(e.getMessage()).orElse("");
+                if (nonNullErrorMessage.contains(INTEGRATION_NAME_CONFLICT_ERROR_MESSAGE)) {
+                    return ErrorStatus.failWith(HandlerErrorCode.AlreadyExists);
+                } else if (nonNullErrorMessage.contains(INTEGRATION_RETRIABLE_CONFLICT_MESSAGE)) {
+                    // this tells the cfn framework to come back in a bit.
+                    return ErrorStatus.retry(CALLBACK_DELAY);
+                } else {
+                    // this shouldn't happen but it's a good fallback.
+                    return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
+                }
+            }), IntegrationConflictOperationException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
                     IntegrationConflictOperationException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),

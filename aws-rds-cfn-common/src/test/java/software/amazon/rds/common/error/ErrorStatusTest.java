@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
 
 class ErrorStatusTest {
 
@@ -22,6 +23,15 @@ class ErrorStatusTest {
         final ErrorStatus errorStatus = ErrorStatus.ignore();
         assertThat(errorStatus).isInstanceOf(IgnoreErrorStatus.class);
     }
+
+    @Test
+    void retry() {
+        final ErrorStatus errorStatus = ErrorStatus.retry(3);
+        assertThat(errorStatus).isInstanceOf(RetryErrorStatus.class);
+        assertThat(((RetryErrorStatus)errorStatus).getCallbackDelay()).isEqualTo(3);
+        assertThat(((RetryErrorStatus)errorStatus).getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+    }
+
 
     @Test
     void conditional() {
