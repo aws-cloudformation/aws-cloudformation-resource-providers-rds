@@ -772,22 +772,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
         return (pending == null) || (pending.dbInstanceClass() == null &&
                 pending.allocatedStorage() == null &&
-                pending.masterUserPassword() == null &&
-                pending.port() == null &&
-                pending.backupRetentionPeriod() == null &&
-                pending.multiAZ() == null &&
-                pending.engineVersion() == null &&
-                pending.engine() == null &&
-                pending.iops() == null &&
-                pending.dbInstanceIdentifier() == null &&
-                pending.licenseModel() == null &&
-                pending.storageType() == null &&
-                pending.dbSubnetGroupName() == null &&
-                pending.pendingCloudwatchLogsExports() == null &&
-                CollectionUtils.isNullOrEmpty(pending.processorFeatures()) &&
-                pending.iamDatabaseAuthenticationEnabled() == null &&
                 pending.automationMode() == null &&
-                pending.resumeFullAutomationModeTime() == null
+                pending.backupRetentionPeriod() == null &&
+                pending.dbInstanceIdentifier() == null &&
+                pending.dbSubnetGroupName() == null &&
+                pending.engine() == null &&
+                pending.engineVersion() == null &&
+                pending.iamDatabaseAuthenticationEnabled() == null &&
+                pending.iops() == null &&
+                pending.licenseModel() == null &&
+                pending.masterUserPassword() == null &&
+                pending.multiAZ() == null &&
+                pending.pendingCloudwatchLogsExports() == null &&
+                pending.port() == null &&
+                CollectionUtils.isNullOrEmpty(pending.processorFeatures()) &&
+                pending.resumeFullAutomationModeTime() == null &&
+                pending.storageThroughput() == null &&
+                pending.storageType() == null
         );
     }
 

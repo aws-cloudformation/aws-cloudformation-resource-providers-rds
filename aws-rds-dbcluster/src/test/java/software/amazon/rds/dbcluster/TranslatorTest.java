@@ -26,6 +26,9 @@ public class TranslatorTest extends AbstractHandlerTest {
 
     private final static String STORAGE_TYPE_AURORA = "aurora";
     private final static String STORAGE_TYPE_AURORA_IOPT1 = "aurora-opt1";
+    private final static String STORAGE_TYPE_GP3 = "gp3";
+    private final static boolean IS_NOT_ROLLBACK = false;
+    private final static boolean IS_ROLLBACK = true;
 
 
     @Test
@@ -37,11 +40,51 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void createDbClusterRequest_storageTypeAndIops_shouldBeSet() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .storageType(STORAGE_TYPE_GP3)
+                .iops(100)
+                .allocatedStorage(300)
+                .build();
+
+        final CreateDbClusterRequest request = Translator.createDbClusterRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
+    }
+
+    @Test
+    public void restoreDbClusterFromSnapshotRequest_setStorageType() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .storageType(STORAGE_TYPE_GP3)
+                .iops(100)
+                .build();
+
+        final RestoreDbClusterFromSnapshotRequest request = Translator.restoreDbClusterFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
+        assertThat(request.iops()).isEqualTo(100);
+    }
+
+    @Test
+    public void restoreDbClusterToPointInTimeRequest_setStorageType() {
+        final ResourceModel model = ResourceModel.builder()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .storageType(STORAGE_TYPE_GP3)
+                .iops(100)
+                .build();
+
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
+        assertThat(request.iops()).isEqualTo(100);
+    }
+
+    @Test
     public void modifyDbClusterRequest_omitPreferredMaintenanceWindowIfUnchanged() {
         final ResourceModel model = RESOURCE_MODEL.toBuilder().preferredMaintenanceWindow("old").build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(model, model, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(model, model, IS_NOT_ROLLBACK);
         assertThat(request.preferredMaintenanceWindow()).isNull();
     }
 
@@ -50,18 +93,16 @@ public class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().preferredMaintenanceWindow("old").build();
 
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().preferredMaintenanceWindow("new").build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.preferredMaintenanceWindow()).isEqualTo("new");
     }
 
     @Test
     public void modifyDbClusterRequest_omitPreferredBackupWindowIfUnchanged() {
         final ResourceModel model = RESOURCE_MODEL.toBuilder().preferredBackupWindow("old").build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(model, model, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(model, model, IS_NOT_ROLLBACK);
         assertThat(request.preferredBackupWindow()).isNull();
     }
 
@@ -69,18 +110,16 @@ public class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbClusterRequest_setPreferredBackupWindowWindow() {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().preferredBackupWindow("old").build();
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().preferredBackupWindow("new").build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.preferredBackupWindow()).isEqualTo("new");
     }
 
     @Test
     public void modifyDbClusterRequest_omitEnableIAMDatabaseAuthenticationIfUnchanged() {
         final ResourceModel model = RESOURCE_MODEL.toBuilder().enableIAMDatabaseAuthentication(true).build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(model, model, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(model, model, IS_NOT_ROLLBACK);
         assertThat(request.enableIAMDatabaseAuthentication()).isNull();
     }
 
@@ -88,9 +127,8 @@ public class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbClusterRequest_setEnableIAMDatabaseAuthentication() {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().enableIAMDatabaseAuthentication(false).build();
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().enableIAMDatabaseAuthentication(true).build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.enableIAMDatabaseAuthentication()).isEqualTo(Boolean.TRUE);
     }
 
@@ -98,37 +136,52 @@ public class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbClusterRequest_setEnableGlobalWriteForwarding() {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().enableGlobalWriteForwarding(false).build();
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().enableGlobalWriteForwarding(true).build();
-        final Boolean isRollback = false;
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.enableGlobalWriteForwarding()).isEqualTo(Boolean.TRUE);
     }
 
     @Test
-    public void ModifyDbClusterRequest_dbInstanceParameterGroupNameIsNotSetWhenEngineVersionIsNotUpgrading() {
+    public void modifyDbClusterRequest_dbInstanceParameterGroupNameIsNotSetWhenEngineVersionIsNotUpgrading() {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().engineVersion("old-engine").dBInstanceParameterGroupName("old-pg").build();
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().engineVersion("old-engine").dBInstanceParameterGroupName("new-pg").build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.dbInstanceParameterGroupName()).isBlank();
     }
 
     @Test
-    public void ModifyDbClusterRequest_dbInstanceParameterGroupNameIsSetWhenEngineVersionIsUpgrading() {
+    public void modifyDbClusterRequest_dbInstanceParameterGroupNameIsSetWhenEngineVersionIsUpgrading() {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().engineVersion("old-engine").dBInstanceParameterGroupName("old-pg").build();
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().engineVersion("new-engine").dBInstanceParameterGroupName("new-pg").build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.dbInstanceParameterGroupName()).isEqualTo("new-pg");
     }
 
     @Test
-    public void ModifyDbClusterRequest_dbInstanceParameterGroupNameIsNotSetDuringRollback() {
+    public void modifyDbClusterRequest_dbInstanceParameterGroupNameIsNotSetDuringRollback() {
         final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().engineVersion("old-engine").dBInstanceParameterGroupName("old-pg").build();
         final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().engineVersion("new-engine").dBInstanceParameterGroupName("new-pg").build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, true);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_ROLLBACK);
         assertThat(request.dbInstanceParameterGroupName()).isBlank();
+    }
+
+    @Test
+    public void modifyDbClusterRequest_setStorageType() {
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().build();
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder()
+                .engine(ENGINE_AURORA_POSTGRESQL)
+                .storageType(STORAGE_TYPE_GP3)
+                .iops(100)
+                .allocatedStorage(300)
+        .build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
+        assertThat(request.iops()).isEqualTo(100);
+        assertThat(request.allocatedStorage()).isEqualTo(300);
     }
 
     @Test
@@ -165,7 +218,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .masterUserPassword("password")
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isNull();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -181,7 +234,7 @@ public class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desired = RESOURCE_MODEL.toBuilder()
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isFalse();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -198,7 +251,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isFalse();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -214,7 +267,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId(null).build())
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -230,7 +283,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("myKey").build())
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("myKey");
@@ -249,7 +302,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(prev, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isNull();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -313,7 +366,7 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .manageMasterUserPassword(true)
                 .build();
 
-        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(desired, desired, false);
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(desired, desired, IS_NOT_ROLLBACK);
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();

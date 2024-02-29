@@ -83,6 +83,19 @@ public class RequestLoggerTest {
     }
 
     @Test
+    void test_log_with_exception() {
+        try{
+            ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
+            request.setStackId(STACK_ID);
+            RequestLogger requestLogger = new RequestLogger(logger, request, null);
+            requestLogger.log(SIMPLE_LOG, request);
+        } catch (Throwable throwable) {
+            verify(logger, atLeast(1)).log(captor.capture());
+            assertThat(captor.getValue().contains(STACK_ID)).isTrue();
+        }
+    }
+
+    @Test
     void test_log_and_throw() {
         Throwable throwable = new Throwable("This is Exception");
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();

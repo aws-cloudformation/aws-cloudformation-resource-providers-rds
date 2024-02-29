@@ -40,6 +40,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.error.UnexpectedErrorStatus;
+import software.amazon.rds.common.handler.Tagging.TagSet;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
@@ -81,6 +82,26 @@ public class TaggingTest extends ProxyClientTestBase {
         rds = mock(RdsClient.class);
         ResourceHandlerRequest<Void> request = new ResourceHandlerRequest<>();
         proxyRdsClient = new LoggingProxyClient<>(new RequestLogger(null, request, new FilteredJsonPrinter()), MOCK_PROXY(proxy, rds));
+    }
+
+    @Test
+    void tagset_emptySystemTags_notEmpty() {
+        final Set<Tag> systemTags = Collections.emptySet();
+        final Set<Tag> stackTags = STACK_TAGS;
+        final Set<Tag> resourceTags = RESOURCE_TAGS;
+
+        final TagSet tagset = new TagSet(systemTags, stackTags, resourceTags);
+        assertThat(tagset.isEmpty()).isFalse();
+    }
+
+    @Test
+    void tagset_emptyResourceTags_notEmpty() {
+        final Set<Tag> systemTags = SYSTEM_TAGS;
+        final Set<Tag> stackTags = STACK_TAGS;
+        final Set<Tag> resourceTags = Collections.emptySet();
+
+        final TagSet tagset = new TagSet(systemTags, stackTags, resourceTags);
+        assertThat(tagset.isEmpty()).isFalse();
     }
 
     @Test
@@ -184,6 +205,14 @@ public class TaggingTest extends ProxyClientTestBase {
         assertThat(allTags.containsAll(SYSTEM_TAGS)).isTrue();
         assertThat(allTags.containsAll(STACK_TAGS)).isTrue();
         assertThat(allTags.containsAll(RESOURCE_TAGS)).isTrue();
+    }
+
+    @Test
+    void test_translateTagsToSdk_from_collection() {
+        final Collection<Tag> tagSet = Collections.emptyList();
+        final Collection<Tag> allTags = Tagging.translateTagsToSdk(tagSet);
+
+        assertThat(allTags.isEmpty());
     }
 
     @Test
