@@ -15,6 +15,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
@@ -24,6 +25,7 @@ import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -39,6 +41,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String RESOURCE_IDENTIFIER = "integration";
     protected static final int MAX_LENGTH_INTEGRATION = 63;
     protected static final int CALLBACK_DELAY = 6;
+
+    /** Huge database resync could potentially take a very long time. */
+    public static final Constant CREATE_UPDATE_DELAY = Constant.of()
+            .delay(Duration.ofSeconds(30))
+            .timeout(Duration.ofHours(8))
+            .build();
+
+    /** Delete shouldn't take too long. */
+    public static final Constant DELETE_DELAY = Constant.of()
+            .delay(Duration.ofSeconds(30))
+            .timeout(Duration.ofMinutes(30))
+            .build();
 
     protected static final ErrorRuleSet DEFAULT_INTEGRATION_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)

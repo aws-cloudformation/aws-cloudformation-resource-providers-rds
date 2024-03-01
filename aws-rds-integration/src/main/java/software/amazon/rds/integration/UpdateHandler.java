@@ -12,7 +12,11 @@ import java.util.HashSet;
 
 public class UpdateHandler extends BaseHandlerStd {
     /** Default constructor w/ default backoff */
-    public UpdateHandler() {}
+    public UpdateHandler() {
+        this(HandlerConfig.builder()
+                .backoff(CREATE_UPDATE_DELAY)
+                .build());
+    }
 
     /** Default constructor w/ custom config */
     public UpdateHandler(HandlerConfig config) {

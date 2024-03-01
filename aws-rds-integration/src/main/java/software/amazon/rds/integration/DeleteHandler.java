@@ -21,7 +21,11 @@ public class DeleteHandler extends BaseHandlerStd {
     static final int CALLBACK_DELAY = 6;
 
     /** Default constructor w/ default backoff */
-    public DeleteHandler() {}
+    public DeleteHandler() {
+        this(HandlerConfig.builder()
+                .backoff(DELETE_DELAY)
+                .build());
+    }
 
     /** Default constructor w/ custom config */
     public DeleteHandler(HandlerConfig config) {
