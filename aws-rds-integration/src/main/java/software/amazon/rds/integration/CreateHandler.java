@@ -27,6 +27,9 @@ public class CreateHandler extends BaseHandlerStd {
 
     /** Default constructor w/ default backoff */
     public CreateHandler() {
+        this(HandlerConfig.builder()
+                .backoff(CREATE_UPDATE_DELAY)
+                .build());
     }
 
     /** Default constructor w/ custom config */
