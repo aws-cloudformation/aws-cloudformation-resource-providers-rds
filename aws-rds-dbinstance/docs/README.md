@@ -17,6 +17,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#associatedroles" title="AssociatedRoles">AssociatedRoles</a>" : <i>[ <a href="dbinstancerole.md">DBInstanceRole</a>, ... ]</i>,
         "<a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>" : <i>Boolean</i>,
         "<a href="#automaticbackupreplicationregion" title="AutomaticBackupReplicationRegion">AutomaticBackupReplicationRegion</a>" : <i>String</i>,
+        "<a href="#automaticbackupreplicationkmskeyid" title="AutomaticBackupReplicationKmsKeyId">AutomaticBackupReplicationKmsKeyId</a>" : <i>String</i>,
         "<a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>" : <i>String</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
         "<a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>" : <i>String</i>,
@@ -103,6 +104,7 @@ Properties:
       - <a href="dbinstancerole.md">DBInstanceRole</a></i>
     <a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>: <i>Boolean</i>
     <a href="#automaticbackupreplicationregion" title="AutomaticBackupReplicationRegion">AutomaticBackupReplicationRegion</a>: <i>String</i>
+    <a href="#automaticbackupreplicationkmskeyid" title="AutomaticBackupReplicationKmsKeyId">AutomaticBackupReplicationKmsKeyId</a>: <i>String</i>
     <a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>: <i>String</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
     <a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>: <i>String</i>
@@ -229,6 +231,16 @@ _Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudForm
 #### AutomaticBackupReplicationRegion
 
 Enables replication of automated backups to a different Amazon Web Services Region.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### AutomaticBackupReplicationKmsKeyId
+
+The Amazon Web Services KMS key identifier for encryption of the replicated automated backups. The KMS key ID is the Amazon Resource Name (ARN) for the KMS encryption key in the destination Amazon Web Services Region, for example, `arn:aws:kms:us-east-1:123456789012:key/AKIAIOSFODNN7EXAMPLE` .
 
 _Required_: No
 
