@@ -104,10 +104,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createIntegration(
-                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> {
-                    // TODO verify the content
-                   return true;
-                })
+                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> Objects.equals(req.integrationName(), INTEGRATION_NAME) &&
+                        Objects.equals(req.sourceArn(), SOURCE_ARN) &&
+                        Objects.equals(req.targetArn(), TARGET_ARN) &&
+                        Objects.equals(req.description(), DESCRIPTION) &&
+                        Objects.equals(req.dataFilter(), DATA_FILTER))
         );
         verify(rdsProxy.client(), times(3)).describeIntegrations(
                 ArgumentMatchers.<DescribeIntegrationsRequest>argThat(req ->
@@ -174,10 +175,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ).isInstanceOf(CfnNotStabilizedException.class);
 
         verify(rdsProxy.client(), times(1)).createIntegration(
-                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> {
-                    // TODO verify the content
-                    return true;
-                })
+                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> Objects.equals(req.integrationName(), INTEGRATION_NAME) &&
+                        Objects.equals(req.sourceArn(), SOURCE_ARN) &&
+                        Objects.equals(req.targetArn(), TARGET_ARN) &&
+                        Objects.equals(req.description(), DESCRIPTION) &&
+                        Objects.equals(req.dataFilter(), DATA_FILTER))
         );
 
         verify(rdsProxy.client(), times(2)).describeIntegrations(
@@ -202,10 +204,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createIntegration(
-                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> {
-                    // TODO verify the content
-                    return true;
-                })
+                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> Objects.equals(req.integrationName(), INTEGRATION_NAME) &&
+                        Objects.equals(req.sourceArn(), SOURCE_ARN) &&
+                        Objects.equals(req.targetArn(), TARGET_ARN) &&
+                        Objects.equals(req.description(), DESCRIPTION) &&
+                        Objects.equals(req.dataFilter(), DATA_FILTER))
         );
 
     }
@@ -225,10 +228,11 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createIntegration(
-                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> {
-                    // TODO verify the content
-                    return true;
-                })
+                ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> Objects.equals(req.integrationName(), INTEGRATION_NAME) &&
+                        Objects.equals(req.sourceArn(), SOURCE_ARN) &&
+                        Objects.equals(req.targetArn(), TARGET_ARN) &&
+                        Objects.equals(req.description(), DESCRIPTION) &&
+                        Objects.equals(req.dataFilter(), DATA_FILTER))
         );
 
     }

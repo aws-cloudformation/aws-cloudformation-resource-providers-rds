@@ -9,6 +9,11 @@
       "minLength": 1,
       "maxLength": 64
     },
+    "Description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
     "Tags": {
       "type": "array",
       "maxItems": 50,
@@ -18,6 +23,12 @@
       "items": {
         "$ref": "#/definitions/Tag"
       }
+    },
+    "DataFilter": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 25600,
+      "pattern": "[a-zA-Z0-9_ \"\\\\\\-$,*.:?+\\/]*"
     },
     "SourceArn": {
       "type": "string",
@@ -130,7 +141,8 @@
       "permissions": [
         "rds:DescribeIntegrations",
         "rds:AddTagsToResource",
-        "rds:RemoveTagsFromResource"
+        "rds:RemoveTagsFromResource",
+        "rds:ModifyIntegration"
       ]
     },
     "delete": {

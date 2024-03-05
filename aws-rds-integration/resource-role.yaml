@@ -36,6 +36,7 @@ Resources:
                 - "rds:CreateIntegration"
                 - "rds:DeleteIntegration"
                 - "rds:DescribeIntegrations"
+                - "rds:ModifyIntegration"
                 - "rds:RemoveTagsFromResource"
                 - "redshift:CreateInboundIntegration"
                 Resource: "*"
