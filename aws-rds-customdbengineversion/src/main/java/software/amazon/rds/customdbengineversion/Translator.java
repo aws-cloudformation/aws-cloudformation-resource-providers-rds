@@ -31,9 +31,12 @@ public class Translator {
                 .description(model.getDescription())
                 .engine(model.getEngine())
                 .engineVersion(model.getEngineVersion())
+                .imageId(model.getImageId())
                 .kmsKeyId(model.getKMSKeyId())
                 .manifest(model.getManifest())
+                .sourceCustomDbEngineVersionIdentifier(model.getSourceCustomDBEngineVersionIdentifier())
                 .tags(Tagging.translateTagsToSdk(tags))
+                .useAwsProvidedLatestImage(model.getUseAwsProvidedLatestImage())
                 .build();
     }
 
@@ -108,6 +111,7 @@ public class Translator {
                 .description(engineVersion.dbEngineVersionDescription())
                 .engine(engineVersion.engine())
                 .engineVersion(engineVersion.engineVersion())
+                .imageId(engineVersion.image() != null ? engineVersion.image().imageId() : null)
                 .kMSKeyId(engineVersion.kmsKeyId())
                 .status(engineVersion.status())
                 .tags(translateTagsFromSdk(engineVersion.tagList()))

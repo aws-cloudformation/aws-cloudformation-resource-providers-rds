@@ -11,6 +11,7 @@
     <modules>
         <module>aws-rds-cfn-test-common</module>
         <module>aws-rds-cfn-common</module>
+        <module>aws-rds-customdbengineversion</module>
         <module>aws-rds-dbcluster</module>
         <module>aws-rds-dbclusterendpoint</module>
         <module>aws-rds-dbclusterparametergroup</module>
@@ -20,7 +21,6 @@
         <module>aws-rds-eventsubscription</module>
         <module>aws-rds-globalcluster</module>
         <module>aws-rds-integration</module>
-        <module>aws-rds-customdbengineversion</module>
         <module>aws-rds-optiongroup</module>
     </modules>
 
