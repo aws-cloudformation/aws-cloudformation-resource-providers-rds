@@ -11,3 +11,5 @@ env/
 .gradle
 /gradle/
 /wrapper/
+# unit test artifacts
+aws-rds-cfn-common/src/main/resources/version.properties
