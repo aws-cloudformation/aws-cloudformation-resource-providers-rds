@@ -96,11 +96,16 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<Integration, 
     }
 
     protected static final String INTEGRATION_NAME = "integration-identifier-1";
+    protected static final String INTEGRATION_NAME_ALTER = "integration-identifier-2";
     protected static final String INTEGRATION_ARN = "arn:aws:rds:us-east-1:123456789012:integration:de4b78a2-0bff-4e93-814a-bacd3f81b383";
     protected static final String SOURCE_ARN = "arn:aws:rds:us-east-1:123456789012:cluster:cfn-integ-test-prov-5-rdsdbcluster-ozajchztpipc";
     protected static final String TARGET_ARN = "arn:aws:redshift:us-east-1:123456789012:namespace:ad99c581-dbac-4a1b-9602-d5c5e7f77b24";
     protected static final String KMS_KEY_ID = "arn:aws:kms:us-east-1:123456789012:key/9d67ba2d-daca-4e3c-ac23-16342062ede3";
     protected static final Map<String, String> ADDITIONAL_ENCRYPTION_CONTEXT = ImmutableMap.of("eck1", "ecv1", "eck2", "ecv2");
+    protected static final String DESCRIPTION = "integration description";
+    protected static final String DATA_FILTER = "include: *.*";
+    protected static final String DESCRIPTION_ALTER = "integration description 2";
+    protected static final String DATA_FILTER_ALTER = "include: ";
 
     static final Integration INTEGRATION_ACTIVE = Integration.builder()
             .integrationArn(INTEGRATION_ARN)
@@ -112,6 +117,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<Integration, 
             .createTime(Instant.ofEpochMilli(1699489854712L))
             .additionalEncryptionContext(ADDITIONAL_ENCRYPTION_CONTEXT)
             .tags(toAPITags(TAG_LIST))
+            .dataFilter(DATA_FILTER)
+            .description(DESCRIPTION)
             .build();
 
 
@@ -136,6 +143,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<Integration, 
             .createTime("2023-11-09T00:30:54.712000+00:00")
             .additionalEncryptionContext(ADDITIONAL_ENCRYPTION_CONTEXT)
             .tags(TAG_LIST)
+            .dataFilter(DATA_FILTER)
+            .description(DESCRIPTION)
             .build();
 
     protected static final ResourceModel INTEGRATION_MODEL_WITH_NO_NAME = INTEGRATION_ACTIVE_MODEL.toBuilder()

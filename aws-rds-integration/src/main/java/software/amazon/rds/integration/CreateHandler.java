@@ -3,11 +3,14 @@ package software.amazon.rds.integration;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.IntegrationConflictOperationException;
+import software.amazon.awssdk.services.rds.model.InvalidIntegrationStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.error.ErrorRuleSet;
+import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
@@ -24,6 +27,30 @@ public class CreateHandler extends BaseHandlerStd {
             RESOURCE_IDENTIFIER,
             MAX_LENGTH_INTEGRATION
     );
+
+    /** We cannot "retry" create API call if we do not know the primaryIdentifier
+     * (in this case, the integrationArn is the primaryIdentifier).
+     * The integration ARN is only vended on a successful create.
+     * A CFN createHandler MUST return a valid primaryIdentifier on the first lambda invocation.
+     * Since this is not possible on a failed create-integration call,
+     * we will just fail on a certain set of retriable conditions.
+     */
+    protected static final ErrorRuleSet CREATE_INTEGRATION_ERROR_RULE_SET = ErrorRuleSet
+            .extend(DEFAULT_INTEGRATION_ERROR_RULE_SET)
+            .withErrorClasses(ErrorStatus.conditional((e) -> {
+                String nonNullErrorMessage = Optional.ofNullable(e.getMessage()).orElse("");
+                // this condition happens on create-integration.
+                // it's a little strange that IntegrationConflictOperationException is thrown instead of AlreadyExists exception
+                // we need to override the default error handling because in this case we need to tell CFN that it's an AlreadyExists.
+                if (nonNullErrorMessage.contains(INTEGRATION_NAME_CONFLICT_ERROR_MESSAGE)) {
+                    return ErrorStatus.failWith(HandlerErrorCode.AlreadyExists);
+                } else {
+                    // we cannot retry for create
+                    return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
+                }
+            }), IntegrationConflictOperationException.class)
+            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict), InvalidIntegrationStateException.class)
+            .build();
 
     /** Default constructor w/ default backoff */
     public CreateHandler() {
@@ -70,23 +97,11 @@ public class CreateHandler extends BaseHandlerStd {
                     resourceModel.setIntegrationArn(createIntegrationResponse.integrationArn());
                     return isStabilized(resourceModel, proxyInvocation);
                 })
-                .handleError((createRequest, exception, client, resourceModel, ctx) -> {
-                    if (IntegrationConflictOperationException.class.isAssignableFrom(exception.getClass())) {
-                        // it's a little strange that IntegrationConflictOperationException is thrown instead of AlreadyExists exception
-                        // we need to override the default error handling because in this case we need to tell CFN that it's an AlreadyExists.
-                        String nonNullErrorMessage = Optional.ofNullable(exception.getMessage()).orElse("");
-                        if (nonNullErrorMessage.contains(INTEGRATION_NAME_CONFLICT_ERROR_MESSAGE)) {
-                            return ProgressEvent.failed(null, null, HandlerErrorCode.AlreadyExists, exception.getMessage());
-                        } else if (nonNullErrorMessage.contains(INTEGRATION_RETRIABLE_CONFLICT_MESSAGE)) {
-                            return ProgressEvent.failed(null, null, HandlerErrorCode.ResourceConflict, exception.getMessage());
-                        }
-                    }
-                    return Commons.handleException(
-                            ProgressEvent.progress(resourceModel, ctx),
-                            exception,
-                            DEFAULT_INTEGRATION_ERROR_RULE_SET,
-                            requestLogger);
-                })
+                .handleError((createRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, ctx),
+                        exception,
+                        CREATE_INTEGRATION_ERROR_RULE_SET,
+                        requestLogger))
                 .progress();
     }
 
