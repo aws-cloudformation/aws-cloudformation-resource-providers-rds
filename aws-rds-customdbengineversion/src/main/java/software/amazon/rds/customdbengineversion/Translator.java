@@ -34,7 +34,7 @@ public class Translator {
                 .imageId(model.getImageId())
                 .kmsKeyId(model.getKMSKeyId())
                 .manifest(model.getManifest())
-                .sourceCustomDbEngineVersionIdentifier(model.getSourceCustomDBEngineVersionIdentifier())
+                .sourceCustomDbEngineVersionIdentifier(model.getSourceCustomDbEngineVersionIdentifier())
                 .tags(Tagging.translateTagsToSdk(tags))
                 .useAwsProvidedLatestImage(model.getUseAwsProvidedLatestImage())
                 .build();

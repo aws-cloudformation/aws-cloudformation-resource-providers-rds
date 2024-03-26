@@ -76,7 +76,7 @@
       "type": "string",
       "description": "The ARN of the custom engine version."
     },
-    "SourceCustomDBEngineVersionIdentifier": {
+    "SourceCustomDbEngineVersionIdentifier": {
       "type": "string",
       "description": "The identifier of the source custom engine version."
     },
