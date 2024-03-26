@@ -19,7 +19,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
         "<a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>" : <i>String</i>,
         "<a href="#manifest" title="Manifest">Manifest</a>" : <i>String</i>,
-        "<a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDBEngineVersionIdentifier">SourceCustomDBEngineVersionIdentifier</a>" : <i>String</i>,
+        "<a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDbEngineVersionIdentifier">SourceCustomDbEngineVersionIdentifier</a>" : <i>String</i>,
         "<a href="#useawsprovidedlatestimage" title="UseAwsProvidedLatestImage">UseAwsProvidedLatestImage</a>" : <i>Boolean</i>,
         "<a href="#imageid" title="ImageId">ImageId</a>" : <i>String</i>,
         "<a href="#status" title="Status">Status</a>" : <i>String</i>,
@@ -40,7 +40,7 @@ Properties:
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
     <a href="#kmskeyid" title="KMSKeyId">KMSKeyId</a>: <i>String</i>
     <a href="#manifest" title="Manifest">Manifest</a>: <i>String</i>
-    <a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDBEngineVersionIdentifier">SourceCustomDBEngineVersionIdentifier</a>: <i>String</i>
+    <a href="#sourcecustomdbengineversionidentifier" title="SourceCustomDbEngineVersionIdentifier">SourceCustomDbEngineVersionIdentifier</a>: <i>String</i>
     <a href="#useawsprovidedlatestimage" title="UseAwsProvidedLatestImage">UseAwsProvidedLatestImage</a>: <i>Boolean</i>
     <a href="#imageid" title="ImageId">ImageId</a>: <i>String</i>
     <a href="#status" title="Status">Status</a>: <i>String</i>
@@ -148,7 +148,7 @@ _Maximum Length_: <code>51000</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
-#### SourceCustomDBEngineVersionIdentifier
+#### SourceCustomDbEngineVersionIdentifier
 
 The identifier of the source custom engine version.
 
@@ -156,7 +156,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### UseAwsProvidedLatestImage
 
