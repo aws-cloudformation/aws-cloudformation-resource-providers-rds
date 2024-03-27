@@ -737,10 +737,12 @@ public class Translator {
     }
 
     public static StartDbInstanceAutomatedBackupsReplicationRequest startDbInstanceAutomatedBackupsReplicationRequest(
-            final String dbInstanceArn
+            final String dbInstanceArn,
+            final String kmsKeyId
     ) {
         return StartDbInstanceAutomatedBackupsReplicationRequest.builder()
                 .sourceDBInstanceArn(dbInstanceArn)
+                .kmsKeyId(kmsKeyId)
                 .build();
     }
 

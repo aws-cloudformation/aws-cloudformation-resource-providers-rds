@@ -1138,6 +1138,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected ProgressEvent<ResourceModel, CallbackContext> startAutomaticBackupReplicationInRegion(
             final String dbInstanceArn,
+            final String kmsKeyId,
             final AmazonWebServicesClientProxy proxy,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final ProxyClient<RdsClient> sourceRegionClient,
@@ -1146,7 +1147,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
 
         return proxy.initiate("rds::start-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
+                .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn, kmsKeyId))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> rdsClient.injectCredentialsAndInvokeV2(
                         request,
