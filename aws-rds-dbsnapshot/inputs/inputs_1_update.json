@@ -1,0 +1,5 @@
+{
+  "DBSnapshotIdentifier": "dbsnapshot-contract-test",
+  "DBInstanceIdentifier": "postgresql-3",
+  "EngineVersion": "14.2"
+}

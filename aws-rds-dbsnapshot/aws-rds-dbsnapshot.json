@@ -1,0 +1,113 @@
+{
+  "typeName": "AWS::RDS::DBSnapshot",
+  "description": "An example resource schema demonstrating some basic constructs and validation rules.",
+  "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+  "definitions": {
+    "Tag": {
+      "description": "A key-value pair to associate with a resource.",
+      "type": "object",
+      "properties": {
+        "Key": {
+          "type": "string",
+          "description": "The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "Value": {
+          "type": "string",
+          "description": "The value for the tag. You can specify a value that is 0 to 256 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -.",
+          "minLength": 0,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "Value",
+        "Key"
+      ]
+    }
+  },
+  "properties": {
+    "DBSnapshotIdentifier": {
+      "type": "string",
+      "description": "The identifier for the DB snapshot. This parameter is stored as a lowercase string.",
+      "pattern": "^$|^[a-z]{1}(?:[:-]?[a-z0-9]){0,254}$"
+    },
+    "DBInstanceIdentifier": {
+      "type": "string",
+      "description": "A name for the DB instance.",
+      "pattern": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+    },
+    "OptionGroupName": {
+      "type": "string",
+      "description": "The option group to identify with the upgraded DB snapshot."
+    },
+    "EngineVersion": {
+      "type": "string",
+      "description": "The engine version to upgrade the DB snapshot to."
+    },
+    "DBSnapshotArn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) for the snapshot."
+    },
+    "Tags": {
+      "description": "An array of key-value pairs to apply to this resource.",
+      "type": "array",
+      "maxItems": 50,
+      "insertionOrder": false,
+      "items": {
+        "$ref": "#/definitions/Tag"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "DBInstanceIdentifier"
+  ],
+  "readOnlyProperties": [
+    "/properties/DBSnapshotArn"
+  ],
+  "createOnlyProperties": [
+    "/properties/DBInstanceIdentifier",
+    "/properties/DBSnapshotIdentifier"
+  ],
+  "primaryIdentifier": [
+    "/properties/DBSnapshotIdentifier"
+  ],
+  "handlers": {
+    "create": {
+      "permissions": [
+        "rds:AddTagsToResource",
+        "rds:CreateDBSnapshot",
+        "rds:DescribeDBSnapshots"
+      ]
+    },
+    "read": {
+      "permissions": [
+        "rds:DescribeDBSnapshots",
+        "rds:ListTagsForResource"
+      ]
+    },
+    "update": {
+      "permissions": [
+        "rds:ModifyDBSnapshot",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource",
+        "rds:DescribeDBSnapshots",
+        "rds:ListTagsForResource"
+      ]
+    },
+    "delete": {
+      "permissions": [
+        "rds:DeleteDBSnapshot",
+        "rds:DescribeDBSnapshots",
+        "rds:ListTagsForResource"
+      ]
+    },
+    "list": {
+      "permissions": [
+        "rds:DescribeDBSnapshots",
+        "rds:ListTagsForResource"
+      ]
+    }
+  }
+}
