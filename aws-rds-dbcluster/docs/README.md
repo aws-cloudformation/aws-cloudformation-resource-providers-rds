@@ -1,6 +1,6 @@
 # AWS::RDS::DBCluster
 
-The AWS::RDS::DBCluster resource creates an Amazon Aurora DB cluster.
+The AWS::RDS::DBCluster resource creates an Amazon Aurora DB cluster or Multi-AZ DB cluster.
 
 ## Syntax
 
@@ -382,7 +382,16 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### Engine
 
-The name of the database engine to be used for this DB cluster. Valid Values: aurora (for MySQL 5.6-compatible Aurora), aurora-mysql (for MySQL 5.7-compatible Aurora), and aurora-postgresql
+The name of the database engine to be used for this DB cluster.
+
+Valid Values:
+
+* `aurora-mysql`
+* `aurora-postgresql`
+* `mysql`
+* `postgres`
+
+Valid for: Aurora DB clusters and Multi-AZ DB clusters
 
 _Required_: No
 
