@@ -19,6 +19,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#automaticbackupreplicationregion" title="AutomaticBackupReplicationRegion">AutomaticBackupReplicationRegion</a>" : <i>String</i>,
         "<a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>" : <i>String</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
+        "<a href="#backuptarget" title="BackupTarget">BackupTarget</a>" : <i>String</i>,
         "<a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>" : <i>String</i>,
         "<a href="#certificatedetails" title="CertificateDetails">CertificateDetails</a>" : <i><a href="certificatedetails.md">CertificateDetails</a></i>,
         "<a href="#certificaterotationrestart" title="CertificateRotationRestart">CertificateRotationRestart</a>" : <i>Boolean</i>,
@@ -105,6 +106,7 @@ Properties:
     <a href="#automaticbackupreplicationregion" title="AutomaticBackupReplicationRegion">AutomaticBackupReplicationRegion</a>: <i>String</i>
     <a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>: <i>String</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
+    <a href="#backuptarget" title="BackupTarget">BackupTarget</a>: <i>String</i>
     <a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>: <i>String</i>
     <a href="#certificatedetails" title="CertificateDetails">CertificateDetails</a>: <i><a href="certificatedetails.md">CertificateDetails</a></i>
     <a href="#certificaterotationrestart" title="CertificateRotationRestart">CertificateRotationRestart</a>: <i>Boolean</i>
@@ -255,6 +257,18 @@ _Required_: No
 _Type_: Integer
 
 _Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
+
+#### BackupTarget
+
+Where to store automated backups and manual snapshots, either in the AWS Region (default) or locally in your Outpost.
+
+_Required_: No
+
+_Type_: String
+
+_Allowed Values_: <code>outposts</code> | <code>region</code>
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### CACertificateIdentifier
 
@@ -1018,3 +1032,4 @@ Returns the <code>CAIdentifier</code> value.
 #### ValidTill
 
 Returns the <code>ValidTill</code> value.
+
