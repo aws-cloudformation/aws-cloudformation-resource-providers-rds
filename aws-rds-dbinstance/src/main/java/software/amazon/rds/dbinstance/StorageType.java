@@ -4,7 +4,8 @@ public enum StorageType {
     GP2("gp2"),
     GP3("gp3"),
     IO1("io1"),
-    MAGNETIC("magnetic");
+    MAGNETIC("magnetic"),
+    IO2("io2");
 
     private final String value;
 

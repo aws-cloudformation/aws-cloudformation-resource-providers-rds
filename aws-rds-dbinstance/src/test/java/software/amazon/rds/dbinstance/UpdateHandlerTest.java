@@ -1816,4 +1816,48 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verifyNoMoreInteractions(crossRegionRdsProxy.client());
         verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
+
+    @Test
+    public void handleRequest_updateStorageTypeFromIo1ToIo2() {
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(false);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+        context.setAutomaticBackupReplicationStarted(true);
+        context.setAutomaticBackupReplicationStopped(true);
+
+        when(rdsProxy.client().modifyDBInstance(any(ModifyDbInstanceRequest.class)))
+                .thenReturn(ModifyDbInstanceResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .storageType("io1")
+                        .allocatedStorage("100")
+                        .iops(1000)
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .storageType("io2")
+                        .allocatedStorage("100")
+                        .iops(1000)
+                        .build(),
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+
+        final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
+        verify(rdsProxy.client()).modifyDBInstance(argumentCaptor.capture());
+        Assertions.assertThat(argumentCaptor.getValue().iops()).isEqualTo(1000);
+        Assertions.assertThat(argumentCaptor.getValue().allocatedStorage()).isEqualTo(100);
+        Assertions.assertThat(argumentCaptor.getValue().storageType()).isEqualTo("io2");
+
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
 }

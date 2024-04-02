@@ -549,7 +549,7 @@ public class Translator {
     }
 
     private static Boolean isProvisionedIoStorage(final ResourceModel model) {
-        return isIo1Storage(model) || isGp3Storage(model);
+        return isIo1Storage(model) || isIo2Storage(model) || isGp3Storage(model);
     }
 
     private static Boolean isGp3Storage(final ResourceModel model) {
@@ -558,6 +558,11 @@ public class Translator {
 
     private static Boolean isIo1Storage(final ResourceModel model) {
         return StorageType.IO1.toString().equalsIgnoreCase(model.getStorageType()) ||
+                (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
+    }
+
+    private static Boolean isIo2Storage(final ResourceModel model) {
+        return StorageType.IO2.toString().equalsIgnoreCase(model.getStorageType()) ||
                 (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
     }
 
