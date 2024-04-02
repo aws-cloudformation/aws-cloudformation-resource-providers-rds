@@ -35,6 +35,7 @@ import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
+import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -42,6 +43,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -317,6 +319,50 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                     Arguments.of(new RuntimeException(MSG_GENERIC_ERR), HandlerErrorCode.InternalFailure)
             );
         }
+    }
+
+    @Test
+    public void handleRequest_DeleteDBInstance_DbInstanceInTerminalState() {
+        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (fetchedOnce.compareAndSet(false, true)) {
+                        return DB_INSTANCE_FAILED.toBuilder().build();
+                    }
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_DeleteDBInstance_OptionGroupInTerminalState() {
+        AtomicBoolean fetchedOnce = new AtomicBoolean(false);
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> {
+                    if (fetchedOnce.compareAndSet(false, true)) {
+                        return DB_INSTANCE_DELETING.toBuilder()
+                                .optionGroupMemberships(OptionGroupMembership.builder()
+                                        .status(OptionGroupStatus.Failed.toString())
+                                        .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
+                                        .build()).build();
+                    }
+                    throw DbInstanceNotFoundException.builder().message(MSG_NOT_FOUND_ERR).build();
+                },
+                () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbInstanceRequest> argument = ArgumentCaptor.forClass(DeleteDbInstanceRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBInstance(argument.capture());
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @ParameterizedTest

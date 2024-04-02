@@ -609,13 +609,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         DBInstance dbInstance;
         try {
-            dbInstance = fetchDBInstance(rdsProxyClient, model);
+            fetchDBInstance(rdsProxyClient, model);
         } catch (DbInstanceNotFoundException e) {
             // the instance is gone, exactly what we need
             return true;
         }
-
-        assertNoTerminalStatusOnRdsResources(dbInstance);
 
         return false;
     }
@@ -659,13 +657,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
-        assertNoTerminalStatusOnRdsResources(dbInstance);
-        assertNoDomainMembershipTerminalStatus(dbInstance);
-    }
-
-    private void assertNoTerminalStatusOnRdsResources(final DBInstance dbInstance) throws CfnNotStabilizedException {
         assertNoDBInstanceTerminalStatus(dbInstance);
         assertNoOptionGroupTerminalStatus(dbInstance);
+        assertNoDomainMembershipTerminalStatus(dbInstance);
     }
 
     protected boolean isDBInstanceStabilizedAfterMutate(
