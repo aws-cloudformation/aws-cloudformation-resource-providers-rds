@@ -562,8 +562,7 @@ public class Translator {
     }
 
     private static Boolean isIo2Storage(final ResourceModel model) {
-        return StorageType.IO2.toString().equalsIgnoreCase(model.getStorageType()) ||
-                (StringUtils.isEmpty(model.getStorageType()) && model.getIops() != null);
+        return StorageType.IO2.toString().equalsIgnoreCase(model.getStorageType());
     }
 
     private static Boolean shouldDisableDomain(final ResourceModel previous, final ResourceModel desired) {
