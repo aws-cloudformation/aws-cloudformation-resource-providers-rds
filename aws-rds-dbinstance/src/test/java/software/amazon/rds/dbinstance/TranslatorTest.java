@@ -928,6 +928,17 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void modifyDbInstanceRequest_shouldIncludeAllocatedStorageANdIops_ifStorageTypeIsIo1_andStorageTypeChangedToIo2() {
+        final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).allocatedStorage("100").build();
+        final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io2").iops(1000).allocatedStorage("100").build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+
+        assertThat(request.iops()).isEqualTo(1000);
+        assertThat(request.allocatedStorage()).isEqualTo(100);
+    }
+
+    @Test
     public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsImplicitIo1_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType(null).iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType(null).iops(1200).build();
