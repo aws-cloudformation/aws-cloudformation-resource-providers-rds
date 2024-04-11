@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +19,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean deleting;
 
     private Map<String, Long> timestamps;
+    private Map<String, Double> timeDelta;
 
     private TaggingContext taggingContext;
     private ProbingContext probingContext;
@@ -27,6 +29,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
         this.taggingContext = new TaggingContext();
         this.probingContext = new ProbingContext();
         this.timestamps = new HashMap<>();
+        this.timeDelta = new HashMap<>();
     }
 
     @Override
@@ -56,5 +59,13 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
             return Instant.ofEpochSecond(timestamps.get(label));
         }
         return null;
+    }
+    public void timestamp(final String label, final Instant instant) {
+        timestamps.put(label, instant.getEpochSecond());
+    }
+
+    public void calculateTimeDelta(final String label, final Instant currentTime, final Instant startTime){
+        double delta = Duration.between(currentTime, startTime).toHours();
+        timeDelta.put(label, delta);
     }
 }

@@ -3,6 +3,7 @@ package software.amazon.rds.dbclusterendpoint;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
+import java.time.Instant;
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBClusterEndpoint;
@@ -33,6 +34,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String DEFAULT_STACK_NAME = "rds";
     protected static final String DB_CLUSTER_ENDPOINT_AVAILABLE = "available";
     protected static final String CUSTOM_ENDPOINT = "CUSTOM";
+    protected static final String DB_CLUSTER_ENDPOINT_REQUEST_STARTED_AT = "dbclusterendpoint-request-started-at";
+    protected static final String DB_CLUSTER_ENDPOINT_REQUEST_IN_PROGRESS_AT = "dbclusterendpoint-request-in-progress-at";
+    protected static final String DB_CLUSTER_ENDPOINT_STABILIZATION_TIME = "dbclusterendpoint-stabilization-time";
 
     protected static final Constant BACKOFF_DELAY = Constant.of()
             .timeout(Duration.ofSeconds(180L))
@@ -96,12 +100,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ){
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, proxyClient, request, callbackContext);
     }
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final DBClusterEndpoint endpoint = fetchDBClusterEndpoint(model, proxyClient);
         return DB_CLUSTER_ENDPOINT_AVAILABLE.equals(endpoint.status());
+    }
+
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(DB_CLUSTER_ENDPOINT_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(DB_CLUSTER_ENDPOINT_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDelta(DB_CLUSTER_ENDPOINT_STABILIZATION_TIME, callbackContext.getTimestamp(DB_CLUSTER_ENDPOINT_REQUEST_STARTED_AT), callbackContext.getTimestamp(DB_CLUSTER_ENDPOINT_REQUEST_IN_PROGRESS_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(

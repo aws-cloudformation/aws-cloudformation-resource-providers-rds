@@ -1,6 +1,7 @@
 package software.amazon.rds.optiongroup;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -29,6 +30,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "optiongroup";
+    protected static final String OPTION_GROUP_REQUEST_STARTED_AT = "optiongroup-request-started-at";
+    protected static final String OPTION_GROUP_REQUEST_IN_PROGRESS_AT = "optiongroup-request-in-progress-at";
+    protected static final String OPTION_GROUP_STABILIZATION_TIME = "optiongroup-stabilization-time";
     protected static final int RESOURCE_ID_MAX_LENGTH = 255;
 
     protected static final Constant BACKOFF_DELAY = Constant.of()
@@ -89,6 +93,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ) {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, proxyClient, request, callbackContext);
     };
 
@@ -109,6 +114,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         requestLogger
                 ))
                 .progress();
+    }
+
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(OPTION_GROUP_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(OPTION_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDelta(OPTION_GROUP_STABILIZATION_TIME,
+                callbackContext.getTimestamp(OPTION_GROUP_REQUEST_STARTED_AT),
+                callbackContext.getTimestamp(OPTION_GROUP_REQUEST_IN_PROGRESS_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(

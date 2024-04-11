@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,11 +29,13 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
 
     private TaggingContext taggingContext;
     private Map<String, Long> timestamps;
+    private Map<String, Double> timeDelta;
 
     public CallbackContext() {
         super();
         this.taggingContext = new TaggingContext();
         this.timestamps = new HashMap<>();
+        this.timeDelta = new HashMap<>();
     }
 
     @Override
@@ -61,5 +64,10 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
             return Instant.ofEpochSecond(timestamps.get(label));
         }
         return null;
+    }
+
+    public void calculateTimeDelta(final String label, final Instant currentTime, final Instant startTime){
+        double delta = Duration.between(currentTime, startTime).toHours();
+        timeDelta.put(label, delta);
     }
 }
