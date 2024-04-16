@@ -817,6 +817,38 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyDbInstanceRequest_PerformanceInsightsChangeRetentionPeriod() {
+        final int NEW_RETENTION_PERIOD = 31;
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsRetentionPeriod(7)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(true)
+                .performanceInsightsRetentionPeriod(NEW_RETENTION_PERIOD)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+        assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(NEW_RETENTION_PERIOD);
+    }
+
+    @Test
+    public void test_modifyDbInstanceRequest_NoPerformanceInsightsChangeRetentionPeriod() {
+        final int NEW_RETENTION_PERIOD = 31;
+        final ResourceModel previousModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsRetentionPeriod(7)
+                .build();
+        final ResourceModel desiredModel = ResourceModel.builder()
+                .enablePerformanceInsights(false)
+                .performanceInsightsRetentionPeriod(NEW_RETENTION_PERIOD)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        assertThat(request.enablePerformanceInsights()).isFalse();
+        assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(NEW_RETENTION_PERIOD);
+    }
+
+    @Test
     public void test_modifyDbInstanceRequest_PerformanceInsightsEnabledChangeKMSKeyId() {
         final String kmsKeyId1 = "test-kms-key-id-1";
         final String kmsKeyId2 = "test-kms-key-id-2";
@@ -1095,6 +1127,18 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
         assertThat(request.enablePerformanceInsights()).isTrue();
+    }
+
+    @Test
+    public void test_modifyAfterCreate_shouldSetEnablePerformanceInsightsRetentionPeriod() {
+        final int PI_RETENTION_PERIOD = 31;
+        final ResourceModel model = RESOURCE_MODEL_BLDR()
+                .enablePerformanceInsights(true)
+                .performanceInsightsRetentionPeriod(PI_RETENTION_PERIOD)
+                .build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceAfterCreateRequest(model);
+        assertThat(request.enablePerformanceInsights()).isTrue();
+        assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(PI_RETENTION_PERIOD);
     }
 
     @Test

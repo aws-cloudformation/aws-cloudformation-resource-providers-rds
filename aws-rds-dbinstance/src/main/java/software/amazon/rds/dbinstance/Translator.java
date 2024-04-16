@@ -473,7 +473,6 @@ public class Translator {
                 .multiAZ(diff(previousModel.getMultiAZ(), desiredModel.getMultiAZ()))
                 .networkType(diff(previousModel.getNetworkType(), desiredModel.getNetworkType()))
                 .optionGroupName(diff(previousModel.getOptionGroupName(), desiredModel.getOptionGroupName()))
-                .performanceInsightsRetentionPeriod(diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod()))
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
                 .promotionTier(desiredModel.getPromotionTier()) // promotion tier is set unconditionally
@@ -514,13 +513,15 @@ public class Translator {
             builder.useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures());
         }
 
-        // EnablePerformanceInsights (EPI) and PerformanceInsightsKMSKeyId (PKI) are coupled parameters.
-        // The following logic stands:
+        // EnablePerformanceInsights (EPI), PerformanceInsightsKMSKeyId (PKI) and PerformanceInsightsRetentionPeriod (PIP)
+        // are coupled parameters. The following logic stands:
         // 0. If EPI or PKI are changed, provide the diff unconditionally.
         // 1. if EPI is true, provide the desired PKI unconditionally.
         // 2. if PKI is changed, provide the desired EPI unconditionally.
+        // 3. if PIP is changed, provide the desired EPI unconditionally.
         final Boolean enablePerformanceInsightsDiff = diff(previousModel.getEnablePerformanceInsights(), desiredModel.getEnablePerformanceInsights());
         final String performanceInsightsKMSKeyIdDiff = diff(previousModel.getPerformanceInsightsKMSKeyId(), desiredModel.getPerformanceInsightsKMSKeyId());
+        final Integer performanceInsightsRetentionPeriodDiff = diff(previousModel.getPerformanceInsightsRetentionPeriod(), desiredModel.getPerformanceInsightsRetentionPeriod());
 
         if (enablePerformanceInsightsDiff != null || performanceInsightsKMSKeyIdDiff != null) {
             builder.enablePerformanceInsights(enablePerformanceInsightsDiff);
@@ -531,6 +532,11 @@ public class Translator {
             if (performanceInsightsKMSKeyIdDiff != null) {
                 builder.enablePerformanceInsights(desiredModel.getEnablePerformanceInsights());
             }
+        }
+
+        if (performanceInsightsRetentionPeriodDiff != null) {
+            builder.performanceInsightsRetentionPeriod(performanceInsightsRetentionPeriodDiff);
+            builder.enablePerformanceInsights(desiredModel.getEnablePerformanceInsights());
         }
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
@@ -617,6 +623,7 @@ public class Translator {
                 .maxAllocatedStorage(model.getMaxAllocatedStorage())
                 .monitoringInterval(model.getMonitoringInterval())
                 .monitoringRoleArn(model.getMonitoringRoleArn())
+                .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
                 .performanceInsightsKMSKeyId(model.getPerformanceInsightsKMSKeyId())
                 .preferredBackupWindow(model.getPreferredBackupWindow())
                 .preferredMaintenanceWindow(model.getPreferredMaintenanceWindow());

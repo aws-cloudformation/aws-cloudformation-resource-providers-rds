@@ -315,7 +315,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 modifiedValues.masterUserPassword() == null &&
                         modifiedValues.iamDatabaseAuthenticationEnabled() == null &&
                         modifiedValues.engineVersion() == null &&
-                        modifiedValues.storageType() == null);
+                        modifiedValues.storageType() == null &&
+                        modifiedValues.allocatedStorage() == null &&
+                        modifiedValues.iops() == null);
     }
 
     protected boolean isDBClusterStabilized(
@@ -331,7 +333,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final boolean isMasterUserSecretStabilizedResult = isMasterUserSecretStabilized(dbCluster);
         final boolean isGlobalWriteForwardingStabilizedResult = isGlobalWriteForwardingStabilized(dbCluster);
 
-        requestLogger.log(String.format("isDbClusterStabilized: $b", isDBClusterStabilizedResult),
+        requestLogger.log(String.format("isDbClusterStabilized: %b", isDBClusterStabilizedResult),
                 ImmutableMap.of("isDbClusterAvailable", isDBClusterStabilizedResult,
                         "isNoPendingChanges", isNoPendingChangesResult,
                         "isMasterUserSecretStabilized", isMasterUserSecretStabilizedResult,
