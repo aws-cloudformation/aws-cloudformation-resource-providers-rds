@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 
 import com.google.common.collect.Iterables;
 import org.assertj.core.api.Assertions;
@@ -124,6 +125,93 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
         verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
         verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_timestamp() {
+        ResourceModel RESOURCE_MODEL = RESOURCE_MODEL_BUILDER().build();
+
+        when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
+                .thenReturn(CreateOptionGroupResponse.builder().build());
+
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .desiredResourceState(RESOURCE_MODEL)
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .build();
+
+        final CallbackContext callbackContext = new CallbackContext();
+        Instant start = Instant.ofEpochSecond(0);
+        callbackContext.timestampOnce("START", start);
+        Duration timeToAdd = Duration.ofSeconds(50);
+        Instant end = Instant.ofEpochSecond(0).plus(timeToAdd);
+        callbackContext.timestamp("END", start);
+        callbackContext.timestamp("END", end);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, callbackContext);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        assertThat(callbackContext.getTimestamp("START").isBefore(Instant.now())).isTrue();
+        assertThat(callbackContext.getTimestamp("START")).isEqualTo(start);
+        assertThat(callbackContext.getTimestamp("END")).isEqualTo(end);
+    }
+
+    @Test
+    public void handleRequest_timeDelta() {
+        ResourceModel RESOURCE_MODEL = RESOURCE_MODEL_BUILDER().build();
+
+        when(proxyClient.client().createOptionGroup(any(CreateOptionGroupRequest.class)))
+                .thenReturn(CreateOptionGroupResponse.builder().build());
+
+        final DescribeOptionGroupsResponse describeDbClusterParameterGroupsResponse = DescribeOptionGroupsResponse.builder()
+                .optionGroupsList(OPTION_GROUP_ACTIVE).build();
+        when(proxyClient.client().describeOptionGroups(any(DescribeOptionGroupsRequest.class))).thenReturn(describeDbClusterParameterGroupsResponse);
+
+        when(proxyClient.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .clientRequestToken(TestUtils.randomString(32, TestUtils.ALPHA))
+                .desiredResourceState(RESOURCE_MODEL)
+                .stackId(TestUtils.randomString(32, TestUtils.ALPHA))
+                .logicalResourceIdentifier(TestUtils.randomString(32, TestUtils.ALPHA))
+                .build();
+
+        final CallbackContext callbackContext = new CallbackContext();
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, callbackContext);
+
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyClient.client(), times(1)).createOptionGroup(any(CreateOptionGroupRequest.class));
+        verify(proxyClient.client(), times(1)).describeOptionGroups(any(DescribeOptionGroupsRequest.class));
+        verify(proxyClient.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
+        assertThat(callbackContext.getTimeDelta().get("TimeDeltaTest")).isEqualTo(1.00);
     }
 
     @Test

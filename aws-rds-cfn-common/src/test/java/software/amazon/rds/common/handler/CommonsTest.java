@@ -157,22 +157,52 @@ class CommonsTest {
     {
         final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
         final Exception ex = new RuntimeException();
-        final Throwable exRootCause = ExceptionUtils.getRootCause(ex);
+        final String rootCauseExceptionMessage = getRootCauseExceptionMessage(ex);
         final String exceptionClass = ex.getClass().getCanonicalName();
         final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
+        final StringBuilder test_messageBuilder = new StringBuilder();
         Mockito.doAnswer(invocationOnMock
                 ->{Object arg0 = invocationOnMock.getArgument(0);
-        return null;}).when(requestLogger).log(any(String.class));
+            return null;}).when(requestLogger).log(any(String.class),any(String.class));
 
         final ProgressEvent <Void, Void> resultEvent = Commons.handleException(progressEvent, ex, ruleSet, requestLogger);
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(requestLogger).log(captor.capture());
+        verify(requestLogger).log(captor.capture(), captor.capture());
+
+        test_messageBuilder.append(exceptionClass).append("\n")
+                .append(rootCauseExceptionMessage).append("\n")
+                .append(ExceptionUtils.getStackTrace(ex));
 
         final String logLine = captor.getValue();
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
-        assertThat(logLine).contains("UnexpectedErrorStatus: " + getRootCauseExceptionMessage(exRootCause) + " " + exceptionClass);
+        assertThat(logLine).contains("UnexpectedErrorStatus", test_messageBuilder.toString());
+    }
+
+    @Test
+    void test_RootCauseMessage_UnexpectedErrorStatus_With_text()
+    {
+        final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
+        final Exception ex = new RuntimeException("Runtime exception test");
+        final String exceptionClass = ex.getClass().getCanonicalName();
+        final String rootCauseExceptionMessage = getRootCauseExceptionMessage(ex);
+        final StringBuilder test_messageBuilder = new StringBuilder();
+        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
+        Mockito.doNothing().when(requestLogger).log(any(String.class), any((String.class)));
+        final ProgressEvent <Void, Void> resultEvent = Commons.handleException(progressEvent, ex, ruleSet, requestLogger);
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(requestLogger).log(captor.capture(), captor.capture());
+
+        test_messageBuilder.append(exceptionClass).append("\n")
+                .append(rootCauseExceptionMessage).append("\n")
+                .append(ExceptionUtils.getStackTrace(ex));
+
+        final String logLine = captor.getValue();
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isTrue();
+        assertThat(logLine).contains("UnexpectedErrorStatus",test_messageBuilder.toString());
     }
 
     @Test
@@ -184,26 +214,6 @@ class CommonsTest {
         final ProgressEvent <Void, Void> resultEvent = Commons.handleException(progressEvent, ex, ruleSet, null);
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
-    }
-
-    @Test
-    void test_RootCauseMessage_UnexpectedErrorStatus_With_text()
-    {
-        final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
-        final Exception ex = new RuntimeException("Runtime exception test");
-        final String exceptionClass = ex.getClass().getCanonicalName();
-        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
-        Mockito.doNothing().when(requestLogger).log(any(String.class));
-        final ProgressEvent <Void, Void> resultEvent = Commons.handleException(progressEvent, ex, ruleSet, requestLogger);
-
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(requestLogger).log(captor.capture());
-
-        final String logLine = captor.getValue();
-        assertThat(resultEvent).isNotNull();
-        assertThat(resultEvent.isFailed()).isTrue();
-
-        assertThat(logLine).contains("UnexpectedErrorStatus: Runtime exception test" + " " + exceptionClass);
     }
 
     @Test
@@ -231,6 +241,30 @@ class CommonsTest {
         assertThat(resultEvent).isNotNull();
         assertThat(resultEvent.isFailed()).isTrue();
         assertThat(resultEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
+    }
+
+    @Test
+    void test_handleException_UnexpectedErrorStatus_getStackTrace(){
+        final ProgressEvent<Void, Void> progressEvent = new ProgressEvent<>();
+        final Exception ex = new RuntimeException("Runtime exception test");
+        final String exRootCause = getRootCauseExceptionMessage(ex);
+        final String exceptionClass = ex.getClass().getCanonicalName();
+        final String exceptionStackTrace = ExceptionUtils.getStackTrace(ex);
+        final ErrorRuleSet ruleSet = ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET).build();
+        final StringBuilder test_messageBuilder = new StringBuilder();
+        test_messageBuilder.append(exceptionClass).append("\n")
+                .append(exRootCause).append("\n")
+                .append(exceptionStackTrace);
+
+        Mockito.doNothing().when(requestLogger).log(any(String.class), any((String.class)));
+        final ProgressEvent <Void, Void> resultEvent = Commons.handleException(progressEvent, ex, ruleSet, requestLogger);
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(requestLogger).log(captor.capture(), captor.capture());
+
+        final String logLine = captor.getValue();
+        assertThat(resultEvent).isNotNull();
+        assertThat(resultEvent.isFailed()).isTrue();
+        assertThat(logLine).contains("UnexpectedErrorStatus",test_messageBuilder.toString());
     }
 
     @Test

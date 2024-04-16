@@ -3,6 +3,11 @@ package software.amazon.rds.optiongroup;
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.TaggingContext;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+
 @lombok.Getter
 @lombok.Setter
 @lombok.ToString
@@ -11,9 +16,14 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private TaggingContext taggingContext;
     private String optionGroupGroupArn;
 
+    private Map<String, Long> timestamps;
+    private Map<String, Double> timeDelta;
+
     public CallbackContext() {
         super();
         this.taggingContext = new TaggingContext();
+        this.timestamps = new HashMap<>();
+        this.timeDelta = new HashMap<>();
     }
 
     @Override
@@ -27,5 +37,25 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
 
     public void setAddTagsComplete(final boolean addTagsComplete) {
         this.taggingContext.setAddTagsComplete(addTagsComplete);
+    }
+
+    public void timestamp(final String label, final Instant instant) {
+        timestamps.put(label, instant.getEpochSecond());
+    }
+
+    public void timestampOnce(final String label, final Instant instant) {
+        timestamps.computeIfAbsent(label, s -> instant.getEpochSecond());
+    }
+
+    public Instant getTimestamp(final String label) {
+        if (timestamps.containsKey(label)) {
+            return Instant.ofEpochSecond(timestamps.get(label));
+        }
+        return null;
+    }
+
+    public void calculateTimeDeltaInMinutes(final String label, final Instant currentTime, final Instant startTime){
+        double delta = Duration.between(currentTime, startTime).toMinutes();
+        timeDelta.put(label, delta);
     }
 }

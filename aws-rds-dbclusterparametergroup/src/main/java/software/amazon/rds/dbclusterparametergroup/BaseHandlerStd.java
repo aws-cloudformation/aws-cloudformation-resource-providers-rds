@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -75,6 +76,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String AVAILABLE = "available";
     protected static final String RESOURCE_IDENTIFIER = "dbclusterparametergroup";
     protected static final String STACK_NAME = "rds";
+    protected static final String DB_CLUSTER_PARAMETER_GROUP_REQUEST_STARTED_AT = "dbclusterparametergroup-request-started-at";
+    protected static final String DB_CLUSTER_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT = "dbclusterparametergroup-request-in-progress-at";
+    protected static final String DB_CLUSTER_PARAMETER_GROUP_RESOURCE_STABILIZATION_TIME = "dbclusterparametergroup-stabilization-time";
 
     protected static final int MAX_LENGTH_GROUP_NAME = 255;
     protected static final int MAX_PARAMETERS_PER_REQUEST = 20;
@@ -160,6 +164,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ) {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, proxyClient, request, callbackContext);
     }
 
@@ -209,7 +214,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Map<String, Parameter> currentClusterParameters,
-            final RequestLogger logger
+            final RequestLogger requestLogger
     ) {
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext())
                 .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
@@ -540,6 +545,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         } while (marker != null);
 
         return true;
+    }
+
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(DB_CLUSTER_PARAMETER_GROUP_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(DB_CLUSTER_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDeltaInMinutes(DB_CLUSTER_PARAMETER_GROUP_RESOURCE_STABILIZATION_TIME, callbackContext.getTimestamp(DB_CLUSTER_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT), callbackContext.getTimestamp(DB_CLUSTER_PARAMETER_GROUP_REQUEST_STARTED_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> waitForDbClustersStabilization(
