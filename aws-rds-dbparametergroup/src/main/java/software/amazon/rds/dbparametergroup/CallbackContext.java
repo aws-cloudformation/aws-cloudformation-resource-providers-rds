@@ -50,14 +50,14 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     }
 
     public Instant getTimestamp(final String label) {
-        if (timestamps.containsKey(label)) {
+        if (timestamps.containsKey(label) && label != null) {
             return Instant.ofEpochSecond(timestamps.get(label));
         }
         return null;
     }
 
-    public void calculateTimeDelta(final String label, final Instant currentTime, final Instant startTime){
-        double delta = Duration.between(currentTime, startTime).toHours();
+    public void calculateTimeDeltaInMinutes(final String label, final Instant currentTime, final Instant startTime){
+        double delta = Duration.between(currentTime, startTime).toMinutes();
         timeDelta.put(label, delta);
     }
 }

@@ -707,7 +707,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private void resourceStabilizationTime(final CallbackContext context) {
         context.timestampOnce(DB_INSTANCE_REQUEST_STARTED_AT, Instant.now());
         context.timestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT, Instant.now());
-        context.calculateTimeDelta(DB_INSTANCE_STABILIZATION_TIME, context.getTimestamp(DB_INSTANCE_REQUEST_STARTED_AT), context.getTimestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT));
+        context.calculateTimeDeltaInMinutes(DB_INSTANCE_STABILIZATION_TIME, context.getTimestamp(DB_INSTANCE_REQUEST_STARTED_AT), context.getTimestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT));
     }
 
     protected boolean isInstanceStabilizedAfterReplicationStop(final ProxyClient<RdsClient> rdsProxyClient,

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,8 +29,6 @@ import lombok.Getter;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterParameterGroupResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
@@ -185,12 +184,91 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .build(),
                 expectFailed(HandlerErrorCode.UnauthorizedTaggingOperation)
         );
-
         ArgumentCaptor<CreateDbClusterParameterGroupRequest> createCaptor = ArgumentCaptor.forClass(CreateDbClusterParameterGroupRequest.class);
         verify(rdsProxy.client(), times(1)).createDBClusterParameterGroup(createCaptor.capture());
 
         final CreateDbClusterParameterGroupRequest requestWithAllTags = createCaptor.getAllValues().get(0);
         assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(asSdkTagArray(allTags));
+    }
+
+    @Test
+    public void handleRequest_Success_timestamp() {
+        when(rdsProxy.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenReturn(CreateDbClusterParameterGroupResponse.builder()
+                        .dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP)
+                        .build());
+
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder()
+                        .tagList(Tag.builder().key(TAG_KEY).value(TAG_VALUE).build())
+                        .build());
+
+        final DBClusterParameterGroup dbClusterParameterGroup = DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn(ARN)
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build();
+
+        final CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        Instant start = Instant.ofEpochSecond(0);
+        callbackContext.timestampOnce("START", start);
+        Duration timeToAdd = Duration.ofSeconds(50);
+        Instant end = Instant.ofEpochSecond(0).plus(timeToAdd);
+        callbackContext.timestamp("END", start);
+        callbackContext.timestamp("END", end);
+
+        test_handleRequest_base(
+                callbackContext,
+                () -> dbClusterParameterGroup,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(rdsProxy.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
+        verify(rdsProxy.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        assertThat(callbackContext.getTimestamp("START").isBefore(Instant.now())).isTrue();
+        assertThat(callbackContext.getTimestamp("START")).isEqualTo(start);
+        assertThat(callbackContext.getTimestamp("END")).isEqualTo(end);
+    }
+    @Test
+    public void handleRequest_Success_timeDelta() {
+        when(rdsProxy.client().createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenReturn(CreateDbClusterParameterGroupResponse.builder()
+                        .dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP)
+                        .build());
+
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder()
+                        .tagList(Tag.builder().key(TAG_KEY).value(TAG_VALUE).build())
+                        .build());
+
+        final DBClusterParameterGroup dbClusterParameterGroup = DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn(ARN)
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build();
+
+        final CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setParametersApplied(true);
+        callbackContext.timestampOnce("START", Instant.now());
+        callbackContext.timestamp("END", Instant.now());
+
+
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+
+        test_handleRequest_base(
+                callbackContext,
+                () -> dbClusterParameterGroup,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client()).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(rdsProxy.client()).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
+        verify(rdsProxy.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        assertThat(callbackContext.getTimeDelta().get("TimeDeltaTest")).isEqualTo(1.00);
     }
 
     @Test

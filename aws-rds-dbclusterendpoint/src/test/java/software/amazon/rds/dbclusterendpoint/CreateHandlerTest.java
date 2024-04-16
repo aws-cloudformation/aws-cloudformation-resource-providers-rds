@@ -1,5 +1,6 @@
 package software.amazon.rds.dbclusterendpoint;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
@@ -10,6 +11,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.TemporalUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.assertj.core.api.Assertions;
@@ -95,6 +98,57 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         );
 
         verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
+    }
+
+
+    @Test
+    public void handleRequest_Success_timestamp() {
+        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        final CallbackContext callbackContext = new CallbackContext();
+        Instant start = Instant.ofEpochSecond(0);
+        callbackContext.timestampOnce("START", start);
+        Duration timeToAdd = Duration.ofSeconds(50);
+        Instant end = Instant.ofEpochSecond(0).plus(timeToAdd);
+        callbackContext.timestamp("END", start);
+        callbackContext.timestamp("END", end);
+
+
+
+        test_handleRequest_base(
+                callbackContext,
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
+        assertThat(callbackContext.getTimestamp("START")).isEqualTo(start);
+        assertThat(callbackContext.getTimestamp("END")).isEqualTo(end);
+    }
+
+    @Test
+    public void handleRequest_Success_timeDelta() {
+        when(rdsProxy.client().createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class)))
+                .thenReturn(CreateDbClusterEndpointResponse.builder().build());
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder().build());
+
+        final CallbackContext callbackContext = new CallbackContext();
+
+        test_handleRequest_base(
+                callbackContext,
+                () -> DB_CLUSTER_ENDPOINT_AVAILABLE,
+                () -> RESOURCE_MODEL,
+                expectSuccess()
+        );
+
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+        verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
+        assertThat(callbackContext.getTimeDelta().get("TimeDeltaTest")).isEqualTo(1.00);
     }
 
     @Test

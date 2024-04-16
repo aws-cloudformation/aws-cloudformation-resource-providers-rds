@@ -111,7 +111,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private void resourceStabilizationTime(final CallbackContext callbackContext) {
         callbackContext.timestampOnce(DB_SUBNET_GROUP_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
-        callbackContext.calculateTimeDelta(DB_SUBNET_GROUP_STABILIZATION_TIME,
+        callbackContext.calculateTimeDeltaInMinutes(DB_SUBNET_GROUP_STABILIZATION_TIME,
                 callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_STARTED_AT),
                 callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT));
     }
