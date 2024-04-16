@@ -441,8 +441,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         callbackContext.timestampOnce(DB_PARAMETER_GROUP_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(DB_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
         callbackContext.calculateTimeDeltaInMinutes(DB_PARAMETER_GROUP_STABILIZATION_TIME,
-                callbackContext.getTimestamp(DB_PARAMETER_GROUP_REQUEST_STARTED_AT),
-                callbackContext.getTimestamp(DB_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT));
+                callbackContext.getTimestamp(DB_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(DB_PARAMETER_GROUP_REQUEST_STARTED_AT));
     }
     private Iterable<Parameter> fetchDBParametersIterableWithFilters(
             final ProxyClient<RdsClient> proxyClient,

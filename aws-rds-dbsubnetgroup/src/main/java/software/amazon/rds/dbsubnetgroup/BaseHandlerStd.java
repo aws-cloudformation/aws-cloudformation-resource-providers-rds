@@ -112,8 +112,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         callbackContext.timestampOnce(DB_SUBNET_GROUP_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
         callbackContext.calculateTimeDeltaInMinutes(DB_SUBNET_GROUP_STABILIZATION_TIME,
-                callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_STARTED_AT),
-                callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT));
+                callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_STARTED_AT));
     }
 
     protected boolean isDeleted(final ResourceModel model,

@@ -112,7 +112,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private void resourceStabilizationTime(final CallbackContext callbackContext) {
         callbackContext.timestampOnce(DB_CLUSTER_ENDPOINT_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(DB_CLUSTER_ENDPOINT_REQUEST_IN_PROGRESS_AT, Instant.now());
-        callbackContext.calculateTimeDeltaInMinutes(DB_CLUSTER_ENDPOINT_STABILIZATION_TIME, callbackContext.getTimestamp(DB_CLUSTER_ENDPOINT_REQUEST_STARTED_AT), callbackContext.getTimestamp(DB_CLUSTER_ENDPOINT_REQUEST_IN_PROGRESS_AT));
+        callbackContext.calculateTimeDeltaInMinutes(DB_CLUSTER_ENDPOINT_STABILIZATION_TIME, callbackContext.getTimestamp(DB_CLUSTER_ENDPOINT_REQUEST_IN_PROGRESS_AT), callbackContext.getTimestamp(DB_CLUSTER_ENDPOINT_REQUEST_STARTED_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(

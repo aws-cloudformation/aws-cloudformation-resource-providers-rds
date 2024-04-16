@@ -120,8 +120,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         callbackContext.timestampOnce(OPTION_GROUP_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(OPTION_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
         callbackContext.calculateTimeDeltaInMinutes(OPTION_GROUP_STABILIZATION_TIME,
-                callbackContext.getTimestamp(OPTION_GROUP_REQUEST_STARTED_AT),
-                callbackContext.getTimestamp(OPTION_GROUP_REQUEST_IN_PROGRESS_AT));
+                callbackContext.getTimestamp(OPTION_GROUP_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(OPTION_GROUP_REQUEST_STARTED_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(

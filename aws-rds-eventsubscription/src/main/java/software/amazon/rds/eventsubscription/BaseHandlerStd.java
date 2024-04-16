@@ -104,8 +104,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         callbackContext.timestampOnce(EVENT_SUBSCRIPTION_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(EVENT_SUBSCRIPTION_REQUEST_IN_PROGRESS_AT, Instant.now());
         callbackContext.calculateTimeDeltaInMinutes(EVENT_SUBSCRIPTION_RESOURCE_STABILIZATION_TIME,
-                callbackContext.getTimestamp(EVENT_SUBSCRIPTION_REQUEST_STARTED_AT),
-                callbackContext.getTimestamp(EVENT_SUBSCRIPTION_REQUEST_IN_PROGRESS_AT));
+                callbackContext.getTimestamp(EVENT_SUBSCRIPTION_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(EVENT_SUBSCRIPTION_REQUEST_STARTED_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> setEnabledDefaultValue(
