@@ -1146,15 +1146,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected ProgressEvent<ResourceModel, CallbackContext> startAutomaticBackupReplicationInRegion(
             final String dbInstanceArn,
+            final String kmsKeyId,
             final AmazonWebServicesClientProxy proxy,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final ProxyClient<RdsClient> sourceRegionClient,
             final String region
     ) {
         final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
+        final String AUTOMATIC_REPLICATION_KMS_KEY_ERROR = "Encrypted instances require a valid KMS key ID";
+        final String AUTOMATIC_REPLICATION_KMS_KEY_EVENT_MESSAGE = "Provide a valid value for the AutomaticBackupReplicationKmsKeyId property.";
 
         return proxy.initiate("rds::start-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
+                .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn, kmsKeyId))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((request, client) -> rdsClient.injectCredentialsAndInvokeV2(
                         request,
@@ -1162,12 +1165,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 ))
                 .stabilize((request, response, proxyInvocation, model, context) ->
                         isInstanceStabilizedAfterReplicationStart(sourceRegionClient, model))
-                .handleError((request, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
-                        requestLogger
-                ))
+                .handleError((request, exception, client, model, context) -> {
+                    ProgressEvent<ResourceModel, CallbackContext> progressEvent = Commons.handleException(
+                            ProgressEvent.progress(model, context),
+                            exception,
+                            MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                            requestLogger
+                    );
+                    if (exception.getMessage().contains(AUTOMATIC_REPLICATION_KMS_KEY_ERROR)) {
+                        progressEvent.setMessage(StringUtils.trimToEmpty(progressEvent.getMessage())
+                                .concat(" " + AUTOMATIC_REPLICATION_KMS_KEY_EVENT_MESSAGE));
+                    }
+                    return progressEvent;
+                })
                 .progress();
     }
 }
