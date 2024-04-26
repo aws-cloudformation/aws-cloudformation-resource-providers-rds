@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
@@ -176,12 +176,63 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .storageType(STORAGE_TYPE_GP3)
                 .iops(100)
                 .allocatedStorage(300)
-        .build();
+                .build();
 
         final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
         assertThat(request.iops()).isEqualTo(100);
         assertThat(request.allocatedStorage()).isEqualTo(300);
+    }
+
+    @Test
+    public void modifyDbClusterRequest_setServerlessV2ScalingConfiguration() {
+        Double previousMax = 10.0;
+        Double desiredMax = 20.0;
+        Double previousMin = 1.0;
+        Double desiredMin = 2.0;
+
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().serverlessV2ScalingConfiguration(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(previousMax)
+                        .minCapacity(previousMin)
+                        .build()
+        ).build();
+
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().serverlessV2ScalingConfiguration(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(desiredMax)
+                        .minCapacity(desiredMin)
+                        .build()
+        ).build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.serverlessV2ScalingConfiguration().minCapacity()).isEqualTo(desiredMin);
+        assertThat(request.serverlessV2ScalingConfiguration().maxCapacity()).isEqualTo(desiredMax);
+    }
+
+    @Test
+    public void modifyDbClusterRequest_sameServerlessV2ScalingConfiguration() {
+        Double previousMax = 10.0;
+        Double desiredMax = 10.0;
+        Double previousMin = 1.0;
+        Double desiredMin = 1.0;
+
+        final ResourceModel previousModel = RESOURCE_MODEL.toBuilder().serverlessV2ScalingConfiguration(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(previousMax)
+                        .minCapacity(previousMin)
+                        .build()
+        ).build();
+
+        final ResourceModel desiredModel = RESOURCE_MODEL.toBuilder().serverlessV2ScalingConfiguration(
+                ServerlessV2ScalingConfiguration.builder()
+                        .maxCapacity(desiredMax)
+                        .minCapacity(desiredMin)
+                        .build()
+        ).build();
+
+        final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.serverlessV2ScalingConfiguration()).isEqualTo(null);
     }
 
     @Test
