@@ -165,10 +165,14 @@ public class UpdateHandler extends BaseHandlerStd {
                 )
                 .then(progress -> Commons.execOnce(progress, () -> {
                     if ((ResourceModelHelper.shouldStopAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())
-                            || ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState()))
-                            && StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn())) {
+                            || ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState()))) {
                         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
-                        callbackContext.setDbInstanceArn(dbInstance.dbInstanceArn());
+                        if (StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn())) {
+                            callbackContext.setDbInstanceArn(dbInstance.dbInstanceArn());
+                        }
+                        if (StringUtils.isNullOrEmpty(callbackContext.getKmsKeyId())) {
+                            callbackContext.setKmsKeyId(dbInstance.kmsKeyId());
+                        }
                     }
                     return progress;
                     },  (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {}))
@@ -181,8 +185,14 @@ public class UpdateHandler extends BaseHandlerStd {
                         CallbackContext::isAutomaticBackupReplicationStopped, CallbackContext::setAutomaticBackupReplicationStopped))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
-                                return startAutomaticBackupReplicationInRegion(callbackContext.getDbInstanceArn(), proxy, progress, rdsProxyClient.defaultClient(),
-                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState()));
+                                return startAutomaticBackupReplicationInRegion(
+                                    callbackContext.getDbInstanceArn(),
+                                    progress.getResourceModel().getAutomaticBackupReplicationKmsKeyId(),
+                                    proxy,
+                                    progress,
+                                    rdsProxyClient.defaultClient(),
+                                    ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState())
+                                );
                             }
                             return progress;
                         },
@@ -355,11 +365,6 @@ public class UpdateHandler extends BaseHandlerStd {
         return request.getPreviousResourceState() != null &&
                 request.getPreviousResourceState().getMaxAllocatedStorage() != null &&
                 request.getDesiredResourceState().getMaxAllocatedStorage() == null;
-    }
-
-    private boolean shouldPromoteReadReplica(final ResourceModel previous, final ResourceModel desired) {
-        return !StringUtils.isNullOrEmpty(previous.getSourceDBInstanceIdentifier()) &&
-                StringUtils.isNullOrEmpty(desired.getSourceDBInstanceIdentifier());
     }
 
     private boolean isAllocatedStorageIncrease(

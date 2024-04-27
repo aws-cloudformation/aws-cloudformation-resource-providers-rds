@@ -281,7 +281,12 @@ public class Translator {
                 .preferredBackupWindow(diff(previousModel.getPreferredBackupWindow(), desiredModel.getPreferredBackupWindow()))
                 .preferredMaintenanceWindow(diff(previousModel.getPreferredMaintenanceWindow(), desiredModel.getPreferredMaintenanceWindow()))
                 .scalingConfiguration(translateScalingConfigurationToSdk(desiredModel.getScalingConfiguration()))
-                .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(desiredModel.getServerlessV2ScalingConfiguration()))
+                .serverlessV2ScalingConfiguration(
+                        diff(
+                                translateServerlessV2ScalingConfiguration(previousModel.getServerlessV2ScalingConfiguration()),
+                                translateServerlessV2ScalingConfiguration(desiredModel.getServerlessV2ScalingConfiguration())
+                        )
+                )
                 .storageType(desiredModel.getStorageType());
 
         if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
