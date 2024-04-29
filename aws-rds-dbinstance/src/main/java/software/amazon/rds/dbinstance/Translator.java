@@ -537,6 +537,7 @@ public class Translator {
         if (performanceInsightsRetentionPeriodDiff != null) {
             builder.performanceInsightsRetentionPeriod(performanceInsightsRetentionPeriodDiff);
             builder.enablePerformanceInsights(desiredModel.getEnablePerformanceInsights());
+	    builder.performanceInsightsKMSKeyId(desiredModel.getPerformanceInsightsKMSKeyId());
         }
 
         if (BooleanUtils.isTrue(desiredModel.getManageMasterUserPassword())) {
