@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -118,6 +119,111 @@ public class CreateHandlerTest extends AbstractTestBase {
         verify(proxyRdsClient.client()).createEventSubscription(any(CreateEventSubscriptionRequest.class));
         verify(proxyRdsClient.client(), times(2)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
         verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_timeStamp() {
+        final CreateHandler handler = new CreateHandler();
+
+        final CreateEventSubscriptionResponse createEventSubscriptionResponse = CreateEventSubscriptionResponse.builder().build();
+        when(proxyRdsClient.client().createEventSubscription(any(CreateEventSubscriptionRequest.class))).thenReturn(createEventSubscriptionResponse);
+
+        final DescribeEventSubscriptionsResponse describeEventSubscriptionsResponse = DescribeEventSubscriptionsResponse.builder()
+                .eventSubscriptionsList(EventSubscription.builder()
+                        .enabled(true)
+                        .eventCategoriesList("sampleCategory")
+                        .snsTopicArn("sampleSnsArn")
+                        .sourceType("sampleSourceType")
+                        .sourceIdsList("sampleSourceId")
+                        .status("active").build())
+                .build();
+        when(proxyRdsClient.client().describeEventSubscriptions(any(
+                DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(proxyRdsClient.client().listTagsForResource(any(
+                ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .clientRequestToken("sampleToken")
+                .logicalResourceIdentifier("sampleResource")
+                .build();
+
+
+        final CallbackContext callbackContext = new CallbackContext();
+        Instant start = Instant.ofEpochSecond(0);
+        callbackContext.timestampOnce("START", start);
+        Duration timeToAdd = Duration.ofSeconds(50);
+        Instant end = Instant.ofEpochSecond(0).plus(timeToAdd);
+        callbackContext.timestamp("END", start);
+        callbackContext.timestamp("END", end);
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, callbackContext);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+        verify(proxyRdsClient.client()).createEventSubscription(any(CreateEventSubscriptionRequest.class));
+        verify(proxyRdsClient.client(), times(2)).describeEventSubscriptions(any(DescribeEventSubscriptionsRequest.class));
+        verify(proxyRdsClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
+        assertThat(callbackContext.getTimestamp("START").isBefore(Instant.now())).isTrue();
+        assertThat(callbackContext.getTimestamp("START")).isEqualTo(start);
+        assertThat(callbackContext.getTimestamp("END")).isEqualTo(end);
+    }
+
+    @Test
+    public void handleRequest_timeDelta() {
+        final CreateHandler handler = new CreateHandler();
+
+        final CreateEventSubscriptionResponse createEventSubscriptionResponse = CreateEventSubscriptionResponse.builder().build();
+        when(proxyRdsClient.client().createEventSubscription(any(CreateEventSubscriptionRequest.class))).thenReturn(createEventSubscriptionResponse);
+
+        final DescribeEventSubscriptionsResponse describeEventSubscriptionsResponse = DescribeEventSubscriptionsResponse.builder()
+                .eventSubscriptionsList(EventSubscription.builder()
+                        .enabled(true)
+                        .eventCategoriesList("sampleCategory")
+                        .snsTopicArn("sampleSnsArn")
+                        .sourceType("sampleSourceType")
+                        .sourceIdsList("sampleSourceId")
+                        .status("active").build())
+                .build();
+        when(proxyRdsClient.client().describeEventSubscriptions(any(
+                DescribeEventSubscriptionsRequest.class))).thenReturn(describeEventSubscriptionsResponse);
+
+        final ListTagsForResourceResponse listTagsForResourceResponse = ListTagsForResourceResponse.builder().build();
+        when(proxyRdsClient.client().listTagsForResource(any(
+                ListTagsForResourceRequest.class))).thenReturn(listTagsForResourceResponse);
+
+        final ResourceModel model = ResourceModel.builder()
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .clientRequestToken("sampleToken")
+                .logicalResourceIdentifier("sampleResource")
+                .build();
+
+        final CallbackContext callbackContext = new CallbackContext();
+        callbackContext.timestampOnce("START", Instant.now());
+        callbackContext.timestamp("END", Instant.now());
+
+        final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyRdsClient, request, callbackContext);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+        assertThat(callbackContext.getTimeDelta().get("TimeDeltaTest")).isEqualTo(1.00);
     }
 
     @Test

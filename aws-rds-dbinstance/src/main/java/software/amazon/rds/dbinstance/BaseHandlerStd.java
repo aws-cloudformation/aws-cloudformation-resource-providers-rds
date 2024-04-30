@@ -1,6 +1,7 @@
 package software.amazon.rds.dbinstance;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -153,6 +154,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
 
     protected static final String RESOURCE_UPDATED_AT = "resource-updated-at";
+
+    protected static final String DB_INSTANCE_REQUEST_STARTED_AT = "dbinstance-request-started-at";
+
+    protected static final String DB_INSTANCE_REQUEST_IN_PROGRESS_AT = "dbinstance-request-in-progress-at";
+
+    protected static final String DB_INSTANCE_STABILIZATION_TIME = "dbinstance-stabilization-time";
 
     protected final HandlerConfig config;
 
@@ -396,6 +403,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ) {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(context);
         try {
             validateRequest(request);
         } catch (RequestValidationException exception) {
@@ -695,6 +703,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         " process will continue until all included flags are true."));
 
         return isDBInstanceStabilizedAfterMutateResult;
+    }
+
+    private void resourceStabilizationTime(final CallbackContext context) {
+        context.timestampOnce(DB_INSTANCE_REQUEST_STARTED_AT, Instant.now());
+        context.timestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT, Instant.now());
+        context.calculateTimeDeltaInMinutes(DB_INSTANCE_STABILIZATION_TIME, context.getTimestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT), context.getTimestamp(DB_INSTANCE_REQUEST_STARTED_AT));
     }
 
     protected boolean isInstanceStabilizedAfterReplicationStop(final ProxyClient<RdsClient> rdsProxyClient,

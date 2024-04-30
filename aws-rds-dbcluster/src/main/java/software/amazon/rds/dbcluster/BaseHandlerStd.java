@@ -4,6 +4,7 @@ import static software.amazon.rds.dbcluster.Translator.addRoleToDbClusterRequest
 import static software.amazon.rds.dbcluster.Translator.removeRoleFromDbClusterRequest;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -92,6 +93,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
     public static final String ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
     private static final String MASTER_USER_SECRET_ACTIVE = "active";
+    protected static final String DB_CLUSTER_REQUEST_STARTED_AT = "dbcluster-request-started-at";
+    protected static final String DB_CLUSTER_REQUEST_IN_PROGRESS_AT = "dbcluster-request-in-progress-at";
+    protected static final String DB_CLUSTER_STABILIZATION_TIME = "dbcluster-stabilization-time";
     public static final String STACK_NAME = "rds";
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
@@ -210,6 +214,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ) {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         try {
             validateRequest(request);
         } catch (RequestValidationException exception) {
@@ -339,6 +344,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return isDBClusterStabilizedResult && isNoPendingChangesResult && isMasterUserSecretStabilizedResult && isGlobalWriteForwardingStabilizedResult;
     }
 
+    private void resourceStabilizationTime(final CallbackContext context) {
+        context.timestampOnce(DB_CLUSTER_REQUEST_STARTED_AT, Instant.now());
+        context.timestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT, Instant.now());
+        context.calculateTimeDeltaInMinutes(DB_CLUSTER_STABILIZATION_TIME, context.getTimestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT), context.getTimestamp(DB_CLUSTER_REQUEST_STARTED_AT));
+    }
+
     protected static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
         if (dbCluster.masterUserSecret() == null ||
                 CollectionUtils.isEmpty(dbCluster.dbClusterMembers())) {
@@ -351,7 +362,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return BooleanUtils.isNotTrue(dbCluster.globalWriteForwardingRequested()) ||
                 // Even if GWF is requested the WF will not start until a replica is created by customers
                 (dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.ENABLING &&
-                dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.DISABLING);
+                        dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.DISABLING);
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(
@@ -492,22 +503,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final String dbClusterArn = fetchDBCluster(proxyClient, model).dbClusterArn();
 
         return proxy.initiate("rds::enable-http-endpoint-v2", proxyClient, model, callbackContext)
-                    .translateToServiceRequest(modelRequest -> Translator.enableHttpEndpointRequest(dbClusterArn))
-                    .backoffDelay(config.getBackoff())
-                    .makeServiceCall((enableRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                            enableRequest,
-                            proxyInvocation.client()::enableHttpEndpoint
-                    ))
-                    .stabilize((enableHttpRequest, enableHttpResponse, client, resourceModel, context) ->
-                            isHttpEndpointV2Set(client, resourceModel, true)
-                    )
-                    .handleError((enableHttpRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
-                            ProgressEvent.progress(resourceModel, callbackCtxt),
-                            exception,
-                            DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
-                            requestLogger
-                    ))
-                    .progress();
+                .translateToServiceRequest(modelRequest -> Translator.enableHttpEndpointRequest(dbClusterArn))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((enableRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                        enableRequest,
+                        proxyInvocation.client()::enableHttpEndpoint
+                ))
+                .stabilize((enableHttpRequest, enableHttpResponse, client, resourceModel, context) ->
+                        isHttpEndpointV2Set(client, resourceModel, true)
+                )
+                .handleError((enableHttpRequest, exception, client, resourceModel, callbackCtxt) -> Commons.handleException(
+                        ProgressEvent.progress(resourceModel, callbackCtxt),
+                        exception,
+                        DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                        requestLogger
+                ))
+                .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> disableHttpEndpointV2(

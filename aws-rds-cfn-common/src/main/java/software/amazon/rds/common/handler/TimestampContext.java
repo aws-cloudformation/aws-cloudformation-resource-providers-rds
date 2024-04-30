@@ -15,5 +15,7 @@ public class TimestampContext {
         void timestampOnce(final String label, final Instant instant);
 
         Instant getTimestamp(final String label);
+
+        void calculateTimeDeltaInMinutes(final String label, final Instant currentTime, final Instant startTime);
     }
 }

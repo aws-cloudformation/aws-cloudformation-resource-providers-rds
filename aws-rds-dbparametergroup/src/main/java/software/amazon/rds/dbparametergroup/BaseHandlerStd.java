@@ -1,5 +1,6 @@
 package software.amazon.rds.dbparametergroup;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -87,6 +88,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String RESOURCE_IDENTIFIER = "dbparametergroup";
     protected static final String STACK_NAME = "rds";
 
+    protected static final String DB_PARAMETER_GROUP_REQUEST_STARTED_AT = "dbparametergroup-request-started-at";
+    protected static final String DB_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT = "dbparametergroup-request-in-progress-at";
+    protected static final String DB_PARAMETER_GROUP_STABILIZATION_TIME = "dbparametergroup-stabilization-time";
+
     protected HandlerConfig config;
     protected RequestLogger requestLogger;
 
@@ -135,6 +140,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ) {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, proxyClient, request, callbackContext);
     };
 
@@ -168,8 +174,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     exception,
                     DEFAULT_DB_PARAMETER_GROUP_ERROR_RULE_SET.extendWith(
                             Tagging.getUpdateTagsAccessDeniedRuleSet(
-                                rulesetTagsToAdd,
-                                rulesetTagsToRemove
+                                    rulesetTagsToAdd,
+                                    rulesetTagsToRemove
                             )
                     ), requestLogger
             );
@@ -431,6 +437,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return result;
     }
 
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(DB_PARAMETER_GROUP_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(DB_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDeltaInMinutes(DB_PARAMETER_GROUP_STABILIZATION_TIME,
+                callbackContext.getTimestamp(DB_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(DB_PARAMETER_GROUP_REQUEST_STARTED_AT));
+    }
     private Iterable<Parameter> fetchDBParametersIterableWithFilters(
             final ProxyClient<RdsClient> proxyClient,
             final String dbParameterGroupName,

@@ -1,5 +1,6 @@
 package software.amazon.rds.eventsubscription;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -31,6 +32,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "eventsubscription";
+    protected static final String EVENT_SUBSCRIPTION_REQUEST_STARTED_AT = "eventsubscription-request-started-at";
+    protected static final String EVENT_SUBSCRIPTION_REQUEST_IN_PROGRESS_AT = "eventsubscription-request-in-progress-at";
+    protected static final String EVENT_SUBSCRIPTION_RESOURCE_STABILIZATION_TIME = "eventsubscription-stabilization-time";
     protected static final int MAX_LENGTH_EVENT_SUBSCRIPTION = 255;
     protected RequestLogger requestLogger;
 
@@ -83,16 +87,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     )
     {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, proxyClient, request, callbackContext);
     }
 
 
     protected boolean isStabilized(final ResourceModel model, final ProxyClient<RdsClient> proxyClient) {
         final String status = proxyClient.injectCredentialsAndInvokeV2(
-                    Translator.describeEventSubscriptionsRequest(model),
-                    proxyClient.client()::describeEventSubscriptions)
+                        Translator.describeEventSubscriptionsRequest(model),
+                        proxyClient.client()::describeEventSubscriptions)
                 .eventSubscriptionsList().stream().findFirst().get().status();
         return status.equals("active");
+    }
+
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(EVENT_SUBSCRIPTION_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(EVENT_SUBSCRIPTION_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDeltaInMinutes(EVENT_SUBSCRIPTION_RESOURCE_STABILIZATION_TIME,
+                callbackContext.getTimestamp(EVENT_SUBSCRIPTION_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(EVENT_SUBSCRIPTION_REQUEST_STARTED_AT));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> setEnabledDefaultValue(
@@ -154,11 +167,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     progress,
                     exception,
                     DEFAULT_EVENT_SUBSCRIPTION_ERROR_RULE_SET.extendWith(
-                                    Tagging.getUpdateTagsAccessDeniedRuleSet(
-                                            rulesetTagsToAdd,
-                                            rulesetTagsToRemove
-                                    )
-                            ), requestLogger
+                            Tagging.getUpdateTagsAccessDeniedRuleSet(
+                                    rulesetTagsToAdd,
+                                    rulesetTagsToRemove
+                            )
+                    ), requestLogger
 
             );
         }

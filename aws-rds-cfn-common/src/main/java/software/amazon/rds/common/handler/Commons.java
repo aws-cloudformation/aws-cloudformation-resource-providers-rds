@@ -2,7 +2,6 @@ package software.amazon.rds.common.handler;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -72,8 +71,9 @@ public final class Commons {
         final M model = progress.getResourceModel();
         final C context = progress.getCallbackContext();
         final ErrorStatus errorStatus = errorRuleSet.handle(exception);
-        final Throwable rootCause = ExceptionUtils.getRootCause(exception);
+        final String exceptionMessage = getRootCauseExceptionMessage(exception);
         final String exceptionClass = exception.getClass().getCanonicalName();
+        final StringBuilder messageBuilder = new StringBuilder();
 
         if (errorStatus instanceof IgnoreErrorStatus) {
             switch (((IgnoreErrorStatus) errorStatus).getStatus()) {
@@ -95,7 +95,10 @@ public final class Commons {
             }
             return ProgressEvent.failed(model, context, handlerErrorStatus.getHandlerErrorCode(), exception.getMessage());
         } if (errorStatus instanceof UnexpectedErrorStatus && requestLogger != null) {
-            requestLogger.log("UnexpectedErrorStatus: " + getRootCauseExceptionMessage(rootCause) + " " + exceptionClass);
+            messageBuilder.append(exceptionClass).append("\n")
+                    .append(exceptionMessage).append("\n")
+                    .append(ExceptionUtils.getStackTrace(exception));
+            requestLogger.log("UnexpectedErrorStatus", messageBuilder.toString());
         }
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, exception.getMessage());
     }
@@ -144,7 +147,7 @@ public final class Commons {
             return null;
         }
         String statusMessage = t.getMessage();
-         if(statusMessage != null) {
+        if(statusMessage != null) {
             statusMessage = statusMessage.substring(0, Math.min(statusMessage.length(), STATUS_MESSAGE_MAXIMUM_LENGTH));
         }
         return statusMessage;

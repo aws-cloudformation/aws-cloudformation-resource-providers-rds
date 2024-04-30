@@ -23,6 +23,7 @@ import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 
+import java.time.Instant;
 import java.util.Collection;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
@@ -30,6 +31,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final String DB_SUBNET_GROUP_STATUS_COMPLETE = "Complete";
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "dbsubnetgroup";
+    protected static final String DB_SUBNET_GROUP_REQUEST_STARTED_AT = "dbsubnetgroup-request-started-at";
+    protected static final String DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT = "dbsubnetgroup-request-in-progress-at";
+    protected static final String DB_SUBNET_GROUP_STABILIZATION_TIME = "dbsubnetgroup-stabilization-time";
 
     protected static final ErrorRuleSet DEFAULT_DB_SUBNET_GROUP_ERROR_RULE_SET = ErrorRuleSet
             .extend(Commons.DEFAULT_ERROR_RULE_SET)
@@ -92,6 +96,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger
     ) {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, request, callbackContext, proxyClient);
     }
 
@@ -101,6 +106,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         proxyClient.client()::describeDBSubnetGroups)
                 .dbSubnetGroups().stream().findFirst().get().subnetGroupStatus();
         return status.equals(DB_SUBNET_GROUP_STATUS_COMPLETE);
+    }
+
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(DB_SUBNET_GROUP_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDeltaInMinutes(DB_SUBNET_GROUP_STABILIZATION_TIME,
+                callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_IN_PROGRESS_AT),
+                callbackContext.getTimestamp(DB_SUBNET_GROUP_REQUEST_STARTED_AT));
     }
 
     protected boolean isDeleted(final ResourceModel model,

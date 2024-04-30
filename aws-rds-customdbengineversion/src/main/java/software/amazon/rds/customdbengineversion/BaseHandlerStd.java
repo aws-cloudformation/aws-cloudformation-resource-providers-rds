@@ -1,6 +1,7 @@
 package software.amazon.rds.customdbengineversion;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -39,6 +40,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String STACK_NAME = "rds";
     protected static final String RESOURCE_IDENTIFIER = "customdbengineversion";
+    protected static final String CUSTOM_DB_ENGINE_VERSION_REQUEST_STARTED_AT = "customdbengineversion-request-started-at";
+    protected static final String CUSTOM_DB_ENGINE_VERSION_REQUEST_IN_PROGRESS_AT = "customdbengineversion-request-in-progress-at";
+    protected static final String CUSTOM_DB_ENGINE_VERSION_RESOURCE_STABILIZATION_TIME = "customdbengineversion-stabilization-time";
     protected static final int RESOURCE_ID_MAX_LENGTH = 50;
     protected static final String IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT = "is already being deleted";
     protected static final String SQL_SERVER_ENGINES = "custom-sqlserver";
@@ -123,6 +127,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final RequestLogger requestLogger)
     {
         this.requestLogger = requestLogger;
+        resourceStabilizationTime(callbackContext);
         return handleRequest(proxy, request, callbackContext, proxyClient);
     }
 
@@ -132,9 +137,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final String status = fetchDBEngineVersion(model, proxyClient).status();
             assertNoCustomDbEngineVersionTerminalStatus(status);
             return status != null && (CustomDBEngineVersionStatus.fromString(status).isStable() ||
-                // SQL Server CEVs will remain in PendingValidation state until a new RDS Custom for SQL Server DB instance using the CEV is created.
-                model.getEngine().contains(SQL_SERVER_ENGINES) &&
-                CustomDBEngineVersionStatus.fromString(status) == CustomDBEngineVersionStatus.PendingValidation
+                    // SQL Server CEVs will remain in PendingValidation state until a new RDS Custom for SQL Server DB instance using the CEV is created.
+                    model.getEngine().contains(SQL_SERVER_ENGINES) &&
+                            CustomDBEngineVersionStatus.fromString(status) == CustomDBEngineVersionStatus.PendingValidation
             );
         } catch (CustomDbEngineVersionNotFoundException exception) {
             return false;
@@ -146,6 +151,12 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         if (status != null && status.isTerminal()) {
             throw new CfnNotStabilizedException(new Exception("Custom DB Engine Version is in state: " + source + ""));
         }
+    }
+
+    private void resourceStabilizationTime(final CallbackContext callbackContext) {
+        callbackContext.timestampOnce(CUSTOM_DB_ENGINE_VERSION_REQUEST_STARTED_AT, Instant.now());
+        callbackContext.timestamp(CUSTOM_DB_ENGINE_VERSION_REQUEST_IN_PROGRESS_AT, Instant.now());
+        callbackContext.calculateTimeDeltaInMinutes(CUSTOM_DB_ENGINE_VERSION_RESOURCE_STABILIZATION_TIME, callbackContext.getTimestamp(CUSTOM_DB_ENGINE_VERSION_REQUEST_IN_PROGRESS_AT), callbackContext.getTimestamp(CUSTOM_DB_ENGINE_VERSION_REQUEST_STARTED_AT));
     }
 
     protected DBEngineVersion fetchDBEngineVersion(final ResourceModel model,

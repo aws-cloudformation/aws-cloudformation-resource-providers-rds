@@ -196,7 +196,7 @@ public class CreateHandlerTest extends AbstractTestBase {
                 InvalidParameterException.class
         );
 
-        Mockito.doNothing().when(requestLogger).log(any(String.class));
+        Mockito.doNothing().when(requestLogger).log(any(String.class), any(String.class));
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                 .desiredResourceState(RESOURCE_MODEL)
                 .desiredResourceTags(translateTagsToMap(TAG_SET))
