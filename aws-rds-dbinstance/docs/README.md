@@ -21,7 +21,6 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>" : <i>String</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
         "<a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>" : <i>String</i>,
-        "<a href="#certificatedetails" title="CertificateDetails">CertificateDetails</a>" : <i><a href="certificatedetails.md">CertificateDetails</a></i>,
         "<a href="#certificaterotationrestart" title="CertificateRotationRestart">CertificateRotationRestart</a>" : <i>Boolean</i>,
         "<a href="#charactersetname" title="CharacterSetName">CharacterSetName</a>" : <i>String</i>,
         "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
@@ -108,7 +107,6 @@ Properties:
     <a href="#availabilityzone" title="AvailabilityZone">AvailabilityZone</a>: <i>String</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
     <a href="#cacertificateidentifier" title="CACertificateIdentifier">CACertificateIdentifier</a>: <i>String</i>
-    <a href="#certificatedetails" title="CertificateDetails">CertificateDetails</a>: <i><a href="certificatedetails.md">CertificateDetails</a></i>
     <a href="#certificaterotationrestart" title="CertificateRotationRestart">CertificateRotationRestart</a>: <i>Boolean</i>
     <a href="#charactersetname" title="CharacterSetName">CharacterSetName</a>: <i>String</i>
     <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
@@ -275,14 +273,6 @@ The identifier of the CA certificate for this DB instance.
 _Required_: No
 
 _Type_: String
-
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
-
-#### CertificateDetails
-
-_Required_: No
-
-_Type_: <a href="certificatedetails.md">CertificateDetails</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
