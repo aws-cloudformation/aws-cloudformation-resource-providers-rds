@@ -49,8 +49,6 @@ _Required_: No
 
 _Type_: String
 
-_Pattern_: <code>^(?!default$)[a-zA-Z]{1}[a-zA-Z0-9-_\.\s]{0,254}$</code>
-
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
 #### SubnetIds
