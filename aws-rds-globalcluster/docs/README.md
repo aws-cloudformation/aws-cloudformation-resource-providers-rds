@@ -13,6 +13,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
     "Type" : "AWS::RDS::GlobalCluster",
     "Properties" : {
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
+        "<a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>" : <i>String</i>,
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
         "<a href="#deletionprotection" title="DeletionProtection">DeletionProtection</a>" : <i>Boolean</i>,
         "<a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>" : <i>String</i>,
@@ -28,6 +29,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 Type: AWS::RDS::GlobalCluster
 Properties:
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
+    <a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a> : <i>String</i>,
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
     <a href="#deletionprotection" title="DeletionProtection">DeletionProtection</a>: <i>Boolean</i>
     <a href="#globalclusteridentifier" title="GlobalClusterIdentifier">GlobalClusterIdentifier</a>: <i>String</i>
@@ -49,6 +51,16 @@ _Type_: String
 _Allowed Values_: <code>aurora</code> | <code>aurora-mysql</code> | <code>aurora-postgresql</code>
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+#### EngineLifecycleSupport
+
+The life cycle type of the global cluster. You can use this setting to enroll your global cluster into Amazon RDS Extended Support.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
 
 #### EngineVersion
 
