@@ -327,6 +327,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     DbInstanceNotFoundException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
+                    CfnInvalidRequestException.class,
                     InvalidDbSecurityGroupStateException.class)
             .build();
 

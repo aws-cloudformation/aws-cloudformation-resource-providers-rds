@@ -3,6 +3,7 @@ package software.amazon.rds.dbinstance;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -23,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRespons
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -39,7 +41,6 @@ import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
-
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
@@ -101,6 +102,18 @@ public class UpdateHandler extends BaseHandlerStd {
         final Collection<DBInstanceRole> desiredRoles = request.getDesiredResourceState().getAssociatedRoles();
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
+                .then(progress -> {
+                    try {
+                        if(!Objects.equals(request.getDesiredResourceState().getEngineLifecycleSupport(),
+                                request.getPreviousResourceState().getEngineLifecycleSupport()) &&
+                                !request.getRollback()) {
+                            throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
+                        }
+                    } catch (CfnInvalidRequestException e) {
+                        return Commons.handleException(progress, e, MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                    }
+                    return progress;
+                })
                 .then(progress -> {
                     if (shouldSetParameterGroupName(request)) {
                         return setParameterGroupName(rdsClient, progress);

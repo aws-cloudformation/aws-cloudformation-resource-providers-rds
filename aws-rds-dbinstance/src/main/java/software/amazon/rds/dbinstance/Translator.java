@@ -222,7 +222,8 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
+                .engineLifecycleSupport(model.getEngineLifecycleSupport());
         if (!ResourceModelHelper.isSqlServer(model)) {
             builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
@@ -329,7 +330,8 @@ public class Translator {
                 .tdeCredentialArn(model.getTdeCredentialArn())
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .timezone(model.getTimezone())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
+                .engineLifecycleSupport(model.getEngineLifecycleSupport());
 
         // Set PerformanceInsightsKMSKeyId only if EnablePerformanceInsights is true.
         // The point is that it is a completely legitimate create from the CFN perspective and
@@ -386,7 +388,8 @@ public class Translator {
                 .tdeCredentialPassword(model.getTdeCredentialPassword())
                 .useDefaultProcessorFeatures(model.getUseDefaultProcessorFeatures())
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
-                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null);
+                .vpcSecurityGroupIds(CollectionUtils.isNotEmpty(model.getVPCSecurityGroups()) ? model.getVPCSecurityGroups() : null)
+                .engineLifecycleSupport(model.getEngineLifecycleSupport());
         if (!ResourceModelHelper.isSqlServer(model)) {
             builder.allocatedStorage(getAllocatedStorage(model));
             builder.iops(model.getIops());
@@ -866,6 +869,7 @@ public class Translator {
                 .enablePerformanceInsights(dbInstance.performanceInsightsEnabled())
                 .endpoint(endpoint)
                 .engine(dbInstance.engine())
+                .engineLifecycleSupport(dbInstance.engineLifecycleSupport())
                 .engineVersion(dbInstance.engineVersion())
                 .iops(dbInstance.iops())
                 .kmsKeyId(dbInstance.kmsKeyId())

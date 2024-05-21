@@ -36,6 +36,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>" : <i>Boolean</i>,
         "<a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>" : <i>Boolean</i>,
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
+        "<a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>" : <i>String</i>,
         "<a href="#enginemode" title="EngineMode">EngineMode</a>" : <i>String</i>,
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
         "<a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>" : <i>Boolean</i>,
@@ -103,6 +104,7 @@ Properties:
     <a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>: <i>Boolean</i>
     <a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>: <i>Boolean</i>
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
+    <a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>: <i>String</i>
     <a href="#enginemode" title="EngineMode">EngineMode</a>: <i>String</i>
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
     <a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>: <i>Boolean</i>
@@ -383,6 +385,16 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 #### Engine
 
 The name of the database engine to be used for this DB cluster. Valid Values: aurora (for MySQL 5.6-compatible Aurora), aurora-mysql (for MySQL 5.7-compatible Aurora), and aurora-postgresql
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
+
+#### EngineLifecycleSupport
+
+The life cycle type of the DB cluster. You can use this setting to enroll your DB cluster into Amazon RDS Extended Support.
 
 _Required_: No
 

@@ -96,6 +96,7 @@ public class Translator {
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
+                .engineLifecycleSupport(model.getEngineLifecycleSupport())
                 .build();
     }
 
@@ -123,7 +124,8 @@ public class Translator {
                 .restoreType(model.getRestoreType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .useLatestRestorableTime(model.getUseLatestRestorableTime())
-                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds());
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
+                .engineLifecycleSupport(model.getEngineLifecycleSupport());
 
         if (StringUtils.hasValue(model.getRestoreToTime())
                 && BooleanUtils.isNotTrue(model.getUseLatestRestorableTime())) {
@@ -165,6 +167,7 @@ public class Translator {
                 .storageType(model.getStorageType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
                 .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
+                .engineLifecycleSupport(model.getEngineLifecycleSupport())
                 .build();
     }
 
@@ -546,6 +549,7 @@ public class Translator {
                                 .build()
                 )
                 .engine(dbCluster.engine())
+                .engineLifecycleSupport(dbCluster.engineLifecycleSupport())
                 .engineMode(dbCluster.engineMode())
                 .engineVersion(dbCluster.engineVersion())
                 .manageMasterUserPassword(dbCluster.masterUserSecret() != null)
