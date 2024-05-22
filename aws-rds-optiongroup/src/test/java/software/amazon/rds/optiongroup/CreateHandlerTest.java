@@ -195,7 +195,9 @@ public class CreateHandlerTest extends AbstractTestBase {
                 .build();
 
         final CallbackContext callbackContext = new CallbackContext();
-        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+        final Instant startTime = Instant.ofEpochSecond(0);
+        final Instant currentTime = Instant.ofEpochSecond(60);
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", currentTime, startTime);
 
 
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, proxyClient, request, callbackContext);

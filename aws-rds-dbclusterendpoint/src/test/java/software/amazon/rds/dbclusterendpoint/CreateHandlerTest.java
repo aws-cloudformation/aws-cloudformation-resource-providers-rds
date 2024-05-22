@@ -146,7 +146,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+        final Instant startTime = Instant.ofEpochSecond(0);
+        final Instant currentTime = Instant.ofEpochSecond(60);
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", currentTime, startTime);
         verify(rdsProxy.client(), times(1)).createDBClusterEndpoint(any(CreateDbClusterEndpointRequest.class));
         assertThat(callbackContext.getTimeDelta().get("TimeDeltaTest")).isEqualTo(1.00);
     }

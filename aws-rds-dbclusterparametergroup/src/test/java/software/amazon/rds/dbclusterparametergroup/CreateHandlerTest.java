@@ -256,7 +256,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         callbackContext.timestamp("END", Instant.now());
 
 
-        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", Instant.ofEpochSecond(0), Instant.ofEpochSecond(60));
+        final Instant startTime = Instant.ofEpochSecond(0);
+        final Instant currentTime = Instant.ofEpochSecond(60);
+        callbackContext.calculateTimeDeltaInMinutes("TimeDeltaTest", currentTime, startTime);
 
         test_handleRequest_base(
                 callbackContext,
