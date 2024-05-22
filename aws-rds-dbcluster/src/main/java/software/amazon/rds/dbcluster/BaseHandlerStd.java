@@ -349,7 +349,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private void resourceStabilizationTime(final CallbackContext context) {
         context.timestampOnce(DB_CLUSTER_REQUEST_STARTED_AT, Instant.now());
         context.timestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT, Instant.now());
-        context.calculateTimeDeltaInMinutes(DB_CLUSTER_STABILIZATION_TIME, context.getTimestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT), context.getTimestamp(DB_CLUSTER_REQUEST_STARTED_AT));
+        context.calculateTimeDeltaInMinutes(DB_CLUSTER_STABILIZATION_TIME,
+                context.getTimestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT),
+                context.getTimestamp(DB_CLUSTER_REQUEST_STARTED_AT));
     }
 
     protected static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {

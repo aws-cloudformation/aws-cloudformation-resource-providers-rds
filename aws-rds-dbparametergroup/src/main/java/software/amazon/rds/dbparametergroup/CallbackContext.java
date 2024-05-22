@@ -62,7 +62,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
 
     @Override
     public void calculateTimeDeltaInMinutes(final String label, final Instant currentTime, final Instant startTime){
-        double delta = Duration.between(currentTime, startTime).toMinutes();
+        double delta = Duration.between(startTime, currentTime).toMinutes();
         timeDelta.put(label, delta);
     }
 }
