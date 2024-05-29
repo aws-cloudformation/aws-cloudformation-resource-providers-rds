@@ -450,9 +450,6 @@ public class Translator {
                 .applyImmediately(Boolean.TRUE)
                 .autoMinorVersionUpgrade(diff(previousModel.getAutoMinorVersionUpgrade(), desiredModel.getAutoMinorVersionUpgrade()))
                 .backupRetentionPeriod(diff(previousModel.getBackupRetentionPeriod(), desiredModel.getBackupRetentionPeriod()))
-                // always use desired model value for certificateRotationRestart
-                .certificateRotationRestart(desiredModel.getCertificateRotationRestart())
-                .caCertificateIdentifier(diff(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier()))
                 .copyTagsToSnapshot(diff(previousModel.getCopyTagsToSnapshot(), desiredModel.getCopyTagsToSnapshot()))
                 .dbInstanceClass(diff(previousModel.getDBInstanceClass(), desiredModel.getDBInstanceClass()))
                 .dbInstanceIdentifier(desiredModel.getDBInstanceIdentifier())
@@ -514,6 +511,16 @@ public class Translator {
         if (shouldSetProcessorFeatures(previousModel, desiredModel)) {
             builder.processorFeatures(translateProcessorFeaturesToSdk(desiredModel.getProcessorFeatures()));
             builder.useDefaultProcessorFeatures(desiredModel.getUseDefaultProcessorFeatures());
+        }
+
+        // Only pass both CACertificateIdentifier and CertificateRotationRestart if the CACertificateIdentifier changes
+        // The certificateRotationRestart flag isn't persistent and only changes how the certificate rotation is performed
+        // when the CA is changed, we don't want to send both params if only the certificateRotationRestart changes, because
+        // it makes no sense to inadvertently restart the instance when CA doesn't change
+        final String caCertificateIdentifierDiff = diff(previousModel.getCACertificateIdentifier(), desiredModel.getCACertificateIdentifier());
+        if (caCertificateIdentifierDiff != null) {
+            builder.caCertificateIdentifier(desiredModel.getCACertificateIdentifier());
+            builder.certificateRotationRestart(desiredModel.getCertificateRotationRestart());
         }
 
         // EnablePerformanceInsights (EPI), PerformanceInsightsKMSKeyId (PKI) and PerformanceInsightsRetentionPeriod (PIP)
