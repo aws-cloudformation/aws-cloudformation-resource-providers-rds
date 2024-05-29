@@ -49,6 +49,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#enableperformanceinsights" title="EnablePerformanceInsights">EnablePerformanceInsights</a>" : <i>Boolean</i>,
         "<a href="#endpoint" title="Endpoint">Endpoint</a>" : <i><a href="endpoint.md">Endpoint</a></i>,
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
+        "<a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>" : <i>String</i>,
         "<a href="#engineversion" title="EngineVersion">EngineVersion</a>" : <i>String</i>,
         "<a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>" : <i>Boolean</i>,
         "<a href="#iops" title="Iops">Iops</a>" : <i>Integer</i>,
@@ -139,6 +140,7 @@ Properties:
     <a href="#enableperformanceinsights" title="EnablePerformanceInsights">EnablePerformanceInsights</a>: <i>Boolean</i>
     <a href="#endpoint" title="Endpoint">Endpoint</a>: <i><a href="endpoint.md">Endpoint</a></i>
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
+    <a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>: <i>String</i>
     <a href="#engineversion" title="EngineVersion">EngineVersion</a>: <i>String</i>
     <a href="#managemasteruserpassword" title="ManageMasterUserPassword">ManageMasterUserPassword</a>: <i>Boolean</i>
     <a href="#iops" title="Iops">Iops</a>: <i>Integer</i>
@@ -570,6 +572,16 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 #### Engine
 
 The name of the database engine that you want to use for this DB instance.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
+
+#### EngineLifecycleSupport
+
+The life cycle type of the DB instance. You can use this setting to enroll your DB instance into Amazon RDS Extended Support.
 
 _Required_: No
 

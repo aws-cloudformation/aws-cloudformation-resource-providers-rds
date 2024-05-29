@@ -63,6 +63,7 @@ import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedExceptio
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -158,7 +159,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     KmsKeyNotAccessibleException.class,
                     StorageTypeNotAvailableException.class,
                     StorageTypeNotSupportedException.class,
-                    NetworkTypeNotSupportedException.class)
+                    NetworkTypeNotSupportedException.class,
+                    CfnInvalidRequestException.class)
             .build();
 
     protected static final ErrorRuleSet ADD_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
