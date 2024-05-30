@@ -7,9 +7,13 @@ public enum DBClusterStatus implements TerminableStatus {
     Creating("creating"),
     Deleted("deleted"),
     InaccessibleEncryptionCredentials("inaccessible-encryption-credentials", true),
+    InaccessibleEncryptionCredentialsRecoverable("inaccessible-encryption-credentials-recoverable", true),
     IncompatibleNetwork("incompatible-network", true),
     IncompatibleParameters("incompatible-parameters", true),
-    IncompatibleRestore("incompatible-restore", true);
+    IncompatibleRestore("incompatible-restore", true),
+    MigrationFailed("migration-failed", true),
+    RestoreFailed("restore-failed", true);
+
 
     private final String value;
     private final boolean isTerminal;
