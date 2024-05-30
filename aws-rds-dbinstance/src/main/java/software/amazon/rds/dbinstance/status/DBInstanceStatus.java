@@ -9,10 +9,15 @@ public enum DBInstanceStatus implements TerminableStatus {
     Deleting("deleting"),
     Failed("failed", true),
     InaccessibleEncryptionCredentials("inaccessible-encryption-credentials", true),
+    InaccessibleEncryptionCredentialsRecoverable("inaccessible-encryption-credentials-recoverable", true),
+    IncompatibleCreate("incompatible-create", true),
+    IncompatibleCredentials("incompatible-credentials", true),
     IncompatibleNetwork("incompatible-network", true),
     IncompatibleParameters("incompatible-parameters", true),
     IncompatibleRestore("incompatible-restore", true),
-    StorageFull("storage-full");
+    ModifyFailed("modify-failed", true),
+    StorageFull("storage-full"),
+    UpgradeFailed("upgrade-failed", true);
 
     private final String value;
     private final boolean terminal;
