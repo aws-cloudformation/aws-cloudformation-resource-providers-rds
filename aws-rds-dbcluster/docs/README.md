@@ -35,6 +35,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#enableglobalwriteforwarding" title="EnableGlobalWriteForwarding">EnableGlobalWriteForwarding</a>" : <i>Boolean</i>,
         "<a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>" : <i>Boolean</i>,
         "<a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>" : <i>Boolean</i>,
+        "<a href="#enablelocalwriteforwarding" title="EnableLocalWriteForwarding">EnableLocalWriteForwarding</a>" : <i>Boolean</i>,
         "<a href="#engine" title="Engine">Engine</a>" : <i>String</i>,
         "<a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>" : <i>String</i>,
         "<a href="#enginemode" title="EngineMode">EngineMode</a>" : <i>String</i>,
@@ -103,6 +104,7 @@ Properties:
     <a href="#enableglobalwriteforwarding" title="EnableGlobalWriteForwarding">EnableGlobalWriteForwarding</a>: <i>Boolean</i>
     <a href="#enablehttpendpoint" title="EnableHttpEndpoint">EnableHttpEndpoint</a>: <i>Boolean</i>
     <a href="#enableiamdatabaseauthentication" title="EnableIAMDatabaseAuthentication">EnableIAMDatabaseAuthentication</a>: <i>Boolean</i>
+    <a href="#enablelocalwriteforwarding" title="EnableLocalWriteForwarding">EnableLocalWriteForwarding</a>: <i>Boolean</i>
     <a href="#engine" title="Engine">Engine</a>: <i>String</i>
     <a href="#enginelifecyclesupport" title="EngineLifecycleSupport">EngineLifecycleSupport</a>: <i>String</i>
     <a href="#enginemode" title="EngineMode">EngineMode</a>: <i>String</i>
@@ -375,6 +377,16 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 #### EnableIAMDatabaseAuthentication
 
 A value that indicates whether to enable mapping of AWS Identity and Access Management (IAM) accounts to database accounts. By default, mapping is disabled.
+
+_Required_: No
+
+_Type_: Boolean
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### EnableLocalWriteForwarding
+
+Specifies whether read replicas can forward write operations to the writer DB instance in the DB cluster. By default, write operations aren't allowed on reader DB instances.
 
 _Required_: No
 

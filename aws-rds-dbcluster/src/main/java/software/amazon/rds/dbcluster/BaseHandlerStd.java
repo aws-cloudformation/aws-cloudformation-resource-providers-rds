@@ -55,6 +55,7 @@ import software.amazon.awssdk.services.rds.model.InvalidGlobalClusterStateExcept
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.LocalWriteForwardingStatus;
 import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
@@ -334,16 +335,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final boolean isNoPendingChangesResult = isNoPendingChanges(dbCluster);
         final boolean isMasterUserSecretStabilizedResult = isMasterUserSecretStabilized(dbCluster);
         final boolean isGlobalWriteForwardingStabilizedResult = isGlobalWriteForwardingStabilized(dbCluster);
+        final boolean isLocalWriteForwardingStabilizedResult = isLocalWriteForwardingStabilized(dbCluster);
 
         requestLogger.log(String.format("isDbClusterStabilized: %b", isDBClusterStabilizedResult),
                 ImmutableMap.of("isDbClusterAvailable", isDBClusterStabilizedResult,
                         "isNoPendingChanges", isNoPendingChangesResult,
                         "isMasterUserSecretStabilized", isMasterUserSecretStabilizedResult,
-                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilizedResult),
+                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilizedResult,
+                        "isLocalWriteForwardingStabilized", isLocalWriteForwardingStabilizedResult),
                 ImmutableMap.of("Description", "isDBClusterStabilized method will be repeatedly" +
                         " called with a backoff mechanism after the modify call until it returns true. This" +
                         " process will continue until all included flags are true."));
-        return isDBClusterStabilizedResult && isNoPendingChangesResult && isMasterUserSecretStabilizedResult && isGlobalWriteForwardingStabilizedResult;
+        return isDBClusterStabilizedResult &&
+                isNoPendingChangesResult &&
+                isMasterUserSecretStabilizedResult &&
+                isGlobalWriteForwardingStabilizedResult &&
+                isLocalWriteForwardingStabilizedResult;
     }
 
     private void resourceStabilizationTime(final CallbackContext context) {
@@ -367,6 +374,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 // Even if GWF is requested the WF will not start until a replica is created by customers
                 (dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.ENABLING &&
                         dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.DISABLING);
+    }
+
+    protected static boolean isLocalWriteForwardingStabilized(DBCluster dbCluster) {
+        return (dbCluster.localWriteForwardingStatus() != LocalWriteForwardingStatus.ENABLING &&
+                        dbCluster.localWriteForwardingStatus() != LocalWriteForwardingStatus.DISABLING);
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(
