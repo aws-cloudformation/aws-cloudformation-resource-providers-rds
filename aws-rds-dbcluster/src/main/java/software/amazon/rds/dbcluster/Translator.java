@@ -30,6 +30,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersRequest;
 import software.amazon.awssdk.services.rds.model.DisableHttpEndpointRequest;
 import software.amazon.awssdk.services.rds.model.EnableHttpEndpointRequest;
+import software.amazon.awssdk.services.rds.model.LocalWriteForwardingStatus;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RebootDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RemoveFromGlobalClusterRequest;
@@ -68,6 +69,7 @@ public class Translator {
                 .enableGlobalWriteForwarding(model.getEnableGlobalWriteForwarding())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
+                .enableLocalWriteForwarding(model.getEnableLocalWriteForwarding())
                 .enablePerformanceInsights(model.getPerformanceInsightsEnabled())
                 .engine(model.getEngine())
                 .engineMode(model.getEngineMode())
@@ -219,6 +221,7 @@ public class Translator {
                 .domain(desiredModel.getDomain())
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
+                .enableLocalWriteForwarding(desiredModel.getEnableLocalWriteForwarding())
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(desiredModel.getMasterUserPassword())
@@ -272,6 +275,7 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
+                .enableLocalWriteForwarding(desiredModel.getEnableLocalWriteForwarding())
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
@@ -432,6 +436,17 @@ public class Translator {
                 .collect(Collectors.toSet());
     }
 
+    static boolean translateLocalWriteForwardingStatus(final LocalWriteForwardingStatus status) {
+        /*
+         * LocalWriteForwarding reports status as an enum rather than a boolean.
+         * CFN stabilization requires a boolean value to stabilize.
+         * This method projects the status into ENABLED X DISABLED.
+         * Both ENABLING and DISABLING states are stabilized on and are considered transient.
+         */
+        return status == LocalWriteForwardingStatus.REQUESTED ||
+                status == LocalWriteForwardingStatus.ENABLED;
+    }
+
     static software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration translateServerlessV2ScalingConfiguration(
             final ServerlessV2ScalingConfiguration serverlessV2ScalingConfiguration
     ) {
@@ -542,6 +557,7 @@ public class Translator {
                 .enableGlobalWriteForwarding(dbCluster.globalWriteForwardingRequested())
                 .enableHttpEndpoint(dbCluster.httpEndpointEnabled())
                 .enableIAMDatabaseAuthentication(dbCluster.iamDatabaseAuthenticationEnabled())
+                .enableLocalWriteForwarding(translateLocalWriteForwardingStatus(dbCluster.localWriteForwardingStatus()))
                 .endpoint(
                         Endpoint.builder()
                                 .address(dbCluster.endpoint())

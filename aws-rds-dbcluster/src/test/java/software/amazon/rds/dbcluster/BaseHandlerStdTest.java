@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.LocalWriteForwardingStatus;
 import software.amazon.awssdk.services.rds.model.MasterUserSecret;
 import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -131,6 +132,62 @@ class BaseHandlerStdTest {
                 DBCluster.builder()
                         .globalWriteForwardingRequested(true)
                         .globalWriteForwardingStatus(WriteForwardingStatus.DISABLING)
+                        .build()
+        )).isFalse();
+    }
+
+    @Test
+    void isLocalWriteForwardingStabilized_localWriteForwardingNotRequested() {
+        Assertions.assertThat(BaseHandlerStd.isLocalWriteForwardingStabilized(
+                DBCluster.builder()
+                        .build()
+        )).isTrue();
+    }
+
+    @Test
+    void isLocalWriteForwardingStabilized_localWriteForwardingRequested() {
+        Assertions.assertThat(BaseHandlerStd.isLocalWriteForwardingStabilized(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.REQUESTED)
+                        .build()
+        )).isTrue();
+    }
+
+    @Test
+    void isLocalWriteForwardingStabilized_localWriteForwardingEnabled() {
+        Assertions.assertThat(BaseHandlerStd.isLocalWriteForwardingStabilized(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.ENABLED)
+                        .build()
+        )).isTrue();
+    }
+
+    @Test
+    void isLocalWriteForwardingStabilized_localWriteForwardingEnabling() {
+        Assertions.assertThat(BaseHandlerStd.isLocalWriteForwardingStabilized(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.ENABLING)
+                        .build()
+        )).isFalse();
+    }
+
+    @Test
+    void isLocalWriteForwardingStabilized_localWriteForwardingDisabled() {
+        // LocalWriteForwarding status will not enable until a reader is requested by customer
+        // This prevents customers from creating a stack with only primary and setting the property
+        // As WS does not validate this parameter the stack will wait on stabilization until timeout.
+        Assertions.assertThat(BaseHandlerStd.isLocalWriteForwardingStabilized(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.DISABLED)
+                        .build()
+        )).isTrue();
+    }
+
+    @Test
+    void isLocalWriteForwardingStabilized_localWriteForwardingDisabling() {
+        Assertions.assertThat(BaseHandlerStd.isLocalWriteForwardingStabilized(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.DISABLING)
                         .build()
         )).isFalse();
     }
