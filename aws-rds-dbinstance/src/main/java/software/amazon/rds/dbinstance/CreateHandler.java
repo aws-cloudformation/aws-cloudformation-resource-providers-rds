@@ -32,6 +32,7 @@ import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
+import software.amazon.rds.dbinstance.validators.OracleCustomSystemId;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -56,6 +57,8 @@ public class CreateHandler extends BaseHandlerStd {
         super.validateRequest(request);
         validateDeletionPolicyForClusterInstance(request);
         Validations.validateTimestamp(request.getDesiredResourceState().getRestoreTime());
+
+        OracleCustomSystemId.validateRequest(request.getDesiredResourceState());
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {

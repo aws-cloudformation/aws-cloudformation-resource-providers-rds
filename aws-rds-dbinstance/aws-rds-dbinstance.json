@@ -480,6 +480,7 @@
     "/properties/DBParameterGroupName": "$lowercase(DBParameterGroupName)",
     "/properties/DBSnapshotIdentifier": "$lowercase(DBSnapshotIdentifier)",
     "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
+    "/properties/DBSystemId": "$uppercase(DBSystemId)",
     "/properties/Engine": "$lowercase(Engine)",
     "/properties/EngineVersion": "$join([$string(EngineVersion), \".*\"])",
     "/properties/KmsKeyId": "$join([\"arn:.+?:kms:.+?:.+?:key\\/\", KmsKeyId])",
@@ -499,6 +500,7 @@
     "/properties/DBInstanceIdentifier",
     "/properties/DBName",
     "/properties/DBSubnetGroupName",
+    "/properties/DBSystemId",
     "/properties/KmsKeyId",
     "/properties/MasterUsername",
     "/properties/NcharCharacterSetName",
@@ -551,7 +553,6 @@
     "/properties/Endpoint/HostedZoneId",
     "/properties/DbiResourceId",
     "/properties/DBInstanceArn",
-    "/properties/DBSystemId",
     "/properties/MasterUserSecret/SecretArn",
     "/properties/CertificateDetails/CAIdentifier",
     "/properties/CertificateDetails/ValidTill"

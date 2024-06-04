@@ -2242,6 +2242,84 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void handleRequest_CreateDBInstanceWithSid_IsSuccessful() {
+        when(rdsProxy.client().addTagsToResource(any(AddTagsToResourceRequest.class)))
+            .thenReturn(AddTagsToResourceResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+
+        test_handleRequest_base(
+            context,
+            () -> DB_INSTANCE_ACTIVE_SYSTEM_ID,
+            () -> RESOURCE_MODEL_BLDR().dBSystemId("UNITTEST").build(),
+            expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+    }
+
+    @Test
+    public void handleRequest_CreateReadReplicaWithSid_ThrowsRequestValidationException() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+            context,
+            null,
+            () -> RESOURCE_MODEL_READ_REPLICA.toBuilder().dBSystemId("UNITTEST").build(),
+            expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstanceFromSnapshotWithSid_ThrowsRequestValidationException() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+            context,
+            null,
+            () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT.toBuilder().dBSystemId("UNITTEST").build(),
+            expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @Test
+    public void handleRequest_CreateDBInstanceFromPitrWithSid_ThrowsRequestValidationException() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(false);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+            context,
+            null,
+            () -> RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME.toBuilder()
+                .dBSystemId("UNITTEST")
+                .useLatestRestorableTime(true).build(),
+            expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @Test
     public void fetchEngineForUnknownScenario() {
         expectServiceInvocation = false;
         final CallbackContext context = new CallbackContext();
