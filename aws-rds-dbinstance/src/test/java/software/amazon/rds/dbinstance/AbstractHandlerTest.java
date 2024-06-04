@@ -95,6 +95,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String DB_INSTANCE_STATUS_MODIFYING = "modifying";
     protected static final String DB_INSTANCE_STATUS_FAILED = "failed";
     protected static final String DB_INSTANCE_STATUS_STORAGE_FULL = "storage-full";
+    protected static final String DB_INSTANCE_SYSTEM_ID = "UNITTEST";
     protected static final String DB_NAME = "db-instance-db-name";
     protected static final String DB_PARAMETER_GROUP_NAME_DEFAULT = "default";
     protected static final String DB_PARAMETER_GROUP_NAME_ALTER = "alternative-parameter-group";
@@ -207,6 +208,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     static final DBInstance DB_INSTANCE_BASE;
     static final DBInstance DB_INSTANCE_ACTIVE;
+    static final DBInstance DB_INSTANCE_ACTIVE_SYSTEM_ID;
     static final DBInstance DB_INSTANCE_AURORA_ACTIVE;
     static final DBInstance DB_INSTANCE_SQLSERVER_ACTIVE;
     static final DBInstance DB_INSTANCE_READ_REPLICA_ACTIVE;
@@ -575,6 +577,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .masterUsername(MASTER_USERNAME)
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .build();
+
+        DB_INSTANCE_ACTIVE_SYSTEM_ID = DB_INSTANCE_ACTIVE.toBuilder().dbSystemId(DB_INSTANCE_SYSTEM_ID).build();
 
         DB_INSTANCE_AURORA_ACTIVE = DB_INSTANCE_ACTIVE.toBuilder()
                 .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)

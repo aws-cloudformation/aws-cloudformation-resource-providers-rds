@@ -35,6 +35,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#dbsecuritygroups" title="DBSecurityGroups">DBSecurityGroups</a>" : <i>[ String, ... ]</i>,
         "<a href="#dbsnapshotidentifier" title="DBSnapshotIdentifier">DBSnapshotIdentifier</a>" : <i>String</i>,
         "<a href="#dbsubnetgroupname" title="DBSubnetGroupName">DBSubnetGroupName</a>" : <i>String</i>,
+        "<a href="#dbsystemid" title="DBSystemId">DBSystemId</a>" : <i>String</i>,
         "<a href="#dedicatedlogvolume" title="DedicatedLogVolume">DedicatedLogVolume</a>" : <i>Boolean</i>,
         "<a href="#deleteautomatedbackups" title="DeleteAutomatedBackups">DeleteAutomatedBackups</a>" : <i>Boolean</i>,
         "<a href="#deletionprotection" title="DeletionProtection">DeletionProtection</a>" : <i>Boolean</i>,
@@ -124,6 +125,7 @@ Properties:
       - String</i>
     <a href="#dbsnapshotidentifier" title="DBSnapshotIdentifier">DBSnapshotIdentifier</a>: <i>String</i>
     <a href="#dbsubnetgroupname" title="DBSubnetGroupName">DBSubnetGroupName</a>: <i>String</i>
+    <a href="#dbsystemid" title="DBSystemId">DBSystemId</a>: <i>String</i>
     <a href="#dedicatedlogvolume" title="DedicatedLogVolume">DedicatedLogVolume</a>: <i>Boolean</i>
     <a href="#deleteautomatedbackups" title="DeleteAutomatedBackups">DeleteAutomatedBackups</a>: <i>Boolean</i>
     <a href="#deletionprotection" title="DeletionProtection">DeletionProtection</a>: <i>Boolean</i>
@@ -441,6 +443,16 @@ _Type_: String
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
+#### DBSystemId
+
+The Oracle system ID (Oracle SID) for a container database (CDB). The Oracle SID is also the name of the CDB. This setting is valid for RDS Custom only.
+
+_Required_: No
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
 #### DedicatedLogVolume
 
 Indicates whether the DB instance has a dedicated log volume (DLV) enabled.
@@ -587,7 +599,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### EngineVersion
 
@@ -1026,10 +1038,6 @@ The AWS Region-unique, immutable identifier for the DB instance. This identifier
 #### DBInstanceArn
 
 The Amazon Resource Name (ARN) for the DB instance.
-
-#### DBSystemId
-
-The Oracle system ID (Oracle SID) for a container database (CDB). The Oracle SID is also the name of the CDB. This setting is valid for RDS Custom only.
 
 #### SecretArn
 
