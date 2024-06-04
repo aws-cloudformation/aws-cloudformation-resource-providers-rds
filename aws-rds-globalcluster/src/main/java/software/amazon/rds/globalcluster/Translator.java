@@ -32,6 +32,7 @@ public class Translator {
             .globalClusterIdentifier(model.getGlobalClusterIdentifier())
             .sourceDBClusterIdentifier(StringUtils.isBlank(dbClusterArn) ? model.getSourceDBClusterIdentifier() : dbClusterArn)
             .storageEncrypted(model.getStorageEncrypted())
+            .engineLifecycleSupport(model.getEngineLifecycleSupport())
             .build();
   }
 

@@ -40,6 +40,7 @@ public class ReadHandler extends BaseHandlerStd {
         builder.engineVersion(cluster.engineVersion());
         builder.storageEncrypted(cluster.storageEncrypted());
         builder.deletionProtection(cluster.deletionProtection());
+        builder.engineLifecycleSupport(cluster.engineLifecycleSupport());
 
         if (cluster.hasGlobalClusterMembers()) {
 

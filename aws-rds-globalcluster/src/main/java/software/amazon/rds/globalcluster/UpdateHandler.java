@@ -1,8 +1,10 @@
 package software.amazon.rds.globalcluster;
 
+import java.util.Objects;
 import org.apache.commons.lang3.BooleanUtils;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -19,7 +21,14 @@ public class UpdateHandler extends BaseHandlerStd {
         ResourceModel previousModel = request.getPreviousResourceState();
         ResourceModel desiredModel = request.getDesiredResourceState();
 
-        return proxy.initiate("rds::update-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
+        return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
+                .then(progress -> {
+                    if(!Objects.equals(previousModel.getEngineLifecycleSupport(), desiredModel.getEngineLifecycleSupport())) {
+                        throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
+                    }
+                    return progress;
+                })
+                .then(progress -> proxy.initiate("rds::update-global-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
                 // request to update global cluster
                 .translateToServiceRequest(model -> Translator.modifyGlobalClusterRequest(previousModel, desiredModel, BooleanUtils.isTrue(request.getRollback())))
                 .backoffDelay(BACKOFF_STRATEGY)
@@ -27,6 +36,6 @@ public class UpdateHandler extends BaseHandlerStd {
                 .stabilize(((modifyGlobalClusterRequest, modifyGlobalClusterResponse, proxyClient1, resourceModel, callbackContext1) ->
                         isGlobalClusterStabilized(proxyClient1, desiredModel)))
                 .progress()
-                .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+                .then(readProgress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger)));
     }
 }
