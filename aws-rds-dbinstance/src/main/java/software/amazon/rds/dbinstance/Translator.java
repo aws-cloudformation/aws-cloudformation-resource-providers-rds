@@ -290,6 +290,7 @@ public class Translator {
                 .dbName(model.getDBName())
                 .dbParameterGroupName(model.getDBParameterGroupName())
                 .dbSubnetGroupName(model.getDBSubnetGroupName())
+                .dbSystemId(model.getDBSystemId())
                 .dedicatedLogVolume(model.getDedicatedLogVolume())
                 .deletionProtection(model.getDeletionProtection())
                 .domain(model.getDomain())
