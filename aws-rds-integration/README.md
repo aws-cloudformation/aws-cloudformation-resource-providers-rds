@@ -5,24 +5,3 @@ The CloudFormation Resource Provider Package For Amazon Relational Database Serv
 ## License
 
 This library is licensed under the Apache 2.0 License.
-
-### Generate testsAccountsConfig.yml for contract tests
-
-See [Uluru wiki](https://w.amazon.com/bin/view/AWS/CloudFormation/Teams/ProviderEx/RP-Framework/Projects/UluruContractTests#HCanIrunCTv2inpipelineusingmyownaccounts3F)
-
-Uluru allows service teams to run contract tests on their own accounts. This way, the test process is completely visible
-to the service team -- any errors can be easily debugged in Step Functions (instead of S3), any stuck dependency stacks
-can be freely removed and retried, and contract tests can reuse the same prefab resources as integration tests.
-
-File generation is only needed if: 1) RDS adds a new control plane region, 2) RDS adds a new CFN resource
-
-1. (One-time) Install jq and yq
-   ```
-   brew install jq yq
-   ```
-2. Run command to generate testsAccountsConfig.yml and copy the generated file to all projects' **contract-tests-artifacts** directories
-   ```
-   brazil-build generateTestAccountsConfig
-   ```
-3. Examine `git diff` to make sure the changes are expected
-4. CR the changes
