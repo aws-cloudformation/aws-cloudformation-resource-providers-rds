@@ -107,6 +107,7 @@ public class Translator {
             final Tagging.TagSet tagSet
     ) {
         RestoreDbClusterToPointInTimeRequest.Builder builder = RestoreDbClusterToPointInTimeRequest.builder()
+                .backtrackWindow(castToLong(model.getBacktrackWindow()))
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
                 .dbClusterInstanceClass(model.getDBClusterInstanceClass())
@@ -236,7 +237,6 @@ public class Translator {
 
         if (EngineMode.fromString(desiredModel.getEngineMode()) != EngineMode.Serverless) {
             builder.allocatedStorage(desiredModel.getAllocatedStorage())
-                    .backtrackWindow(castToLong(desiredModel.getBacktrackWindow()))
                     .enableIAMDatabaseAuthentication(desiredModel.getEnableIAMDatabaseAuthentication())
                     .preferredBackupWindow(desiredModel.getPreferredBackupWindow());
         } else {

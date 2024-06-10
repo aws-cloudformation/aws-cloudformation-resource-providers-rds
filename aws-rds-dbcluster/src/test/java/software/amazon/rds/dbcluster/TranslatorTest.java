@@ -459,14 +459,12 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .engineMode(EngineMode.Serverless.toString())
                 .enableIAMDatabaseAuthentication(true)
                 .preferredBackupWindow("backup")
-                .backtrackWindow(100)
                 .allocatedStorage(200)
                 .build();
         final ModifyDbClusterRequest request = Translator.modifyDbClusterAfterCreateRequest(model);
 
         assertThat(request.enableIAMDatabaseAuthentication()).isNull();
         assertThat(request.preferredBackupWindow()).isNull();
-        assertThat(request.backtrackWindow()).isNull();
         assertThat(request.allocatedStorage()).isNull();
     }
 
@@ -476,14 +474,12 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .engineMode(EngineMode.Provisioned.toString())
                 .enableIAMDatabaseAuthentication(true)
                 .preferredBackupWindow("backup")
-                .backtrackWindow(100)
                 .allocatedStorage(200)
                 .build();
         final ModifyDbClusterRequest request = Translator.modifyDbClusterAfterCreateRequest(model);
 
         assertThat(request.enableIAMDatabaseAuthentication()).isEqualTo(true);
         assertThat(request.preferredBackupWindow()).isEqualTo("backup");
-        assertThat(request.backtrackWindow()).isEqualTo(100);
         assertThat(request.allocatedStorage()).isEqualTo(200);
     }
 
@@ -494,11 +490,13 @@ public class TranslatorTest extends AbstractHandlerTest {
                 .enableIAMDatabaseAuthentication(true)
                 .useLatestRestorableTime(false)
                 .restoreToTime("2019-03-07T23:45:00Z")
+                .backtrackWindow(0)
                 .build();
         final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
 
         assertThat(request.useLatestRestorableTime()).isEqualTo(false);
         assertThat(request.restoreToTime()).isEqualTo("2019-03-07T23:45:00Z");
+        assertThat(request.backtrackWindow()).isEqualTo(0);
     }
 
     @Test
