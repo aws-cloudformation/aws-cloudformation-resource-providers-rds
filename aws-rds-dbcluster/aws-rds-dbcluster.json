@@ -35,7 +35,6 @@
     },
     "BacktrackWindow": {
       "description": "The target backtrack window, in seconds. To disable backtracking, set this value to 0.",
-      "default": 0,
       "minimum": 0,
       "type": "integer"
     },
