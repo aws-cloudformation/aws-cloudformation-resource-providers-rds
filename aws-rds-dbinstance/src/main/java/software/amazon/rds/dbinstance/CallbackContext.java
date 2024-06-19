@@ -14,6 +14,7 @@ import software.amazon.rds.common.handler.TimestampContext;
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
 public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider {
+    private boolean described;
     private boolean created;
     private boolean deleted;
     private boolean updatedRoles;
@@ -27,6 +28,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private String dbInstanceArn;
     private String currentRegion;
     private String kmsKeyId;
+    private String snapshotIdentifier;
 
     private TaggingContext taggingContext;
     private Map<String, Long> timestamps;
