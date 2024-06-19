@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaResp
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceStatusInfo;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
@@ -204,14 +205,17 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final ResourceModel RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT;
     protected static final ResourceModel RESOURCE_MODEL_RESTORING_TO_POINT_IN_TIME;
 
-    protected static final DBInstance DB_INSTANCE_BASE;
-    protected static final DBInstance DB_INSTANCE_ACTIVE;
-    protected static final DBInstance DB_INSTANCE_SQLSERVER_ACTIVE;
-    protected static final DBInstance DB_INSTANCE_DELETING;
-    protected static final DBInstance DB_INSTANCE_FAILED;
-    protected static final DBInstance DB_INSTANCE_MODIFYING;
-    protected static final DBInstance DB_INSTANCE_EMPTY_PORT;
-    protected static final DBInstance DB_INSTANCE_STORAGE_FULL;
+    static final DBInstance DB_INSTANCE_BASE;
+    static final DBInstance DB_INSTANCE_ACTIVE;
+    static final DBInstance DB_INSTANCE_AURORA_ACTIVE;
+    static final DBInstance DB_INSTANCE_SQLSERVER_ACTIVE;
+    static final DBInstance DB_INSTANCE_READ_REPLICA_ACTIVE;
+    static final DBInstance DB_INSTANCE_MAZ_CLUSTER_READ_REPLICA_ACTIVE;
+    static final DBInstance DB_INSTANCE_DELETING;
+    static final DBInstance DB_INSTANCE_FAILED;
+    static final DBInstance DB_INSTANCE_MODIFYING;
+    static final DBInstance DB_INSTANCE_EMPTY_PORT;
+    static final DBInstance DB_INSTANCE_STORAGE_FULL;
 
     protected static Constant TEST_BACKOFF_DELAY = Constant.of()
             .delay(Duration.ofMillis(1L))
@@ -572,8 +576,21 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
                 .promotionTier(PROMOTION_TIER_DEFAULT)
                 .build();
 
+        DB_INSTANCE_AURORA_ACTIVE = DB_INSTANCE_ACTIVE.toBuilder()
+                .dbClusterIdentifier(DB_CLUSTER_IDENTIFIER_NON_EMPTY)
+                .engine(ENGINE_AURORA_MYSQL)
+                .build();
+
         DB_INSTANCE_SQLSERVER_ACTIVE = DB_INSTANCE_ACTIVE.toBuilder()
                 .engine(ENGINE_SQLSERVER_SE)
+                .build();
+
+        DB_INSTANCE_READ_REPLICA_ACTIVE = DB_INSTANCE_ACTIVE.toBuilder()
+                .readReplicaSourceDBInstanceIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
+                .build();
+
+        DB_INSTANCE_MAZ_CLUSTER_READ_REPLICA_ACTIVE = DB_INSTANCE_ACTIVE.toBuilder()
+                .readReplicaSourceDBClusterIdentifier(SOURCE_DB_INSTANCE_IDENTIFIER_NON_EMPTY)
                 .build();
 
         DB_INSTANCE_DELETING = DB_INSTANCE_ACTIVE.toBuilder()
