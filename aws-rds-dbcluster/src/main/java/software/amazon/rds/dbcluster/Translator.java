@@ -275,7 +275,7 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enableLocalWriteForwarding(desiredModel.getEnableLocalWriteForwarding())
+                .enableLocalWriteForwarding(diff(previousModel.getEnableLocalWriteForwarding(), desiredModel.getEnableLocalWriteForwarding()))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))

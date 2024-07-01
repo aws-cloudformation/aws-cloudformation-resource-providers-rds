@@ -245,6 +245,25 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void modifyDbClusterRequest_enableLocalWriteForwarding() {
+        final var previousModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(null).build();
+
+        final var desiredModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(true).build();
+
+        final var request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(true);
+    }
+
+    @Test
+    public void modifyDbClusterRequest_sameLocalWriteForwarding() {
+        final var previousModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
+        final var desiredModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
+
+        final var request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isNull();
+    }
+
+    @Test
     public void test_translateDbClusterFromSdk_emptyDomainMembership() {
         final DBCluster cluster = DBCluster.builder()
                 .domainMemberships((Collection<DomainMembership>) null)
