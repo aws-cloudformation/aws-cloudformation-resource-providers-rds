@@ -331,10 +331,12 @@ class CommonsTest {
         final TestResourceModel output = new TestResourceModel();
         output.testProperty = "test-property-output";
 
+        final String handlerOperation = "test-property";
+
         Logger logger = Mockito.mock(Logger.class);
         Mockito.doNothing().when(logger).log(any(String.class));
 
-        Commons.reportResourceDrift(input, ProgressEvent.<TestResourceModel, Void>progress(output, null), TEST_RESOURCE_TYPE_SCHEMA, new RequestLogger(logger, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()));
+        Commons.reportResourceDrift(input, ProgressEvent.<TestResourceModel, Void>progress(output, null), TEST_RESOURCE_TYPE_SCHEMA, new RequestLogger(logger, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()), handlerOperation);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(logger).log(captor.capture());
 
@@ -350,10 +352,30 @@ class CommonsTest {
         final TestResourceModel output = new TestResourceModel();
         output.testProperty = "test-property";
 
+        final String handlerOperation = "test-property";
+
         Logger logger = Mockito.mock(Logger.class);
 
-        Commons.reportResourceDrift(input, ProgressEvent.<TestResourceModel, Void>progress(output, null), TEST_RESOURCE_TYPE_SCHEMA, new RequestLogger(logger, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()));
+        Commons.reportResourceDrift(input, ProgressEvent.<TestResourceModel, Void>progress(output, null), TEST_RESOURCE_TYPE_SCHEMA, new RequestLogger(logger, new ResourceHandlerRequest<>(), new FilteredJsonPrinter()), handlerOperation);
         verifyNoInteractions(logger);
+    }
+
+    @Test
+    void test_detectDrift_shouldFailIfSchemaIsNull(){
+
+        final TestResourceModel input = new TestResourceModel();
+        input.testProperty = "test-property";
+
+        final TestResourceModel output = new TestResourceModel();
+        output.testProperty = "test-property-1";
+
+        final String handlerOperation = null;
+
+        Commons.reportResourceDrift(input, ProgressEvent.<TestResourceModel, Void>progress(output, null), null, requestLogger, handlerOperation);
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Exception> exCaptor = ArgumentCaptor.forClass(Exception.class);
+        verify(requestLogger).log(captor.capture(), exCaptor.capture());
     }
 
     private AwsServiceException newAwsServiceException(final ErrorCode errorCode) {

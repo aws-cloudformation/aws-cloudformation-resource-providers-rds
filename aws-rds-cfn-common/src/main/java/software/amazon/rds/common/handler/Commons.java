@@ -126,16 +126,16 @@ public final class Commons {
             final M inputModel,
             final ProgressEvent<M, C> progress,
             final ResourceTypeSchema schema,
-            final RequestLogger logger
-    ) {
+            final RequestLogger requestLogger,
+            final String handlerAction) {
         try {
             final DriftDetector driftDetector = new DriftDetector(schema);
             final Map<String, Mutation> mutations = driftDetector.detectDrift(inputModel, progress.getResourceModel());
             if (!mutations.isEmpty()) {
-                logger.log("Resource drift detected", new DriftDetectorReport(mutations));
+                requestLogger.log(String.format("Resource drift detected! Action: %s", handlerAction), new DriftDetectorReport(mutations));
             }
         } catch (Exception e) {
-            logger.log("Drift detector internal error", e);
+            requestLogger.log("Drift detector internal error", e);
         }
         return progress;
     }

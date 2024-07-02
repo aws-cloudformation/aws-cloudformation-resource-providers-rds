@@ -34,6 +34,8 @@ public class CreateHandler extends BaseHandlerStd {
         this(DB_CLUSTER_HANDLER_CONFIG_36H);
     }
 
+    final String handlerOperation = "CREATE";
+
     public CreateHandler(final HandlerConfig config) {
         super(config);
     }
@@ -120,7 +122,8 @@ public class CreateHandler extends BaseHandlerStd {
                             model,
                             new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient),
                             resourceTypeSchema,
-                            requestLogger
+                            requestLogger,
+                            handlerOperation
                     );
                 });
     }

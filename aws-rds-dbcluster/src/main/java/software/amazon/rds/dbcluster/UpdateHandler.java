@@ -35,6 +35,8 @@ public class UpdateHandler extends BaseHandlerStd {
         super(config);
     }
 
+    final String handlerOperation = "UPDATE";
+
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
             final ValidatedRequest<ResourceModel> request,
@@ -133,7 +135,8 @@ public class UpdateHandler extends BaseHandlerStd {
                             desiredResourceState,
                             new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient),
                             resourceTypeSchema,
-                            requestLogger
+                            requestLogger,
+                            handlerOperation
                     );
                 });
     }
