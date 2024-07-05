@@ -54,7 +54,7 @@
             <version>${org.projectlombok.version}</version>
             <scope>provided</scope>
         </dependency>
-       <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-query-protocol -->
+        <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-query-protocol -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>aws-query-protocol</artifactId>
