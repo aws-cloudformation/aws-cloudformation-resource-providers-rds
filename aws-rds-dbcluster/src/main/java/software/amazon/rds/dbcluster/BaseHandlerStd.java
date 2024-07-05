@@ -55,6 +55,7 @@ import software.amazon.awssdk.services.rds.model.InvalidGlobalClusterStateExcept
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
+import software.amazon.awssdk.services.rds.model.LocalWriteForwardingStatus;
 import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
@@ -63,6 +64,7 @@ import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedExceptio
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -158,7 +160,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     KmsKeyNotAccessibleException.class,
                     StorageTypeNotAvailableException.class,
                     StorageTypeNotSupportedException.class,
-                    NetworkTypeNotSupportedException.class)
+                    NetworkTypeNotSupportedException.class,
+                    CfnInvalidRequestException.class)
             .build();
 
     protected static final ErrorRuleSet ADD_ASSOC_ROLES_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
@@ -332,22 +335,30 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         final boolean isNoPendingChangesResult = isNoPendingChanges(dbCluster);
         final boolean isMasterUserSecretStabilizedResult = isMasterUserSecretStabilized(dbCluster);
         final boolean isGlobalWriteForwardingStabilizedResult = isGlobalWriteForwardingStabilized(dbCluster);
+        final boolean isLocalWriteForwardingStabilizedResult = isLocalWriteForwardingStabilized(dbCluster);
 
         requestLogger.log(String.format("isDbClusterStabilized: %b", isDBClusterStabilizedResult),
                 ImmutableMap.of("isDbClusterAvailable", isDBClusterStabilizedResult,
                         "isNoPendingChanges", isNoPendingChangesResult,
                         "isMasterUserSecretStabilized", isMasterUserSecretStabilizedResult,
-                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilizedResult),
+                        "isGlobalWriteForwardingStabilized", isGlobalWriteForwardingStabilizedResult,
+                        "isLocalWriteForwardingStabilized", isLocalWriteForwardingStabilizedResult),
                 ImmutableMap.of("Description", "isDBClusterStabilized method will be repeatedly" +
                         " called with a backoff mechanism after the modify call until it returns true. This" +
                         " process will continue until all included flags are true."));
-        return isDBClusterStabilizedResult && isNoPendingChangesResult && isMasterUserSecretStabilizedResult && isGlobalWriteForwardingStabilizedResult;
+        return isDBClusterStabilizedResult &&
+                isNoPendingChangesResult &&
+                isMasterUserSecretStabilizedResult &&
+                isGlobalWriteForwardingStabilizedResult &&
+                isLocalWriteForwardingStabilizedResult;
     }
 
     private void resourceStabilizationTime(final CallbackContext context) {
         context.timestampOnce(DB_CLUSTER_REQUEST_STARTED_AT, Instant.now());
         context.timestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT, Instant.now());
-        context.calculateTimeDeltaInMinutes(DB_CLUSTER_STABILIZATION_TIME, context.getTimestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT), context.getTimestamp(DB_CLUSTER_REQUEST_STARTED_AT));
+        context.calculateTimeDeltaInMinutes(DB_CLUSTER_STABILIZATION_TIME,
+                context.getTimestamp(DB_CLUSTER_REQUEST_IN_PROGRESS_AT),
+                context.getTimestamp(DB_CLUSTER_REQUEST_STARTED_AT));
     }
 
     protected static boolean isMasterUserSecretStabilized(DBCluster dbCluster) {
@@ -363,6 +374,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 // Even if GWF is requested the WF will not start until a replica is created by customers
                 (dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.ENABLING &&
                         dbCluster.globalWriteForwardingStatus() != WriteForwardingStatus.DISABLING);
+    }
+
+    protected static boolean isLocalWriteForwardingStabilized(DBCluster dbCluster) {
+        return (dbCluster.localWriteForwardingStatus() != LocalWriteForwardingStatus.ENABLING &&
+                        dbCluster.localWriteForwardingStatus() != LocalWriteForwardingStatus.DISABLING);
     }
 
     protected boolean isClusterRemovedFromGlobalCluster(

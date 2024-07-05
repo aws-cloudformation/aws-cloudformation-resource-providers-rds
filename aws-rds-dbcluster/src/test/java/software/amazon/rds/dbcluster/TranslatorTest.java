@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
+import software.amazon.awssdk.services.rds.model.LocalWriteForwardingStatus;
 import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
 import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
@@ -37,6 +38,14 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         final CreateDbClusterRequest request = Translator.createDbClusterRequest(model, Tagging.TagSet.emptySet());
         assertThat(request.enableGlobalWriteForwarding()).isEqualTo(Boolean.TRUE);
+    }
+
+    @Test
+    public void createDbClusterRequest_enableLocalWriteForwarding() {
+        final ResourceModel model = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(true).build();
+
+        final CreateDbClusterRequest request = Translator.createDbClusterRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(Boolean.TRUE);
     }
 
     @Test
@@ -233,6 +242,25 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         final ModifyDbClusterRequest request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
         assertThat(request.serverlessV2ScalingConfiguration()).isEqualTo(null);
+    }
+
+    @Test
+    public void modifyDbClusterRequest_enableLocalWriteForwarding() {
+        final var previousModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(null).build();
+
+        final var desiredModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(true).build();
+
+        final var request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(true);
+    }
+
+    @Test
+    public void modifyDbClusterRequest_sameLocalWriteForwarding() {
+        final var previousModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
+        final var desiredModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
+
+        final var request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isNull();
     }
 
     @Test
@@ -565,6 +593,36 @@ public class TranslatorTest extends AbstractHandlerTest {
                         .build()
         );
         assertThat(model.getStorageType()).isEqualTo(STORAGE_TYPE_AURORA_IOPT1);
+    }
+
+    @Test
+    public void translateDbCluterFromSdk_translateLocalWriteForwardingStatusRequested() {
+        final ResourceModel model = Translator.translateDbClusterFromSdk(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.REQUESTED)
+                        .build()
+        );
+        assertThat(model.getEnableLocalWriteForwarding()).isTrue();
+    }
+
+    @Test
+    public void translateDbCluterFromSdk_translateLocalWriteForwardingStatusEnabling() {
+        final ResourceModel model = Translator.translateDbClusterFromSdk(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.ENABLING)
+                        .build()
+        );
+        assertThat(model.getEnableLocalWriteForwarding()).isFalse();
+    }
+
+    @Test
+    public void translateDbCluterFromSdk_translateLocalWriteForwardingStatusDisabling() {
+        final ResourceModel model = Translator.translateDbClusterFromSdk(
+                DBCluster.builder()
+                        .localWriteForwardingStatus(LocalWriteForwardingStatus.DISABLING)
+                        .build()
+        );
+        assertThat(model.getEnableLocalWriteForwarding()).isFalse();
     }
 
     @Override

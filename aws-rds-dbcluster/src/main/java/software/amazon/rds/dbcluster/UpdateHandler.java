@@ -4,6 +4,7 @@ import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.Objects;
 
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -11,6 +12,7 @@ import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.SourceType;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -32,6 +34,8 @@ public class UpdateHandler extends BaseHandlerStd {
     public UpdateHandler(final HandlerConfig config) {
         super(config);
     }
+
+    final String handlerOperation = "UPDATE";
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -65,6 +69,18 @@ public class UpdateHandler extends BaseHandlerStd {
             );
         }
         return ProgressEvent.progress(desiredResourceState, callbackContext)
+                .then(progress -> {
+                    try {
+                        if(!Objects.equals(request.getDesiredResourceState().getEngineLifecycleSupport(),
+                                request.getPreviousResourceState().getEngineLifecycleSupport()) &&
+                                !request.getRollback()) {
+                            throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
+                        }
+                    } catch (CfnInvalidRequestException e) {
+                        return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
+                    }
+                    return progress;
+                })
                 .then(progress -> {
                     if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
                         progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
@@ -119,7 +135,8 @@ public class UpdateHandler extends BaseHandlerStd {
                             desiredResourceState,
                             new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient),
                             resourceTypeSchema,
-                            requestLogger
+                            requestLogger,
+                            handlerOperation
                     );
                 });
     }

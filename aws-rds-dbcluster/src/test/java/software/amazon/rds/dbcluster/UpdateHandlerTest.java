@@ -995,4 +995,17 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectResponseCode
         );
     }
+
+    @Test
+    public void handleRequest_EngineLifecycleSupportShouldFail() {
+        expectServiceInvocation = false;
+        test_handleRequest_base(
+                new CallbackContext(),
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(false),
+                null,
+                () -> RESOURCE_MODEL.toBuilder().engineLifecycleSupport("open-source-rds-extended-support").build(),
+                () -> RESOURCE_MODEL.toBuilder().engineLifecycleSupport("open-source-rds-extended-support-disabled").build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
 }

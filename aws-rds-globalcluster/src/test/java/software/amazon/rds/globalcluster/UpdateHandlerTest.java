@@ -1,6 +1,7 @@
 package software.amazon.rds.globalcluster;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,7 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.*;
 
 import java.time.Duration;
@@ -51,7 +53,9 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final DescribeGlobalClustersResponse describeGlobalClustersResponse = DescribeGlobalClustersResponse.builder().globalClusters(GLOBAL_CLUSTER_ACTIVE).build();
         when(proxyRdsClient.client().describeGlobalClusters(any(DescribeGlobalClustersRequest.class))).thenReturn(describeGlobalClustersResponse);
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_UPDATE).build();
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceState(RESOURCE_MODEL)
+                .desiredResourceState(RESOURCE_MODEL_UPDATE).build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -99,7 +103,9 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         when(proxyRdsClient.client().modifyGlobalCluster(any(ModifyGlobalClusterRequest.class))).thenThrow(exception);
 
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder().desiredResourceState(RESOURCE_MODEL_UPDATE).build();
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceState(RESOURCE_MODEL)
+                .desiredResourceState(RESOURCE_MODEL_UPDATE).build();
         final ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
 
         assertThat(response).isNotNull();
@@ -111,5 +117,32 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(rds).serviceName();
         verifyNoMoreInteractions(rds);
+    }
+
+    @Test
+    public void handleRequest_updateEngineLifecycleSupportShouldFail() {
+        ResourceModel previousState = ResourceModel.builder()
+                .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
+                .engineVersion(ENGINE_VERSION)
+                .engine(ENGINE)
+                .engineLifecycleSupport("open-source-rds-extended-support")
+                .build();
+
+        ResourceModel desiredState = ResourceModel.builder()
+                .globalClusterIdentifier(GLOBALCLUSTER_IDENTIFIER)
+                .engineVersion(ENGINE_VERSION)
+                .engine(ENGINE)
+                .engineLifecycleSupport("open-source-rds-extended-support-disabled")
+                .build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceState(previousState)
+                .desiredResourceState(desiredState).build();
+
+        try {
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyRdsClient, logger);
+        } catch (CfnInvalidRequestException e) {
+            Assertions.assertEquals(e.getMessage(), "Invalid request provided: EngineLifecycleSupport cannot be modified.");
+        }
     }
 }

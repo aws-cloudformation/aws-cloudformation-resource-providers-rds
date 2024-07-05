@@ -49,6 +49,8 @@ public class CreateHandler extends BaseHandlerStd {
         super(config);
     }
 
+    final String handlerOperation = "CREATE";
+
     @Override
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
         super.validateRequest(request);
@@ -206,7 +208,8 @@ public class CreateHandler extends BaseHandlerStd {
                             model,
                             new ReadHandler().handleRequest(proxy, request, progress.getCallbackContext(), rdsProxyClient, ec2ProxyClient, requestLogger),
                             resourceTypeSchema,
-                            requestLogger
+                            requestLogger,
+                            handlerOperation
                     );
                 });
     }

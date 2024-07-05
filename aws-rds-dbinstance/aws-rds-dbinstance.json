@@ -289,6 +289,10 @@
       "type": "string",
       "description": "The name of the database engine that you want to use for this DB instance."
     },
+    "EngineLifecycleSupport": {
+      "type": "string",
+      "description": "The life cycle type of the DB instance. You can use this setting to enroll your DB instance into Amazon RDS Extended Support."
+    },
     "EngineVersion": {
       "type": "string",
       "description": "The version number of the database engine to use."
@@ -644,6 +648,7 @@
     },
     "delete": {
       "permissions": [
+        "rds:AddTagsToResource",
         "rds:CreateDBSnapshot",
         "rds:DeleteDBInstance",
         "rds:DescribeDBInstances"

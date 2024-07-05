@@ -97,7 +97,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         Translator.describeEventSubscriptionsRequest(model),
                         proxyClient.client()::describeEventSubscriptions)
                 .eventSubscriptionsList().stream().findFirst().get().status();
-        return status.equals("active");
+        return status.equals("active") || status.equals("all-sources-deleted");
     }
 
     private void resourceStabilizationTime(final CallbackContext callbackContext) {

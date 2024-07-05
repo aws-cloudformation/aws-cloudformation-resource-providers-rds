@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.NonNull;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -126,16 +127,16 @@ public final class Commons {
             final M inputModel,
             final ProgressEvent<M, C> progress,
             final ResourceTypeSchema schema,
-            final RequestLogger logger
-    ) {
+            final RequestLogger requestLogger,
+            final String handlerAction) {
         try {
             final DriftDetector driftDetector = new DriftDetector(schema);
             final Map<String, Mutation> mutations = driftDetector.detectDrift(inputModel, progress.getResourceModel());
             if (!mutations.isEmpty()) {
-                logger.log("Resource drift detected", new DriftDetectorReport(mutations));
+                requestLogger.log("Resource drift detected", ImmutableMap.of("HandlerAction", handlerAction, "Report", new DriftDetectorReport(mutations)));
             }
         } catch (Exception e) {
-            logger.log("Drift detector internal error", e);
+            requestLogger.log("Drift detector internal error", e);
         }
         return progress;
     }

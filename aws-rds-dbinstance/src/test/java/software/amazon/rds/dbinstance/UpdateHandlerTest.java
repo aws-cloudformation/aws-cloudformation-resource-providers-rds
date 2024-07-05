@@ -1860,4 +1860,27 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
+
+    @Test
+    public void handleRequest_EngineLifecycleSupportShouldFail() {
+        expectServiceInvocation = false;
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .engineLifecycleSupport("open-source-rds-extended-support")
+                .build();
+
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .engineLifecycleSupport("open-source-rds-extended-support-disabled")
+                .build();
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                ResourceHandlerRequest.<ResourceModel>builder().rollback(false),
+                null,
+                () -> previousModel,
+                () -> desiredModel,
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
 }
