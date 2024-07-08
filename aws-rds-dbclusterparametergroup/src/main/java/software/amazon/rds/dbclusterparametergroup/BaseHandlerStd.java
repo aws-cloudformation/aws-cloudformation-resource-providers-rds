@@ -70,7 +70,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             ImmutableSet.of("gtid-mode", "enforce_gtid_consistency"),
             ImmutableSet.of("password_encryption", "rds.accepted_password_auth_method"),
             ImmutableSet.of("ssl_max_protocol_version", "ssl_min_protocol_version"),
-            ImmutableSet.of("rds.change_data_capture_streaming", "binlog_format")
+            ImmutableSet.of("rds.change_data_capture_streaming", "binlog_format"),
+            ImmutableSet.of("aurora_enhanced_binlog", "binlog_backup")
     );
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> EMPTY_CALL = (model, proxyClient) -> model;
     protected static final String AVAILABLE = "available";
