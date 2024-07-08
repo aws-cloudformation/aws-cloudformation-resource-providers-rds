@@ -8,17 +8,23 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
+import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.AdditionalAnswers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -77,6 +83,35 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     private ResourceModel RESOURCE_MODEL;
 
     private Map<String, Object> PARAMS;
+
+    /**
+     * When building the DbClusterParameters (e.g. for mocking a DescribeDbClusterParametersResponse), is important the order that
+     * they get iterated. For example, we have cases where the DbClusterParameters have to be split following some rules, and
+     * the insertion order becomes important.
+     *
+     * This class will allow you to create DbClusterParameters preserving the insertion order when iterating over it.
+     */
+    private static class InsertionOrderedParamBuilder {
+        private final ImmutableMap.Builder<String, Object> parameters = new ImmutableMap.Builder<>();
+
+        public static InsertionOrderedParamBuilder builder() {
+            return new InsertionOrderedParamBuilder();
+        }
+
+        public InsertionOrderedParamBuilder addParameter(String parameterName, String parameterValue) {
+            parameters.put(parameterName, parameterValue);
+            return this;
+        }
+
+        public InsertionOrderedParamBuilder addRandomParameters(int numberOfRandomParameters) {
+            IntStream.range(0, numberOfRandomParameters).forEach(i -> parameters.put("param" + i, "value"));
+            return this;
+        }
+
+        public Map<String, Object> build() {
+            return parameters.build();
+        }
+    }
 
     @Override
     public HandlerName getHandlerName() {
@@ -405,6 +440,77 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
     }
 
+    /**
+     * There are combinations of ParameterGroups that ModifyDBParameterGroup expected them come in the same request,
+     * as they are related and configure a particular functionality. At the same time, the ModifyDBParameterGroup API
+     * expects a maximum of 20 parameters that can be modified in a single request.
+     * (https://docs.aws.amazon.com/cli/latest/reference/rds/modify-db-parameter-group.html)
+     *
+     * In the case that the parameters included in the CFN template exceed the request limit, we could end up in
+     * a condition in which 2 related parameters existing in the CFN template, end up in 2 different requests.
+     * We need to ensure that all related parameters are sent in the same request as defined
+     * in BaseHandlerStd.PARAMETER_DEPENDENCIES
+     *
+     * This test ensure that "aurora_enhanced_binlog" and "binlog_backup" get bundled in the same request after
+     * the split logic that happens in BaseHandlerStd.modifyParameters
+     */
+    @Test
+    public void handleRequest_SuccessSplitParameters() {
+        when(rdsClient.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
+                .thenReturn(CreateDbClusterParameterGroupResponse.builder()
+                        .dbClusterParameterGroup(DB_CLUSTER_PARAMETER_GROUP)
+                        .build()
+                );
+
+        when(rdsClient.modifyDBClusterParameterGroup(any(ModifyDbClusterParameterGroupRequest.class)))
+                .thenReturn(ModifyDbClusterParameterGroupResponse.builder().build());
+
+        when(rdsClient.describeDBClusters(any(DescribeDbClustersRequest.class)))
+                .thenReturn(DescribeDbClustersResponse.builder()
+                        .dbClusters(DBCluster.builder().dbClusterParameterGroup("group").status("available").build())
+                        .build());
+
+        final DBClusterParameterGroup dbClusterParameterGroup = DBClusterParameterGroup.builder()
+                .dbClusterParameterGroupArn(ARN)
+                .dbClusterParameterGroupName(RESOURCE_MODEL.getDBClusterParameterGroupName())
+                .dbParameterGroupFamily(RESOURCE_MODEL.getFamily())
+                .description(RESOURCE_MODEL.getDescription()).build();
+
+        when(rdsProxy.client().listTagsForResource(any(ListTagsForResourceRequest.class)))
+                .thenReturn(ListTagsForResourceResponse.builder()
+                        .tagList(Tag.builder().key(TAG_KEY).value(TAG_VALUE).build())
+                        .build());
+
+        // Defining 2 parameters that have to be bundled in the same request. We do this by including them in an
+        // insert-ordered Map, and being far away one from each other. With these conditions, they would naturally
+        // be bundled in 2 different API requests to "modify dbclusterparametergroup".
+        ResourceModel resourceModel = RESOURCE_MODEL.toBuilder()
+                .parameters(InsertionOrderedParamBuilder.builder()
+                        .addParameter("aurora_enhanced_binlog", "1")
+                        .addRandomParameters(BaseHandlerStd.MAX_PARAMETERS_PER_REQUEST)
+                        .addParameter("binlog_backup", "0")
+                        .build())
+                .build();
+        mockDescribeDbClusterParametersResponse(resourceModel.getParameters(), true, "static");
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> dbClusterParameterGroup,
+                () -> resourceModel,
+                expectSuccess()
+        );
+
+        ArgumentCaptor<ModifyDbClusterParameterGroupRequest> captor = ArgumentCaptor.forClass(ModifyDbClusterParameterGroupRequest.class);
+
+        verify(rdsProxy.client(), times(1)).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
+        verify(rdsProxy.client(), times(2)).modifyDBClusterParameterGroup(captor.capture());
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        ModifyDbClusterParameterGroupRequest firstRequest = captor.getAllValues().get(0);
+        assertThat(verifyParameterExistsInRequest("aurora_enhanced_binlog", firstRequest)).isEqualTo(true);
+        assertThat(verifyParameterExistsInRequest("binlog_backup", firstRequest)).isEqualTo(true);
+    }
+
     @Test
     public void handleRequest_SuccessWithEmptyParameters() {
         when(rdsClient.createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class)))
@@ -511,6 +617,32 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     private void mockDescribeDbClusterParametersResponse(
+            Map<String, Object> params,
+            final boolean isModifiable,
+            final String paramApplyType
+    ) {
+        List<DescribeDbClusterParametersResponse> responses = new ArrayList<>();
+        Lists.partition(params.keySet().stream().toList(), BaseHandlerStd.MAX_PARAMETERS_PER_REQUEST).forEach(page -> {
+            List<Parameter> parameters = new ArrayList<>();
+            page.forEach(paramName -> {
+                parameters.add(Parameter.builder()
+                        .parameterName(paramName)
+                        .parameterValue("system_value")
+                        .isModifiable(isModifiable)
+                        .applyType(paramApplyType)
+                        .build());
+            });
+            responses.add(DescribeDbClusterParametersResponse.builder()
+                    .marker("marker")
+                    .parameters(parameters).build());
+        });
+        responses.add(DescribeDbClusterParametersResponse.builder().build());
+
+        doAnswer(AdditionalAnswers.returnsElementsOf(responses))
+                .when(rdsProxy.client()).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
+    }
+
+    private void mockDescribeDbClusterParametersResponse(
             final String firstParamApplyType,
             final String secondParamApplyType,
             final boolean isModifiable
@@ -542,5 +674,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
     private Tag[] asSdkTagArray(final Map<String, String> tags) {
         return Iterables.toArray(Tagging.translateTagsToSdk(tags), software.amazon.awssdk.services.rds.model.Tag.class);
+    }
+
+    private boolean verifyParameterExistsInRequest(String parameterName, ModifyDbClusterParameterGroupRequest modifyDbClusterParameterGroupRequest) {
+        return modifyDbClusterParameterGroupRequest.parameters().stream()
+                .anyMatch(parameter -> parameter.parameterName().equals(parameterName));
     }
 }
