@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import com.google.common.collect.Lists;
@@ -93,6 +94,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
      */
     private static class InsertionOrderedParamBuilder {
         private final ImmutableMap.Builder<String, Object> parameters = new ImmutableMap.Builder<>();
+        private final AtomicInteger parameterIndex = new AtomicInteger(0);
 
         public static InsertionOrderedParamBuilder builder() {
             return new InsertionOrderedParamBuilder();
@@ -100,11 +102,12 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         public InsertionOrderedParamBuilder addParameter(String parameterName, String parameterValue) {
             parameters.put(parameterName, parameterValue);
+            parameterIndex.incrementAndGet();
             return this;
         }
 
         public InsertionOrderedParamBuilder addRandomParameters(int numberOfRandomParameters) {
-            IntStream.range(0, numberOfRandomParameters).forEach(i -> parameters.put("param" + i, "value"));
+            IntStream.range(0, numberOfRandomParameters).forEach(i -> parameters.put("param" + parameterIndex.incrementAndGet(), "value"));
             return this;
         }
 
@@ -451,8 +454,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
      * We need to ensure that all related parameters are sent in the same request as defined
      * in BaseHandlerStd.PARAMETER_DEPENDENCIES
      *
-     * This test ensure that "aurora_enhanced_binlog" and "binlog_backup" get bundled in the same request after
-     * the split logic that happens in BaseHandlerStd.modifyParameters
+     * This test ensure that "aurora_enhanced_binlog", "binlog_backup" and "binlog_replication_globaldb" get bundled in
+     * the same request after the split logic that happens in BaseHandlerStd.modifyParameters
      */
     @Test
     public void handleRequest_SuccessSplitParameters() {
@@ -489,6 +492,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         .addParameter("aurora_enhanced_binlog", "1")
                         .addRandomParameters(BaseHandlerStd.MAX_PARAMETERS_PER_REQUEST)
                         .addParameter("binlog_backup", "0")
+                        .addRandomParameters(BaseHandlerStd.MAX_PARAMETERS_PER_REQUEST)
+                        .addParameter("binlog_replication_globaldb", "0")
                         .build())
                 .build();
         mockDescribeDbClusterParametersResponse(resourceModel.getParameters(), true, "static");
@@ -503,12 +508,13 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<ModifyDbClusterParameterGroupRequest> captor = ArgumentCaptor.forClass(ModifyDbClusterParameterGroupRequest.class);
 
         verify(rdsProxy.client(), times(1)).createDBClusterParameterGroup(any(CreateDbClusterParameterGroupRequest.class));
-        verify(rdsProxy.client(), times(2)).modifyDBClusterParameterGroup(captor.capture());
+        verify(rdsProxy.client(), times(3)).modifyDBClusterParameterGroup(captor.capture());
         verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         ModifyDbClusterParameterGroupRequest firstRequest = captor.getAllValues().get(0);
         assertThat(verifyParameterExistsInRequest("aurora_enhanced_binlog", firstRequest)).isEqualTo(true);
         assertThat(verifyParameterExistsInRequest("binlog_backup", firstRequest)).isEqualTo(true);
+        assertThat(verifyParameterExistsInRequest("binlog_replication_globaldb", firstRequest)).isEqualTo(true);
     }
 
     @Test
