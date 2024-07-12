@@ -94,6 +94,20 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void test_modifyDbInstanceRequest_isRollback_NoAllocatedStorage() {
+        final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(null)
+                .build();
+        final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
+                .allocatedStorage(null)
+                .storageType(STORAGE_TYPE_IO1)
+                .build();
+        final Boolean isRollback = true;
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        assertThat(request.allocatedStorage()).isNull();
+    }
+
+    @Test
     public void test_modifyDbInstanceRequestV12_isRollback_IncreaseAllocatedStorage() {
         final ResourceModel previousModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE.toString())
