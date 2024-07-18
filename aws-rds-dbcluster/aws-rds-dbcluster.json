@@ -88,8 +88,7 @@
     },
     "DBClusterParameterGroupName": {
       "description": "The name of the DB cluster parameter group to associate with this DB cluster.",
-      "type": "string",
-      "default": "default.aurora5.6"
+      "type": "string"
     },
     "DBSubnetGroupName": {
       "description": "A DB subnet group that you want to associate with this DB cluster.",
@@ -174,9 +173,8 @@
       "description": "Contains the secret managed by RDS in AWS Secrets Manager for the master user password."
     },
     "MonitoringInterval": {
-      "description": "The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is 0.",
-      "type": "integer",
-      "default": 0
+      "description": "The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is not to enable Enhanced Monitoring.",
+      "type": "integer"
     },
     "MonitoringRoleArn": {
       "description": "The Amazon Resource Name (ARN) for the IAM role that permits RDS to send Enhanced Monitoring metrics to Amazon CloudWatch Logs.",
@@ -224,8 +222,7 @@
     },
     "RestoreType": {
       "description": "The type of restore to be performed. You can specify one of the following values:\nfull-copy - The new DB cluster is restored as a full copy of the source DB cluster.\ncopy-on-write - The new DB cluster is restored as a clone of the source DB cluster.",
-      "type": "string",
-      "default": "full-copy"
+      "type": "string"
     },
     "ServerlessV2ScalingConfiguration": {
       "description": "Contains the scaling configuration of an Aurora Serverless v2 DB cluster.",
