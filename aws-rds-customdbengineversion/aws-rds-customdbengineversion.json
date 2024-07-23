@@ -3,7 +3,15 @@
   "description": "The AWS::RDS::CustomDBEngineVersion resource creates an Amazon RDS custom DB engine version.",
   "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
   "tagging": {
-    "taggable": true
+    "taggable": true,
+    "tagOnCreate": true,
+    "tagUpdatable": true,
+    "cloudFormationSystemTags": true,
+    "tagProperty": "/properties/Tags",
+    "permissions": [
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource"
+    ]
   },
   "definitions": {
     "Tag": {
