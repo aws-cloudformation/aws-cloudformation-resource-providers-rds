@@ -103,5 +103,8 @@
         "rds:DescribeGlobalClusters"
       ]
     }
+  },
+  "tagging": {
+    "taggable": false
   }
 }
