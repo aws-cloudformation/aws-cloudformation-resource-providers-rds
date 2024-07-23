@@ -431,7 +431,6 @@
     "/properties/Endpoint",
     "/properties/Endpoint/Address",
     "/properties/Endpoint/Port",
-    "/properties/ReadEndpoint/Port",
     "/properties/ReadEndpoint/Address",
     "/properties/MasterUserSecret/SecretArn",
     "/properties/StorageThroughput"
@@ -534,5 +533,16 @@
         "rds:DescribeDBClusters"
       ]
     }
+  },
+  "tagging": {
+    "taggable": true,
+    "tagOnCreate": true,
+    "tagUpdatable": true,
+    "cloudFormationSystemTags": true,
+    "tagProperty": "/properties/Tags",
+    "permissions": [
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource"
+    ]
   }
 }
