@@ -275,7 +275,6 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enableLocalWriteForwarding(diff(previousModel.getEnableLocalWriteForwarding(), desiredModel.getEnableLocalWriteForwarding()))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
@@ -295,6 +294,13 @@ public class Translator {
                         )
                 )
                 .storageType(desiredModel.getStorageType());
+
+        if (previousModel.getEnableLocalWriteForwarding() == null && desiredModel.getEnableLocalWriteForwarding() == Boolean.FALSE) {
+            // RDS disables LocalWriteForwarding by default, so no need to set the value in the modify request.
+            builder.enableLocalWriteForwarding(null);
+        } else {
+            builder.enableLocalWriteForwarding(diff(previousModel.getEnableLocalWriteForwarding(), desiredModel.getEnableLocalWriteForwarding()));
+        }
 
         if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
             builder.engineVersion(desiredModel.getEngineVersion());
