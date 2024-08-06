@@ -275,7 +275,6 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enableLocalWriteForwarding(diff(previousModel.getEnableLocalWriteForwarding(), desiredModel.getEnableLocalWriteForwarding()))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
@@ -295,6 +294,18 @@ public class Translator {
                         )
                 )
                 .storageType(desiredModel.getStorageType());
+
+        if (previousModel.getEnableLocalWriteForwarding() == null && desiredModel.getEnableLocalWriteForwarding() == Boolean.FALSE) {
+            // RDS disables LocalWriteForwarding by default. Therefore, if the previous model is null and the desired model is false,
+            // do not set the value in the modify request to maintain the status as false.
+            builder.enableLocalWriteForwarding(null);
+        } else if (previousModel.getEnableLocalWriteForwarding() == Boolean.TRUE && desiredModel.getEnableLocalWriteForwarding() == null) {
+            // By default, RDS disables LocalWriteForwarding when the property is null. Therefore, if the previous model is true and the desired model is null,
+            // need to explicitly set the value in the modify request to update the status to false.
+            builder.enableLocalWriteForwarding(false);
+        } else {
+            builder.enableLocalWriteForwarding(diff(previousModel.getEnableLocalWriteForwarding(), desiredModel.getEnableLocalWriteForwarding()));
+        }
 
         if (!(isRollback || Objects.equals(previousModel.getEngineVersion(), desiredModel.getEngineVersion()))) {
             builder.engineVersion(desiredModel.getEngineVersion());

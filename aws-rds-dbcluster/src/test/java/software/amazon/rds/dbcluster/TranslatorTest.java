@@ -244,23 +244,53 @@ public class TranslatorTest extends AbstractHandlerTest {
         assertThat(request.serverlessV2ScalingConfiguration()).isEqualTo(null);
     }
 
+    /*
+     * The test case verifies the following truth table:
+     * | previousModel | desiredModel | LWF in the request|
+     * | null          | null         | null              |
+     * | true          | null         | false             |
+     * | false         | null         | null              |
+     * | null          | true         | true              |
+     * | true          | true         | null              |
+     * | false         | true         | true              |
+     * | null          | false        | null              |
+     * | true          | false        | false             |
+     * | false         | false        | null              |
+     */
     @Test
     public void modifyDbClusterRequest_enableLocalWriteForwarding() {
-        final var previousModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(null).build();
+        final var modelNull = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(null).build();
+        final var modelTrue = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(true).build();
+        final var modelFalse = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
 
-        final var desiredModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(true).build();
-
-        final var request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
-        assertThat(request.enableLocalWriteForwarding()).isEqualTo(true);
-    }
-
-    @Test
-    public void modifyDbClusterRequest_sameLocalWriteForwarding() {
-        final var previousModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
-        final var desiredModel = RESOURCE_MODEL.toBuilder().enableLocalWriteForwarding(false).build();
-
-        final var request = Translator.modifyDbClusterRequest(previousModel, desiredModel, IS_NOT_ROLLBACK);
+        var request = Translator.modifyDbClusterRequest(modelNull, modelNull, IS_NOT_ROLLBACK);
         assertThat(request.enableLocalWriteForwarding()).isNull();
+
+        request = Translator.modifyDbClusterRequest(modelTrue, modelNull, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(false);
+
+        request = Translator.modifyDbClusterRequest(modelFalse, modelNull, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isNull();
+
+        request = Translator.modifyDbClusterRequest(modelNull, modelTrue, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(true);
+
+        request = Translator.modifyDbClusterRequest(modelTrue, modelTrue, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isNull();
+
+        request = Translator.modifyDbClusterRequest(modelFalse, modelTrue, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(true);
+
+
+        request = Translator.modifyDbClusterRequest(modelNull, modelFalse, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isNull();
+
+        request = Translator.modifyDbClusterRequest(modelTrue, modelFalse, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isEqualTo(false);
+
+        request = Translator.modifyDbClusterRequest(modelFalse, modelFalse, IS_NOT_ROLLBACK);
+        assertThat(request.enableLocalWriteForwarding()).isNull();
+
     }
 
     @Test
