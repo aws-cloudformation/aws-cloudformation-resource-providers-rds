@@ -264,6 +264,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 Translator.describeDbClustersRequest(model),
                 proxyClient.client()::describeDBClusters
         );
+
+        if (response.dbClusters().isEmpty()) {
+            throw DbClusterNotFoundException.builder()
+                .message(String.format("No clusters of identifier %s returned from describe call", model.getDBClusterIdentifier()))
+                .build();
+        }
+
         return response.dbClusters().get(0);
     }
 
