@@ -94,6 +94,7 @@ import software.amazon.rds.common.request.Validations;
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
     public static final String ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
+    public static final String ENGINE_AURORA_MYSQL = "aurora-mysql";
     private static final String MASTER_USER_SECRET_ACTIVE = "active";
     protected static final String DB_CLUSTER_REQUEST_STARTED_AT = "dbcluster-request-started-at";
     protected static final String DB_CLUSTER_REQUEST_IN_PROGRESS_AT = "dbcluster-request-in-progress-at";
@@ -729,7 +730,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean shouldUpdateHttpEndpointV2(final ResourceModel previousState, final ResourceModel desiredState) {
-        return ENGINE_AURORA_POSTGRESQL.equalsIgnoreCase(desiredState.getEngine()) &&
+        return (ENGINE_AURORA_POSTGRESQL.equalsIgnoreCase(desiredState.getEngine()) || ENGINE_AURORA_MYSQL.equalsIgnoreCase(desiredState.getEngine())) &&
                 !EngineMode.Serverless.equals(EngineMode.fromString(desiredState.getEngineMode())) &&
                 ObjectUtils.notEqual(previousState.getEnableHttpEndpoint(), desiredState.getEnableHttpEndpoint());
     }

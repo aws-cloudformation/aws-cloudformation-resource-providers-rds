@@ -156,6 +156,21 @@ class SchemaTest {
     }
 
     @Test
+    void testDrift_EnableHttpEndpoint_Aurora_Mysql_Drifted() {
+        final ResourceModel input = ResourceModel.builder()
+                .enableHttpEndpoint(true)
+                .engine("aurora-mysql")
+                .build();
+        final ResourceModel output = ResourceModel.builder()
+                .enableHttpEndpoint(false)
+                .engine("aurora-mysql")
+                .build();
+        Assertions.assertThatThrownBy(() -> {
+            assertResourceNotDrifted(input, output, resourceSchema);
+        }).isInstanceOf(AssertionError.class);
+    }
+
+    @Test
     void testDrift_EnableHttpEndpoint_Provisioned() {
         final ResourceModel input = ResourceModel.builder()
                 .enableHttpEndpoint(true)
