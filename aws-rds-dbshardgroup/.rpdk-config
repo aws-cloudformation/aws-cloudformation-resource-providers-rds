@@ -1,0 +1,22 @@
+{
+    "artifact_type": "RESOURCE",
+    "typeName": "AWS::RDS::DBShardGroup",
+    "language": "java",
+    "runtime": "java17",
+    "entrypoint": "software.amazon.rds.dbshardgroup.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbshardgroup.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbshardgroup"
+        ],
+        "codegen_template_path": "guided_aws",
+        "protocolVersion": "2.0.0"
+    },
+    "logProcessorEnabled": "true",
+    "executableEntrypoint": "software.amazon.rds.dbshardgroup.HandlerWrapperExecutable",
+    "contractSettings": {},
+    "canarySettings": {}
+}

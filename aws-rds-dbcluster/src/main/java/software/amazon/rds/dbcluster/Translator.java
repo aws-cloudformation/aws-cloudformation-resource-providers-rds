@@ -55,6 +55,7 @@ public class Translator {
                 .availabilityZones(model.getAvailabilityZones())
                 .backtrackWindow(castToLong(model.getBacktrackWindow()))
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .clusterScalabilityType(model.getClusterScalabilityType())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
