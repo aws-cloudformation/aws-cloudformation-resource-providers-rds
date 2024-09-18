@@ -5,6 +5,10 @@
     <groupId>software.amazon.rds</groupId>
     <artifactId>aws-rds-handlers</artifactId>
     <packaging>pom</packaging>
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
     <version>1.0</version>
     <name>The CloudFormation Resource Provider Package For Amazon Relational Database Service</name>
 
@@ -17,6 +21,7 @@
         <module>aws-rds-dbclusterparametergroup</module>
         <module>aws-rds-dbinstance</module>
         <module>aws-rds-dbparametergroup</module>
+        <module>aws-rds-dbshardgroup</module>
         <module>aws-rds-dbsubnetgroup</module>
         <module>aws-rds-eventsubscription</module>
         <module>aws-rds-globalcluster</module>

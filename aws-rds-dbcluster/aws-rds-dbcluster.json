@@ -44,6 +44,10 @@
       "minimum": 1,
       "type": "integer"
     },
+    "ClusterScalabilityType": {
+      "type": "string",
+      "description": "The scalability type for the DB cluster."
+    },
     "CopyTagsToSnapshot": {
       "description": "A value that indicates whether to copy all tags from the DB cluster to snapshots of the DB cluster. The default is not to copy them.",
       "type": "boolean"
@@ -434,6 +438,7 @@
   ],
   "createOnlyProperties": [
     "/properties/AvailabilityZones",
+    "/properties/ClusterScalabilityType",
     "/properties/DBClusterIdentifier",
     "/properties/DBSubnetGroupName",
     "/properties/DBSystemId",
@@ -458,6 +463,7 @@
     "/properties/DBClusterIdentifier"
   ],
   "writeOnlyProperties": [
+    "/properties/ClusterScalabilityType",
     "/properties/DBInstanceParameterGroupName",
     "/properties/MasterUserPassword",
     "/properties/RestoreToTime",
