@@ -44,6 +44,7 @@ import software.amazon.rds.common.handler.Tagging;
 public class Translator {
 
     private final static String STORAGE_TYPE_AURORA = "aurora";
+    private final static String ENABLE_LIMITLESS_DATABASE = "limitless";
 
     static CreateDbClusterRequest createDbClusterRequest(
             final ResourceModel model,
@@ -69,6 +70,8 @@ public class Translator {
                 .enableGlobalWriteForwarding(model.getEnableGlobalWriteForwarding())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
+                // TODO: Deprecate enableLimitlessDatabase once clusterScalabilityType is supported
+                .enableLimitlessDatabase(model.getClusterScalabilityType() != null && model.getClusterScalabilityType().equalsIgnoreCase(ENABLE_LIMITLESS_DATABASE))
                 .enableLocalWriteForwarding(model.getEnableLocalWriteForwarding())
                 .enablePerformanceInsights(model.getPerformanceInsightsEnabled())
                 .engine(model.getEngine())
@@ -221,6 +224,8 @@ public class Translator {
                 .domain(desiredModel.getDomain())
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
+                // TODO: Deprecate enableLimitlessDatabase once clusterScalabilityType is supported
+                .enableLimitlessDatabase(desiredModel.getClusterScalabilityType() != null && desiredModel.getClusterScalabilityType().equalsIgnoreCase(ENABLE_LIMITLESS_DATABASE))
                 .enableLocalWriteForwarding(desiredModel.getEnableLocalWriteForwarding())
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
@@ -275,6 +280,8 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
+                // TODO: Deprecate enableLimitlessDatabase once clusterScalabilityType is supported
+                .enableLimitlessDatabase(desiredModel.getClusterScalabilityType() != null && desiredModel.getClusterScalabilityType().equalsIgnoreCase(ENABLE_LIMITLESS_DATABASE))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))

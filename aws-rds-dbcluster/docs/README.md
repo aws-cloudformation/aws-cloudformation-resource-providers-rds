@@ -19,6 +19,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>" : <i>Boolean</i>,
         "<a href="#backtrackwindow" title="BacktrackWindow">BacktrackWindow</a>" : <i>Integer</i>,
         "<a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>" : <i>Integer</i>,
+        "<a href="#clusterscalabilitytype" title="ClusterScalabilityType">ClusterScalabilityType</a>" : <i>String</i>,
         "<a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>" : <i>Boolean</i>,
         "<a href="#databasename" title="DatabaseName">DatabaseName</a>" : <i>String</i>,
         "<a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>" : <i>String</i>,
@@ -87,6 +88,7 @@ Properties:
     <a href="#autominorversionupgrade" title="AutoMinorVersionUpgrade">AutoMinorVersionUpgrade</a>: <i>Boolean</i>
     <a href="#backtrackwindow" title="BacktrackWindow">BacktrackWindow</a>: <i>Integer</i>
     <a href="#backupretentionperiod" title="BackupRetentionPeriod">BackupRetentionPeriod</a>: <i>Integer</i>
+    <a href="#clusterscalabilitytype" title="ClusterScalabilityType">ClusterScalabilityType</a>: <i>String</i>
     <a href="#copytagstosnapshot" title="CopyTagsToSnapshot">CopyTagsToSnapshot</a>: <i>Boolean</i>
     <a href="#databasename" title="DatabaseName">DatabaseName</a>: <i>String</i>
     <a href="#dbclusterinstanceclass" title="DBClusterInstanceClass">DBClusterInstanceClass</a>: <i>String</i>
@@ -209,6 +211,16 @@ The number of days for which automated backups are retained.
 _Required_: No
 
 _Type_: Integer
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### ClusterScalabilityType
+
+The scalability type for the DB cluster.
+
+_Required_: No
+
+_Type_: String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -498,7 +510,7 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### MonitoringInterval
 
-The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is 0.
+The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB cluster. To turn off collecting Enhanced Monitoring metrics, specify 0. The default is not to enable Enhanced Monitoring.
 
 _Required_: No
 
