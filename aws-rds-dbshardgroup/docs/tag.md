@@ -1,4 +1,4 @@
-# AWS::RDS::DBCluster Tag
+# AWS::RDS::DBShardGroup Tag
 
 A key-value pair to associate with a resource.
 
@@ -49,3 +49,4 @@ _Type_: String
 _Maximum Length_: <code>256</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
