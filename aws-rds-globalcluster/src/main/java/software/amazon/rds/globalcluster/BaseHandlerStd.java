@@ -199,7 +199,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .done((describeDbClusterRequest, describeDbClusterResponse, proxyClient2, resourceModel, callbackContext) -> {
               final String arn = describeDbClusterResponse.dbClusters().get(0).dbClusterArn();
               try {
-                proxyClient2.injectCredentialsAndInvokeV2(Translator.createGlobalClusterRequest(resourceModel, arn), proxyClient2.client()::createGlobalCluster);
+                proxyClient2.injectCredentialsAndInvokeV2(Translator.createGlobalClusterRequest(resourceModel, arn, Tagging.TagSet.emptySet()), proxyClient2.client()::createGlobalCluster);
                 callbackContext.setGlobalClusterCreated(true);
               } catch (GlobalClusterAlreadyExistsException e) {
                 throw new CfnAlreadyExistsException(e);
