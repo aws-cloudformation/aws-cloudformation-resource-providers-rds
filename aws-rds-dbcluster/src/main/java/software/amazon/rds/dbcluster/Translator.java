@@ -44,7 +44,6 @@ import software.amazon.rds.common.handler.Tagging;
 public class Translator {
 
     private final static String STORAGE_TYPE_AURORA = "aurora";
-    private final static String CLUSTER_SCALABILITY_TYPE_LIMITLESS = "limitless";
 
     static CreateDbClusterRequest createDbClusterRequest(
             final ResourceModel model,
@@ -56,6 +55,7 @@ public class Translator {
                 .availabilityZones(model.getAvailabilityZones())
                 .backtrackWindow(castToLong(model.getBacktrackWindow()))
                 .backupRetentionPeriod(model.getBackupRetentionPeriod())
+                .clusterScalabilityType(model.getClusterScalabilityType())
                 .copyTagsToSnapshot(model.getCopyTagsToSnapshot())
                 .databaseName(model.getDatabaseName())
                 .dbClusterIdentifier(model.getDBClusterIdentifier())
@@ -70,7 +70,6 @@ public class Translator {
                 .enableGlobalWriteForwarding(model.getEnableGlobalWriteForwarding())
                 .enableHttpEndpoint(model.getEnableHttpEndpoint())
                 .enableIAMDatabaseAuthentication(model.getEnableIAMDatabaseAuthentication())
-                .enableLimitlessDatabase(translateEnableLimitlessDatabase(model))
                 .enableLocalWriteForwarding(model.getEnableLocalWriteForwarding())
                 .enablePerformanceInsights(model.getPerformanceInsightsEnabled())
                 .engine(model.getEngine())
@@ -277,7 +276,6 @@ public class Translator {
                 .domainIAMRoleName(desiredModel.getDomainIAMRoleName())
                 .enableGlobalWriteForwarding(desiredModel.getEnableGlobalWriteForwarding())
                 .enableIAMDatabaseAuthentication(diff(previousModel.getEnableIAMDatabaseAuthentication(), desiredModel.getEnableIAMDatabaseAuthentication()))
-                .enableLimitlessDatabase(diff(translateEnableLimitlessDatabase(previousModel), translateEnableLimitlessDatabase(desiredModel)))
                 .enablePerformanceInsights(desiredModel.getPerformanceInsightsEnabled())
                 .iops(desiredModel.getIops())
                 .masterUserPassword(diff(previousModel.getMasterUserPassword(), desiredModel.getMasterUserPassword()))
@@ -665,14 +663,5 @@ public class Translator {
                 .secretArn(sdkSecret.secretArn())
                 .kmsKeyId(sdkSecret.kmsKeyId())
                 .build();
-    }
-
-    static Boolean translateEnableLimitlessDatabase(final ResourceModel model) {
-        // TODO: Deprecate enableLimitlessDatabase once clusterScalabilityType is supported
-        final var clusterScalabilityType = model.getClusterScalabilityType();
-        if (clusterScalabilityType == null) {
-            return null;
-        }
-        return model.getClusterScalabilityType().equalsIgnoreCase(CLUSTER_SCALABILITY_TYPE_LIMITLESS);
     }
 }

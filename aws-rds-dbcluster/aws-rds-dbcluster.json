@@ -438,6 +438,7 @@
   ],
   "createOnlyProperties": [
     "/properties/AvailabilityZones",
+    "/properties/ClusterScalabilityType",
     "/properties/DBClusterIdentifier",
     "/properties/DBSubnetGroupName",
     "/properties/DBSystemId",
