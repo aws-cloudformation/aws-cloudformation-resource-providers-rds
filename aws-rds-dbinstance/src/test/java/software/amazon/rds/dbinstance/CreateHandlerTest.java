@@ -2258,4 +2258,84 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.InvalidRequest)
         );
     }
+
+    @Test
+    public void invalidSourceRegion() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceRegion("clearlyNotAValidRegion")
+                        .build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @Test
+    public void invalidAutomaticBackupReplicationRegion() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .automaticBackupReplicationRegion("clearlyNotAValidRegion")
+                        .build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @Test
+    public void invalidSourceDBInstanceIdentifierRegion() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBInstanceIdentifier("arn:aws:rds:clearlyNotAValidRegion:340834135580:db:databaseName")
+                        .build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @Test
+    public void invalidSourceDBClusterIdentifierRegion() {
+        expectServiceInvocation = false;
+        final CallbackContext context = new CallbackContext();
+        context.setCreated(true);
+        context.setUpdated(true);
+        context.setRebooted(true);
+        context.setUpdatedRoles(true);
+        context.setAddTagsComplete(true);
+
+        test_handleRequest_base(
+                context,
+                null,
+                () -> RESOURCE_MODEL_BAREBONE_BLDR()
+                        .sourceDBClusterIdentifier("arn:aws:rds:clearlyNotAValidRegion:340834135580:cluster:clusterName")
+                        .build(),
+                expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
 }
