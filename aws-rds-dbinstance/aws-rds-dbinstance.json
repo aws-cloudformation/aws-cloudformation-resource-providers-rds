@@ -502,7 +502,6 @@
     "/properties/KmsKeyId",
     "/properties/MasterUsername",
     "/properties/NcharCharacterSetName",
-    "/properties/Port",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/Timezone"
@@ -537,7 +536,6 @@
     "/properties/DBSnapshotIdentifier",
     "/properties/DeleteAutomatedBackups",
     "/properties/MasterUserPassword",
-    "/properties/Port",
     "/properties/RestoreTime",
     "/properties/SourceDBInstanceAutomatedBackupsArn",
     "/properties/SourceDBInstanceIdentifier",
