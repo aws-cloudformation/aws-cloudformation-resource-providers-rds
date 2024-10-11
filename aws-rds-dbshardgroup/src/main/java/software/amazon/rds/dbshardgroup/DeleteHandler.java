@@ -1,6 +1,8 @@
 package software.amazon.rds.dbshardgroup;
 
+import java.util.List;
 import java.util.function.Function;
+import org.apache.commons.collections.CollectionUtils;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBShardGroup;
@@ -51,19 +53,7 @@ public class DeleteHandler extends BaseHandlerStd {
                         .translateToServiceRequest(Function.identity())
                         .backoffDelay(config.getBackoff())
                         .makeServiceCall(NOOP_CALL)
-                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDbShardGroupDeleted(model, proxyInvocation))
-                        .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
-                                ProgressEvent.progress(model, context),
-                                exception,
-                                DELETE_DB_SHARD_GROUP_ERROR_RULE_SET,
-                                requestLogger
-                        )).progress())
-                // Stabilize cluster state to ensure cluster is available for new db shard group creation
-                .then(progress -> proxy.initiate("rds::delete-db-shard-group-stabilize-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
-                        .translateToServiceRequest(Function.identity())
-                        .backoffDelay(config.getBackoff())
-                        .makeServiceCall(NOOP_CALL)
-                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDbClusterStabilizedOrDeleted(proxyInvocation, context))
+                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDbShardGroupDeleted(model, proxyInvocation) && isDbClusterStabilizedOrDeleted(proxyInvocation, context))
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
@@ -71,22 +61,6 @@ public class DeleteHandler extends BaseHandlerStd {
                                 requestLogger
                         )).progress())
                 .then(progress -> ProgressEvent.defaultSuccessHandler(null));
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> checkIfDbShardGroupExists(final AmazonWebServicesClientProxy proxy,
-                                                                                                                   final ResourceHandlerRequest<ResourceModel> request,
-                                                                                                                   final CallbackContext callbackContext,
-                                                                                                                   final ProxyClient<RdsClient> proxyClient) {
-        return proxy.initiate("rds::delete-db-shard-group-check-exists", proxyClient, request.getDesiredResourceState(), callbackContext)
-                .translateToServiceRequest(Translator::describeDbShardGroupsRequest)
-                .makeServiceCall(((describeRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(describeRequest, proxyInvocation.client()::describeDBShardGroups)))
-                .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, ctx),
-                        exception,
-                        DEFAULT_DB_SHARD_GROUP_ERROR_RULE_SET,
-                        requestLogger
-                ))
-                .progress();
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> deleteDbShardGroupIfNotInProgress(final ProgressEvent<ResourceModel, CallbackContext> progress,
@@ -140,14 +114,21 @@ public class DeleteHandler extends BaseHandlerStd {
     private boolean isDbClusterStabilizedOrDeleted(final ProxyClient<RdsClient> proxyClient,
                                                    final CallbackContext callbackContext) {
         try {
-            final DBCluster dbCluster = proxyClient.injectCredentialsAndInvokeV2(
+            final List<DBCluster> dbClusters = proxyClient.injectCredentialsAndInvokeV2(
                     DescribeDbClustersRequest.builder()
                             .dbClusterIdentifier(callbackContext.getDbClusterIdentifier())
                             .build(),
                     proxyClient.client()::describeDBClusters
-            ).dbClusters().get(0);
-            return isDBClusterAvailable(dbCluster);
-        } catch (DbClusterNotFoundException|IndexOutOfBoundsException e) {
+            ).dbClusters();
+
+            if (CollectionUtils.isEmpty(dbClusters)) {
+                // For an empty response, we assume the same behavior for a DbClusterNotFoundException
+                // https://jira.rds.a2z.com/browse/WS-6673
+                return true;
+            } else {
+                return isDBClusterAvailable(dbClusters.get(0));
+            }
+        } catch (DbClusterNotFoundException e) {
             return true;
         }
     }

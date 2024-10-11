@@ -9,8 +9,6 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.error.ErrorRuleSet;
-import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
@@ -50,58 +48,40 @@ public class CreateHandler extends BaseHandlerStd {
                 .stackTags(Tagging.translateTagsToSdk(request.getDesiredResourceTags()))
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
+        ResourceModel model = request.getDesiredResourceState();
+        if (StringUtils.isNullOrEmpty(model.getDBShardGroupIdentifier())) {
+            model.setDBShardGroupIdentifier(
+                    dbShardGroupIdentifierFactory.newIdentifier()
+                            .withStackId(request.getStackId())
+                            .withResourceId(request.getLogicalResourceIdentifier())
+                            .withRequestToken(request.getClientRequestToken())
+                            .toString());
+        }
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
-                .then(progress -> {
-                    ResourceModel model = progress.getResourceModel();
-                    if (StringUtils.isNullOrEmpty(model.getDBShardGroupIdentifier())){
-                        model.setDBShardGroupIdentifier(
-                                dbShardGroupIdentifierFactory.newIdentifier()
-                                        .withStackId(request.getStackId())
-                                        .withResourceId(request.getLogicalResourceIdentifier())
-                                        .withRequestToken(request.getClientRequestToken())
-                                        .toString());
-                    }
-                    return createDbShardGroup(proxy, proxyClient, progress);
-                })
-                .then(progress -> Commons.execOnce(progress, () -> addTags(proxyClient, request, progress, allTags), CallbackContext::isTagged, CallbackContext::setTagged))
-                .then(progress -> proxy.initiate("rds::create-db-shard-group-stabilize", proxyClient, request.getDesiredResourceState(), callbackContext)
-                        .translateToServiceRequest(Function.identity())
-                        .backoffDelay(config.getBackoff())
-                        .makeServiceCall(NOOP_CALL)
-                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDBShardGroupStabilized(model, proxyInvocation))
-                        .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
-                                        ProgressEvent.progress(resourceModel, ctx),
-                                        exception,
-                                        DEFAULT_DB_SHARD_GROUP_ERROR_RULE_SET,
-                                        requestLogger
-                        ))
-                        .progress())
-                // Stabilize cluster state to ensure shard group operations are fully available
-                .then(progress -> proxy.initiate("rds::create-db-shard-group-stabilize-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
-                        .translateToServiceRequest(Function.identity())
-                        .backoffDelay(config.getBackoff())
-                        .makeServiceCall(NOOP_CALL)
-                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDBClusterStabilized(model, proxyInvocation))
-                        .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
-                                ProgressEvent.progress(model, context),
-                                exception,
-                                DEFAULT_DB_SHARD_GROUP_ERROR_RULE_SET,
-                                requestLogger
-                        )).progress())
+                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbShardGroup, progress, allTags)
+                        .then(p -> Commons.execOnce(p, () -> {
+                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                                    .stackTags(allTags.getStackTags())
+                                    .resourceTags(allTags.getResourceTags())
+                                    .build();
+                            return addTags(proxyClient, request, p, extraTags);
+                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+                )
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbShardGroup(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tags
     ) {
         return proxy.initiate("rds::create-db-shard-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::createDbShardGroupRequest)
+                .translateToServiceRequest((resourceModel) -> Translator.createDbShardGroupRequest(resourceModel, tags))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((createDbShardGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createDbShardGroupRequest, proxyInvocation.client()::createDBShardGroup))
-                .stabilize((createRequest, createResponse, proxyInvocation, model, context) -> isDBShardGroupStabilized(model, proxyInvocation))
+                .stabilize((createRequest, createResponse, proxyInvocation, model, context) -> isDBShardGroupStabilizedAfterMutate(model, proxyInvocation))
                 .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, ctx),
                         exception,

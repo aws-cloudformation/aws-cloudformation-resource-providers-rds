@@ -22,6 +22,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.rds.common</groupId>
+            <artifactId>aws-rds-cfn-common</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>rds</artifactId>
             <version>2.28.14</version>
@@ -36,10 +46,15 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.22</version>
+            <version>${org.projectlombok.version}</version>
             <scope>provided</scope>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-query-protocol -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>aws-query-protocol</artifactId>
+            <version>2.20.138</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.assertj/assertj-core -->
         <dependency>
             <groupId>org.assertj</groupId>
@@ -70,12 +85,6 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.rds.common</groupId>
-            <artifactId>aws-rds-cfn-common</artifactId>
-            <version>1.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.rds.common</groupId>
             <artifactId>aws-rds-cfn-test-common</artifactId>
             <version>1.0</version>
             <scope>test</scope>
@@ -89,6 +98,15 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.12.1</version>
                 <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${org.projectlombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-Xlint:all,-options,-processing</arg>
                     </compilerArgs>
@@ -97,7 +115,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
+                <version>3.2.4</version>
                 <configuration>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                 </configuration>
@@ -154,6 +172,7 @@
                 <version>2.4</version>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M3</version>
             </plugin>

@@ -14,15 +14,6 @@ public enum ResourceStatus {
         this.value = value;
     }
 
-    public static ResourceStatus fromString(final String status) {
-        for (final ResourceStatus ResourceStatus : ResourceStatus.values()) {
-            if (ResourceStatus.equalsString(status)) {
-                return ResourceStatus;
-            }
-        }
-        return null;
-    }
-
     @Override
     public String toString() {
         return value;

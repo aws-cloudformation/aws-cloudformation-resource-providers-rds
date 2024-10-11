@@ -47,7 +47,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> Commons.execOnce(
                         progress,
                         () -> proxy.initiate("rds::modify-db-shard-group", proxyClient, request.getDesiredResourceState(), callbackContext)
-                                .translateToServiceRequest(model -> Translator.modifyDbShardGroupRequest(desiredModel))
+                                .translateToServiceRequest(Translator::modifyDbShardGroupRequest)
                                 .backoffDelay(config.getBackoff())
                                 .makeServiceCall((modifyDbShardGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(modifyDbShardGroupRequest, proxyClient.client()::modifyDBShardGroup))
                                 .handleError((describeRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
@@ -56,14 +56,14 @@ public class UpdateHandler extends BaseHandlerStd {
                                     DEFAULT_DB_SHARD_GROUP_ERROR_RULE_SET,
                                     requestLogger))
                                 .progress(), CallbackContext::isUpdated, CallbackContext::setUpdated))
-                .then(progress -> Commons.execOnce(progress, () -> updateTags(proxyClient, request, progress, previousTags, desiredTags), CallbackContext::isTagged, CallbackContext::setTagged))
+                .then(progress -> Commons.execOnce(progress, () -> updateTags(proxyClient, request, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 // There is a lag between the modifyDbShardGroup request call and the shard group state moving to "modifying", so we introduce a fixed delay prior to stabilization
                 .then((progress) -> delay(progress, POST_MODIFY_DELAY_SEC))
                 .then(progress -> proxy.initiate("rds::update-db-shard-group-stabilize", proxyClient, request.getDesiredResourceState(), callbackContext)
                         .translateToServiceRequest(Function.identity())
                         .backoffDelay(config.getBackoff())
                         .makeServiceCall(NOOP_CALL)
-                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDBShardGroupStabilized(model, proxyInvocation))
+                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDBShardGroupStabilizedAfterMutate(model, proxyInvocation))
                         .handleError((deleteRequest, exception, client, resourceModel, ctx) -> Commons.handleException(
                                 ProgressEvent.progress(resourceModel, ctx),
                                 exception,
@@ -71,18 +71,6 @@ public class UpdateHandler extends BaseHandlerStd {
                                 requestLogger
                         ))
                         .progress())
-                // Stabilize cluster state to ensure shard group operations are fully available
-                .then(progress -> proxy.initiate("rds::update-db-shard-group-stabilize-cluster", proxyClient, request.getDesiredResourceState(), callbackContext)
-                        .translateToServiceRequest(Function.identity())
-                        .backoffDelay(config.getBackoff())
-                        .makeServiceCall(NOOP_CALL)
-                        .stabilize((noopRequest, noopResponse, proxyInvocation, model, context) -> isDBClusterStabilized(model, proxyInvocation))
-                        .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
-                                ProgressEvent.progress(model, context),
-                                exception,
-                                DEFAULT_DB_SHARD_GROUP_ERROR_RULE_SET,
-                                requestLogger
-                        )).progress())
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 

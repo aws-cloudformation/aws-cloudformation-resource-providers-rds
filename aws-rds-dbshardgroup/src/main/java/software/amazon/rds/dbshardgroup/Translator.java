@@ -13,10 +13,11 @@ import software.amazon.awssdk.services.rds.model.DeleteDbShardGroupRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbShardGroupsRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbShardGroupRequest;
+import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
 
-  static CreateDbShardGroupRequest createDbShardGroupRequest(final ResourceModel model) {
+  static CreateDbShardGroupRequest createDbShardGroupRequest(final ResourceModel model, final Tagging.TagSet tags) {
     return CreateDbShardGroupRequest.builder()
             .computeRedundancy(model.getComputeRedundancy())
             .dbClusterIdentifier(model.getDBClusterIdentifier())
@@ -24,11 +25,13 @@ public class Translator {
             .maxACU(model.getMaxACU())
             .minACU(model.getMinACU())
             .publiclyAccessible(model.getPubliclyAccessible())
+            .tags(Tagging.translateTagsToSdk(tags))
             .build();
   }
 
   static ModifyDbShardGroupRequest modifyDbShardGroupRequest(final ResourceModel desiredModel) {
     return ModifyDbShardGroupRequest.builder()
+            .computeRedundancy(desiredModel.getComputeRedundancy())
             .dbShardGroupIdentifier(desiredModel.getDBShardGroupIdentifier())
             .maxACU(desiredModel.getMaxACU())
             .minACU(desiredModel.getMinACU())

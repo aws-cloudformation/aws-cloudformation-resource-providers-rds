@@ -9,7 +9,7 @@
       "rds:RemoveTagsFromResource"
     ],
     "taggable": true,
-    "tagOnCreate": false,
+    "tagOnCreate": true,
     "tagUpdatable": true,
     "tagProperty": "/properties/Tags"
   },
@@ -32,6 +32,7 @@
     },
     "ComputeRedundancy": {
       "description": "Specifies whether to create standby instances for the DB shard group.",
+      "minimum": 0,
       "type": "integer"
     },
     "MaxACU": {
@@ -95,7 +96,6 @@
     "MaxACU"
   ],
   "createOnlyProperties": [
-    "/properties/ComputeRedundancy",
     "/properties/DBClusterIdentifier",
     "/properties/DBShardGroupIdentifier",
     "/properties/PubliclyAccessible"

@@ -191,7 +191,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(proxyClient.client(), times(5)).describeDBShardGroups(any(DescribeDbShardGroupsRequest.class));
         verify(proxyClient.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
         verify(proxyClient.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
-        verify(proxyClient.client(), times(2)).describeDBClusters(
+        verify(proxyClient.client(), times(3)).describeDBClusters(
                 ArgumentMatchers.<DescribeDbClustersRequest>argThat(req ->
                         Objects.equals(DB_SHARD_GROUP_CREATING.dbClusterIdentifier(), req.dbClusterIdentifier())
                 )

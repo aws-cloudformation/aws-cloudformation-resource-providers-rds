@@ -1,6 +1,7 @@
 package software.amazon.rds.dbshardgroup;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Objects;
 
 import java.util.Queue;
@@ -114,7 +115,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         Objects.equals(DB_SHARD_GROUP_CREATING.dbShardGroupIdentifier(), req.dbShardGroupIdentifier())
                 )
         );
-        verify(proxyClient.client(), times(4)).describeDBShardGroups(
+        verify(proxyClient.client(), times(2)).describeDBShardGroups(
                 ArgumentMatchers.<DescribeDbShardGroupsRequest>argThat(req ->
                         Objects.equals(DB_SHARD_GROUP_CREATING.dbShardGroupIdentifier(), req.dbShardGroupIdentifier())
                 )
@@ -179,7 +180,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         Objects.equals(dbShardGroupIdentifier, req.dbShardGroupIdentifier())
                 )
         );
-        verify(proxyClient.client(), times(4)).describeDBShardGroups(
+        verify(proxyClient.client(), times(2)).describeDBShardGroups(
                 ArgumentMatchers.<DescribeDbShardGroupsRequest>argThat(req ->
                         Objects.equals(dbShardGroupIdentifier, req.dbShardGroupIdentifier())
                 )
@@ -254,7 +255,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                         Objects.equals(DB_SHARD_GROUP_CREATING.dbShardGroupIdentifier(), req.dbShardGroupIdentifier())
                 )
         );
-        verify(proxyClient.client(), times(6)).describeDBShardGroups(
+        verify(proxyClient.client(), times(3)).describeDBShardGroups(
                 ArgumentMatchers.<DescribeDbShardGroupsRequest>argThat(req ->
                         Objects.equals(DB_SHARD_GROUP_CREATING.dbShardGroupIdentifier(), req.dbShardGroupIdentifier())
                 )
