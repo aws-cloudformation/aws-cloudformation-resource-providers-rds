@@ -9,7 +9,7 @@
       "rds:RemoveTagsFromResource"
     ],
     "taggable": true,
-    "tagOnCreate": true,
+    "tagOnCreate": false,
     "tagUpdatable": true,
     "tagProperty": "/properties/Tags"
   },
