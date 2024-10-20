@@ -473,9 +473,6 @@
     "/properties/SourceRegion",
     "/properties/UseLatestRestorableTime"
   ],
-  "nonPublicProperties": [
-    "/properties/ClusterScalabilityType"
-  ],
   "handlers": {
     "create": {
       "permissions": [

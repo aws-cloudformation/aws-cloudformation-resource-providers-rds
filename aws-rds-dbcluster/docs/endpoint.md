@@ -17,4 +17,3 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 </pre>
 
 ## Properties
-

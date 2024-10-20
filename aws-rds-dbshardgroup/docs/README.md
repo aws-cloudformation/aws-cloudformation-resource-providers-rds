@@ -137,4 +137,3 @@ The Amazon Web Services Region-unique, immutable identifier for the DB shard gro
 #### Endpoint
 
 The connection endpoint for the DB shard group.
-

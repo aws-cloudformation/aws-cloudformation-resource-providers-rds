@@ -786,4 +786,3 @@ Returns the <code>SecretArn</code> value.
 #### StorageThroughput
 
 Specifies the storage throughput value for the DB cluster. This setting applies only to the gp3 storage type.
-
