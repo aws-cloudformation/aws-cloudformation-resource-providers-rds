@@ -141,6 +141,6 @@
     }
   },
   "tagging": {
-    "taggable": false
+    "taggable": true
   }
 }
