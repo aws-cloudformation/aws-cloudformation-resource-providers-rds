@@ -17,17 +17,6 @@ import software.amazon.rds.common.handler.Tagging;
 
 public class Translator {
 
-    static CreateDbShardGroupRequest createDbShardGroupRequest(final ResourceModel model) {
-        return CreateDbShardGroupRequest.builder()
-                .computeRedundancy(model.getComputeRedundancy())
-                .dbClusterIdentifier(model.getDBClusterIdentifier())
-                .dbShardGroupIdentifier(model.getDBShardGroupIdentifier())
-                .maxACU(model.getMaxACU())
-                .minACU(model.getMinACU())
-                .publiclyAccessible(model.getPubliclyAccessible())
-                .build();
-    }
-
   static CreateDbShardGroupRequest createDbShardGroupRequest(final ResourceModel model, final Tagging.TagSet tags) {
     return CreateDbShardGroupRequest.builder()
             .computeRedundancy(model.getComputeRedundancy())
