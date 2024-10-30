@@ -59,18 +59,26 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
-                .then(progress -> createDbShardGroup(proxy, proxyClient, progress))
-                .then(progress -> Commons.execOnce(progress, () -> addTags(proxyClient, request, progress, allTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createDbShardGroup, progress, allTags)
+                        .then(p -> Commons.execOnce(p, () -> {
+                            final Tagging.TagSet extraTags = Tagging.TagSet.builder()
+                                    .stackTags(allTags.getStackTags())
+                                    .resourceTags(allTags.getResourceTags())
+                                    .build();
+                            return addTags(proxyClient, request, p, extraTags);
+                        }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+                )
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbShardGroup(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final Tagging.TagSet tags
     ) {
         return proxy.initiate("rds::create-db-shard-group", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest((resourceModel) -> Translator.createDbShardGroupRequest(resourceModel))
+                .translateToServiceRequest((resourceModel) -> Translator.createDbShardGroupRequest(resourceModel, tags))
                 .backoffDelay(config.getBackoff())
                 .makeServiceCall((createDbShardGroupRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(createDbShardGroupRequest, proxyInvocation.client()::createDBShardGroup))
                 .stabilize((createRequest, createResponse, proxyInvocation, model, context) -> isDBShardGroupStabilizedAfterMutate(model, proxyInvocation))
