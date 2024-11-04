@@ -112,6 +112,7 @@ import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.dbinstance.status.ReadReplicaStatus;
 import software.amazon.rds.dbinstance.status.VPCSecurityGroupStatus;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
@@ -385,6 +386,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
         Validations.validateSourceRegion(request.getDesiredResourceState().getSourceRegion());
+        Validations.validateSourceRegion(request.getDesiredResourceState().getAutomaticBackupReplicationRegion());
+        assertValidRegionFromArnOrIdentifier(request.getDesiredResourceState().getSourceDBInstanceIdentifier());
+        assertValidRegionFromArnOrIdentifier(request.getDesiredResourceState().getSourceDBClusterIdentifier());
     }
 
     protected abstract ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -669,6 +673,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         assertNoDBInstanceTerminalStatus(dbInstance);
         assertNoOptionGroupTerminalStatus(dbInstance);
         assertNoDomainMembershipTerminalStatus(dbInstance);
+    }
+
+    /**
+     * There are fields in the request (e.g. SourceDBInstanceIdentifier and SourceDBClusterIdentifier) that accept 2 types
+     * of identifiers: InstanceId or ARN. In the case of containing an ARN, we need to validate that the region is correct,
+     * as it will be used to contract the client endpoint, and a malformed region would lead to both security issues
+     * and also would return misleading error to the customer.
+     */
+    private static void assertValidRegionFromArnOrIdentifier(final String identifierOrArnField) throws RequestValidationException {
+        if (StringUtils.isNotBlank(identifierOrArnField) && ResourceModelHelper.isValidArn(identifierOrArnField)) {
+            final String sourceRegion = ResourceModelHelper.getRegionFromArn(identifierOrArnField);
+            Validations.validateSourceRegion(sourceRegion);
+        }
     }
 
     protected boolean isDBInstanceStabilizedAfterMutate(
