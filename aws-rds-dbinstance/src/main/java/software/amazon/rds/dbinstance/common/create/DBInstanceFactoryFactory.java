@@ -11,6 +11,7 @@ import software.amazon.rds.dbinstance.CallbackContext;
 import software.amazon.rds.dbinstance.ResourceModel;
 import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 @AllArgsConstructor
 public class DBInstanceFactoryFactory {
@@ -32,8 +33,18 @@ public class DBInstanceFactoryFactory {
     public DBInstanceFactory createFactory(
         ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        switch (discernFactoryType()) {
+        switch (discernFactoryType(progress.getResourceModel())) {
+            case IS_FROM_SNAPSHOT:
+                return new FromSnapshot(
+                        proxy,
+                        rdsProxyClient,
+                        allTags,
+                        requestLogger,
+                        config,
+                        apiVersionDispatcher
+                );
             case IS_FRESH_INSTANCE:
+            default:
                 return new FreshInstance(
                     proxy,
                     rdsProxyClient,
@@ -43,10 +54,13 @@ public class DBInstanceFactoryFactory {
                     apiVersionDispatcher
                 );
         }
-        return null;
     }
 
-    private FactoryType discernFactoryType() {
+    private FactoryType discernFactoryType(ResourceModel model) {
+        if(ResourceModelHelper.isRestoreFromSnapshot(model) || ResourceModelHelper.isRestoreFromClusterSnapshot(model)) {
+            return FactoryType.IS_FROM_SNAPSHOT;
+        }
+
         return FactoryType.IS_FRESH_INSTANCE;
     }
 }
