@@ -80,7 +80,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final RuntimeException MISSING_METHOD_VERSION_EXCEPTION = new RuntimeException("Missing method version");
 
-
     protected static final String ILLEGAL_DELETION_POLICY_ERROR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
 
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
@@ -395,8 +394,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return DBInstancePredicates.isInstanceStabilizedAfterReplicationStop(dbInstance, model);
     }
 
-    protected boolean isInstanceStabilizedAfterReplicationStart(final ProxyClient<RdsClient> rdsProxyClient,
-                                                                final ResourceModel model) {
+    protected boolean isInstanceStabilizedAfterReplicationStart(
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
+    ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
         return DBInstancePredicates.isInstanceStabilizedAfterReplicationStart(dbInstance, model);
@@ -519,6 +520,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     requestLogger
                 ))
                 .success();
+
             if (!progressEvent.isSuccess()) {
                 return progressEvent;
             }
@@ -547,7 +549,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                     ProgressEvent.progress(resourceModel, context),
                     exception,
-                    software.amazon.rds.dbinstance.common.ErrorRuleSets.UPDATE_ASSOCIATED_ROLES,
+                    ErrorRuleSets.UPDATE_ASSOCIATED_ROLES,
                     requestLogger
                 ))
                 .success();

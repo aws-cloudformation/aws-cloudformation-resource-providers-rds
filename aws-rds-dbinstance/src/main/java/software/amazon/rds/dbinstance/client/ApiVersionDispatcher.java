@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance.client;
 
+import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -24,6 +25,7 @@ public class ApiVersionDispatcher<M, C> {
      * @param context An instance of Context.
      * @return Returns the highest {@code ApiVersion} matching the input model and context. If no matchers triggered, DEFAULT version is returned (hence no need to register a match-all tester for DEFAULT version).
      */
+    @Nonnull
     public ApiVersion dispatch(final M model, final C context) {
         for (final Map.Entry<ApiVersion, BiPredicate<M, C>> entry : versionTesters.entrySet()) {
             if (entry.getValue().test(model, context)) {
