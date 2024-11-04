@@ -55,14 +55,14 @@ class BaseHandlerStdTest {
 
     @Test
     void isDomainMembershipsJoined_NullDomainMembershipReturnsTrue() {
-        Assertions.assertThat(handler.isDomainMembershipsJoined(
+        Assertions.assertThat(DBInstancePredicates.isDomainMembershipsJoined(
                 DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isDomainMembershipsJoined_EmptyDomainMembershipReturnsTrue() {
-        Assertions.assertThat(handler.isDomainMembershipsJoined(
+        Assertions.assertThat(DBInstancePredicates.isDomainMembershipsJoined(
                 DBInstance.builder()
                         .domainMemberships(Collections.emptyList())
                         .build()
@@ -71,7 +71,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isDomainMembershipsJoined_NonEmptyListJoinedAndKerberosReturnsTrue() {
-        Assertions.assertThat(handler.isDomainMembershipsJoined(
+        Assertions.assertThat(DBInstancePredicates.isDomainMembershipsJoined(
                 DBInstance.builder()
                         .domainMemberships(
                                 DomainMembership.builder().status("joined").build(),
@@ -83,7 +83,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isDomainMembershipsJoined_NonEmptyListJoinedAndKerberosAndAnythingElseReturnsFalse() {
-        Assertions.assertThat(handler.isDomainMembershipsJoined(
+        Assertions.assertThat(DBInstancePredicates.isDomainMembershipsJoined(
                 DBInstance.builder()
                         .domainMemberships(
                                 DomainMembership.builder().status("joined").build(),
@@ -96,14 +96,14 @@ class BaseHandlerStdTest {
 
     @Test
     void isVpcSecurityGroupsActive_NullVpcSecurityGroupsReturnsTrue() {
-        Assertions.assertThat(handler.isVpcSecurityGroupsActive(
+        Assertions.assertThat(DBInstancePredicates.isVpcSecurityGroupsActive(
                 DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isVpcSecurityGroupsActive_EmptyVpcSecurityGroupsReturnsTrue() {
-        Assertions.assertThat(handler.isVpcSecurityGroupsActive(
+        Assertions.assertThat(DBInstancePredicates.isVpcSecurityGroupsActive(
                 DBInstance.builder()
                         .vpcSecurityGroups(Collections.emptyList())
                         .build()
@@ -112,7 +112,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isVpcSecurityGroupsActive_NonEmptyVpcSecurityGroupsActiveReturnsTrue() {
-        Assertions.assertThat(handler.isVpcSecurityGroupsActive(
+        Assertions.assertThat(DBInstancePredicates.isVpcSecurityGroupsActive(
                 DBInstance.builder()
                         .vpcSecurityGroups(
                                 VpcSecurityGroupMembership.builder().status("active").build(),
@@ -124,7 +124,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isVpcSecurityGroupsActive_NonEmptyVpcSecurityGroupsNotActiveReturnsFalse() {
-        Assertions.assertThat(handler.isVpcSecurityGroupsActive(
+        Assertions.assertThat(DBInstancePredicates.isVpcSecurityGroupsActive(
                 DBInstance.builder()
                         .vpcSecurityGroups(
                                 VpcSecurityGroupMembership.builder().status("active").build(),
@@ -136,14 +136,14 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NullPendingChangesReturnsTrue() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isNoPendingChanges_EmptyPendingChangesReturnsTrue() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(PendingModifiedValues.builder().build())
                         .build()
@@ -152,7 +152,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyAllocatedStorageReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -164,7 +164,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isCaCertificateChangesApplied_NonEmptyCACertificateIdentifierReturnsFalse_WhenCertificateRotationRestartIsTrue() {
-        Assertions.assertThat(handler.isCaCertificateChangesApplied(
+        Assertions.assertThat(DBInstancePredicates.isCaCertificateChangesApplied(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -177,7 +177,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isCaCertificateChangesApplied_NonEmptyCACertificateIdentifierReturnsTrue_WhenCertificateRotationRestartIsFalse() {
-        Assertions.assertThat(handler.isCaCertificateChangesApplied(
+        Assertions.assertThat(DBInstancePredicates.isCaCertificateChangesApplied(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -190,7 +190,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyMasterUserPasswordReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -202,7 +202,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyBackupRetentionPeriodReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -214,7 +214,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyMultiAZReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -226,7 +226,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyEngineVersionReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -238,7 +238,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyIopsReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -250,7 +250,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyDBInstanceIdentifierReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -262,7 +262,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyLicenseModelReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -274,7 +274,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyStorageTypeReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -286,7 +286,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyDBSubnetGroupNameReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -298,7 +298,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyPendingCloudWatchLogsExportsReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -310,7 +310,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_EmptyProcessorFeaturesReturnsTrue() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -322,7 +322,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyIamDatabaseAutenticationEnabledReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -334,7 +334,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyAutomationModeReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -346,7 +346,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyResumeFullAutomationModeTimeReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -358,7 +358,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isNoPendingChanges_NonEmptyReturnsFalse() {
-        Assertions.assertThat(handler.isNoPendingChanges(
+        Assertions.assertThat(DBInstancePredicates.isNoPendingChanges(
                 DBInstance.builder()
                         .pendingModifiedValues(
                                 PendingModifiedValues.builder()
@@ -370,21 +370,21 @@ class BaseHandlerStdTest {
 
     @Test
     void isDBParameterGroupSyncComplete_NullParameterGroupsReturnsTrue() {
-        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
+        Assertions.assertThat(DBInstancePredicates.isDBParameterGroupNotApplying(
                 DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isDBParameterGroupSyncComplete_EmptyParameterGroupsReturnsTrue() {
-        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
+        Assertions.assertThat(DBInstancePredicates.isDBParameterGroupNotApplying(
                 DBInstance.builder().dbParameterGroups(Collections.emptyList()).build()
         )).isTrue();
     }
 
     @Test
     void isDBParameterGroupSyncComplete_NonEmptyParameterGroupsInSyncReturnsTrue() {
-        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
+        Assertions.assertThat(DBInstancePredicates.isDBParameterGroupNotApplying(
                 DBInstance.builder()
                         .dbParameterGroups(
                                 DBParameterGroupStatus.builder().parameterApplyStatus("in-sync").build(),
@@ -396,7 +396,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isDBParameterGroupSyncComplete_NonEmptyParameterGroupsApplyingReturnsFalse() {
-        Assertions.assertThat(handler.isDBParameterGroupNotApplying(
+        Assertions.assertThat(DBInstancePredicates.isDBParameterGroupNotApplying(
                 DBInstance.builder()
                         .dbParameterGroups(
                                 DBParameterGroupStatus.builder().parameterApplyStatus("in-sync").build(),
@@ -408,21 +408,21 @@ class BaseHandlerStdTest {
 
     @Test
     void isReplicationComplete_NullStatusInfoReturnsTrue() {
-        Assertions.assertThat(handler.isReplicationComplete(
+        Assertions.assertThat(DBInstancePredicates.isReplicationComplete(
                 DBInstance.builder().build()
         )).isTrue();
     }
 
     @Test
     void isReplicationComplete_EmptyStatusInfoReturnsTrue() {
-        Assertions.assertThat(handler.isReplicationComplete(
+        Assertions.assertThat(DBInstancePredicates.isReplicationComplete(
                 DBInstance.builder().statusInfos(Collections.emptyList()).build()
         )).isTrue();
     }
 
     @Test
     void isReplicationComplete_NonEmptyListNoReadReplicaInfoReturnsTrue() {
-        Assertions.assertThat(handler.isReplicationComplete(
+        Assertions.assertThat(DBInstancePredicates.isReplicationComplete(
                 DBInstance.builder()
                         .statusInfos(DBInstanceStatusInfo.builder()
                                 .statusType("something else")
@@ -434,7 +434,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isReplicationComplete_NonEmptyListContainingReplicaInfoReplicatingReturnsTrue() {
-        Assertions.assertThat(handler.isReplicationComplete(
+        Assertions.assertThat(DBInstancePredicates.isReplicationComplete(
                 DBInstance.builder()
                         .statusInfos(
                                 DBInstanceStatusInfo.builder()
@@ -452,7 +452,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isReplicationComplete_NonEmptyListContainingReplicaInfoNotReplicatingReturnsFalse() {
-        Assertions.assertThat(handler.isReplicationComplete(
+        Assertions.assertThat(DBInstancePredicates.isReplicationComplete(
                 DBInstance.builder()
                         .statusInfos(
                                 DBInstanceStatusInfo.builder()
@@ -470,7 +470,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isMasterUserSecretStabilized_masterUserSecretIsNull() {
-        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+        Assertions.assertThat(DBInstancePredicates.isMasterUserSecretStabilized(
                 DBInstance.builder()
                         .build()
         )).isTrue();
@@ -478,7 +478,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isMasterUserSecretStabilized_masterUserSecretStatusActive() {
-        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+        Assertions.assertThat(DBInstancePredicates.isMasterUserSecretStabilized(
                 DBInstance.builder()
                         .masterUserSecret(MasterUserSecret.builder()
                                 .secretStatus("Active")
@@ -489,7 +489,7 @@ class BaseHandlerStdTest {
 
     @Test
     void isMasterUserSecretStabilized_masterUserSecretStatusCreating() {
-        Assertions.assertThat(handler.isMasterUserSecretStabilized(
+        Assertions.assertThat(DBInstancePredicates.isMasterUserSecretStabilized(
                 DBInstance.builder()
                         .masterUserSecret(MasterUserSecret.builder()
                                 .secretStatus("Creating")

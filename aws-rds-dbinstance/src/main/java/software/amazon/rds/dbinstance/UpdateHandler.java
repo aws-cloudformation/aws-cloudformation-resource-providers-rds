@@ -37,6 +37,7 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.common.Errors;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
@@ -68,7 +69,7 @@ public class UpdateHandler extends BaseHandlerStd {
             return Commons.handleException(
                     ProgressEvent.progress(request.getPreviousResourceState(), callbackContext),
                     ex,
-                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                    Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                     requestLogger
             );
         }
@@ -110,7 +111,7 @@ public class UpdateHandler extends BaseHandlerStd {
                             throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
                         }
                     } catch (CfnInvalidRequestException e) {
-                        return Commons.handleException(progress, e, MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                        return Commons.handleException(progress, e, Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
                     }
                     return progress;
                 })
@@ -141,7 +142,7 @@ public class UpdateHandler extends BaseHandlerStd {
                         }
                         return progress;
                     } catch (Exception ex) {
-                        return Commons.handleException(progress, ex, MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                        return Commons.handleException(progress, ex, Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
                     }
                 }, CallbackContext::isStorageAllocated, CallbackContext::setStorageAllocated))
                 .then(progress -> Commons.execOnce(progress, () -> {
@@ -233,7 +234,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
                     if (shouldReboot(rdsProxyClient.defaultClient(), progress) ||
-                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
+                            (DBInstancePredicates.isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
                         return rebootAwait(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
@@ -241,7 +242,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
-                    if (isDBClusterMember(progress.getResourceModel())) {
+                    if (DBInstancePredicates.isDBClusterMember(progress.getResourceModel())) {
                         return awaitDBClusterParameterGroup(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
@@ -301,7 +302,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, request.getDesiredResourceState());
             request.getDesiredResourceState().setMaxAllocatedStorage(dbInstance.allocatedStorage());
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+            return Commons.handleException(progress, exception, Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
         }
         return progress;
     }
@@ -322,7 +323,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -369,8 +370,8 @@ public class UpdateHandler extends BaseHandlerStd {
 
     private boolean shouldSetDefaultVpcId(final ResourceHandlerRequest<ResourceModel> request) {
         // DBCluster member instances inherit default vpc security groups from the corresponding umbrella cluster
-        return !isDBClusterMember(request.getDesiredResourceState()) &&
-                !isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
+        return !DBInstancePredicates.isDBClusterMember(request.getDesiredResourceState()) &&
+                !DBInstancePredicates.isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
                 CollectionUtils.isNullOrEmpty(request.getDesiredResourceState().getVPCSecurityGroups());
     }
 
@@ -413,7 +414,7 @@ public class UpdateHandler extends BaseHandlerStd {
             final String vpcId = dbInstance.dbSubnetGroup().vpcId();
             securityGroup = fetchSecurityGroup(ec2ProxyClient, vpcId, "default");
         } catch (Exception e) {
-            return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+            return Commons.handleException(progress, e, Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
         }
 
         if (securityGroup != null) {
@@ -439,7 +440,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -458,7 +459,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -477,7 +478,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -498,7 +499,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .handleError((request, exception, proxyInvocation, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();

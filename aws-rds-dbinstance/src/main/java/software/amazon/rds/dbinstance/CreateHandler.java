@@ -31,6 +31,9 @@ import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.common.Errors;
+import software.amazon.rds.dbinstance.common.create.DBInstanceFactory;
+import software.amazon.rds.dbinstance.common.create.DBInstanceFactoryFactory;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -57,7 +60,7 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        if (isDBClusterMember(request.getDesiredResourceState()) && BooleanUtils.isTrue(request.getSnapshotRequested())) {
+        if (DBInstancePredicates.isDBClusterMember(request.getDesiredResourceState()) && BooleanUtils.isTrue(request.getSnapshotRequested())) {
             throw new RequestValidationException(ILLEGAL_DELETION_POLICY_ERROR);
         }
     }
@@ -88,18 +91,24 @@ public class CreateHandler extends BaseHandlerStd {
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
+        final DBInstanceFactoryFactory factoryFactory = new DBInstanceFactoryFactory(
+            proxy, rdsProxyClient, allTags, requestLogger, config, getApiVersionDispatcher()
+        );
+
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
                         try {
                             model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress, proxy));
                         } catch (Exception e) {
-                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET, requestLogger);
+                            return Commons.handleException(progress, e, Errors.DB_INSTANCE_FETCH_ENGINE_RULE_SET, requestLogger);
                         }
                     }
                     return progress;
                 })
                 .then(progress -> Commons.execOnce(progress, () -> {
+                    final DBInstanceFactory dbInstanceFactory = factoryFactory.createFactory(progress);
+
                     if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
                         // restoreDBInstanceToPointInTime is not a versioned call.
                         return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
@@ -121,7 +130,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
                                 }
                             } catch (Exception e) {
-                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                                return Commons.handleException(progress, e, Errors.RESTORE_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
                             }
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
@@ -129,10 +138,8 @@ public class CreateHandler extends BaseHandlerStd {
                                 ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot)
                         ));
                     }
-                    return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
-                            ApiVersion.V12, this::createDbInstanceV12,
-                            ApiVersion.DEFAULT, safeAddTags(this::createDbInstance)
-                    ));
+                    // FIXME Currently only handling the fresh instance. TODO Handle above cases in factory.
+                    return dbInstanceFactory.create(progress);
                 }, CallbackContext::isCreated, CallbackContext::setCreated))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
@@ -295,7 +302,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.CREATE_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -323,7 +330,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.CREATE_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -355,7 +362,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.RESTORE_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -383,7 +390,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.RESTORE_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -411,7 +418,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.RESTORE_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -440,7 +447,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET,
+                        Errors.CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -467,7 +474,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -490,7 +497,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();

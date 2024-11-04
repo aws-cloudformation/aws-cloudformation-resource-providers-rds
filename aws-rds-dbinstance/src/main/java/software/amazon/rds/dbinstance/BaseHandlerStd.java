@@ -13,83 +13,37 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.BooleanUtils;
 
-import com.amazonaws.arn.Arn;
-import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.AuthorizationNotFoundException;
-import software.amazon.awssdk.services.rds.model.CertificateNotFoundException;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBSnapshot;
-import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbInstanceAlreadyExistsException;
-import software.amazon.awssdk.services.rds.model.DbInstanceAutomatedBackupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbInstanceRoleAlreadyExistsException;
-import software.amazon.awssdk.services.rds.model.DbInstanceRoleNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbSecurityGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbSnapshotAlreadyExistsException;
-import software.amazon.awssdk.services.rds.model.DbSnapshotNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
-import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.DbUpgradeDependencyFailureException;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsResponse;
-import software.amazon.awssdk.services.rds.model.DomainMembership;
-import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
 import software.amazon.awssdk.services.rds.model.Event;
-import software.amazon.awssdk.services.rds.model.InstanceQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.InsufficientDbInstanceCapacityException;
-import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
-import software.amazon.awssdk.services.rds.model.InvalidDbInstanceAutomatedBackupStateException;
-import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
-import software.amazon.awssdk.services.rds.model.InvalidDbSecurityGroupStateException;
-import software.amazon.awssdk.services.rds.model.InvalidDbSnapshotStateException;
-import software.amazon.awssdk.services.rds.model.InvalidRestoreException;
-import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
-import software.amazon.awssdk.services.rds.model.InvalidVpcNetworkStateException;
-import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
-import software.amazon.awssdk.services.rds.model.NetworkTypeNotSupportedException;
-import software.amazon.awssdk.services.rds.model.OptionGroupMembership;
-import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
-import software.amazon.awssdk.services.rds.model.PendingModifiedValues;
-import software.amazon.awssdk.services.rds.model.ProvisionedIopsNotAvailableInAzException;
-import software.amazon.awssdk.services.rds.model.SnapshotQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.StorageQuotaExceededException;
-import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.utils.StringUtils;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
-import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
-import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.cloudformation.resource.ResourceTypeSchema;
-import software.amazon.rds.common.error.ErrorCode;
-import software.amazon.rds.common.error.ErrorRuleSet;
-import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
@@ -106,27 +60,14 @@ import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.Ec2ClientProvider;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
-import software.amazon.rds.dbinstance.status.DBInstanceStatus;
-import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
-import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
-import software.amazon.rds.dbinstance.status.OptionGroupStatus;
-import software.amazon.rds.dbinstance.status.ReadReplicaStatus;
-import software.amazon.rds.dbinstance.status.VPCSecurityGroupStatus;
+import software.amazon.rds.dbinstance.common.Errors;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
-    public static final String SECRET_STATUS_ACTIVE = "active";
     public static final String RESOURCE_IDENTIFIER = "dbinstance";
     public static final String STACK_NAME = "rds";
 
     public static final String API_VERSION_V12 = "2012-09-17";
-
-    static final String READ_REPLICA_STATUS_TYPE = "read replication";
-
-    protected static final List<String> RDS_CUSTOM_ORACLE_ENGINES = ImmutableList.of(
-            "custom-oracle-ee",
-            "custom-oracle-ee-cdb"
-    );
 
     protected static final int RESOURCE_ID_MAX_LENGTH = 63;
 
@@ -147,8 +88,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     // upon a stack deletion: if an instance is being deleted out-of-bounds. This is a pretty corner (still common) case
     // where the CFN handler is trying to help the customer. A regular stack deletion will not be impacted.
     // Considered bounded-safe.
-    protected static final String IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT = "is already being deleted";
-
     protected static final String ILLEGAL_DELETION_POLICY_ERROR = "DeletionPolicy:Snapshot cannot be specified for a cluster instance, use deletion policy on the cluster instead.";
 
     protected static final String UNKNOWN_SOURCE_REGION_ERROR = "Unknown source region";
@@ -171,13 +110,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final BiFunction<ResourceModel, ProxyClient<RdsClient>, ResourceModel> NOOP_CALL = (model, proxyClient) -> model;
 
-    protected static final Function<Exception, ErrorStatus> ignoreDBInstanceBeingDeletedConditionalErrorStatus = exception -> {
-        if (isDBInstanceBeingDeletedException(exception)) {
-            return ErrorStatus.ignore(OperationStatus.IN_PROGRESS);
-        }
-        return ErrorStatus.failWith(HandlerErrorCode.ResourceConflict);
-    };
-
     //TODO: This list should be gone eventually. Event ID should be checked instead.
     private static final List<Predicate<Event>> EVENT_FAIL_CHECKERS = ImmutableList.of(
             (e) -> Events.isEventMessageContains(e, "failed to join a host to a domain"),
@@ -194,168 +126,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             (e) -> Events.isEventMessageContains(e, "instance is in a state that cannot be upgraded")
     );
 
-    protected static final ErrorRuleSet DEFAULT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
-            .extend(Commons.DEFAULT_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
-                    ErrorCode.InstanceQuotaExceeded,
-                    ErrorCode.InsufficientDBInstanceCapacity,
-                    ErrorCode.SnapshotQuotaExceeded,
-                    ErrorCode.StorageQuotaExceeded)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    ErrorCode.DBSubnetGroupNotAllowedFault,
-                    ErrorCode.InvalidParameterCombination,
-                    ErrorCode.InvalidParameterValue,
-                    ErrorCode.InvalidVPCNetworkStateFault,
-                    ErrorCode.KMSKeyNotAccessibleFault,
-                    ErrorCode.MissingParameter,
-                    ErrorCode.ProvisionedIopsNotAvailableInAZFault,
-                    ErrorCode.StorageTypeNotSupportedFault)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    ErrorCode.DBClusterNotFoundFault,
-                    ErrorCode.DBParameterGroupNotFound,
-                    ErrorCode.DBSecurityGroupNotFound,
-                    ErrorCode.DBSnapshotNotFound,
-                    ErrorCode.DBSubnetGroupNotFoundFault)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    CertificateNotFoundException.class,
-                    DbClusterNotFoundException.class,
-                    DbInstanceNotFoundException.class,
-                    DbParameterGroupNotFoundException.class,
-                    DbSecurityGroupNotFoundException.class,
-                    DbSnapshotNotFoundException.class,
-                    DbClusterSnapshotNotFoundException.class,
-                    DbSubnetGroupNotFoundException.class,
-                    DomainNotFoundException.class,
-                    OptionGroupNotFoundException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
-                    DbInstanceAutomatedBackupQuotaExceededException.class,
-                    InsufficientDbInstanceCapacityException.class,
-                    InstanceQuotaExceededException.class,
-                    SnapshotQuotaExceededException.class,
-                    StorageQuotaExceededException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    InvalidDbInstanceStateException.class,
-                    InvalidDbClusterStateException.class,
-                    DbUpgradeDependencyFailureException.class,
-                    InvalidDbSecurityGroupStateException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    AuthorizationNotFoundException.class,
-                    DbSubnetGroupDoesNotCoverEnoughAZsException.class,
-                    InvalidVpcNetworkStateException.class,
-                    KmsKeyNotAccessibleException.class,
-                    NetworkTypeNotSupportedException.class,
-                    ProvisionedIopsNotAvailableInAzException.class,
-                    StorageTypeNotSupportedException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    DbInstanceAlreadyExistsException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.GeneralServiceException),
-                    InvalidSubnetException.class)
-            .build();
-
-    protected static final ErrorRuleSet DB_INSTANCE_FETCH_ENGINE_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    CfnInvalidRequestException.class)
-            .build();
-
-    public static final ErrorRuleSet RESTORE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    ErrorCode.DBInstanceAlreadyExists)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    ErrorCode.InvalidDBSnapshotState,
-                    ErrorCode.InvalidRestoreFault)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    DbInstanceAlreadyExistsException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    InvalidDbSnapshotStateException.class,
-                    InvalidRestoreException.class)
-            .build();
-
-    protected static final ErrorRuleSet CREATE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    ErrorCode.DBInstanceAlreadyExists)
-            .withErrorClasses(
-                    ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    DbInstanceAlreadyExistsException.class)
-            .build();
-
-    protected static final ErrorRuleSet CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    ErrorCode.DBInstanceAlreadyExists)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
-                    DbInstanceAlreadyExistsException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    DbClusterNotFoundException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    InvalidDbClusterStateException.class)
-            .build();
-
-    protected static final ErrorRuleSet REBOOT_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    ErrorCode.DBInstanceNotFound)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    ErrorCode.InvalidDBInstanceState)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    DbInstanceNotFoundException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    InvalidDbInstanceStateException.class)
-            .build();
-
-    protected static final ErrorRuleSet MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
-                    InvalidDbInstanceAutomatedBackupStateException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
-                    DbInstanceAutomatedBackupQuotaExceededException.class)
-            .build();
-
-    protected static final ErrorRuleSet MODIFY_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    ErrorCode.InvalidDBInstanceState)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    ErrorCode.DBInstanceNotFound)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    ErrorCode.InvalidDBSecurityGroupState,
-                    ErrorCode.InvalidParameterCombination)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ResourceConflict),
-                    InvalidDbInstanceStateException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    DbInstanceNotFoundException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    CfnInvalidRequestException.class,
-                    InvalidDbSecurityGroupStateException.class)
-            .build();
-
-    protected static final ErrorRuleSet UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorClasses(ErrorStatus.ignore(),
-                    DbInstanceRoleAlreadyExistsException.class,
-                    DbInstanceRoleNotFoundException.class)
-            .build();
-
-    protected static final ErrorRuleSet DELETE_DB_INSTANCE_ERROR_RULE_SET = ErrorRuleSet
-            .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    ErrorCode.InvalidParameterValue)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    ErrorCode.DBInstanceNotFound)
-            .withErrorCodes(ErrorStatus.conditional(ignoreDBInstanceBeingDeletedConditionalErrorStatus),
-                    ErrorCode.InvalidDBInstanceState)
-            .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    ErrorCode.DBSnapshotAlreadyExists)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
-                    DbInstanceNotFoundException.class)
-            .withErrorClasses(ErrorStatus.conditional(ignoreDBInstanceBeingDeletedConditionalErrorStatus),
-                    InvalidDbInstanceStateException.class)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
-                    DbSnapshotAlreadyExistsException.class)
-            .build();
-
     protected static final ResourceTypeSchema resourceTypeSchema = ResourceTypeSchema.load(new Configuration().resourceSchemaJsonObject());
 
     public BaseHandlerStd(final HandlerConfig config) {
@@ -363,20 +133,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         this.config = config;
         this.apiVersionDispatcher = new ApiVersionDispatcher<ResourceModel, CallbackContext>()
                 .register(ApiVersion.V12, (m, c) -> !software.amazon.awssdk.utils.CollectionUtils.isNullOrEmpty(m.getDBSecurityGroups()));
-    }
-
-    private static boolean looksLikeDBInstanceBeingDeletedMessage(final String message) {
-        if (StringUtils.isBlank(message)) {
-            return false;
-        }
-        return message.contains(IS_ALREADY_BEING_DELETED_ERROR_FRAGMENT);
-    }
-
-    private static boolean isDBInstanceBeingDeletedException(final Exception e) {
-        if (e instanceof InvalidDbInstanceStateException) {
-            return looksLikeDBInstanceBeingDeletedMessage(e.getMessage());
-        }
-        return false;
     }
 
     protected ApiVersionDispatcher<ResourceModel, CallbackContext> getApiVersionDispatcher() {
@@ -463,7 +219,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -490,18 +246,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.MODIFY_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
-    }
-
-    protected boolean isDBClusterMember(final ResourceModel model) {
-        return StringUtils.isNotBlank(model.getDBClusterIdentifier());
-    }
-
-    protected boolean isRdsCustomOracleInstance(final ResourceModel model) {
-        return RDS_CUSTOM_ORACLE_ENGINES.contains(model.getEngine());
     }
 
     protected boolean isFailureEvent(final Event event) {
@@ -627,83 +375,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return false;
     }
 
-    private void assertNoDBInstanceTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
-        final DBInstanceStatus status = DBInstanceStatus.fromString(dbInstance.dbInstanceStatus());
-        if (status != null && status.isTerminal()) {
-            throw new CfnNotStabilizedException(new Exception("DB Instance is in state: " + status.toString()));
-        }
-    }
-
-    private void assertNoOptionGroupTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
-        final List<OptionGroupMembership> termOptionGroups = Optional.ofNullable(dbInstance.optionGroupMemberships()).orElse(Collections.emptyList())
-                .stream()
-                .filter(optionGroup -> {
-                    final OptionGroupStatus status = OptionGroupStatus.fromString(optionGroup.status());
-                    return status != null && status.isTerminal();
-                })
-                .collect(Collectors.toList());
-
-        if (!termOptionGroups.isEmpty()) {
-            throw new CfnNotStabilizedException(new Exception(
-                    String.format("OptionGroup %s is in a terminal state",
-                            termOptionGroups.get(0).optionGroupName())));
-        }
-    }
-
-    private void assertNoDomainMembershipTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
-        final List<DomainMembership> terminalDomainMemberships = Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
-                .stream()
-                .filter(domainMembership -> {
-                    final DomainMembershipStatus status = DomainMembershipStatus.fromString(domainMembership.status());
-                    return status != null && status.isTerminal();
-                })
-                .collect(Collectors.toList());
-
-        if (!terminalDomainMemberships.isEmpty()) {
-            throw new CfnNotStabilizedException(new Exception(String.format("Domain %s is in a terminal state",
-                    terminalDomainMemberships.get(0).domain())));
-        }
-    }
-
-    private void assertNoTerminalStatus(final DBInstance dbInstance) throws CfnNotStabilizedException {
-        assertNoDBInstanceTerminalStatus(dbInstance);
-        assertNoOptionGroupTerminalStatus(dbInstance);
-        assertNoDomainMembershipTerminalStatus(dbInstance);
-    }
-
     protected boolean isDBInstanceStabilizedAfterMutate(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model,
             final CallbackContext context
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-
-        assertNoTerminalStatus(dbInstance);
-
-
-        final boolean isDBInstanceStabilizedAfterMutateResult = isDBInstanceAvailable(dbInstance) &&
-                isReplicationComplete(dbInstance) &&
-                isDBParameterGroupNotApplying(dbInstance) &&
-                isNoPendingChanges(dbInstance) &&
-                isCaCertificateChangesApplied(dbInstance, model) &&
-                isVpcSecurityGroupsActive(dbInstance) &&
-                isDomainMembershipsJoined(dbInstance) &&
-                isMasterUserSecretStabilized(dbInstance);
-
-        requestLogger.log(String.format("isDBInstanceStabilizedAfterMutate: %b", isDBInstanceStabilizedAfterMutateResult),
-                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
-                        "isReplicationComplete", isReplicationComplete(dbInstance),
-                        "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
-                        "isNoPendingChanges", isNoPendingChanges(dbInstance),
-                        "isCaCertificateChangesApplied", isCaCertificateChangesApplied(dbInstance, model),
-                        "isVpcSecurityGroupsActive", isVpcSecurityGroupsActive(dbInstance),
-                        "isDomainMembershipsJoined", isDomainMembershipsJoined(dbInstance),
-                        "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbInstance)),
-                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterMutate method will be repeatedly" +
-                        " called with a backoff mechanism after the modify call until it returns true. This" +
-                        " process will continue until all included flags are true."));
-
-        return isDBInstanceStabilizedAfterMutateResult;
+        return DBInstancePredicates.isDBInstanceStabilizedAfterMutate(dbInstance, model, context, requestLogger);
     }
 
     private void resourceStabilizationTime(final CallbackContext context) {
@@ -715,23 +393,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected boolean isInstanceStabilizedAfterReplicationStop(final ProxyClient<RdsClient> rdsProxyClient,
                                                                final ResourceModel model) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-
-        assertNoTerminalStatus(dbInstance);
-        return isDBInstanceAvailable(dbInstance)
-                && !dbInstance.hasDbInstanceAutomatedBackupsReplications();
+        return DBInstancePredicates.isInstanceStabilizedAfterReplicationStop(dbInstance, model);
     }
 
-    protected boolean isInstanceStabilizedAfterReplicationStart(final ProxyClient<RdsClient> rdsProxyClient,
-                                                                final ResourceModel model) {
+    protected boolean isInstanceStabilizedAfterReplicationStart(
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
+    ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-
-        assertNoTerminalStatus(dbInstance);
-        return isDBInstanceAvailable(dbInstance)
-                && dbInstance.hasDbInstanceAutomatedBackupsReplications() &&
-                !dbInstance.dbInstanceAutomatedBackupsReplications().isEmpty() &&
-                model.getAutomaticBackupReplicationRegion()
-                        .equalsIgnoreCase(
-                                Arn.fromString(dbInstance.dbInstanceAutomatedBackupsReplications().get(0).dbInstanceAutomatedBackupsArn()).getRegion());
+        return DBInstancePredicates.isInstanceStabilizedAfterReplicationStart(dbInstance, model);
     }
 
     protected boolean isDBInstanceStabilizedAfterReboot(
@@ -739,126 +409,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
-
-        assertNoTerminalStatus(dbInstance);
-
-        final boolean isDBClusterParameterGroupStabilized = !isDBClusterMember(model) || isDBClusterParameterGroupStabilized(rdsProxyClient, model);
-        final boolean isDBInstanceStabilizedAfterReboot = isDBInstanceAvailable(dbInstance) &&
-                isDBParameterGroupInSync(dbInstance) &&
-                isOptionGroupInSync(dbInstance) &&
-                isDBClusterParameterGroupStabilized;
-
-        requestLogger.log(String.format("isDBInstanceStabilizedAfterReboot: %b", isDBInstanceStabilizedAfterReboot),
-                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
-                        "isDBParameterGroupInSync", isDBParameterGroupInSync(dbInstance),
-                        "isOptionGroupInSync", isOptionGroupInSync(dbInstance),
-                        "isDBClusterParameterGroupStabilized", isDBClusterParameterGroupStabilized),
-                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterReboot method will be repeatedly" +
-                        " called with a backoff mechanism after the reboot call until it returns true. This" +
-                        " process will continue until all included flags are true."));
-
-        return isDBInstanceStabilizedAfterReboot;
-    }
-
-    boolean isDBInstanceAvailable(final DBInstance dbInstance) {
-        return DBInstanceStatus.Available.equalsString(dbInstance.dbInstanceStatus());
-    }
-
-    boolean isDomainMembershipsJoined(final DBInstance dbInstance) {
-        return Optional.ofNullable(dbInstance.domainMemberships()).orElse(Collections.emptyList())
-                .stream()
-                .allMatch(membership -> DomainMembershipStatus.Joined.equalsString(membership.status()) ||
-                        DomainMembershipStatus.KerberosEnabled.equalsString(membership.status()));
-    }
-
-    boolean isVpcSecurityGroupsActive(final DBInstance dbInstance) {
-        return Optional.ofNullable(dbInstance.vpcSecurityGroups()).orElse(Collections.emptyList())
-                .stream()
-                .allMatch(group -> VPCSecurityGroupStatus.Active.equalsString(group.status()));
-    }
-
-    boolean isNoPendingChanges(final DBInstance dbInstance) {
-        final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
-        return (pending == null) || (pending.dbInstanceClass() == null &&
-                pending.allocatedStorage() == null &&
-                pending.automationMode() == null &&
-                pending.backupRetentionPeriod() == null &&
-                pending.dbInstanceIdentifier() == null &&
-                pending.dbSubnetGroupName() == null &&
-                pending.engine() == null &&
-                pending.engineVersion() == null &&
-                pending.iamDatabaseAuthenticationEnabled() == null &&
-                pending.iops() == null &&
-                pending.licenseModel() == null &&
-                pending.masterUserPassword() == null &&
-                pending.multiAZ() == null &&
-                pending.pendingCloudwatchLogsExports() == null &&
-                pending.port() == null &&
-                CollectionUtils.isNullOrEmpty(pending.processorFeatures()) &&
-                pending.resumeFullAutomationModeTime() == null &&
-                pending.storageThroughput() == null &&
-                pending.storageType() == null
-        );
-    }
-
-    boolean isCaCertificateChangesApplied(final DBInstance dbInstance, final ResourceModel model) {
-        final PendingModifiedValues pending = dbInstance.pendingModifiedValues();
-        return pending == null ||
-                pending.caCertificateIdentifier() == null ||
-                BooleanUtils.isNotTrue(model.getCertificateRotationRestart());
-    }
-
-    boolean isDBParameterGroupNotApplying(final DBInstance dbInstance) {
-        return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList())
-                .stream()
-                .noneMatch(group -> DBParameterGroupStatus.Applying.equalsString(group.parameterApplyStatus()));
-    }
-
-    boolean isReplicationComplete(final DBInstance dbInstance) {
-        return Optional.ofNullable(dbInstance.statusInfos()).orElse(Collections.emptyList())
-                .stream()
-                .filter(statusInfo -> READ_REPLICA_STATUS_TYPE.equals(statusInfo.statusType()))
-                .allMatch(statusInfo -> ReadReplicaStatus.Replicating.equalsString(statusInfo.status()));
+        final Optional<DBCluster>  maybeDbCluster = DBInstancePredicates.isDBClusterMember(model)
+            ? Optional.of(fetchDBCluster(rdsProxyClient, model))
+            : Optional.empty();
+        return DBInstancePredicates.isDBInstanceStabilizedAfterReboot(dbInstance, maybeDbCluster, model, requestLogger);
     }
 
     protected boolean isOptionGroupStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        return isOptionGroupInSync(fetchDBInstance(rdsProxyClient, model));
-    }
-
-    protected boolean isOptionGroupInSync(final DBInstance dbInstance) {
-        return Optional.ofNullable(dbInstance.optionGroupMemberships()).orElse(Collections.emptyList())
-                .stream()
-                .allMatch(optionGroup -> OptionGroupStatus.InSync.equalsString(optionGroup.status()));
+        return DBInstancePredicates.isOptionGroupInSync(fetchDBInstance(rdsProxyClient, model));
     }
 
     protected boolean isDBParameterGroupStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        return isDBParameterGroupInSync(fetchDBInstance(rdsProxyClient, model));
-    }
-
-    protected boolean isDBParameterGroupInSync(final DBInstance dbInstance) {
-        return Optional.ofNullable(dbInstance.dbParameterGroups()).orElse(Collections.emptyList())
-                .stream()
-                .allMatch(parameterGroup -> DBParameterGroupStatus.InSync.equalsString(parameterGroup.parameterApplyStatus()));
+        return DBInstancePredicates.isDBParameterGroupInSync(fetchDBInstance(rdsProxyClient, model));
     }
 
     protected boolean isDBClusterParameterGroupStabilized(
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        return isDBClusterParameterGroupInSync(model, fetchDBCluster(rdsProxyClient, model));
-    }
-
-    protected boolean isDBClusterParameterGroupInSync(final ResourceModel model, final DBCluster dbCluster) {
-        return Optional.ofNullable(dbCluster.dbClusterMembers()).orElse(Collections.emptyList())
-                .stream()
-                .filter(member -> model.getDBInstanceIdentifier().equalsIgnoreCase(member.dbInstanceIdentifier()))
-                .anyMatch(member -> DBParameterGroupStatus.InSync.equalsString(member.dbClusterParameterGroupStatus()));
+        final DBCluster dbCluster = fetchDBCluster(rdsProxyClient, model);
+        return DBInstancePredicates.isDBClusterParameterGroupInSync(model, dbCluster);
     }
 
     protected boolean isDBInstanceRoleStabilized(
@@ -895,13 +471,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 model,
                 (roles) -> roles.noneMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()))
         );
-    }
-
-    protected boolean isMasterUserSecretStabilized(final DBInstance instance) {
-        if (instance.masterUserSecret() == null) {
-            return true;
-        }
-        return SECRET_STATUS_ACTIVE.equalsIgnoreCase(instance.masterUserSecret().secretStatus());
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateAssociatedRoles(
@@ -941,7 +510,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                            Errors.UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
                             requestLogger
                     ))
                     .success();
@@ -973,7 +542,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                             ProgressEvent.progress(resourceModel, context),
                             exception,
-                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                            Errors.UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
                             requestLogger
                     ))
                     .success();
@@ -1003,7 +572,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        REBOOT_DB_INSTANCE_ERROR_RULE_SET,
+                        Errors.REBOOT_DB_INSTANCE_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -1035,7 +604,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
                         ProgressEvent.progress(resourceModel, context),
                         exception,
-                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                        Errors.UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -1051,7 +620,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
                 model.setEngine(dbInstance.engine());
             } catch (Exception e) {
-                return Commons.handleException(progress, e, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                return Commons.handleException(progress, e, Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
             }
         }
         return progress;
@@ -1082,7 +651,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         try {
             dbInstance = fetchDBInstance(rdsProxyClient, progress.getResourceModel());
         } catch (Exception exception) {
-            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+            return Commons.handleException(progress, exception, Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
         }
 
         final String arn = dbInstance.dbInstanceArn();
@@ -1094,7 +663,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             return Commons.handleException(
                     progress,
                     exception,
-                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
+                    Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
                     requestLogger
             );
         }
@@ -1139,7 +708,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                        Errors.MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
                         requestLogger
                 ))
                 .progress();
@@ -1170,7 +739,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ProgressEvent<ResourceModel, CallbackContext> progressEvent = Commons.handleException(
                             ProgressEvent.progress(model, context),
                             exception,
-                            MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                            Errors.MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
                             requestLogger
                     );
                     if (exception.getMessage().contains(AUTOMATIC_REPLICATION_KMS_KEY_ERROR)) {

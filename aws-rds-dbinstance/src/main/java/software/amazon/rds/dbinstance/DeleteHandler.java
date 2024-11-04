@@ -14,6 +14,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.common.Errors;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 public class DeleteHandler extends BaseHandlerStd {
@@ -49,7 +50,7 @@ public class DeleteHandler extends BaseHandlerStd {
         // Final snapshots are not allowed for read replicas and cluster instances.
         if (BooleanUtils.isNotFalse(request.getSnapshotRequested()) &&
                 !ResourceModelHelper.isReadReplica(resourceModel) &&
-                !isDBClusterMember(resourceModel)) {
+                !DBInstancePredicates.isDBClusterMember(resourceModel)) {
             snapshotIdentifier = snapshotIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())
                     .withResourceId(StringUtils.prependIfMissing(request.getLogicalResourceIdentifier(), SNAPSHOT_PREFIX))
@@ -69,7 +70,7 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DELETE_DB_INSTANCE_ERROR_RULE_SET,
+                                Errors.DELETE_DB_INSTANCE_ERROR_RULE_SET,
                                 requestLogger
                         )).progress()
                 )
@@ -87,7 +88,7 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                                Errors.DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
                                 requestLogger
                         ))
                         .progress()
