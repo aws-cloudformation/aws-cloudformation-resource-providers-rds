@@ -1,35 +1,16 @@
 package software.amazon.rds.dbinstance;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
-
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.ObjectUtils;
-
 import com.amazonaws.util.CollectionUtils;
 import com.amazonaws.util.StringUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBCluster;
-import software.amazon.awssdk.services.rds.model.DBClusterMember;
-import software.amazon.awssdk.services.rds.model.DBInstance;
-import software.amazon.awssdk.services.rds.model.DBParameterGroup;
-import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
-import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsResponse;
-import software.amazon.awssdk.services.rds.model.SourceType;
+import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.HandlerErrorCode;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.ProxyClient;
-import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.*;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
@@ -41,6 +22,14 @@ import software.amazon.rds.dbinstance.status.DBInstanceStatus;
 import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+
 public class UpdateHandler extends BaseHandlerStd {
 
     public UpdateHandler() {
@@ -106,7 +95,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
                     try {
-                        if(!Objects.equals(request.getDesiredResourceState().getEngineLifecycleSupport(),
+                        if (!Objects.equals(request.getDesiredResourceState().getEngineLifecycleSupport(),
                                 request.getPreviousResourceState().getEngineLifecycleSupport()) &&
                                 !request.getRollback()) {
                             throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
@@ -190,23 +179,25 @@ public class UpdateHandler extends BaseHandlerStd {
                         }
                     }
                     return progress;
-                    },  (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {}))
+                }, (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {
+                }))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (ResourceModelHelper.shouldStopAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
                                 return stopAutomaticBackupReplicationInRegion(callbackContext.getDbInstanceArn(), proxy, progress, rdsProxyClient.defaultClient(),
                                         ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getPreviousResourceState()));
                             }
-                            return progress;},
+                            return progress;
+                        },
                         CallbackContext::isAutomaticBackupReplicationStopped, CallbackContext::setAutomaticBackupReplicationStopped))
                 .then(progress -> Commons.execOnce(progress, () -> {
                             if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
                                 return startAutomaticBackupReplicationInRegion(
-                                    callbackContext.getDbInstanceArn(),
-                                    progress.getResourceModel().getAutomaticBackupReplicationKmsKeyId(),
-                                    proxy,
-                                    progress,
-                                    rdsProxyClient.defaultClient(),
-                                    ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState())
+                                        callbackContext.getDbInstanceArn(),
+                                        progress.getResourceModel().getAutomaticBackupReplicationKmsKeyId(),
+                                        proxy,
+                                        progress,
+                                        rdsProxyClient.defaultClient(),
+                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState())
                                 );
                             }
                             return progress;
@@ -236,7 +227,7 @@ public class UpdateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> {
                     if (shouldReboot(rdsProxyClient.defaultClient(), progress) ||
-                            (isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
+                            (DBInstancePredicates.isDBClusterMember(progress.getResourceModel()) && shouldRebootCluster(rdsProxyClient.defaultClient(), progress))) {
                         return rebootAwait(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
@@ -244,7 +235,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 .then(progress -> awaitDBParameterGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> awaitOptionGroupInSyncStatus(proxy, rdsProxyClient.defaultClient(), progress))
                 .then(progress -> {
-                    if (isDBClusterMember(progress.getResourceModel())) {
+                    if (DBInstancePredicates.isDBClusterMember(progress.getResourceModel())) {
                         return awaitDBClusterParameterGroup(proxy, rdsProxyClient.defaultClient(), progress);
                     }
                     return progress;
@@ -372,8 +363,8 @@ public class UpdateHandler extends BaseHandlerStd {
 
     private boolean shouldSetDefaultVpcId(final ResourceHandlerRequest<ResourceModel> request) {
         // DBCluster member instances inherit default vpc security groups from the corresponding umbrella cluster
-        return !isDBClusterMember(request.getDesiredResourceState()) &&
-                !isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
+        return !DBInstancePredicates.isDBClusterMember(request.getDesiredResourceState()) &&
+                !DBInstancePredicates.isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
                 CollectionUtils.isNullOrEmpty(request.getDesiredResourceState().getVPCSecurityGroups());
     }
 
