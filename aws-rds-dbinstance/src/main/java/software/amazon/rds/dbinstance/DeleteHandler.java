@@ -1,13 +1,8 @@
 package software.amazon.rds.dbinstance;
 
-import java.util.Collections;
-import java.util.function.Function;
-import java.util.Optional;
-
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
@@ -19,6 +14,8 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+
+import java.util.function.Function;
 
 public class DeleteHandler extends BaseHandlerStd {
 
