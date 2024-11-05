@@ -57,7 +57,7 @@ public class CreateHandler extends BaseHandlerStd {
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
-        if (isDBClusterMember(request.getDesiredResourceState()) && BooleanUtils.isTrue(request.getSnapshotRequested())) {
+        if (DBInstancePredicates.isDBClusterMember(request.getDesiredResourceState()) && BooleanUtils.isTrue(request.getSnapshotRequested())) {
             throw new RequestValidationException(ILLEGAL_DELETION_POLICY_ERROR);
         }
     }

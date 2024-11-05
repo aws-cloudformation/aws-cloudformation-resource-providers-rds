@@ -49,7 +49,7 @@ public class DeleteHandler extends BaseHandlerStd {
         // Final snapshots are not allowed for read replicas and cluster instances.
         if (BooleanUtils.isNotFalse(request.getSnapshotRequested()) &&
                 !ResourceModelHelper.isReadReplica(resourceModel) &&
-                !isDBClusterMember(resourceModel)) {
+                !DBInstancePredicates.isDBClusterMember(resourceModel)) {
             snapshotIdentifier = snapshotIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())
                     .withResourceId(StringUtils.prependIfMissing(request.getLogicalResourceIdentifier(), SNAPSHOT_PREFIX))

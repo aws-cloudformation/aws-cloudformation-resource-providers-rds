@@ -219,16 +219,32 @@ public class DBInstancePredicates {
     }
 
     public static boolean isDBInstanceStabilizedAfterReboot(
+            final DBInstance dbInstance,
+            final RequestLogger requestLogger
+    ) {
+        assertNoTerminalStatus(dbInstance);
+
+        final boolean isDBClusterParameterGroupStabilized = true;
+        return isDBInstanceStabilizedAfterReboot(dbInstance, isDBClusterParameterGroupStabilized, requestLogger);
+    }
+
+    public static boolean isDBInstanceStabilizedAfterReboot(
         final DBInstance dbInstance,
-        final Optional<DBCluster> maybeDbCluster,
+        final DBCluster dbCluster,
         final ResourceModel model,
         final RequestLogger requestLogger
     ) {
         assertNoTerminalStatus(dbInstance);
 
-        final boolean isDBClusterParameterGroupStabilized = maybeDbCluster
-            .map(dbCluster -> isDBClusterParameterGroupInSync(model, dbCluster))
-            .orElseGet(() -> !DBInstancePredicates.isDBClusterMember(model));
+        final boolean isDBClusterParameterGroupStabilized = isDBClusterParameterGroupInSync(model, dbCluster);
+        return isDBInstanceStabilizedAfterReboot(dbInstance, isDBClusterParameterGroupStabilized, requestLogger);
+    }
+
+   private static boolean isDBInstanceStabilizedAfterReboot(
+        final DBInstance dbInstance,
+        final boolean isDBClusterParameterGroupStabilized,
+        final RequestLogger requestLogger
+    ) {
         final boolean isDBInstanceStabilizedAfterReboot = isDBInstanceAvailable(dbInstance) &&
                 isDBParameterGroupInSync(dbInstance) &&
                 isOptionGroupInSync(dbInstance) &&
