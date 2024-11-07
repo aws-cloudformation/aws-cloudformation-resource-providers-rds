@@ -587,7 +587,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### EngineVersion
 
@@ -1042,3 +1042,4 @@ Returns the <code>CAIdentifier</code> value.
 #### ValidTill
 
 Returns the <code>ValidTill</code> value.
+

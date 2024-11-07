@@ -1,16 +1,10 @@
 package software.amazon.rds.dbinstance;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-
-import org.apache.commons.lang3.BooleanUtils;
-
 import com.amazonaws.util.StringUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
-import software.amazon.awssdk.services.rds.model.DBSnapshot;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.awssdk.utils.ImmutableMap;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
@@ -18,11 +12,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import software.amazon.rds.common.handler.Commons;
-import software.amazon.rds.common.handler.Events;
-import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.handler.HandlerMethod;
-import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.handler.*;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
@@ -35,6 +25,10 @@ import software.amazon.rds.dbinstance.common.Errors;
 import software.amazon.rds.dbinstance.common.create.DBInstanceFactory;
 import software.amazon.rds.dbinstance.common.create.DBInstanceFactoryFactory;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
 
 public class CreateHandler extends BaseHandlerStd {
 
@@ -94,6 +88,7 @@ public class CreateHandler extends BaseHandlerStd {
             proxy, rdsProxyClient, allTags, requestLogger, config, getApiVersionDispatcher()
         );
 
+        final DBInstanceFactory dbInstanceFactory = factoryFactory.createFactory(model);
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
                     if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
@@ -105,21 +100,12 @@ public class CreateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> Commons.execOnce(progress, () -> {
-                    final DBInstanceFactory dbInstanceFactory = factoryFactory.createFactory(progress);
-
-                    if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
-                        // restoreDBInstanceToPointInTime is not a versioned call.
-                        return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
-                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
-                        // createDBInstanceReadReplica is not a versioned call.
-                        return safeAddTags(this::createDbInstanceReadReplica)
-                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    }
-                    // FIXME Currently only handling the fresh instance & snapshot. TODO Handle above cases in factory.
-                    return dbInstanceFactory.create(progress);
-                }, CallbackContext::isCreated, CallbackContext::setCreated))
+                .then(progress -> Commons.execOnce(
+                        progress,
+                        () -> dbInstanceFactory.create(progress),
+                        CallbackContext::isCreated,
+                        CallbackContext::setCreated
+                ))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())
@@ -253,63 +239,6 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         throw new CfnInvalidRequestException("Cannot fetch the engine based on current template. Please add the Engine parameter to the template and try again.");
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceToPointInTimeRequest(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet tagSet
-    ) {
-        return proxy.initiate(
-                        "rds::restore-db-instance-to-point-in-time",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                ).translateToServiceRequest(model -> Translator.restoreDbInstanceToPointInTimeRequest(model, tagSet))
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((restoreRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        restoreRequest,
-                        proxyInvocation.client()::restoreDBInstanceToPointInTime
-                ))
-                .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
-                .handleError((request, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        Errors.RESTORE_DB_INSTANCE_ERROR_RULE_SET,
-                        requestLogger
-                ))
-                .progress();
-    }
-
-    private ProgressEvent<ResourceModel, CallbackContext> createDbInstanceReadReplica(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet tagSet
-    ) {
-        final String currentRegion = progress.getCallbackContext().getCurrentRegion();
-        return proxy.initiate(
-                        "rds::create-db-instance-read-replica",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                ).translateToServiceRequest(model -> Translator.createDbInstanceReadReplicaRequest(model, tagSet, currentRegion))
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((createRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        createRequest,
-                        proxyInvocation.client()::createDBInstanceReadReplica
-                ))
-                .stabilize((request, response, proxyInvocation, model, context) ->
-                        isDBInstanceStabilizedAfterMutate(proxyInvocation, model, context))
-                .handleError((request, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        Errors.CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET,
-                        requestLogger
-                ))
-                .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateDbInstanceAfterCreateV12(

@@ -400,7 +400,7 @@ _Required_: No
 
 _Type_: String
 
-_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
 #### EngineMode
 
@@ -766,3 +766,4 @@ Returns the <code>SecretArn</code> value.
 #### StorageThroughput
 
 Specifies the storage throughput value for the DB cluster. This setting applies only to the gp3 storage type.
+

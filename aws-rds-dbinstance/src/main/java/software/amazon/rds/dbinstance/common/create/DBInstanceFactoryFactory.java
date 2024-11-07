@@ -3,7 +3,6 @@ package software.amazon.rds.dbinstance.common.create;
 import lombok.AllArgsConstructor;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.RequestLogger;
@@ -13,54 +12,70 @@ import software.amazon.rds.dbinstance.client.ApiVersionDispatcher;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Optional;
+
 @AllArgsConstructor
 public class DBInstanceFactoryFactory {
 
-    private final AmazonWebServicesClientProxy proxy;
-    private final VersionedProxyClient<RdsClient> rdsProxyClient;
-    private final Tagging.TagSet allTags;
-    private final RequestLogger requestLogger;
-    private final HandlerConfig config;
-    private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
+    private final Collection<DBInstanceFactory> factories;
+    private final DBInstanceFactory defaultFactory;
 
-    private enum FactoryType {
-        IS_READ_REPLICA,
-        IS_FROM_SNAPSHOT,
-        IS_FROM_POINT_IN_TIME,
-        IS_FRESH_INSTANCE;
-    }
-
-    public DBInstanceFactory createFactory(
-        ProgressEvent<ResourceModel, CallbackContext> progress
+    public DBInstanceFactoryFactory(
+            final AmazonWebServicesClientProxy proxy,
+            final VersionedProxyClient<RdsClient> rdsProxyClient,
+            final Tagging.TagSet allTags,
+            final RequestLogger requestLogger,
+            final HandlerConfig config,
+            final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher
     ) {
-        switch (discernFactoryType(progress.getResourceModel())) {
-            case IS_FROM_SNAPSHOT:
-                return new FromSnapshot(
-                        proxy,
-                        rdsProxyClient,
-                        allTags,
-                        requestLogger,
-                        config,
-                        apiVersionDispatcher
-                );
-            case IS_FRESH_INSTANCE:
-            default:
-                return new FreshInstance(
-                    proxy,
-                    rdsProxyClient,
-                    allTags,
-                    requestLogger,
-                    config,
-                    apiVersionDispatcher
-                );
-        }
+
+        factories = new ArrayList<>();
+        // The order of this list matters. Do NOT re-order.
+        factories.add(new FromPointInTime(
+                proxy,
+                rdsProxyClient,
+                allTags,
+                requestLogger,
+                config
+        ));
+        factories.add(new ReadReplica(
+                proxy,
+                rdsProxyClient,
+                allTags,
+                requestLogger,
+                config
+        ));
+        factories.add(new FromSnapshot(
+                proxy,
+                rdsProxyClient,
+                allTags,
+                requestLogger,
+                config,
+                apiVersionDispatcher
+        ));
+
+        defaultFactory = new FreshInstance(
+                proxy,
+                rdsProxyClient,
+                allTags,
+                requestLogger,
+                config,
+                apiVersionDispatcher
+        );
     }
 
-    private FactoryType discernFactoryType(ResourceModel model) {
-        if(ResourceModelHelper.isRestoreFromSnapshot(model) || ResourceModelHelper.isRestoreFromClusterSnapshot(model)) {
-            return FactoryType.IS_FROM_SNAPSHOT;
-        }
+    public DBInstanceFactory createFactory(ResourceModel model) {
+        return discernFactoryType(model).orElse(defaultFactory);
+    }
 
-        return FactoryType.IS_FRESH_INSTANCE;
+    private Optional<DBInstanceFactory> discernFactoryType(ResourceModel model) {
+        for (DBInstanceFactory fac : factories) {
+            if (fac.modelSatisfiesConstructor(model)) {
+               return Optional.of(fac);
+            }
+        }
+        return Optional.empty();
     }
 }

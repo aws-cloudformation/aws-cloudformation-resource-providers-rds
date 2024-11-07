@@ -31,6 +31,7 @@ public class FreshInstance implements DBInstanceFactory {
     private final HandlerConfig config;
     private final ApiVersionDispatcher<ResourceModel, CallbackContext> apiVersionDispatcher;
 
+    @Override
     public ProgressEvent<ResourceModel, CallbackContext> create(ProgressEvent<ResourceModel, CallbackContext> progress) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
@@ -41,6 +42,11 @@ public class FreshInstance implements DBInstanceFactory {
         }
 
         return safeAddTags(this::createDbInstance).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
+    }
+
+    @Override
+    public boolean modelSatisfiesConstructor(ResourceModel model) {
+        return true;
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createDbInstance(
@@ -61,8 +67,7 @@ public class FreshInstance implements DBInstanceFactory {
                         createRequest,
                         proxyInvocation.client()::createDBInstance
                 ))
-                .stabilize((request, response, proxyInvocation, model, context) ->
-                {
+                .stabilize((request, response, proxyInvocation, model, context) -> {
                     final DBInstance dbInstance = fetch.dbInstance(model);
                     return DBInstancePredicates.isDBInstanceStabilizedAfterMutate(dbInstance, model, context, requestLogger);
                 })

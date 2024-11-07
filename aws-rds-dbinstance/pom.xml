@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project
-    xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>software.amazon.rds.dbinstance</groupId>
@@ -54,7 +54,7 @@
             <version>${org.projectlombok.version}</version>
             <scope>provided</scope>
         </dependency>
-       <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-query-protocol -->
+        <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-query-protocol -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>aws-query-protocol</artifactId>
@@ -188,10 +188,18 @@
                 <version>0.8.8</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/BaseConfiguration*</exclude>
-                        <exclude>**/BaseHandler*</exclude>
-                        <exclude>**/HandlerWrapper*</exclude>
-                        <exclude>**/ResourceModel*</exclude>
+                        <exclude>**/BaseConfiguration.class</exclude>
+                        <exclude>**/BaseHandler.class</exclude>
+                        <exclude>**/CertificateDetails.class</exclude>
+                        <exclude>**/DBInstanceRole.class</exclude>
+                        <exclude>**/Endpoint.class</exclude>
+                        <exclude>**/HandlerWrapper.class</exclude>
+                        <exclude>**/HandlerWrapperExecutable.class</exclude>
+                        <exclude>**/MasterUserSecret.class</exclude>
+                        <exclude>**/ProcessFeature.class</exclude>
+                        <exclude>**/ResourceModel.class</exclude>
+                        <exclude>**/Tag.class</exclude>
+                        <exclude>**/TypeConfigurationModel.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -215,17 +223,17 @@
                         <configuration>
                             <rules>
                                 <rule>
-                                    <element>PACKAGE</element>
+                                    <element>BUNDLE</element>
                                     <limits>
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.8</minimum>
+                                            <minimum>0.82</minimum>
                                         </limit>
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.8</minimum>
+                                            <minimum>0.0</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

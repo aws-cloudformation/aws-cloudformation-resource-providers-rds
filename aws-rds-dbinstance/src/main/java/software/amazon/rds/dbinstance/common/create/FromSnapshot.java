@@ -70,6 +70,11 @@ public class FromSnapshot implements DBInstanceFactory {
         return safeAddTags(this::restoreDbInstanceFromSnapshot).invoke(proxy, rdsProxyClient.forVersion(apiVersion), progress, allTags);
     }
 
+    @Override
+    public boolean modelSatisfiesConstructor(ResourceModel model) {
+        return ResourceModelHelper.isRestoreFromSnapshot(model) || ResourceModelHelper.isRestoreFromClusterSnapshot(model);
+    }
+
     private ProgressEvent<ResourceModel, CallbackContext> restoreDbInstanceFromSnapshotV12(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> rdsProxyClient,
