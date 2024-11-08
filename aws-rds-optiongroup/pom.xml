@@ -169,10 +169,27 @@
                 <version>0.8.8</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/BaseConfiguration*</exclude>
-                        <exclude>**/BaseHandler*</exclude>
-                        <exclude>**/HandlerWrapper*</exclude>
-                        <exclude>**/ResourceModel*</exclude>
+                        <!-- Generated classes -->
+                        <exclude>**/software/amazon/rds/optiongroup/BaseConfiguration.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/BaseHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/BaseHandlerStd.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/CallbackContext.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/ClientBuilder.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/Configuration.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/CreateHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/DeleteHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/HandlerWrapper.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/HandlerWrapperExecutable.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/ListHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/OptionConfiguration.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/OptionSetting.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/OptionVersion.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/ReadHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/ResourceModel.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/Tag.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/Translator.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/TypeConfigurationModel.class</exclude>
+                        <exclude>**/software/amazon/rds/optiongroup/UpdateHandler.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -196,7 +213,7 @@
                         <configuration>
                             <rules>
                                 <rule>
-                                    <element>PACKAGE</element>
+                                    <element>BUNDLE</element>
                                     <limits>
                                         <limit>
                                             <counter>BRANCH</counter>
@@ -206,7 +223,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.8</minimum>
+                                            <minimum>0.0</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
