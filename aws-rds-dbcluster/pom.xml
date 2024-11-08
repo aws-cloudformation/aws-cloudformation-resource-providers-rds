@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project
-    xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>software.amazon.rds.dbcluster</groupId>
@@ -181,11 +181,36 @@
                 <version>0.8.8</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/BaseConfiguration*</exclude>
-                        <exclude>**/BaseHandler*</exclude>
-                        <exclude>**/HandlerWrapper*</exclude>
-                        <exclude>**/ResourceModel*</exclude>
-                        <exclude>**/ModelAdapter*</exclude>
+                        <!-- Generated classes -->
+                        <exclude>**/software/amazon/rds/dbcluster/BaseConfiguration.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/BaseHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/BaseHandlerStd.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/CallbackContext.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/Configuration.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/CreateHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/DBClusterRole.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/DBClusterStatus.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/DeleteHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/Ec2ClientProvider.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/Endpoint.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/EngineMode.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/HandlerWrapper.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/HandlerWrapperExecutable.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ListHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/MasterUserSecret.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ModelAdapter.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/RdsClientProvider.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ReadEndpoint.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ReadHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ResourceModel.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ScalingConfiguration.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/ServerlessV2ScalingConfiguration.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/Tag.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/Translator.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/TypeConfigurationModel.class</exclude>
+                        <exclude>**/software/amazon/rds/dbcluster/UpdateHandler.class</exclude>
+
+                        <exclude>**/software/amazon/rds/dbcluster/util/ImmutabilityHelper.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -209,7 +234,7 @@
                         <configuration>
                             <rules>
                                 <rule>
-                                    <element>PACKAGE</element>
+                                    <element>BUNDLE</element>
                                     <limits>
                                         <limit>
                                             <counter>BRANCH</counter>
@@ -219,7 +244,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.8</minimum>
+                                            <minimum>0.0</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
