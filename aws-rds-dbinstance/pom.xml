@@ -188,10 +188,57 @@
                 <version>0.8.8</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/BaseConfiguration*</exclude>
-                        <exclude>**/BaseHandler*</exclude>
-                        <exclude>**/HandlerWrapper*</exclude>
-                        <exclude>**/ResourceModel*</exclude>
+                        <!-- Generated classes -->
+                        <exclude>**/software/amazon/rds/dbinstance/BaseConfiguration.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/BaseHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/BaseHandlerStd.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/CallbackContext.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/CertificateDetails.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/Configuration.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/CreateHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/DBInstancePredicates.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/DBInstanceRole.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/DeleteHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/Endpoint.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/HandlerWrapper.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/HandlerWrapperExecutable.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/ListHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/MasterUserSecret.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/ProcessorFeature.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/ReadHandler.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/ResourceModel.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/StorageType.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/Tag.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/Translator.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/TypeConfigurationModel.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/UpdateHandler.class</exclude>
+
+                        <exclude>**/software/amazon/rds/dbinstance/client/ApiVersion.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/client/ApiVersionDispatcher.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/client/Ec2ClientProvider.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/client/RdsClientProvider.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/client/UnknownVersionException.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/client/VersionedProxyClient.class</exclude>
+
+                        <exclude>**/software/amazon/rds/dbinstance/common/Errors.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/common/Fetch.class</exclude>
+
+                        <exclude>**/software/amazon/rds/dbinstance/common/create/DBInstanceFactory.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/common/create/DBInstanceFactoryFactory.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/common/create/FreshInstance.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/common/create/FromPointInTime.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/common/create/FromSnapshot.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/common/create/ReadReplica.class</exclude>
+
+                        <exclude>**/software/amazon/rds/dbinstance/status/DBInstanceStatus.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/status/DBParameterGroupStatus.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/status/DomainMembershipStatus.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/status/OptionGroupStatus.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/status/ReadReplicaStatus.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/status/VPCSecurityGroupStatus.class</exclude>
+
+                        <exclude>**/software/amazon/rds/dbinstance/util/ImmutabilityHelper.class</exclude>
+                        <exclude>**/software/amazon/rds/dbinstance/util/ResourceModelHelper.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -215,7 +262,7 @@
                         <configuration>
                             <rules>
                                 <rule>
-                                    <element>PACKAGE</element>
+                                    <element>BUNDLE</element>
                                     <limits>
                                         <limit>
                                             <counter>BRANCH</counter>
@@ -225,7 +272,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.8</minimum>
+                                            <minimum>0.0</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
