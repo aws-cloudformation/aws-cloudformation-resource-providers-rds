@@ -697,7 +697,7 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### MonitoringInterval
 
-The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0.
+The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is not to enable Enhanced Monitoring.
 
 _Required_: No
 
@@ -1050,3 +1050,4 @@ Returns the <code>CAIdentifier</code> value.
 #### ValidTill
 
 Returns the <code>ValidTill</code> value.
+

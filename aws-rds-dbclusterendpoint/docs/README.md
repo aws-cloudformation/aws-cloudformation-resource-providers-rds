@@ -127,3 +127,4 @@ The DNS address of the endpoint.
 #### DBClusterEndpointArn
 
 The Amazon Resource Name (ARN) for the endpoint.
+
