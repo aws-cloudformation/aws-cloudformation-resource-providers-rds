@@ -338,6 +338,9 @@
         "MaxCapacity": {
           "description": "The maximum number of Aurora capacity units (ACUs) for a DB instance in an Aurora Serverless v2 cluster. You can specify ACU values in half-step increments, such as 40, 40.5, 41, and so on. The largest value that you can use is 128.",
           "type": "number"
+        },
+        "SecondsUntilAutoPause": {
+          "type": "integer"
         }
       }
     },
