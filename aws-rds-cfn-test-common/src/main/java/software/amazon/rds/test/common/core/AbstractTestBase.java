@@ -9,6 +9,7 @@ import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.cloudformation.exceptions.BaseHandlerException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -109,7 +110,12 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
         builder.clientRequestToken(newClientRequestToken());
         builder.stackId(newStackId());
 
-        final ProgressEvent<ModelT, ContextT> response = invokeHandleRequest(builder.build(), context);
+        ProgressEvent<ModelT, ContextT> response;
+        try {
+            response = invokeHandleRequest(builder.build(), context);
+        } catch (final BaseHandlerException e) {
+            response = ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
+        }
         expect.accept(response);
 
         return response;

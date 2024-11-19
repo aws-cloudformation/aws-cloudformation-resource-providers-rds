@@ -720,16 +720,14 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_CreateDBCluster_DBClusterInTerminalState() {
         final CallbackContext context = new CallbackContext();
 
-        Assertions.assertThatThrownBy(() -> {
-            test_handleRequest_base(
-                    context,
-                    () -> DBCLUSTER_ACTIVE.toBuilder()
-                            .status(DBClusterStatus.InaccessibleEncryptionCredentials.toString())
-                            .build(),
-                    () -> RESOURCE_MODEL,
-                    expectFailed(HandlerErrorCode.NotStabilized)
-            );
-        }).isInstanceOf(CfnNotStabilizedException.class);
+        test_handleRequest_base(
+                context,
+                () -> DBCLUSTER_ACTIVE.toBuilder()
+                        .status(DBClusterStatus.InaccessibleEncryptionCredentials.toString())
+                        .build(),
+                () -> RESOURCE_MODEL,
+                expectFailed(HandlerErrorCode.NotStabilized)
+        );
 
         verify(rdsProxy.client(), times(1)).createDBCluster(any(CreateDbClusterRequest.class));
     }

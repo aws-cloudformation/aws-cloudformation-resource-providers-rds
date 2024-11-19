@@ -1344,18 +1344,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
 
-        Assertions.assertThatThrownBy(() -> {
-            test_handleRequest_base(
-                    context,
-                    () -> DB_INSTANCE_ACTIVE.toBuilder()
-                            .optionGroupMemberships(OptionGroupMembership.builder()
-                                    .status(OptionGroupStatus.Failed.toString())
-                                    .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
-                                    .build()).build(),
-                    () -> RESOURCE_MODEL_BLDR().build(),
-                    expectFailed(HandlerErrorCode.NotStabilized)
-            );
-        }).isInstanceOf(CfnNotStabilizedException.class);
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .optionGroupMemberships(OptionGroupMembership.builder()
+                                .status(OptionGroupStatus.Failed.toString())
+                                .optionGroupName(OPTION_GROUP_NAME_MYSQL_DEFAULT)
+                                .build()).build(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.NotStabilized)
+        );
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
@@ -1365,18 +1363,16 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final CallbackContext context = new CallbackContext();
         context.setCreated(false);
 
-        Assertions.assertThatThrownBy(() -> {
-            test_handleRequest_base(
-                    context,
-                    () -> DB_INSTANCE_ACTIVE.toBuilder()
-                            .domainMemberships(DomainMembership.builder()
-                                    .status(DomainMembershipStatus.Failed.toString())
-                                    .domain("domain")
-                                    .build()).build(),
-                    () -> RESOURCE_MODEL_BLDR().build(),
-                    expectFailed(HandlerErrorCode.NotStabilized)
-            );
-        }).isInstanceOf(CfnNotStabilizedException.class);
+        test_handleRequest_base(
+                context,
+                () -> DB_INSTANCE_ACTIVE.toBuilder()
+                        .domainMemberships(DomainMembership.builder()
+                                .status(DomainMembershipStatus.Failed.toString())
+                                .domain("domain")
+                                .build()).build(),
+                () -> RESOURCE_MODEL_BLDR().build(),
+                expectFailed(HandlerErrorCode.NotStabilized)
+        );
 
         verify(rdsProxy.client(), times(1)).createDBInstance(any(CreateDbInstanceRequest.class));
     }
