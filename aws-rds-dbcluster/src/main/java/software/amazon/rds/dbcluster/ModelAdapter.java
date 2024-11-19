@@ -14,6 +14,7 @@ public class ModelAdapter {
     private static final int DEFAULT_MAX_CAPACITY = 16;
     private static final int DEFAULT_MIN_CAPACITY = 2;
     private static final int DEFAULT_SECONDS_UNTIL_AUTO_PAUSE = 300;
+    private static final int DEFAULT_SECONDS_UNTIL_AUTO_PAUSE_V2 = 300;
     private static final int DEFAULT_PORT = 3306;
 
     private static final String ENGINE_AURORA = "aurora";
@@ -50,6 +51,13 @@ public class ModelAdapter {
                     .maxCapacity(DEFAULT_MAX_CAPACITY)
                     .build();
             resourceModel.setScalingConfiguration(scalingConfiguration == null ? defaultScalingConfiguration : scalingConfiguration);
+        }
+
+        final var serverlessV2ScalingConfiguration = resourceModel.getServerlessV2ScalingConfiguration();
+        if (serverlessV2ScalingConfiguration != null && serverlessV2ScalingConfiguration.getMinCapacity() == 0) {
+            if (serverlessV2ScalingConfiguration.getSecondsUntilAutoPause() == null) {
+                serverlessV2ScalingConfiguration.setSecondsUntilAutoPause(DEFAULT_SECONDS_UNTIL_AUTO_PAUSE_V2);
+            }
         }
 
         final EngineMode engineMode = EngineMode.fromString(resourceModel.getEngineMode());
