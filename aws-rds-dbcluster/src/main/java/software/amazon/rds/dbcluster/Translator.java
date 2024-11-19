@@ -468,6 +468,7 @@ public class Translator {
         return software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration.builder()
                 .maxCapacity(serverlessV2ScalingConfiguration.getMaxCapacity())
                 .minCapacity(serverlessV2ScalingConfiguration.getMinCapacity())
+                .secondsUntilAutoPause(serverlessV2ScalingConfiguration.getSecondsUntilAutoPause())
                 .build();
     }
 

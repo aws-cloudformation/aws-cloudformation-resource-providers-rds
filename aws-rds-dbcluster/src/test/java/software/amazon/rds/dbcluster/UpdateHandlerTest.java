@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -824,8 +825,17 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         Assertions.assertThat(argument.getValue().allowMajorVersionUpgrade()).isTrue();
     }
 
-    @Test
-    void handleRequest_ServerlessV2ScalingConfiguration_Success() {
+    @ParameterizedTest
+    @CsvSource({
+        "1,    , 3,    ,    ", // modify minCapacity
+        "1,    , 0, 600, 600", // enable auto-pause with specific seconds until auto-pause
+        "1,    , 0,    , 300", // enable auto-pause with default seconds until auto-pause
+        "0, 600, 0,    , 300"  // reset seconds until auto-pause to default
+    })
+    void handleRequest_ServerlessV2ScalingConfiguration_Success(
+        final double minCapacityBefore, final Integer secondsUntilAutoPauseBefore,
+        final double minCapacityAfter, final Integer secondsUntilAutoPauseAfter,
+        final Integer expectedSecondsUntilAutoPause) {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().removeTagsFromResource(any(RemoveTagsFromResourceRequest.class)))
@@ -841,13 +851,15 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         transitions.add(DBCLUSTER_ACTIVE_NO_ROLE);
 
         final ServerlessV2ScalingConfiguration previousServerlessV2ScalingConfiguration = ServerlessV2ScalingConfiguration.builder()
-                .minCapacity(1.0)
+                .minCapacity(minCapacityBefore)
                 .maxCapacity(2.0)
+                .secondsUntilAutoPause(secondsUntilAutoPauseBefore)
                 .build();
 
         final ServerlessV2ScalingConfiguration desiredServerlessV2ScalingConfiguration = ServerlessV2ScalingConfiguration.builder()
-                .minCapacity(3.0)
+                .minCapacity(minCapacityAfter)
                 .maxCapacity(4.0)
+                .secondsUntilAutoPause(secondsUntilAutoPauseAfter)
                 .build();
 
         test_handleRequest_base(
@@ -881,6 +893,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .isEqualTo(software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration.builder()
                         .maxCapacity(desiredServerlessV2ScalingConfiguration.getMaxCapacity())
                         .minCapacity(desiredServerlessV2ScalingConfiguration.getMinCapacity())
+                        .secondsUntilAutoPause(expectedSecondsUntilAutoPause)
                         .build());
     }
 
@@ -997,7 +1010,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void handleRequest_EngineLifecycleSupportShouldFail() {
+    void handleRequest_EngineLifecycleSupportShouldFail() {
         expectServiceInvocation = false;
         test_handleRequest_base(
                 new CallbackContext(),

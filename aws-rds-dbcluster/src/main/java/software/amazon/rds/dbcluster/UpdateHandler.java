@@ -68,19 +68,14 @@ public class UpdateHandler extends BaseHandlerStd {
                     "Resource is immutable"
             );
         }
+
+        if (!Objects.equals(request.getDesiredResourceState().getEngineLifecycleSupport(),
+            request.getPreviousResourceState().getEngineLifecycleSupport()) &&
+            !request.getRollback()) {
+            throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
+        }
+
         return ProgressEvent.progress(desiredResourceState, callbackContext)
-                .then(progress -> {
-                    try {
-                        if(!Objects.equals(request.getDesiredResourceState().getEngineLifecycleSupport(),
-                                request.getPreviousResourceState().getEngineLifecycleSupport()) &&
-                                !request.getRollback()) {
-                            throw new CfnInvalidRequestException("EngineLifecycleSupport cannot be modified.");
-                        }
-                    } catch (CfnInvalidRequestException e) {
-                        return Commons.handleException(progress, e, DEFAULT_DB_CLUSTER_ERROR_RULE_SET, requestLogger);
-                    }
-                    return progress;
-                })
                 .then(progress -> {
                     if (shouldRemoveFromGlobalCluster(request.getPreviousResourceState(), request.getDesiredResourceState())) {
                         progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
