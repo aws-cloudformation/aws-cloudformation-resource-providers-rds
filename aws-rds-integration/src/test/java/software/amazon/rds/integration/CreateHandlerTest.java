@@ -160,19 +160,17 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         // Integration goes from CREATING -> ACTIVE, when everything is normal
         Queue<Integration> transitions = new ConcurrentLinkedQueue<>();
         transitions.add(INTEGRATION_CREATING);
-        Assertions.assertThatThrownBy(() ->
-                test_handleRequest_base(
-                    new CallbackContext(),
-                    () -> {
-                        if (transitions.size() > 0) {
-                            return transitions.remove();
-                        }
-                        return INTEGRATION_FAILED;
-                    },
-                    () -> INTEGRATION_ACTIVE_MODEL, // unused
-                    expectFailed(HandlerErrorCode.NotStabilized) // unused
-              )
-        ).isInstanceOf(CfnNotStabilizedException.class);
+        test_handleRequest_base(
+            new CallbackContext(),
+            () -> {
+                if (transitions.size() > 0) {
+                    return transitions.remove();
+                }
+                return INTEGRATION_FAILED;
+            },
+            () -> INTEGRATION_ACTIVE_MODEL, // unused
+            expectFailed(HandlerErrorCode.NotStabilized)
+        );
 
         verify(rdsProxy.client(), times(1)).createIntegration(
                 ArgumentMatchers. <CreateIntegrationRequest>argThat(req -> Objects.equals(req.integrationName(), INTEGRATION_NAME) &&
