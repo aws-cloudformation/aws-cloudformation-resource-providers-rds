@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -22,8 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import lombok.Getter;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
 import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
@@ -165,7 +164,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsClient.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
                 .thenReturn(DescribeDbClusterParametersResponse.builder()
-                        .parameters(Parameter.builder().parameterName("parameter1").build()).build());
+                        .parameters(
+                            Parameter.builder().parameterName("param").parameterValue("value").build(),
+                            Parameter.builder().parameterName("param2").parameterValue("value").build()
+                        ).build());
 
         CallbackContext callbackContext = new CallbackContext();
         callbackContext.setParametersApplied(true);
@@ -173,7 +175,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         test_handleRequest_base(
                 callbackContext,
                 () -> DBClusterParameterGroup.builder().dbClusterParameterGroupArn(ARN).build(),
-                () -> RESOURCE_MODEL_PREV,
+                () -> RESOURCE_MODEL,
                 () -> RESOURCE_MODEL_UPD,
                 expectSuccess()
         );
@@ -181,11 +183,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         ArgumentCaptor<ResetDbClusterParameterGroupRequest> captor = ArgumentCaptor.forClass(ResetDbClusterParameterGroupRequest.class);
         verify(rdsProxy.client(), times(1)).resetDBClusterParameterGroup(captor.capture());
         Assertions.assertThat(captor.getValue().parameters()).hasSize(1);
-        Assertions.assertThat(captor.getValue().parameters().get(0).parameterName()).isEqualTo("parameter1");
-
+        Assertions.assertThat(captor.getValue().parameters().get(0).parameterName()).isEqualTo("param2");
 
         verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));
+        verify(rdsProxy.client(), times(1)).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
     }
 
     @Test
@@ -220,7 +222,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         when(rdsClient.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
                 .thenReturn(DescribeDbClusterParametersResponse.builder()
-                        .parameters(translateParamMapToCollection(PARAMS))
+                        .parameters(translateParamMapToCollection(PARAMS, true))
                         .build());
 
         final DBClusterParameterGroup dbClusterParameterGroup = DBClusterParameterGroup.builder()
@@ -242,14 +244,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .dbClusterParameterGroup("group-name")
                 .build();
 
-        when(rdsClient.describeDBClusters(any(DescribeDbClustersRequest.class)))
-                .thenReturn(DescribeDbClustersResponse.builder()
-                        .dbClusters(dbCluster.toBuilder().status("modifying").build())
-                        .build())
-                .thenReturn(DescribeDbClustersResponse.builder()
-                        .dbClusters(DBCluster.builder().status("available").build())
-                        .build());
-
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> dbClusterParameterGroup,
@@ -260,7 +254,6 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).resetDBClusterParameterGroup(any(ResetDbClusterParameterGroupRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(rdsProxy.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
         verify(rdsProxy.client(), times(1)).addTagsToResource(any(AddTagsToResourceRequest.class));

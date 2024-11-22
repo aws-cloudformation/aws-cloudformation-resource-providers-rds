@@ -183,11 +183,25 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBClusterPara
         };
     }
 
-    protected List<Parameter> translateParamMapToCollection(final Map<String, Object> params) {
+    /**
+     * Translates a map of any such key value pairs to a List of RDS-model Parameters
+     *
+     * The modifiable parameter sets all the parameters in the map to be modifiable or not
+     * See: https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-parameters.html for modifiable
+     *
+     * This function is needed for unit tests because only modifiable parameters can be modified.
+     * Non modifiable parameters cannot be reset or modified.
+     *
+     * @param params Map of key value pairs, eg. {"client_encoding": "UTF-8"}
+     * @param modifiable Should all the parameters in the map be modifiable
+     * @return List of RDS-model Parameters for DBClusterParameterGroups or DBParameterGroups
+     */
+    protected List<Parameter> translateParamMapToCollection(final Map<String, Object> params, final boolean modifiable) {
         return params.entrySet().stream().map(entry -> Parameter.builder()
                         .parameterName(entry.getKey())
                         .parameterValue((String) entry.getValue())
                         .applyType(ParameterType.Dynamic.toString())
+                        .isModifiable(modifiable)
                         .build())
                 .collect(Collectors.toList());
     }

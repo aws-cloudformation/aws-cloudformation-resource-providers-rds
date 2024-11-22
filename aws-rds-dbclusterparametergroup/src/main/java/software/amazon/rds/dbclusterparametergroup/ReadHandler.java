@@ -63,7 +63,7 @@ public class ReadHandler extends BaseHandlerStd {
 
         return progress
                 .then(p -> describeEngineDefaultClusterParameters(proxy, proxyClient, p, null, engineDefaultClusterParameters))
-                .then(p -> describeCurrentDBClusterParameters(proxy, proxyClient, p, null, currentDBClusterParameters))
+                .then(p -> describeDBClusterParameters(proxy, proxyClient, p, null, currentDBClusterParameters))
                 .then(p -> {
                     p.getResourceModel().setParameters(
                             Translator.translateParametersFromSdk(computeModifiedDBParameters(engineDefaultClusterParameters, currentDBClusterParameters))
