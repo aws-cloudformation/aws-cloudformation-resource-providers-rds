@@ -1,7 +1,9 @@
 package software.amazon.rds.dbclusterparametergroup;
 
-import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Maps;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -46,30 +48,49 @@ public class UpdateHandler extends BaseHandlerStd {
                 .resourceTags(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags()))
                 .build();
 
-        final Map<String, Object> previousParams = request.getPreviousResourceState().getParameters();
-        final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
-        final boolean shouldUpdateParameters = !DifferenceUtils.diff(previousParams, desiredParams).isEmpty();
+        final Map<String, Object> previousModelParams = request.getPreviousResourceState().getParameters() == null ? Map.of() : request.getPreviousResourceState().getParameters();
+        final Map<String, Object> desiredModelParams = request.getDesiredResourceState().getParameters() == null ? Map.of() : request.getDesiredResourceState().getParameters();
+        final boolean shouldUpdateParameters = !DifferenceUtils.diff(previousModelParams, desiredModelParams).isEmpty();
 
         final Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
+        final Map<String, Parameter> desiredClusterParameters = Maps.newHashMap();
+
+        // contains cluster parameters from current and desired parameters so we can use to access the
+        // metadata from the describeDbClusterParameters response
+        final Map<String, Parameter> allClusterParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> {
-                    if (shouldUpdateParameters) {
-                        return describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters);
+            .then(progress -> {
+                if (shouldUpdateParameters) {
+                    // we need to query for all parameters in the filter from current resource and desired model
+                    // because it's possible for a parameter to be removed when updating to desired model
+                    final Set<String> filter = Stream.concat(desiredModelParams.keySet().stream(), previousModelParams.keySet().stream()).collect(Collectors.toSet());
+                    return describeDBClusterParameters(proxy, proxyClient, progress, filter.stream().toList(), allClusterParameters);
+                }
+                return progress;
+            }).then(progress -> {
+                for (final Map.Entry<String, Parameter> entry : allClusterParameters.entrySet()) {
+                    if (previousModelParams.containsKey(entry.getKey())) {
+                        currentClusterParameters.put(entry.getKey(), entry.getValue());
                     }
-                    return progress;
-                }).then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
-                .then(progress -> {
-                    if (shouldUpdateParameters) {
-                        return resetParameters(progress, proxy, proxyClient, currentClusterParameters, desiredParams);
+                    if (desiredModelParams.containsKey(entry.getKey())) {
+                        desiredClusterParameters.put(entry.getKey(), entry.getValue());
                     }
-                    return progress;
-                }).then(progress -> Commons.execOnce(progress, () -> {
-                    if (shouldUpdateParameters) {
-                        return applyParameters(proxy, proxyClient, progress, currentClusterParameters, requestLogger);
-                    }
-                    return progress;
-                }, CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
-                .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
+                }
+                return progress;
+            })
+            .then(progress -> Commons.execOnce(progress, () -> updateTags(proxy, proxyClient, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
+            .then(progress -> {
+                if (shouldUpdateParameters) {
+                    return resetParameters(progress, proxy, proxyClient, previousModelParams, currentClusterParameters, desiredClusterParameters);
+                }
+                return progress;
+            }).then(progress -> Commons.execOnce(progress, () -> {
+                if (shouldUpdateParameters) {
+                    return applyParameters(proxyClient, progress, currentClusterParameters, desiredClusterParameters);
+                }
+                return progress;
+            }, CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
+            .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 }
