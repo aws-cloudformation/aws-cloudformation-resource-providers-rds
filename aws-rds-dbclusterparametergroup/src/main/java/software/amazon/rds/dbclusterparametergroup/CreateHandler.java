@@ -1,6 +1,7 @@
 package software.amazon.rds.dbclusterparametergroup;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 
 import com.amazonaws.util.StringUtils;
@@ -46,7 +47,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
-        final Map<String, Parameter> currentClusterParameters = Maps.newHashMap();
+        final Map<String, Parameter> desiredClusterParameters = Maps.newHashMap();
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbClusterParameterGroupNameIfMissing(request, progress))
@@ -59,8 +60,8 @@ public class CreateHandler extends BaseHandlerStd {
                     return updateTags(proxy, proxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> Commons.execOnce(progress, () ->
-                                describeCurrentDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), currentClusterParameters)
-                                        .then(p -> applyParameters(proxy, proxyClient, progress, currentClusterParameters, requestLogger)
+                                describeDBClusterParameters(proxy, proxyClient, progress, new ArrayList<>(desiredParams.keySet()), desiredClusterParameters)
+                                        .then(p -> applyParameters(proxyClient, progress, Collections.emptyMap(), desiredClusterParameters)
                         ),
                         CallbackContext::isParametersApplied, CallbackContext::setParametersApplied))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));

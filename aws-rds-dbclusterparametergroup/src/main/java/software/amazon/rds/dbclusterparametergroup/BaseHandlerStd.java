@@ -11,10 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.BooleanUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -24,7 +21,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.NonNull;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
@@ -33,8 +29,6 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroup
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParameterGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterParametersResponse;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEngineDefaultClusterParametersResponse;
 import software.amazon.awssdk.services.rds.model.EngineDefaults;
@@ -57,12 +51,12 @@ import software.amazon.rds.common.error.ErrorRuleSet;
 import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
-import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
 import software.amazon.rds.common.util.ParameterGrouper;
+
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final List<Set<String>> PARAMETER_DEPENDENCIES = ImmutableList.of(
@@ -97,16 +91,6 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
                     DbClusterParameterGroupNotFoundException.class,
                     DbParameterGroupNotFoundException.class)
-            .build();
-
-    protected static final ErrorRuleSet DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET = ErrorRuleSet
-            .extend(Commons.DEFAULT_ERROR_RULE_SET)
-            .withErrorCodes(ErrorStatus.ignore(),
-                    ErrorCode.AccessDeniedException,
-                    ErrorCode.AccessDenied,
-                    ErrorCode.NotAuthorized)
-            .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotStabilized),
-                    Exception.class)
             .build();
 
     protected static final ErrorRuleSet SOFT_FAIL_IN_PROGRESS_ERROR_RULE_SET = ErrorRuleSet
@@ -211,17 +195,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> applyParameters(
-            final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Map<String, Parameter> currentClusterParameters,
-            final RequestLogger requestLogger
+            final Map<String, Parameter> desiredClusterParameters
     ) {
         return ProgressEvent.progress(progress.getResourceModel(), progress.getCallbackContext())
-                .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters))
-                .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, currentClusterParameters, proxy, proxyClient),
-                        CallbackContext::isParametersModified, CallbackContext::setParametersModified))
-                .then(progressEvent -> waitForDbClustersStabilization(progressEvent, proxy, proxyClient));
+            .then(progressEvent -> validateModelParameters(progressEvent, currentClusterParameters, desiredClusterParameters))
+            .then(progressEvent -> Commons.execOnce(progressEvent, () -> modifyParameters(progressEvent, proxyClient, currentClusterParameters, desiredClusterParameters),
+                CallbackContext::isParametersModified, CallbackContext::setParametersModified));
     }
 
     protected Completed<DescribeDbClusterParameterGroupsRequest,
@@ -244,23 +226,50 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         requestLogger));
     }
 
+    /**
+     * This function validates that all the parameters we want to modify can be modified
+     * A parameter is considered invalid to be modified, if it is both not modifiable, and the value has actually changed
+     *
+     * @param progress CloudFormation progress event
+     * @param currentClusterParameters Cluster parameters currently attached to the physical Cluster Parameter Group Resource
+     * @param desiredClusterParameters Cluster parameters which are desired, and we wish to apply
+     * @return CloudFormation progress event
+     */
     private ProgressEvent<ResourceModel, CallbackContext> validateModelParameters(
             final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Map<String, Parameter> defaultEngineParameters
+            final Map<String, Parameter> currentClusterParameters,
+            final Map<String, Parameter> desiredClusterParameters
     ) {
+        // we don't care about putAll overwriting overlapping keys, because we just need the map
+        // for the isModifiable field
+        final Map<String, Parameter> combinedParams = Maps.newHashMap();
+        combinedParams.putAll(currentClusterParameters);
+        combinedParams.putAll(desiredClusterParameters);
+
         final Map<String, Object> modelParameters = Optional.ofNullable(progress.getResourceModel().getParameters()).orElse(Collections.emptyMap());
         final List<String> invalidParameters = modelParameters.keySet().stream()
-                .filter(parameterName -> {
-                    if (!defaultEngineParameters.containsKey(parameterName)) {
+                .filter(modelParameterName -> {
+                    final String newParameterValue = String.valueOf(modelParameters.get(modelParameterName));
+                    final Parameter currentParameterValue = currentClusterParameters.get(modelParameterName);
+
+                    if (combinedParams.get(modelParameterName) == null) {
+                        // it should not go in here, because combinedParams should contain all
+                        // current and desired parameters
+                        requestLogger.log("DBClusterParameters did not contain %s", modelParameterName);
                         return true;
                     }
-                    final String newParameterValue = String.valueOf(modelParameters.get(parameterName));
-                    final Parameter defaultParameter = defaultEngineParameters.get(parameterName);
-                    //Parameter is not modifiable and input model contains different value from default value
-                    return newParameterValue != null && BooleanUtils.isNotTrue(defaultParameter.isModifiable())
-                            && !newParameterValue.equals(defaultParameter.parameterValue());
+
+                    final boolean isParameterModifiable = combinedParams.get(modelParameterName).isModifiable();
+
+                    // if the parameter is not currently set on our parameter group
+                    // and the parameter is not modifiable, it means it is an invalid change
+                    if (currentParameterValue == null) {
+                        return !isParameterModifiable;
+                    }
+                    // Parameter is not modifiable and the desired value is different to the current value
+                    return !isParameterModifiable && !newParameterValue.equals(currentParameterValue.parameterValue());
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         if (!invalidParameters.isEmpty()) {
             return ProgressEvent.failed(
@@ -288,6 +297,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     request.toBuilder().marker(marker).build(),
                     proxyClient.client()::describeDBClusterParameters
             );
+
             if (response.parameters() != null) {
                 result = Iterables.concat(result, response.parameters());
             }
@@ -309,6 +319,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final DescribeDbClusterParametersRequest request = DescribeDbClusterParametersRequest.builder()
                     .dbClusterParameterGroupName(dbClusterParameterGroupName)
                     .build();
+
             iterable = fetchDBClusterParametersIterable(proxyClient, request);
         } else {
             for (final List<String> partition : Lists.partition(filterParameterNames, MAX_PARAMETER_FILTER_SIZE)) {
@@ -324,7 +335,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return iterable;
     }
 
-    protected ProgressEvent<ResourceModel, CallbackContext> describeCurrentDBClusterParameters(
+    protected ProgressEvent<ResourceModel, CallbackContext> describeDBClusterParameters(
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress,
@@ -427,16 +438,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private Map<String, Parameter> getParametersToModify(
             final Map<String, Object> modelParameters,
-            final Map<String, Parameter> currentDBParameters
+            final Map<String, Parameter> currentDBParameters,
+            final Map<String, Parameter> desiredDBParameters
     ) {
-        final Map<String, Parameter> parametersToModify = Maps.newHashMap(currentDBParameters);
-        parametersToModify.keySet().retainAll(Optional.ofNullable(modelParameters).orElse(Collections.emptyMap()).keySet());
+        final Map<String, Parameter> parametersToModify = Maps.newHashMap(desiredDBParameters);
+
         return parametersToModify.entrySet()
                 .stream()
                 //filter to parameters want to modify and its value is different from already exist value
                 .filter(entry -> {
                     final String parameterName = entry.getKey();
-                    final String currentParameterValue = entry.getValue().parameterValue();
+                    final String currentParameterValue = currentDBParameters.get(entry.getKey()) != null ? currentDBParameters.get(entry.getKey()).parameterValue() : null;
                     final String newParameterValue = String.valueOf(modelParameters.get(parameterName));
                     return !newParameterValue.equals(currentParameterValue);
                 })
@@ -459,6 +471,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         for (final String paramName : currentDBParameters.keySet()) {
             final Parameter currentParam = currentDBParameters.get(paramName);
             final Parameter defaultParam = engineDefaultParameters.get(paramName);
+
             if (defaultParam == null || !Objects.equals(defaultParam.parameterValue(), currentParam.parameterValue())) {
                 modifiedParameters.put(paramName, currentParam);
             }
@@ -467,16 +480,32 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return modifiedParameters;
     }
 
+    /**
+     * Checks if parameter has been modified out of band and no longer matches
+     * the CloudFormation model. This can happen if the parameter is modified
+     * directly in the AWS console or API.
+     *
+     * @return True if the parameter has been overridden out of band and the
+     * physical resource no longer matching with the CloudFormation model
+     */
+    private boolean isParameterModifiedOutOfBand(final String prevModelParamValue, final String currentParameterValue) {
+        return !prevModelParamValue.equals(currentParameterValue);
+    }
+
     protected ProgressEvent<ResourceModel, CallbackContext> resetParameters(
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final AmazonWebServicesClientProxy proxy,
             final ProxyClient<RdsClient> proxyClient,
+            final Map<String, Object> previousModelParams,
             final Map<String, Parameter> currentParameters,
-            final Map<String, Object> desiredParams
+            final Map<String, Parameter> desiredParameters
     ) {
         // reset only parameters that are missing from desired params. If parameter is in desired param, its value will be updated anyway.
         final Map<String, Parameter> toBeReset = currentParameters.keySet().stream()
-                .filter(p -> !desiredParams.containsKey(p))
+                .filter(p -> {
+                    return !desiredParameters.containsKey(p) &&
+                        !isParameterModifiedOutOfBand(previousModelParams.get(p).toString(), currentParameters.get(p).parameterValue());
+                })
                 .collect(Collectors.toMap(kv -> kv, currentParameters::get));
 
         if (toBeReset.isEmpty()) {
@@ -497,13 +526,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     private ProgressEvent<ResourceModel, CallbackContext> modifyParameters(
             final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final ProxyClient<RdsClient> proxyClient,
             final Map<String, Parameter> currentDBParameters,
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient
+            final Map<String, Parameter> desiredDBParameters
     ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext context = progress.getCallbackContext();
-        final Map<String, Parameter> parametersToModify = getParametersToModify(model.getParameters(), currentDBParameters);
+        final Map<String, Parameter> parametersToModify = getParametersToModify(model.getParameters(), currentDBParameters, desiredDBParameters);
 
         try {
             for (final List<Parameter> partition : ParameterGrouper.partition(parametersToModify, PARAMETER_DEPENDENCIES, MAX_PARAMETERS_PER_REQUEST)) {
@@ -522,59 +551,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return ProgressEvent.progress(model, context);
     }
 
-    protected boolean isDBClustersAvailable(final ProxyClient<RdsClient> proxyClient, final ResourceModel model) {
-        String marker = null;
-        int page = 1;
-        final DescribeDbClustersRequest request = Translator.describeDbClustersRequestForDBClusterParameterGroup(model);
-
-        do {
-            if (page > MAX_DESCRIBE_PAGE_DEPTH) {
-                throw new CfnInvalidRequestException("Max describeDBClusters response page reached.");
-            }
-            final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
-                    request.toBuilder().marker(marker).build(),
-                    proxyClient.client()::describeDBClusters
-            );
-            final List<DBCluster> dbClusters = Optional.ofNullable(response.dbClusters()).orElse(Collections.emptyList());
-            for (final DBCluster dbCluster : dbClusters) {
-                if (!AVAILABLE.equalsIgnoreCase(dbCluster.status())) {
-                    return false;
-                }
-            }
-            marker = response.marker();
-            page++;
-        } while (marker != null);
-
-        return true;
-    }
-
     private void resourceStabilizationTime(final CallbackContext callbackContext) {
         callbackContext.timestampOnce(DB_CLUSTER_PARAMETER_GROUP_REQUEST_STARTED_AT, Instant.now());
         callbackContext.timestamp(DB_CLUSTER_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT, Instant.now());
         callbackContext.calculateTimeDeltaInMinutes(DB_CLUSTER_PARAMETER_GROUP_RESOURCE_STABILIZATION_TIME,
                 callbackContext.getTimestamp(DB_CLUSTER_PARAMETER_GROUP_REQUEST_IN_PROGRESS_AT),
                 callbackContext.getTimestamp(DB_CLUSTER_PARAMETER_GROUP_REQUEST_STARTED_AT));
-    }
-
-    protected ProgressEvent<ResourceModel, CallbackContext> waitForDbClustersStabilization(
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> proxyClient
-    ) {
-        return proxy.initiate("rds::stabilize-db-cluster-parameter-group-db-clusters", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall(EMPTY_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> Probing.withProbing(context.getProbingContext(),
-                        "db-cluster-parameter-group-db-clusters-available",
-                        3,
-                        () -> isDBClustersAvailable(proxyInvocation, model)))
-                .handleError((describeDbParameterGroupsRequest, exception, client, resourceModel, ctx) ->
-                        Commons.handleException(
-                                ProgressEvent.progress(resourceModel, ctx),
-                                exception,
-                                DB_CLUSTERS_STABILIZATION_ERROR_RULE_SET,
-                                requestLogger))
-                .progress();
     }
 }
