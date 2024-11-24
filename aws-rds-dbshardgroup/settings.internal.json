@@ -1,7 +1,0 @@
-{
-  "FasPolicyPath": {
-    "aws": "/policies/AuthRuntime/authNPolicy/cloudformation/aws-rds-dbshardgroup.2024-09-27-21-08-30",
-    "aws-iso-e": "/policies/AuthRuntime/authNPolicy/cloudformation/aws-rds-dbshardgroup.2024-09-27-21-10-01",
-    "aws-iso-f": "/policies/AuthRuntime/authNPolicy/cloudformation/aws-rds-dbshardgroup.2024-09-27-21-12-26"
-  }
-}
