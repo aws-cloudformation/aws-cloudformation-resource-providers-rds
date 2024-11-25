@@ -31,6 +31,7 @@ import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.common.ErrorRuleSets;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 import software.amazon.rds.dbinstance.validators.OracleCustomSystemId;
 
@@ -99,7 +100,7 @@ public class CreateHandler extends BaseHandlerStd {
                         try {
                             model.setEngine(fetchEngine(rdsProxyClient.defaultClient(), progress, proxy));
                         } catch (Exception e) {
-                            return Commons.handleException(progress, e, DB_INSTANCE_FETCH_ENGINE_RULE_SET, requestLogger);
+                            return Commons.handleException(progress, e, ErrorRuleSets.DB_INSTANCE_FETCH_ENGINE, requestLogger);
                         }
                     }
                     return progress;
@@ -126,7 +127,7 @@ public class CreateHandler extends BaseHandlerStd {
                                     progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
                                 }
                             } catch (Exception e) {
-                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                                return Commons.handleException(progress, e, software.amazon.rds.dbinstance.common.ErrorRuleSets.RESTORE_DB_INSTANCE, requestLogger);
                             }
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
@@ -301,7 +302,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.CREATE_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
@@ -329,7 +330,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.CREATE_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
@@ -361,7 +362,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.RESTORE_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
@@ -389,7 +390,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.RESTORE_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
@@ -417,7 +418,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        RESTORE_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.RESTORE_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
@@ -446,7 +447,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((request, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        CREATE_DB_INSTANCE_READ_REPLICA_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.CREATE_DB_INSTANCE_READ_REPLICA,
                         requestLogger
                 ))
                 .progress();
@@ -473,7 +474,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.MODIFY_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
@@ -496,7 +497,7 @@ public class CreateHandler extends BaseHandlerStd {
                 .handleError((modifyRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        MODIFY_DB_INSTANCE_ERROR_RULE_SET,
+                        software.amazon.rds.dbinstance.common.ErrorRuleSets.MODIFY_DB_INSTANCE,
                         requestLogger
                 ))
                 .progress();
