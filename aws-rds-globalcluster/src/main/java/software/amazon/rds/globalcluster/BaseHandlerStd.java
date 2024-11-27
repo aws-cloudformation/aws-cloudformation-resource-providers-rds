@@ -188,7 +188,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
   protected ProgressEvent<ResourceModel, CallbackContext> createGlobalClusterWithSourceDBCluster(final AmazonWebServicesClientProxy proxy,
                                                                                                  final ProxyClient<RdsClient> proxyClient,
-                                                                                                 final ProgressEvent<ResourceModel, CallbackContext> progress) {
+                                                                                                 final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                                                 final Tagging.TagSet tagSet) {
 
     if(progress.getCallbackContext().isGlobalClusterCreated()) return progress;
     //check if sourceDbCluster is not null and is in format of Identifier
@@ -199,7 +200,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .done((describeDbClusterRequest, describeDbClusterResponse, proxyClient2, resourceModel, callbackContext) -> {
               final String arn = describeDbClusterResponse.dbClusters().get(0).dbClusterArn();
               try {
-                proxyClient2.injectCredentialsAndInvokeV2(Translator.createGlobalClusterRequest(resourceModel, arn, Tagging.TagSet.emptySet()), proxyClient2.client()::createGlobalCluster);
+                proxyClient2.injectCredentialsAndInvokeV2(Translator.createGlobalClusterRequest(resourceModel, arn, tagSet), proxyClient2.client()::createGlobalCluster);
                 callbackContext.setGlobalClusterCreated(true);
               } catch (GlobalClusterAlreadyExistsException e) {
                 throw new CfnAlreadyExistsException(e);
@@ -210,7 +211,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
   protected ProgressEvent<ResourceModel, CallbackContext> createGlobalCluster(final AmazonWebServicesClientProxy proxy,
                                                                                                  final ProxyClient<RdsClient> proxyClient,
-                                                                                                 final ProgressEvent<ResourceModel, CallbackContext> progress) {
+                                                                                                 final ProgressEvent<ResourceModel, CallbackContext> progress,
+                                                                                                 final Tagging.TagSet tagSet) {
 
       return proxy.initiate("rds::create-global-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
               // request to create global cluster
