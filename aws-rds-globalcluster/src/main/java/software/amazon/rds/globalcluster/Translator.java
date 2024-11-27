@@ -21,10 +21,10 @@ import software.amazon.awssdk.utils.StringUtils;
 public class Translator {
 
   static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model) {
-    return createGlobalClusterRequest(model, null);
+    return createGlobalClusterRequest(model, null, Tagging.TagSet.emptySet());
   }
 
-  static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model, String dbClusterArn) {
+  static CreateGlobalClusterRequest createGlobalClusterRequest(final ResourceModel model, String dbClusterArn, final Tagging.TagSet tagSet) {
     return CreateGlobalClusterRequest.builder()
             .engine(model.getEngine())
             .engineVersion(model.getEngineVersion())
@@ -33,6 +33,7 @@ public class Translator {
             .sourceDBClusterIdentifier(StringUtils.isBlank(dbClusterArn) ? model.getSourceDBClusterIdentifier() : dbClusterArn)
             .storageEncrypted(model.getStorageEncrypted())
             .engineLifecycleSupport(model.getEngineLifecycleSupport())
+            .tags(Tagging.translateTagsToSdk(tagSet))
             .build();
   }
 
