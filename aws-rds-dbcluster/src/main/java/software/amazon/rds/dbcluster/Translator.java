@@ -497,6 +497,7 @@ public class Translator {
         return ServerlessV2ScalingConfiguration.builder()
                 .maxCapacity(serverlessV2ScalingConfiguration.maxCapacity())
                 .minCapacity(serverlessV2ScalingConfiguration.minCapacity())
+                .secondsUntilAutoPause(serverlessV2ScalingConfiguration.secondsUntilAutoPause())
                 .build();
     }
 
