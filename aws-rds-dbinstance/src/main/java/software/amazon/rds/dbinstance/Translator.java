@@ -854,6 +854,7 @@ public class Translator {
                 .characterSetName(dbInstance.characterSetName())
                 .copyTagsToSnapshot(dbInstance.copyTagsToSnapshot())
                 .customIAMInstanceProfile(dbInstance.customIamInstanceProfile())
+                .databaseInsightsMode(dbInstance.databaseInsightsModeAsString())
                 .dBClusterIdentifier(dbInstance.dbClusterIdentifier())
                 .dBInstanceArn(dbInstance.dbInstanceArn())
                 .dBInstanceClass(dbInstance.dbInstanceClass())

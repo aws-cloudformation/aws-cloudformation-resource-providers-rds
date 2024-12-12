@@ -171,6 +171,10 @@
       "type": "string",
       "description": "The instance profile associated with the underlying Amazon EC2 instance of an RDS Custom DB instance. The instance profile must meet the following requirements:\n * The profile must exist in your account.\n * The profile must have an IAM role that Amazon EC2 has permissions to assume.\n * The instance profile name and the associated IAM role name must start with the prefix AWSRDSCustom .\nFor the list of permissions required for the IAM role, see Configure IAM and your VPC in the Amazon RDS User Guide .\n\nThis setting is required for RDS Custom."
     },
+    "DatabaseInsightsMode": {
+      "description": "A value that indicates the mode of Database Insights to enable for the DB instance",
+      "type": "string"
+    },
     "DBClusterIdentifier": {
       "type": "string",
       "description": "The identifier of the DB cluster that the instance will belong to."
@@ -555,7 +559,8 @@
     "/properties/DBInstanceArn",
     "/properties/MasterUserSecret/SecretArn",
     "/properties/CertificateDetails/CAIdentifier",
-    "/properties/CertificateDetails/ValidTill"
+    "/properties/CertificateDetails/ValidTill",
+    "/properties/DatabaseInsightsMode"
   ],
   "primaryIdentifier": [
     "/properties/DBInstanceIdentifier"
