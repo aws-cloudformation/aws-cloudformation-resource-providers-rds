@@ -52,6 +52,10 @@
       "description": "A value that indicates whether to copy all tags from the DB cluster to snapshots of the DB cluster. The default is not to copy them.",
       "type": "boolean"
     },
+    "DatabaseInsightsMode": {
+      "description": "A value that indicates the mode of Database Insights to enable for the DB cluster",
+      "type": "string"
+    },
     "DatabaseName": {
       "description": "The name of your database. If you don't provide a name, then Amazon RDS won't create a database in this DB cluster. For naming constraints, see Naming Constraints in the Amazon RDS User Guide.",
       "type": "string"
