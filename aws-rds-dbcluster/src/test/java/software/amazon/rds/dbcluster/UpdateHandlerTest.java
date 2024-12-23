@@ -830,11 +830,12 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         "1,    , 3,    ,    ", // modify minCapacity
         "1,    , 0, 600, 600", // enable auto-pause with specific seconds until auto-pause
         "1,    , 0,    , 300", // enable auto-pause with default seconds until auto-pause
-        "0, 600, 0,    , 300"  // reset seconds until auto-pause to default
+        "0, 600, 0,    , 300", // reset seconds until auto-pause to default
+        " ,    , 3,    ,    "  // update from null to non-null capacity [CFN-582]
     })
     void handleRequest_ServerlessV2ScalingConfiguration_Success(
-        final double minCapacityBefore, final Integer secondsUntilAutoPauseBefore,
-        final double minCapacityAfter, final Integer secondsUntilAutoPauseAfter,
+        final Double minCapacityBefore, final Integer secondsUntilAutoPauseBefore,
+        final Double minCapacityAfter, final Integer secondsUntilAutoPauseAfter,
         final Integer expectedSecondsUntilAutoPause) {
         when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
                 .thenReturn(ModifyDbClusterResponse.builder().build());
