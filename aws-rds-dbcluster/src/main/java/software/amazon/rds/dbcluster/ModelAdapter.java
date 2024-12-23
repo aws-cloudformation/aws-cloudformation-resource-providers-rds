@@ -54,7 +54,10 @@ public class ModelAdapter {
         }
 
         final var serverlessV2ScalingConfiguration = resourceModel.getServerlessV2ScalingConfiguration();
-        if (serverlessV2ScalingConfiguration != null && serverlessV2ScalingConfiguration.getMinCapacity() == 0) {
+        final var isServerlessV2 = serverlessV2ScalingConfiguration != null;
+        final var isAutoPause = isServerlessV2 && serverlessV2ScalingConfiguration.getMinCapacity() != null
+                && serverlessV2ScalingConfiguration.getMinCapacity() == 0;
+        if (isAutoPause) {
             if (serverlessV2ScalingConfiguration.getSecondsUntilAutoPause() == null) {
                 serverlessV2ScalingConfiguration.setSecondsUntilAutoPause(DEFAULT_SECONDS_UNTIL_AUTO_PAUSE_V2);
             }
