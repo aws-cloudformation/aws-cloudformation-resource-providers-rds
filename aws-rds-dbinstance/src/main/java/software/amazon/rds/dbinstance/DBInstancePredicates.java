@@ -21,6 +21,7 @@ import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.dbinstance.status.ReadReplicaStatus;
 import software.amazon.rds.dbinstance.status.VPCSecurityGroupStatus;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 import java.util.Collections;
 import java.util.List;
@@ -158,6 +159,13 @@ public class DBInstancePredicates {
                 .anyMatch(member -> DBParameterGroupStatus.InSync.equalsString(member.dbClusterParameterGroupStatus()));
     }
 
+    public static boolean isDBClusterParameterGroupNotApplying(final ResourceModel model, final DBCluster dbCluster) {
+        return Optional.ofNullable(dbCluster.dbClusterMembers()).orElse(Collections.emptyList())
+            .stream()
+            .filter(member -> model.getDBInstanceIdentifier().equalsIgnoreCase(member.dbInstanceIdentifier()))
+            .noneMatch(member -> DBParameterGroupStatus.Applying.equalsString(member.dbClusterParameterGroupStatus()));
+    }
+
     public static boolean isDBClusterMember(final ResourceModel model) {
         return StringUtils.isNotBlank(model.getDBClusterIdentifier());
     }
@@ -193,6 +201,23 @@ public class DBInstancePredicates {
     ) {
         assertNoTerminalStatus(dbInstance);
 
+        if(ResourceModelHelper.shouldApplyImmediately(model)){
+            return isStabilizedWithChangesAppliedImmediately(dbInstance, model, requestLogger);
+        }
+
+        return isStabilizedWithoutChangesAppliedImmediately(dbInstance, requestLogger);
+    }
+
+    /***
+     * Stabilization logic that ensures all the changes are applied.
+     */
+    private static boolean isStabilizedWithChangesAppliedImmediately(
+        final DBInstance dbInstance,
+        final ResourceModel model,
+        final RequestLogger requestLogger
+    ) {
+        assertNoTerminalStatus(dbInstance);
+
         final boolean isDBInstanceStabilizedAfterMutateResult = isDBInstanceAvailable(dbInstance) &&
                 isReplicationComplete(dbInstance) &&
                 isDBParameterGroupNotApplying(dbInstance) &&
@@ -202,18 +227,48 @@ public class DBInstancePredicates {
                 isDomainMembershipsJoined(dbInstance) &&
                 isMasterUserSecretStabilized(dbInstance);
 
-        requestLogger.log(String.format("isDBInstanceStabilizedAfterMutate: %b", isDBInstanceStabilizedAfterMutateResult),
-                ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
-                        "isReplicationComplete", isReplicationComplete(dbInstance),
-                        "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
-                        "isNoPendingChanges", isNoPendingChanges(dbInstance),
-                        "isCaCertificateChangesApplied", isCaCertificateChangesApplied(dbInstance, model),
-                        "isVpcSecurityGroupsActive", isVpcSecurityGroupsActive(dbInstance),
-                        "isDomainMembershipsJoined", isDomainMembershipsJoined(dbInstance),
-                        "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbInstance)),
-                ImmutableMap.of("Description", "isDBInstanceStabilizedAfterMutate method will be repeatedly" +
-                        " called with a backoff mechanism after the modify call until it returns true. This" +
-                        " process will continue until all included flags are true."));
+        requestLogger.log(String.format("isStabilizedWithChangesAppliedImmediately: %b", isDBInstanceStabilizedAfterMutateResult),
+            ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
+                "isReplicationComplete", isReplicationComplete(dbInstance),
+                "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
+                "isNoPendingChanges", isNoPendingChanges(dbInstance),
+                "isCaCertificateChangesApplied", isCaCertificateChangesApplied(dbInstance, model),
+                "isVpcSecurityGroupsActive", isVpcSecurityGroupsActive(dbInstance),
+                "isDomainMembershipsJoined", isDomainMembershipsJoined(dbInstance),
+                "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbInstance)),
+                ImmutableMap.of("Description", "isStabilizedWithChangesAppliedImmediately method will be repeatedly" +
+                " called with a backoff mechanism after the modify call until it returns true. This" +
+                " process will continue until all included flags are true."));
+
+        return isDBInstanceStabilizedAfterMutateResult;
+    }
+
+    /***
+     * Stabilization logic that excludes the settings that are not applied immediately. This happens when
+     * ApplyImmediately is set to false. The excluded settings is based on the following doc
+     * https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ModifyInstance.Settings.html
+     */
+    private static boolean isStabilizedWithoutChangesAppliedImmediately(
+        final DBInstance dbInstance,
+        final RequestLogger requestLogger
+    ) {
+        assertNoTerminalStatus(dbInstance);
+
+        final boolean isDBInstanceStabilizedAfterMutateResult = isDBInstanceAvailable(dbInstance) &&
+            isReplicationComplete(dbInstance) &&
+            isDBParameterGroupNotApplying(dbInstance) &&
+            isVpcSecurityGroupsActive(dbInstance) &&
+            isMasterUserSecretStabilized(dbInstance);
+
+        requestLogger.log(String.format("isStabilizedWithoutChangesAppliedImmediately: %b", isDBInstanceStabilizedAfterMutateResult),
+            ImmutableMap.of("isDBInstanceAvailable", isDBInstanceAvailable(dbInstance),
+                "isReplicationComplete", isReplicationComplete(dbInstance),
+                "isDBParameterGroupNotApplying", isDBParameterGroupNotApplying(dbInstance),
+                "isVpcSecurityGroupsActive", isVpcSecurityGroupsActive(dbInstance),
+                "isMasterUserSecretStabilized", isMasterUserSecretStabilized(dbInstance)),
+                ImmutableMap.of("Description", "isStabilizedWithoutChangesAppliedImmediately method will be repeatedly" +
+                " called with a backoff mechanism after the modify call until it returns true. This" +
+                " process will continue until all included flags are true."));
 
         return isDBInstanceStabilizedAfterMutateResult;
     }

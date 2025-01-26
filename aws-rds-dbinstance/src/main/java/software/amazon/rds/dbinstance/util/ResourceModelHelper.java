@@ -127,6 +127,12 @@ public final class ResourceModelHelper {
         return StringUtils.hasValue(model.getDBParameterGroupName());
     }
 
+    public static boolean shouldApplyImmediately(final ResourceModel model) {
+        Boolean applyImmediately = model.getApplyImmediately();
+        // default to true
+        return applyImmediately == null || applyImmediately;
+    }
+
     public static Boolean getDefaultMultiAzForEngine(final String engine) {
         if (SQLSERVER_ENGINES_WITH_MIRRORING.contains(engine)) {
             return null;
