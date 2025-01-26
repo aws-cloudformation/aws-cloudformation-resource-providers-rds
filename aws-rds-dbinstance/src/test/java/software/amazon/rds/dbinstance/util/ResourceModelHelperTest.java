@@ -1,12 +1,16 @@
 package software.amazon.rds.dbinstance.util;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.rds.dbinstance.ResourceModel;
+
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class ResourceModelHelperTest {
 
@@ -498,5 +502,24 @@ public class ResourceModelHelperTest {
                 .build();
 
         assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isTrue();
+    }
+
+    private static Stream<Arguments> getApplyImmediatelyTestCases() {
+        return Stream.of(
+            Arguments.of(null, Boolean.TRUE),
+            Arguments.of(Boolean.TRUE, Boolean.TRUE),
+            Arguments.of(Boolean.FALSE, Boolean.FALSE)
+        );
+    }
+
+    @ParameterizedTest()
+    @MethodSource("getApplyImmediatelyTestCases")
+    public void test_ShouldApplyImmediately(Boolean input, Boolean expected) {
+        final ResourceModel model = ResourceModel.builder()
+            .applyImmediately(input)
+            .build();
+
+        Boolean actualValue = ResourceModelHelper.shouldApplyImmediately(model);
+        Assertions.assertThat(actualValue).isEqualTo(expected);
     }
 }

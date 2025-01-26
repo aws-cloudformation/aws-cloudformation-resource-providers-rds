@@ -1,17 +1,24 @@
 package software.amazon.rds.dbinstance;
 
-import java.time.Instant;
-import java.util.Collections;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DBInstanceStatusInfo;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
 import software.amazon.awssdk.services.rds.model.MasterUserSecret;
 import software.amazon.awssdk.services.rds.model.PendingCloudwatchLogsExports;
@@ -20,11 +27,29 @@ import software.amazon.awssdk.services.rds.model.ProcessorFeature;
 import software.amazon.awssdk.services.rds.model.VpcSecurityGroupMembership;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.HandlerConfig;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static software.amazon.rds.dbinstance.AbstractHandlerTest.MOCK_CREDENTIALS;
+import static software.amazon.rds.dbinstance.AbstractHandlerTest.logger;
+import static software.amazon.rds.dbinstance.AbstractHandlerTest.mockProxy;
+import static software.amazon.rds.dbinstance.status.DBParameterGroupStatus.Applying;
+import static software.amazon.rds.dbinstance.status.DBParameterGroupStatus.InSync;
+import static software.amazon.rds.dbinstance.status.DBParameterGroupStatus.PendingReboot;
 
 class BaseHandlerStdTest {
 
@@ -32,6 +57,7 @@ class BaseHandlerStdTest {
 
         public TestBaseHandlerStd(HandlerConfig config) {
             super(config);
+            requestLogger= new RequestLogger(logger, ResourceHandlerRequest.builder().build(), null);
         }
 
         @Override
@@ -48,9 +74,15 @@ class BaseHandlerStdTest {
 
     private TestBaseHandlerStd handler;
 
+    @Mock
+    private ProxyClient<RdsClient> rdsProxyV12;
+
     @BeforeEach
     public void setUp() {
         handler = new TestBaseHandlerStd(null);
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
+        RdsClient rdsClientV12 = mock(RdsClient.class);
+        rdsProxyV12 = mockProxy(proxy, rdsClientV12);
     }
 
     @Test
@@ -518,5 +550,87 @@ class BaseHandlerStdTest {
         Assertions.assertThatExceptionOfType(RequestValidationException.class).isThrownBy(() -> {
             handler.validateRequest(request);
         });
+    }
+
+    private static Stream<Arguments> DBClusterParameterGroupTestCases() {
+        return Stream.of(
+            // Test cases in the format: paramStatus, applyImmediately, expectedStabilizationState
+            // given the DBParameterGroup status and applyImmediately flag, it determines whether the resource should stabilize
+            Arguments.of(Applying.toString(), false, false),
+            Arguments.of(Applying.toString(), true, false),
+            Arguments.of(InSync.toString(), false, true),
+            Arguments.of(InSync.toString(), true, true),
+            Arguments.of(PendingReboot.toString(), false, true),
+            Arguments.of(PendingReboot.toString(), true, false)
+        );
+    }
+
+    @ParameterizedTest()
+    @MethodSource("DBClusterParameterGroupTestCases")
+    void isDBClusterParameterGroupStabilizedTests(String paramStatus, Boolean applyImmediately, boolean expectedStabilizationState) {
+        String dbIdentifier = "testDb";
+
+        var dbClusterWithMember = DBCluster.builder()
+            .dbClusterMembers(
+                (DBClusterMember.builder()
+                    .dbInstanceIdentifier(dbIdentifier)
+                    .dbClusterParameterGroupStatus(paramStatus)
+                    .build())
+            ).build();
+
+        final ResourceModel model = ResourceModel.builder()
+            .dBInstanceIdentifier(dbIdentifier)
+            .applyImmediately(applyImmediately)
+            .build();
+
+        when(rdsProxyV12.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+            .thenReturn(DescribeDbClustersResponse.builder()
+                .dbClusters(dbClusterWithMember)
+                .build());
+
+
+        boolean actual = handler.isDBClusterParameterGroupStabilized(rdsProxyV12, model);
+
+        Assertions.assertThat(actual).isEqualTo(expectedStabilizationState);
+    }
+
+    private static Stream<Arguments> DBParameterGroupTestCases() {
+        return Stream.of(
+            // Test cases in the format: paramStatus, applyImmediately, expectedStabilizationState
+            // given the DBParameterGroup status and applyImmediately flag, it determines whether the resource should stabilize
+                Arguments.of(Applying.toString(), false, false),
+                Arguments.of(Applying.toString(), true, false),
+                Arguments.of(InSync.toString(), false, true),
+                Arguments.of(InSync.toString(), true, true),
+                Arguments.of(PendingReboot.toString(), false, true),
+                Arguments.of(PendingReboot.toString(), true, false)
+        );
+    }
+
+    @ParameterizedTest()
+    @MethodSource("DBParameterGroupTestCases")
+    void isDBParameterGroupStabilizedTests(String paramStatus, Boolean applyImmediately, boolean expectedStabilizationState) {
+        String dbIdentifier = "testDb";
+
+        var dbInstance = DBInstance.builder()
+            .dbParameterGroups(DBParameterGroupStatus.builder()
+                .dbParameterGroupName("test")
+                .parameterApplyStatus(paramStatus)
+                .build())
+            .build();
+
+        final ResourceModel model = ResourceModel.builder()
+            .dBInstanceIdentifier(dbIdentifier)
+            .applyImmediately(applyImmediately)
+            .build();
+
+        when(rdsProxyV12.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+            .thenReturn(DescribeDbInstancesResponse.builder()
+                .dbInstances(List.of(dbInstance))
+                .build());
+
+        boolean actual = handler.isDBParameterGroupStabilized(rdsProxyV12, model);
+
+        Assertions.assertThat(actual).isEqualTo(expectedStabilizationState);
     }
 }

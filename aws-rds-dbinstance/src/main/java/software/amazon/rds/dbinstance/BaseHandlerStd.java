@@ -25,6 +25,7 @@ import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.dbinstance.client.*;
+import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -596,7 +597,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
-        return DBInstancePredicates.isDBParameterGroupInSync(dbInstance);
+        if(ResourceModelHelper.shouldApplyImmediately(model)) {
+            return DBInstancePredicates.isDBParameterGroupInSync(dbInstance);
+        }
+        return DBInstancePredicates.isDBParameterGroupNotApplying(dbInstance);
     }
 
     protected boolean isDBClusterParameterGroupStabilized(
@@ -605,7 +609,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         final DBCluster dbCluster = fetchDBCluster(rdsProxyClient, model);
 
-        return DBInstancePredicates.isDBClusterParameterGroupInSync(model, dbCluster);
+        if(ResourceModelHelper.shouldApplyImmediately(model)) {
+            return DBInstancePredicates.isDBClusterParameterGroupInSync(model, dbCluster);
+        }
+        return DBInstancePredicates.isDBClusterParameterGroupNotApplying(model, dbCluster);
     }
 
     protected boolean isDBInstanceRoleStabilized(
