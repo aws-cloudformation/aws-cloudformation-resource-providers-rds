@@ -1,14 +1,11 @@
 package software.amazon.rds.dbinstance;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Instant;
-import java.util.Collection;
-
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.ImmutableList;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
@@ -25,6 +22,12 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class TranslatorTest extends AbstractHandlerTest {
 
@@ -1234,6 +1237,40 @@ class TranslatorTest extends AbstractHandlerTest {
         final DBInstance dbInstance = DBInstance.builder().build();
         final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, false);
         assertThat(request.dedicatedLogVolume()).isTrue();
+    }
+
+    private static Stream<Arguments> getApplyImmediatelyTestCases() {
+        return Stream.of(
+            Arguments.of(null, Boolean.TRUE),
+            Arguments.of(Boolean.TRUE, Boolean.TRUE),
+            Arguments.of(Boolean.FALSE, Boolean.FALSE)
+        );
+    }
+
+    @ParameterizedTest()
+    @MethodSource("getApplyImmediatelyTestCases")
+    public void test_modifyDBInstanceV12_ApplyImmediately(Boolean inputValue, Boolean expectedValue) {
+        final ResourceModel previous = ResourceModel.builder()
+            .build();
+        final ResourceModel desired = ResourceModel.builder()
+            .applyImmediately(inputValue)
+            .build();
+
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequestV12(previous, desired, false);
+        assertThat(request.applyImmediately()).isEqualTo(expectedValue);
+    }
+
+    @ParameterizedTest()
+    @MethodSource("getApplyImmediatelyTestCases")
+    public void test_modifyDBInstance_ApplyImmediately(Boolean inputValue, Boolean expectedValue) {
+        final ResourceModel previous = ResourceModel.builder()
+            .build();
+        final ResourceModel desired = ResourceModel.builder()
+            .applyImmediately(inputValue)
+            .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, false);
+        assertThat(request.applyImmediately()).isEqualTo(expectedValue);
     }
 
     // Stub methods to satisfy the interface. This is a 1-time thing.

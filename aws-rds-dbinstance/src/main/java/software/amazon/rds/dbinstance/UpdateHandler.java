@@ -252,8 +252,9 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         try {
             final DBInstance dbInstance = fetchDBInstance(proxyClient, progress.getResourceModel());
+            final boolean applyImmediately = ResourceModelHelper.shouldApplyImmediately(progress.getResourceModel());
             if (!CollectionUtils.isNullOrEmpty(dbInstance.dbParameterGroups())) {
-                return DBParameterGroupStatus.PendingReboot.equalsString(dbInstance.dbParameterGroups().get(0).parameterApplyStatus());
+                return applyImmediately && DBParameterGroupStatus.PendingReboot.equalsString(dbInstance.dbParameterGroups().get(0).parameterApplyStatus());
             }
         } catch (DbInstanceNotFoundException e) {
             return false;
@@ -267,10 +268,11 @@ public class UpdateHandler extends BaseHandlerStd {
     ) {
         final String dbInstanceIdentifier = progress.getResourceModel().getDBInstanceIdentifier();
         final DBCluster dbCluster = fetchDBCluster(proxyClient, progress.getResourceModel());
+        final boolean applyImmediately =  ResourceModelHelper.shouldApplyImmediately(progress.getResourceModel());
         if (!CollectionUtils.isNullOrEmpty(dbCluster.dbClusterMembers())) {
             for (final DBClusterMember member : dbCluster.dbClusterMembers()) {
                 if (dbInstanceIdentifier.equalsIgnoreCase(member.dbInstanceIdentifier())) {
-                    return DBParameterGroupStatus.PendingReboot.equalsString(member.dbClusterParameterGroupStatus());
+                    return applyImmediately && DBParameterGroupStatus.PendingReboot.equalsString(member.dbClusterParameterGroupStatus());
                 }
             }
         }
