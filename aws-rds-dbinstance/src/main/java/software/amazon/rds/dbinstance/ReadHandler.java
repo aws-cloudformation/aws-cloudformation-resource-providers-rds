@@ -9,6 +9,7 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.common.ErrorRuleSets;
 
 public class ReadHandler extends BaseHandlerStd {
 
@@ -36,7 +37,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .handleError((describeRequest, exception, client, model, context) -> Commons.handleException(
                         ProgressEvent.progress(model, context),
                         exception,
-                        DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                        ErrorRuleSets.DEFAULT_DB_INSTANCE,
                         requestLogger
                 ))
                 .done((describeRequest, describeResponse, proxyInvocation, resourceModel, context) -> {
