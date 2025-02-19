@@ -130,7 +130,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 PARAMETERS_FILTER,
                 requestLogger -> handleRequest(proxy,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientProvider()::getClient)), request,
-                        context
+                        context, requestLogger
                 ));
     }
 

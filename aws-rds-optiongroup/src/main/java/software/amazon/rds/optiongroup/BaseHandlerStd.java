@@ -75,7 +75,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 requestLogger -> handleRequest(
                         proxy,
                         new LoggingProxyClient<>(requestLogger, proxy.newProxy(new ClientBuilder()::getClient)), request,
-                        callbackContext != null ? callbackContext : new CallbackContext()
+                        callbackContext != null ? callbackContext : new CallbackContext(), requestLogger
                 ));
     }
 
