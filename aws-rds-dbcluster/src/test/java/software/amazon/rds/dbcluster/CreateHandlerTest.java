@@ -1,8 +1,10 @@
 package software.amazon.rds.dbcluster;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -10,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -68,6 +70,7 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.core.TestUtils;
 
@@ -841,7 +844,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void getClusterScalabilityType_FromSnapshot_Limitless() {
+    public void getClusterScalabilityType_FromClusterSnapshot_Limitless() {
         when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
             .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder().engineVersion("16.4-limitless").build()).build());
         ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSnapshot(rdsProxy, RESOURCE_MODEL_ON_RESTORE_WITH_PIEM);
@@ -850,10 +853,34 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
-    public void getClusterScalabilityType_FromSnapshot_Standard() {
+    public void getClusterScalabilityType_FromClusterSnapshot_Standard() {
         when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
             .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder().engineVersion("16.4").build()).build());
         ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSnapshot(rdsProxy, RESOURCE_MODEL_ON_RESTORE_WITH_PIEM);
+        Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.STANDARD);
+        rdsClient.serviceName();
+    }
+
+    @Test
+    public void getClusterScalabilityType_FromClusterSnapshot_NoPermission_Standard() {
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+            .thenThrow( RdsException.builder()
+                .awsErrorDetails(AwsErrorDetails.builder()
+                    .errorCode(ErrorCode.AccessDeniedException.toString())
+                    .build()
+                ).build());
+        RequestLogger requestLoggerMock = mock(RequestLogger.class);
+        handler.requestLogger = requestLoggerMock;
+        ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSnapshot(rdsProxy, RESOURCE_MODEL_ON_RESTORE_WITH_PIEM);
+        verify(requestLoggerMock, times(1)).log(eq("DBClusterValidationMissingPermissions"), eq(Map.of("MissingPermission", "DescribeDBClusterSnapshots")));
+        Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.STANDARD);
+        rdsClient.serviceName();
+    }
+
+    @Test
+    public void getClusterScalabilityType_FromInstanceSnapshot_Standard() {
+        ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSnapshot(rdsProxy, RESOURCE_MODEL_ON_RESTORE_SNAPSHOT_WITH_PIEM);
+        verify(rdsProxy.client(), never()).describeDBClusterSnapshots();
         Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.STANDARD);
         rdsClient.serviceName();
     }
