@@ -27,12 +27,16 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
+import software.amazon.rds.common.util.ArnHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
+import software.amazon.rds.common.validation.ValidationAccessException;
+import software.amazon.rds.common.validation.ValidationUtils;
 import software.amazon.rds.dbcluster.util.ResourceModelHelper;
 import software.amazon.rds.dbcluster.validators.ClusterScalabilityTypeValidator;
 
 public class CreateHandler extends BaseHandlerStd {
 
+    public final static String DB_CLUSTER_VALIDATION_MISSING_PERMISSIONS_METRIC = "DBClusterValidationMissingPermissions";
     public final static String LIMITLESS_ENGINE_VERSION_SUFFIX = "limitless";
     public final static String ENGINE_VERSION_SEPERATOR = "-";
 
@@ -278,13 +282,30 @@ public class CreateHandler extends BaseHandlerStd {
 
 
     protected ClusterScalabilityType getClusterScalabilityTypeFromSnapshot(final ProxyClient<RdsClient> rdsProxyClient, final ResourceModel resourceModel) {
-        DBClusterSnapshot snapshot = fetchDBClusterSnapshot(rdsProxyClient, resourceModel);
-        String snapshotEngineVersion = snapshot.engineVersion();
+        // Source SnapshotIdentifier might belong to either DBClusterSnapshot or DBSnapshot.
+        // Instance snapshot must use ARN format. If the format is not an ARN, treat this as a cluster snapshot
+        try {
+            if (ArnHelper.isValidArn(resourceModel.getSnapshotIdentifier())
+                && (ArnHelper.getResourceType(resourceModel.getSnapshotIdentifier()) == ArnHelper.ResourceType.DB_INSTANCE_SNAPSHOT)) {
+                return ClusterScalabilityType.STANDARD;
+            }
+            else {
+                final DBClusterSnapshot dbClusterSnapshot = ValidationUtils.fetchResourceForValidation(() ->
+                    fetchDBClusterSnapshot(rdsProxyClient, resourceModel), "DescribeDBClusterSnapshots");
+                return getClusterScalabilityTypeFromEngineVersion(dbClusterSnapshot.engineVersion());
+            }
+        }
+        catch (ValidationAccessException e) {
+            ValidationUtils.emitMetric(requestLogger, DB_CLUSTER_VALIDATION_MISSING_PERMISSIONS_METRIC, e);
+            return ClusterScalabilityType.STANDARD;
+        }
+    }
 
+    protected ClusterScalabilityType getClusterScalabilityTypeFromEngineVersion(final String snapshotEngineVersion) {
         if (StringUtils.isNullOrEmpty(snapshotEngineVersion)) {
             return ClusterScalabilityType.STANDARD;
         }
-        // we are using the engine version suffix until clusterScalabilityType is returned as part of describe snapshot API - https://jira.rds.a2z.com/browse/KER-23223
+        // we are using the engine version suffix until clusterScalabilityType is returned as part of describe snapshot API
         String[] snapshotEngineVersionParts = snapshotEngineVersion.split(ENGINE_VERSION_SEPERATOR);
         if(snapshotEngineVersionParts.length > 1 && snapshotEngineVersionParts[1].equals(LIMITLESS_ENGINE_VERSION_SUFFIX)) {
             return ClusterScalabilityType.LIMITLESS;

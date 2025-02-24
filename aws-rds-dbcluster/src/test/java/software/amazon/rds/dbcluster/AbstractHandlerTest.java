@@ -67,6 +67,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final String DOMAIN_NON_EMPTY;
     protected static final String DOMAIN_IAM_ROLE_NAME_NON_EMPTY;
     protected static final String SNAPSHOT_IDENTIFIER;
+    protected static final String INSTANCE_SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
     protected static final String ENGINE;
     protected static final String ENGINE_AURORA_POSTGRESQL;
@@ -93,6 +94,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final ResourceModel RESOURCE_MODEL_EMPTY_VPC;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_WITH_PIEM;
+    protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_SNAPSHOT_WITH_PIEM;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM;
     protected static final ResourceModel RESOURCE_MODEL_WITH_GLOBAL_CLUSTER;
@@ -137,6 +139,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         DOMAIN_NON_EMPTY = "domain-name";
         DOMAIN_IAM_ROLE_NAME_NON_EMPTY = "domain-iam-role-name";
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
+        INSTANCE_SNAPSHOT_IDENTIFIER = "arn:aws:rds:us-east-1:123456789012:snapshot:my-db-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
         ENGINE = "aurora";
         ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
@@ -235,6 +238,22 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
                 .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
                 .build();
+
+        RESOURCE_MODEL_ON_RESTORE_SNAPSHOT_WITH_PIEM = ResourceModel.builder()
+            .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
+            .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
+            .snapshotIdentifier(INSTANCE_SNAPSHOT_IDENTIFIER)
+            .engineMode(ENGINE_MODE)
+            .masterUsername(USER_NAME)
+            .masterUserPassword(USER_PASSWORD)
+            .scalingConfiguration(SCALING_CONFIGURATION)
+            .vpcSecurityGroupIds(VPC_SG_IDS)
+            .monitoringRoleArn(ROLE_ARN)
+            .monitoringInterval(MONITORING_INTERVAL)
+            .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+            .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+            .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
+            .build();
 
         RESOURCE_MODEL_ON_RESTORE_IN_TIME = ResourceModel.builder()
                 .dBClusterIdentifier(null)
