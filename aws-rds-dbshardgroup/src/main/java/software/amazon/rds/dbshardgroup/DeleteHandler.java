@@ -123,7 +123,6 @@ public class DeleteHandler extends BaseHandlerStd {
 
             if (CollectionUtils.isEmpty(dbClusters)) {
                 // For an empty response, we assume the same behavior for a DbClusterNotFoundException
-                // https://jira.rds.a2z.com/browse/WS-6673
                 return true;
             } else {
                 return isDBClusterAvailable(dbClusters.get(0));
