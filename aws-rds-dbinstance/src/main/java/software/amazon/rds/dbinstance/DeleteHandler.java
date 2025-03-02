@@ -14,6 +14,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
+import software.amazon.rds.dbinstance.common.ErrorRuleSets;
 
 import java.util.function.Function;
 
@@ -54,7 +55,7 @@ public class DeleteHandler extends BaseHandlerStd {
                             final var dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
                             callbackContext.setSnapshotIdentifier(decideSnapshotIdentifier(request, dbInstance));
                         } catch (Exception exception) {
-                            return Commons.handleException(progress, exception, DEFAULT_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
+                            return Commons.handleException(progress, exception, software.amazon.rds.dbinstance.common.ErrorRuleSets.DEFAULT_DB_INSTANCE, requestLogger);
                         }
                         return progress;
                 }, CallbackContext::isDescribed, CallbackContext::setDescribed))
@@ -68,7 +69,7 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((deleteRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DELETE_DB_INSTANCE_ERROR_RULE_SET,
+                                ErrorRuleSets.DELETE_DB_INSTANCE,
                                 requestLogger
                         )).progress()
                 )
@@ -83,7 +84,7 @@ public class DeleteHandler extends BaseHandlerStd {
                         .handleError((noopRequest, exception, client, model, context) -> Commons.handleException(
                                 ProgressEvent.progress(model, context),
                                 exception,
-                                DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                                software.amazon.rds.dbinstance.common.ErrorRuleSets.DEFAULT_DB_INSTANCE,
                                 requestLogger
                         ))
                         .progress()

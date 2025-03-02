@@ -345,7 +345,7 @@ public class Translator {
         return builder.build();
     }
 
-    static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
+    public static RestoreDbInstanceToPointInTimeRequest restoreDbInstanceToPointInTimeRequest(
             final ResourceModel model,
             final Tagging.TagSet tagSet
     ) {
