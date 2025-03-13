@@ -145,7 +145,10 @@ public class UpdateHandler extends BaseHandlerStd {
                     progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
                     return versioned(proxy, rdsProxyClient, progress, null, ImmutableMap.of(
                             ApiVersion.V12, (pxy, pcl, prg, tgs) -> updateDbInstanceV12(pxy, request, pcl, prg),
-                            ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> updateDbInstance(pxy, request, pcl, prg)
+                            ApiVersion.DEFAULT, (pxy, pcl, prg, tgs) -> {
+                            final DBInstance dbInstance = fetchDBInstance(rdsProxyClient.defaultClient(), progress.getResourceModel());
+                            return updateDbInstance(pxy, request, pcl, prg, dbInstance);
+                        }
                     )).then(p -> Events.checkFailedEvents(
                             rdsProxyClient.defaultClient(),
                             p.getResourceModel().getDBInstanceIdentifier(),
