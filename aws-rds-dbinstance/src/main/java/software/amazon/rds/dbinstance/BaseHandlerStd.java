@@ -1,6 +1,5 @@
 package software.amazon.rds.dbinstance;
 
-import com.amazonaws.arn.Arn;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -386,12 +385,14 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final AmazonWebServicesClientProxy proxy,
             final ResourceHandlerRequest<ResourceModel> request,
             final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+            final ProgressEvent<ResourceModel, CallbackContext> progress,
+            final DBInstance dbInstance
     ) {
         return proxy.initiate("rds::modify-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
                 .translateToServiceRequest(resourceModel -> Translator.modifyDbInstanceRequest(
                         request.getPreviousResourceState(),
                         request.getDesiredResourceState(),
+                        dbInstance,
                         BooleanUtils.isTrue(request.getRollback()))
                 )
                 .backoffDelay(config.getBackoff())
