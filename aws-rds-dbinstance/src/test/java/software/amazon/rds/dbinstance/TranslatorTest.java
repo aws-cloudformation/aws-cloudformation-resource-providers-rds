@@ -36,8 +36,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
     }
 
@@ -62,8 +63,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_DECR);
     }
 
@@ -88,8 +90,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.allocatedStorage()).isNull();
     }
 
@@ -102,8 +105,9 @@ class TranslatorTest extends AbstractHandlerTest {
                 .allocatedStorage(null)
                 .storageType(STORAGE_TYPE_IO1)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.allocatedStorage()).isNull();
     }
 
@@ -128,8 +132,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.allocatedStorage()).isNull();
     }
 
@@ -154,8 +159,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .iops(IOPS_INCR)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_INCR);
     }
 
@@ -180,8 +186,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .iops(IOPS_DECR)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.iops()).isEqualTo(IOPS_DECR);
     }
 
@@ -206,8 +213,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .iops(IOPS_INCR)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.iops()).isNull();
     }
 
@@ -232,8 +240,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .iops(IOPS_DECR)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.iops()).isNull();
     }
 
@@ -258,8 +267,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .useDefaultProcessorFeatures(true)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.useDefaultProcessorFeatures()).isTrue();
     }
 
@@ -271,8 +281,9 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .processorFeatures(PROCESSOR_FEATURES_ALTER)
                 .build();
+        final DBInstance dbInstance = DBInstance.builder().build();
         final Boolean isRollback = false;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, isRollback);
         assertThat(request.processorFeatures()).hasSameElementsAs(Translator.translateProcessorFeaturesToSdk(PROCESSOR_FEATURES_ALTER));
     }
 
@@ -341,8 +352,8 @@ class TranslatorTest extends AbstractHandlerTest {
     @Test
     public void test_modifyReadReplicaRequest_parameterGroupNotSet() {
         final ResourceModel model = RESOURCE_MODEL_BLDR().build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(ResourceModel.builder().build(), model, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(ResourceModel.builder().build(), model, dbInstance,false);
         Assertions.assertEquals("default", request.dbParameterGroupName());
     }
 
@@ -502,8 +513,8 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.cloudwatchLogsExportConfiguration()).isNull();
     }
 
@@ -515,8 +526,8 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-3"))
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.cloudwatchLogsExportConfiguration().disableLogTypes()).isEqualTo(ImmutableList.of("config-2"));
         assertThat(request.cloudwatchLogsExportConfiguration().enableLogTypes()).isEqualTo(ImmutableList.of("config-3"));
     }
@@ -529,8 +540,8 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desiredModel = RESOURCE_MODEL_BLDR()
                 .enableCloudwatchLogsExports(ImmutableList.of("config-1", "config-2"))
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.cloudwatchLogsExportConfiguration().enableLogTypes()).isEqualTo(ImmutableList.of("config-1", "config-2"));
     }
 
@@ -635,8 +646,8 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desired = RESOURCE_MODEL_BLDR()
                 .masterUserPassword("password")
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance, false);
 
         assertThat(request.manageMasterUserPassword()).isNull();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -651,8 +662,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR()
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance, false);
 
         assertThat(request.manageMasterUserPassword()).isFalse();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -668,8 +679,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .manageMasterUserPassword(false)
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key1").build())
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance, false);
 
         assertThat(request.manageMasterUserPassword()).isFalse();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -684,8 +695,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .manageMasterUserPassword(true)
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId(null).build())
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance,false);
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -700,8 +711,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .manageMasterUserPassword(true)
                 .masterUserSecret(null)
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance, false);
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -718,10 +729,9 @@ class TranslatorTest extends AbstractHandlerTest {
                 .manageMasterUserPassword(false)
                 .masterUserPassword("password")
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("key").build())
-
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance, false);
 
         assertThat(request.manageMasterUserPassword()).isNull();
         assertThat(request.masterUserSecretKmsKeyId()).isNull();
@@ -736,8 +746,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .manageMasterUserPassword(true)
                 .masterUserSecret(MasterUserSecret.builder().kmsKeyId("myKey").build())
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(prev, desired, dbInstance, false);
 
         assertThat(request.manageMasterUserPassword()).isTrue();
         assertThat(request.masterUserSecretKmsKeyId()).isEqualTo("myKey");
@@ -793,7 +803,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(true)
                 .performanceInsightsKMSKeyId(kmsKeyId)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isNull();
         assertThat(request.performanceInsightsKMSKeyId()).isNull();
     }
@@ -809,7 +820,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(true)
                 .performanceInsightsKMSKeyId(kmsKeyId)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isTrue();
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId);
     }
@@ -825,7 +837,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(false)
                 .performanceInsightsKMSKeyId(kmsKeyId)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isFalse();
         assertThat(request.performanceInsightsKMSKeyId()).isNull();
     }
@@ -841,7 +854,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(true)
                 .performanceInsightsRetentionPeriod(NEW_RETENTION_PERIOD)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isTrue();
         assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(NEW_RETENTION_PERIOD);
     }
@@ -857,7 +871,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(false)
                 .performanceInsightsRetentionPeriod(NEW_RETENTION_PERIOD)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isFalse();
         assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(NEW_RETENTION_PERIOD);
     }
@@ -874,7 +889,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(true)
                 .performanceInsightsKMSKeyId(kmsKeyId2)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isTrue();
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
     }
@@ -891,7 +907,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(false)
                 .performanceInsightsKMSKeyId(kmsKeyId2)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isFalse();
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
     }
@@ -908,7 +925,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(false)
                 .performanceInsightsKMSKeyId(kmsKeyId2)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isFalse();
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
     }
@@ -925,7 +943,8 @@ class TranslatorTest extends AbstractHandlerTest {
                 .enablePerformanceInsights(true)
                 .performanceInsightsKMSKeyId(kmsKeyId2)
                 .build();
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previousModel, desiredModel, dbInstance, false);
         assertThat(request.enablePerformanceInsights()).isTrue();
         assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(kmsKeyId2);
     }
@@ -966,8 +985,8 @@ class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsIo1_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io1").iops(1200).build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, false);
 
         assertThat(request.iops()).isEqualTo(1200);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
@@ -977,8 +996,8 @@ class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbInstanceRequest_shouldIncludeAllocatedStorageANdIops_ifStorageTypeIsIo1_andStorageTypeChangedToIo2() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).allocatedStorage("100").build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io2").iops(1000).allocatedStorage("100").build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, false);
 
         assertThat(request.iops()).isEqualTo(1000);
         assertThat(request.allocatedStorage()).isEqualTo(100);
@@ -988,8 +1007,8 @@ class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsImplicitIo1_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType(null).iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType(null).iops(1200).build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance,false);
 
         assertThat(request.iops()).isEqualTo(1200);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
@@ -999,8 +1018,8 @@ class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsGp3_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("gp3").iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("gp3").iops(1200).build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, false);
 
         assertThat(request.iops()).isEqualTo(1200);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
@@ -1010,8 +1029,8 @@ class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbInstanceRequest_shouldIncludeIops_ifStorageTypeIsGp3_andAllocatedStorageOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("gp3").allocatedStorage(ALLOCATED_STORAGE.toString()).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("gp3").allocatedStorage(ALLOCATED_STORAGE_INCR.toString()).build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance,false);
 
         assertThat(request.iops()).isEqualTo(IOPS_DEFAULT);
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
@@ -1021,8 +1040,8 @@ class TranslatorTest extends AbstractHandlerTest {
     public void modifyDbInstanceRequest_shouldNotIncludeAllocatedStorage_ifStorageTypeIsGP2_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().iops(1200).build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance,false);
 
         assertThat(request.iops()).isEqualTo(1200);
         assertThat(request.allocatedStorage()).isNull();
@@ -1073,9 +1092,9 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_DECR)
                 .allocatedStorage(ALLOCATED_STORAGE_DECR.toString())
                 .build();
-
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
         final boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, isRollback);
 
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
         assertThat(request.iops()).isEqualTo(IOPS_DECR);
@@ -1093,9 +1112,9 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_DECR)
                 .allocatedStorage(ALLOCATED_STORAGE_INCR.toString())
                 .build();
-
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE_INCR).build();
         final boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, isRollback);
 
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
         assertThat(request.iops()).isEqualTo(IOPS_DECR);
@@ -1113,9 +1132,9 @@ class TranslatorTest extends AbstractHandlerTest {
                 .iops(IOPS_DECR)
                 .allocatedStorage(null)
                 .build();
-
+        final DBInstance dbInstance = DBInstance.builder().allocatedStorage(ALLOCATED_STORAGE).build();
         final boolean isRollback = true;
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, isRollback);
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, isRollback);
 
         assertThat(request.allocatedStorage()).isEqualTo(ALLOCATED_STORAGE_INCR);
         assertThat(request.iops()).isEqualTo(IOPS_DECR);
@@ -1212,8 +1231,8 @@ class TranslatorTest extends AbstractHandlerTest {
         final ResourceModel desired = ResourceModel.builder()
                 .dedicatedLogVolume(true)
                 .build();
-
-        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, false);
+        final DBInstance dbInstance = DBInstance.builder().build();
+        final ModifyDbInstanceRequest request = Translator.modifyDbInstanceRequest(previous, desired, dbInstance, false);
         assertThat(request.dedicatedLogVolume()).isTrue();
     }
 
