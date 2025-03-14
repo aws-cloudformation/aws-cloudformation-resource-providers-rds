@@ -200,7 +200,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client()).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxy.client()).addTagsToResource(any(AddTagsToResourceRequest.class));
         verify(rdsProxy.client()).removeTagsFromResource(any(RemoveTagsFromResourceRequest.class));
@@ -284,7 +284,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBInstance(argument.capture());
         Assertions.assertThat(argument.getValue().maxAllocatedStorage()).isEqualTo(ALLOCATED_STORAGE);
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -1218,7 +1218,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         ArgumentCaptor<ModifyDbInstanceRequest> captor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(captor.capture());
@@ -1248,6 +1248,10 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
             final Object requestException,
             final HandlerErrorCode expectResponseCode
     ) {
+        final DBInstance fakeDBInstance = DBInstance.builder().build();
+        when(rdsProxy.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+            .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(fakeDBInstance).build());
+
         final CallbackContext context = new CallbackContext();
         context.setStorageAllocated(true);
 
@@ -1359,7 +1363,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
@@ -1390,7 +1394,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBInstance(argumentCaptor.capture());
@@ -1605,7 +1609,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         ArgumentCaptor<DescribeEventsRequest> describeEventsCaptor = ArgumentCaptor.forClass(DescribeEventsRequest.class);
         verify(rdsProxy.client(), times(1)).describeEvents(describeEventsCaptor.capture());
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         Assertions.assertThat(describeEventsCaptor.getValue().startTime()).isEqualTo(updatedAt);
     }
@@ -1738,7 +1742,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).modifyDBInstance(any(ModifyDbInstanceRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
-        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
@@ -1850,7 +1854,7 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectSuccess()
         );
 
-        verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
 
         final ArgumentCaptor<ModifyDbInstanceRequest> argumentCaptor = ArgumentCaptor.forClass(ModifyDbInstanceRequest.class);
         verify(rdsProxy.client()).modifyDBInstance(argumentCaptor.capture());

@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceReadReplicaRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
@@ -46,6 +47,7 @@ import software.amazon.awssdk.services.rds.model.RestoreDbInstanceToPointInTimeR
 import software.amazon.awssdk.services.rds.model.StartDbInstanceAutomatedBackupsReplicationRequest;
 import software.amazon.awssdk.services.rds.model.StopDbInstanceAutomatedBackupsReplicationRequest;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
@@ -444,6 +446,7 @@ public class Translator {
     public static ModifyDbInstanceRequest modifyDbInstanceRequest(
             final ResourceModel previousModel,
             final ResourceModel desiredModel,
+            final DBInstance physicalDBInstance,
             final Boolean isRollback
     ) {
         final ModifyDbInstanceRequest.Builder builder = ModifyDbInstanceRequest.builder()
@@ -495,13 +498,22 @@ public class Translator {
 
         if (BooleanUtils.isTrue(isRollback)) {
             if (isProvisionedIoStorage(desiredModel)) {
-                builder.allocatedStorage(max(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
+                // 3-way max between previous model, desired model and current instance storage
+                // because you cannot shrink storage in RDS
+                final Integer allocatedStorage = max(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel));
+                builder.allocatedStorage(max(physicalDBInstance.allocatedStorage(), allocatedStorage));
                 builder.iops(desiredModel.getIops());
             }
         } else {
             builder.engineVersion(diff(previousModel.getEngineVersion(), desiredModel.getEngineVersion()));
+            // When you have an IOPS configurable storage type
+            // both parameters, allocatedStorage and iops MUST be specified in the modifyDBInstance call
             if (isProvisionedIoStorage(desiredModel)) {
-                builder.allocatedStorage(getAllocatedStorage(desiredModel));
+                final Integer desiredAllocatedStorage = diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel));
+                if (desiredAllocatedStorage != null && desiredAllocatedStorage < physicalDBInstance.allocatedStorage()) {
+                    throw new CfnInvalidRequestException("Cannot change storage size to less than your instance: " + physicalDBInstance.allocatedStorage());
+                }
+                builder.allocatedStorage(max(physicalDBInstance.allocatedStorage(), getAllocatedStorage(desiredModel)));
                 builder.iops(desiredModel.getIops());
             } else {
                 builder.allocatedStorage(diff(getAllocatedStorage(previousModel), getAllocatedStorage(desiredModel)));
