@@ -14,9 +14,7 @@ import static software.amazon.rds.dbinstance.BaseHandlerStd.RESOURCE_UPDATED_AT;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -58,6 +56,7 @@ import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DBClusterMember;
 import software.amazon.awssdk.services.rds.model.DBEngineVersion;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBInstanceAutomatedBackupsReplication;
 import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DBParameterGroupStatus;
@@ -69,6 +68,8 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbEngineVersionsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbParameterGroupsRequest;
@@ -1757,26 +1758,34 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         context.setAutomaticBackupReplicationStopped(true);
 
         proxy = Mockito.spy(proxy);
-
         final RdsClient crossRegionRdsClient = mock(RdsClient.class);
         final ProxyClient<RdsClient> crossRegionRdsProxy = mockProxy(proxy, crossRegionRdsClient);
         doReturn(crossRegionRdsProxy).when(proxy).newProxy(ArgumentMatchers.<Supplier<RdsClient>>any());
+
+        when(crossRegionRdsProxy.client().describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class)))
+            .thenReturn(DescribeDbInstanceAutomatedBackupsResponse.builder()
+                .dbInstanceAutomatedBackups(Collections.singletonList(DBInstanceAutomatedBackup.builder()
+                    .dbInstanceAutomatedBackupsArn(
+                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION))
+                    .backupRetentionPeriod(AUTOMATIC_BACKUP_REPLICATION_RETENTION_PERIOD).build()))
+                .build());
 
         test_handleRequest_base(
                 context,
                 () -> DB_INSTANCE_ACTIVE.toBuilder()
                         .dbInstanceAutomatedBackupsReplications(Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
-                                .dbInstanceAutomatedBackupsArn(getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER)).build()))
+                                .dbInstanceAutomatedBackupsArn(getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build()))
+                        .build(),
+                () -> RESOURCE_MODEL_BLDR()
+                        .automaticBackupReplicationRegion("")
                         .build(),
                 () -> RESOURCE_MODEL_BLDR()
                         .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
                         .build(),
-                () -> RESOURCE_MODEL_BLDR()
-                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER)
-                        .build(),
                 expectSuccess()
         );
 
+        verify(crossRegionRdsProxy.client(), times(0)).stopDBInstanceAutomatedBackupsReplication(any(StopDbInstanceAutomatedBackupsReplicationRequest.class));
         verify(crossRegionRdsProxy.client(), times(1)).startDBInstanceAutomatedBackupsReplication(any(StartDbInstanceAutomatedBackupsReplicationRequest.class));
         verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
         verifyNoMoreInteractions(crossRegionRdsProxy.client());
@@ -1809,18 +1818,17 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                         .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
                         .build(),
                 () -> RESOURCE_MODEL_BLDR()
-                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER)
                         .build(),
                 expectSuccess()
         );
 
         verify(crossRegionRdsProxy.client(), times(1)).stopDBInstanceAutomatedBackupsReplication(any(StopDbInstanceAutomatedBackupsReplicationRequest.class));
+        verify(crossRegionRdsProxy.client(), times(0)).startDBInstanceAutomatedBackupsReplication(any(StartDbInstanceAutomatedBackupsReplicationRequest.class));
         verify(crossRegionRdsProxy.client(), atLeastOnce()).serviceName();
         verifyAccessPermissions(crossRegionRdsProxy.client());
         verifyNoMoreInteractions(crossRegionRdsProxy.client());
         verify(rdsProxy.client(), times(4)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
-
     @Test
     public void handleRequest_updateStorageTypeFromIo1ToIo2() {
         final CallbackContext context = new CallbackContext();

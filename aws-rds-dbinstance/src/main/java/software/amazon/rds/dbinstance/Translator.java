@@ -90,7 +90,7 @@ public class Translator {
                 .build();
     }
 
-    public static DescribeDbInstanceAutomatedBackupsRequest describeDBInstanceAutomaticBackup(final String automaticBackupArn) {
+    public static DescribeDbInstanceAutomatedBackupsRequest describeDBInstanceAutomaticBackupRequest(final String automaticBackupArn) {
         return DescribeDbInstanceAutomatedBackupsRequest.builder()
                 .dbInstanceAutomatedBackupsArn(automaticBackupArn)
                 .build();
@@ -777,10 +777,12 @@ public class Translator {
 
     public static StartDbInstanceAutomatedBackupsReplicationRequest startDbInstanceAutomatedBackupsReplicationRequest(
             final String dbInstanceArn,
+            final Integer backupRetentionPeriod,
             final String kmsKeyId
     ) {
         return StartDbInstanceAutomatedBackupsReplicationRequest.builder()
                 .sourceDBInstanceArn(dbInstanceArn)
+                .backupRetentionPeriod(backupRetentionPeriod)
                 .kmsKeyId(kmsKeyId)
                 .build();
     }

@@ -303,29 +303,12 @@ public class ResourceModelHelperTest {
     }
 
     @Test
-    public void getBackupRetentionPeriod_returnsZeroWhenNotSet() {
-        final ResourceModel model = ResourceModel.builder()
-                .build();
-
-        assertThat(ResourceModelHelper.getBackupRetentionPeriod(model)).isEqualTo(0);
-    }
-
-    @Test
     public void getBackupRetentionPeriod_returnsValueWhenSet() {
         final ResourceModel model = ResourceModel.builder()
                 .backupRetentionPeriod(10)
                 .build();
 
         assertThat(ResourceModelHelper.getBackupRetentionPeriod(model)).isEqualTo(10);
-    }
-
-    @Test
-    public void getAutomaticBackupReplicationRegion_returnsNullWhenBackupReplicationIsZero() {
-        final ResourceModel model = ResourceModel.builder()
-                .automaticBackupReplicationRegion("eu-west-1")
-                .build();
-
-        assertThat(ResourceModelHelper.getAutomaticBackupReplicationRegion(model)).isNull();
     }
 
     @Test
@@ -383,7 +366,7 @@ public class ResourceModelHelperTest {
     }
 
     @Test
-    public void shouldStartAutomaticBackupReplication_returnsFalseWhenBackupRetentionPeriodChangedFromOneToTwo() {
+    public void shouldStartAutomaticBackupReplication_returnsTrueWhenBackupRetentionPeriodChangedFromOneToTwo() {
         final ResourceModel previous = ResourceModel.builder()
                 .automaticBackupReplicationRegion("eu-west-1")
                 .backupRetentionPeriod(1)
@@ -394,7 +377,7 @@ public class ResourceModelHelperTest {
                 .backupRetentionPeriod(2)
                 .build();
 
-        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(previous, desired)).isFalse();
+        assertThat(ResourceModelHelper.shouldStartAutomaticBackupReplication(previous, desired)).isTrue();
     }
 
     @Test
@@ -462,7 +445,7 @@ public class ResourceModelHelperTest {
     }
 
     @Test
-    public void shouldStopAutomaticBackupReplication_returnsTrueWhenBackupRetentionPeriodChangedFromValueToNull() {
+    public void shouldStopAutomaticBackupReplication_returnsFalseWhenBackupRetentionPeriodChangedFromValueToNull() {
         final ResourceModel previous = ResourceModel.builder()
                 .automaticBackupReplicationRegion("eu-west-1")
                 .backupRetentionPeriod(10)
@@ -472,11 +455,11 @@ public class ResourceModelHelperTest {
                 .automaticBackupReplicationRegion("eu-west-1")
                 .build();
 
-        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isTrue();
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isFalse();
     }
 
     @Test
-    public void shouldStopAutomaticBackupReplication_returnsFalseWhenBackupRetentionPeriodChangedFromOneToTwo() {
+    public void shouldStopAutomaticBackupReplication_returnsTrueWhenBackupRetentionPeriodChangedFromOneToTwo() {
         final ResourceModel previous = ResourceModel.builder()
                 .automaticBackupReplicationRegion("eu-west-1")
                 .backupRetentionPeriod(1)
@@ -487,7 +470,7 @@ public class ResourceModelHelperTest {
                 .backupRetentionPeriod(2)
                 .build();
 
-        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isFalse();
+        assertThat(ResourceModelHelper.shouldStopAutomaticBackupReplication(previous, desired)).isTrue();
     }
 
     @Test
