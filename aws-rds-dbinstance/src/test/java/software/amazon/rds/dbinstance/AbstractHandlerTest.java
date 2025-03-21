@@ -197,6 +197,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final String MSG_GENERIC_ERR = "Error";
     protected static final String AUTOMATIC_BACKUP_REPLICATION_REGION = "eu-west-1";
     protected static final String AUTOMATIC_BACKUP_REPLICATION_REGION_ALTER = "eu-west-2";
+    protected static final Integer AUTOMATIC_BACKUP_REPLICATION_RETENTION_PERIOD = 1;
     protected static final String CURRENT_REGION = "eu-west-1";
 
 
