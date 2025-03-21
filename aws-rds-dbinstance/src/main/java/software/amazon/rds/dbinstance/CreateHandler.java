@@ -32,6 +32,7 @@ import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
+import software.amazon.rds.dbinstance.validators.AutomaticBackupReplicationValidator;
 import software.amazon.rds.dbinstance.validators.OracleCustomSystemId;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -59,6 +60,8 @@ public class CreateHandler extends BaseHandlerStd {
         Validations.validateTimestamp(request.getDesiredResourceState().getRestoreTime());
 
         OracleCustomSystemId.validateRequest(request.getDesiredResourceState());
+
+        AutomaticBackupReplicationValidator.validateRequest(request.getDesiredResourceState());
     }
 
     private void validateDeletionPolicyForClusterInstance(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
@@ -192,18 +195,21 @@ public class CreateHandler extends BaseHandlerStd {
                     return progress;
                 },  (m) -> !StringUtils.isNullOrEmpty(callbackContext.getDbInstanceArn()), (v, c) -> {}))
                 .then(progress -> Commons.execOnce(progress, () -> {
-                            if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
-                                return startAutomaticBackupReplicationInRegion(
-                                        callbackContext.getDbInstanceArn(),
-                                        progress.getResourceModel().getAutomaticBackupReplicationKmsKeyId(),
-                                        proxy,
-                                        progress,
-                                        rdsProxyClient.defaultClient(),
-                                        ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState())
-                                );
-                            }
-                            return progress;
-                        },
+                    final ResourceModel resourceModel = progress.getResourceModel();
+
+                    if (ResourceModelHelper.shouldStartAutomaticBackupReplication(request.getPreviousResourceState(), request.getDesiredResourceState())) {
+                        return startAutomaticBackupReplicationInRegion(
+                            callbackContext.getDbInstanceArn(),
+                            ResourceModelHelper.getAutomaticBackupReplicationRetentionPeriod(resourceModel),
+                            resourceModel.getAutomaticBackupReplicationKmsKeyId(),
+                            proxy,
+                            progress,
+                            rdsProxyClient.defaultClient(),
+                            ResourceModelHelper.getAutomaticBackupReplicationRegion(request.getDesiredResourceState())
+                        );
+                    }
+                    return progress;
+                    },
                         CallbackContext::isAutomaticBackupReplicationStarted, CallbackContext::setAutomaticBackupReplicationStarted))
                 .then(progress -> {
                     model.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(allTags)));

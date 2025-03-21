@@ -1,6 +1,5 @@
 package software.amazon.rds.dbinstance;
 
-import com.amazonaws.arn.Arn;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.BooleanUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -166,6 +165,15 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidSubnetException.class)
             .build();
 
+    protected static final ErrorRuleSet DESCRIBE_AUTOMATED_BACKUPS_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
+        .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+        .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+            DbInstanceAutomatedBackupNotFoundException.class)
+        .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
+            ErrorCode.AccessDenied,
+            ErrorCode.AccessDeniedException)
+        .build();
+
     protected static final ErrorRuleSet DB_INSTANCE_FETCH_ENGINE_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
@@ -222,7 +230,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected static final ErrorRuleSet MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET = ErrorRuleSet
             .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
             .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
-                    InvalidDbInstanceAutomatedBackupStateException.class)
+                    InvalidDbInstanceAutomatedBackupStateException.class,
+                    InvalidDbInstanceStateException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.ServiceLimitExceeded),
                     DbInstanceAutomatedBackupQuotaExceededException.class)
             .build();
@@ -454,7 +463,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final String automaticBackupArn
     ) {
         final DescribeDbInstanceAutomatedBackupsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDBInstanceAutomaticBackup(automaticBackupArn),
+                Translator.describeDBInstanceAutomaticBackupRequest(automaticBackupArn),
                 rdsProxyClient.client()::describeDBInstanceAutomatedBackups
         );
         return response.dbInstanceAutomatedBackups().get(0);
@@ -487,42 +496,42 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model
     ) {
         final DescribeDbSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbSnapshotsRequest(model),
-                rdsProxyClient.client()::describeDBSnapshots
+            Translator.describeDbSnapshotsRequest(model),
+            rdsProxyClient.client()::describeDBSnapshots
         );
         return response.dbSnapshots().get(0);
     }
 
     protected DBClusterSnapshot fetchDBClusterSnapshot(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         final DescribeDbClusterSnapshotsResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbClusterSnapshotsRequest(model),
-                rdsProxyClient.client()::describeDBClusterSnapshots
+            Translator.describeDbClusterSnapshotsRequest(model),
+            rdsProxyClient.client()::describeDBClusterSnapshots
         );
         return response.dbClusterSnapshots().get(0);
     }
 
     protected SecurityGroup fetchSecurityGroup(
-            final ProxyClient<Ec2Client> ec2ProxyClient,
-            final String vpcId,
-            final String groupName
+        final ProxyClient<Ec2Client> ec2ProxyClient,
+        final String vpcId,
+        final String groupName
     ) {
         final DescribeSecurityGroupsResponse response = ec2ProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeSecurityGroupsRequest(vpcId, groupName),
-                ec2ProxyClient.client()::describeSecurityGroups
+            Translator.describeSecurityGroupsRequest(vpcId, groupName),
+            ec2ProxyClient.client()::describeSecurityGroups
         );
         return Optional.ofNullable(response.securityGroups())
-                .orElse(Collections.emptyList())
-                .stream()
-                .findFirst()
-                .orElse(null);
+            .orElse(Collections.emptyList())
+            .stream()
+            .findFirst()
+            .orElse(null);
     }
 
     protected boolean isDbInstanceDeleted(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         DBInstance dbInstance;
         try {
@@ -536,9 +545,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isDBInstanceStabilizedAfterMutate(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model,
-            final CallbackContext context
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model,
+        final CallbackContext context
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
@@ -549,13 +558,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         context.timestampOnce(DB_INSTANCE_REQUEST_STARTED_AT, Instant.now());
         context.timestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT, Instant.now());
         context.calculateTimeDeltaInMinutes(DB_INSTANCE_STABILIZATION_TIME,
-                context.getTimestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT),
-                context.getTimestamp(DB_INSTANCE_REQUEST_STARTED_AT));
+            context.getTimestamp(DB_INSTANCE_REQUEST_IN_PROGRESS_AT),
+            context.getTimestamp(DB_INSTANCE_REQUEST_STARTED_AT));
     }
 
     protected boolean isInstanceStabilizedAfterReplicationStop(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
@@ -570,8 +579,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isDBInstanceStabilizedAfterReboot(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
         if (DBInstancePredicates.isDBClusterMember(model)) {
@@ -583,8 +592,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isOptionGroupStabilized(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
@@ -592,8 +601,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isDBParameterGroupStabilized(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
 
@@ -604,8 +613,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isDBClusterParameterGroupStabilized(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model
     ) {
         final DBCluster dbCluster = fetchDBCluster(rdsProxyClient, model);
 
@@ -616,47 +625,47 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected boolean isDBInstanceRoleStabilized(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model,
-            final Function<Stream<software.amazon.awssdk.services.rds.model.DBInstanceRole>, Boolean> predicate
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model,
+        final Function<Stream<software.amazon.awssdk.services.rds.model.DBInstanceRole>, Boolean> predicate
     ) {
         final DBInstance dbInstance = fetchDBInstance(rdsProxyClient, model);
         return predicate.apply(Optional.ofNullable(
-                dbInstance.associatedRoles()
+            dbInstance.associatedRoles()
         ).orElse(Collections.emptyList()).stream());
     }
 
     protected boolean isDBInstanceRoleAdditionStabilized(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model,
-            final DBInstanceRole lookupRole
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model,
+        final DBInstanceRole lookupRole
     ) {
         return isDBInstanceRoleStabilized(
-                rdsProxyClient,
-                model,
-                (roles) -> roles.anyMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()) &&
-                        Objects.equals(StringUtils.trimToNull(role.featureName()), StringUtils.trimToNull(lookupRole.getFeatureName())))
+            rdsProxyClient,
+            model,
+            (roles) -> roles.anyMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()) &&
+                Objects.equals(StringUtils.trimToNull(role.featureName()), StringUtils.trimToNull(lookupRole.getFeatureName())))
         );
     }
 
     protected boolean isDBInstanceRoleRemovalStabilized(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ResourceModel model,
-            final DBInstanceRole lookupRole
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ResourceModel model,
+        final DBInstanceRole lookupRole
     ) {
         return isDBInstanceRoleStabilized(
-                rdsProxyClient,
-                model,
-                (roles) -> roles.noneMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()))
+            rdsProxyClient,
+            model,
+            (roles) -> roles.noneMatch(role -> role.roleArn().equals(lookupRole.getRoleArn()))
         );
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateAssociatedRoles(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            ProgressEvent<ResourceModel, CallbackContext> progress,
-            Collection<DBInstanceRole> previousRoles,
-            Collection<DBInstanceRole> desiredRoles
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        ProgressEvent<ResourceModel, CallbackContext> progress,
+        Collection<DBInstanceRole> previousRoles,
+        Collection<DBInstanceRole> desiredRoles
     ) {
         final Set<DBInstanceRole> rolesToRemove = new LinkedHashSet<>(Optional.ofNullable(previousRoles).orElse(Collections.emptyList()));
         final Set<DBInstanceRole> rolesToAdd = new LinkedHashSet<>(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
@@ -665,33 +674,33 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         rolesToRemove.removeAll(Optional.ofNullable(desiredRoles).orElse(Collections.emptyList()));
 
         return progress
-                .then(p -> removeOldRoles(proxy, rdsProxyClient, p, rolesToRemove))
-                .then(p -> addNewRoles(proxy, rdsProxyClient, p, rolesToAdd));
+            .then(p -> removeOldRoles(proxy, rdsProxyClient, p, rolesToRemove))
+            .then(p -> addNewRoles(proxy, rdsProxyClient, p, rolesToAdd));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> addNewRoles(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<DBInstanceRole> rolesToAdd
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final Collection<DBInstanceRole> rolesToAdd
     ) {
         for (final DBInstanceRole role : rolesToAdd) {
             final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::add-roles-to-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                    .translateToServiceRequest(addRequest -> Translator.addRoleToDbInstanceRequest(progress.getResourceModel(), role))
-                    .backoffDelay(config.getBackoff())
-                    .makeServiceCall((request, proxyInvocation) -> {
-                        return proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::addRoleToDBInstance);
-                    })
-                    .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDBInstanceRoleAdditionStabilized(
-                            proxyInvocation, modelRequest, role
-                    ))
-                    .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
-                            ProgressEvent.progress(resourceModel, context),
-                            exception,
-                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
-                            requestLogger
-                    ))
-                    .success();
+                .translateToServiceRequest(addRequest -> Translator.addRoleToDbInstanceRequest(progress.getResourceModel(), role))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((request, proxyInvocation) -> {
+                    return proxyInvocation.injectCredentialsAndInvokeV2(request, proxyInvocation.client()::addRoleToDBInstance);
+                })
+                .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDBInstanceRoleAdditionStabilized(
+                    proxyInvocation, modelRequest, role
+                ))
+                .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
+                    ProgressEvent.progress(resourceModel, context),
+                    exception,
+                    UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                    requestLogger
+                ))
+                .success();
             if (!progressEvent.isSuccess()) {
                 return progressEvent;
             }
@@ -700,30 +709,30 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> removeOldRoles(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Collection<DBInstanceRole> rolesToRemove
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final Collection<DBInstanceRole> rolesToRemove
     ) {
         for (final DBInstanceRole role : rolesToRemove) {
             final ProgressEvent<ResourceModel, CallbackContext> progressEvent = proxy.initiate("rds::remove-roles-from-db-instance", rdsProxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                    .translateToServiceRequest(removeRequest -> Translator.removeRoleFromDbInstanceRequest(
-                            progress.getResourceModel(), role
-                    ))
-                    .backoffDelay(config.getBackoff())
-                    .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                            request, proxyInvocation.client()::removeRoleFromDBInstance
-                    ))
-                    .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDBInstanceRoleRemovalStabilized(
-                            proxyInvocation, modelRequest, role
-                    ))
-                    .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
-                            ProgressEvent.progress(resourceModel, context),
-                            exception,
-                            UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
-                            requestLogger
-                    ))
-                    .success();
+                .translateToServiceRequest(removeRequest -> Translator.removeRoleFromDbInstanceRequest(
+                    progress.getResourceModel(), role
+                ))
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall((request, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                    request, proxyInvocation.client()::removeRoleFromDBInstance
+                ))
+                .stabilize((request, response, proxyInvocation, modelRequest, callbackContext) -> isDBInstanceRoleRemovalStabilized(
+                    proxyInvocation, modelRequest, role
+                ))
+                .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
+                    ProgressEvent.progress(resourceModel, context),
+                    exception,
+                    UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                    requestLogger
+                ))
+                .success();
             if (!progressEvent.isSuccess()) {
                 return progressEvent;
             }
@@ -732,65 +741,65 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> reboot(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::reboot-db-instance",
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
-                        rebootRequest,
-                        proxyInvocation.client()::rebootDBInstance
-                ))
-                .handleError((request, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        REBOOT_DB_INSTANCE_ERROR_RULE_SET,
-                        requestLogger
-                ))
-                .progress();
+                "rds::reboot-db-instance",
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+            ).translateToServiceRequest(Translator::rebootDbInstanceRequest)
+            .backoffDelay(config.getBackoff())
+            .makeServiceCall((rebootRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
+                rebootRequest,
+                proxyInvocation.client()::rebootDBInstance
+            ))
+            .handleError((request, exception, client, model, context) -> Commons.handleException(
+                ProgressEvent.progress(model, context),
+                exception,
+                REBOOT_DB_INSTANCE_ERROR_RULE_SET,
+                requestLogger
+            ))
+            .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> rebootAwait(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return reboot(proxy, rdsProxyClient, progress).then(p -> stabilizeDBInstanceAfterReboot(proxy, rdsProxyClient, p));
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> stabilizeDBInstanceAfterReboot(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         return proxy.initiate(
-                        "rds::stabilize-db-instance-after-reboot-" + getClass().getSimpleName(),
-                        rdsProxyClient,
-                        progress.getResourceModel(),
-                        progress.getCallbackContext()
-                )
-                .translateToServiceRequest(Function.identity())
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall(NOOP_CALL)
-                .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterReboot(proxyInvocation, model))
-                .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
-                        ProgressEvent.progress(resourceModel, context),
-                        exception,
-                        UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
-                        requestLogger
-                ))
-                .progress();
+                "rds::stabilize-db-instance-after-reboot-" + getClass().getSimpleName(),
+                rdsProxyClient,
+                progress.getResourceModel(),
+                progress.getCallbackContext()
+            )
+            .translateToServiceRequest(Function.identity())
+            .backoffDelay(config.getBackoff())
+            .makeServiceCall(NOOP_CALL)
+            .stabilize((request, response, proxyInvocation, model, context) -> isDBInstanceStabilizedAfterReboot(proxyInvocation, model))
+            .handleError((request, exception, proxyInvocation, resourceModel, context) -> Commons.handleException(
+                ProgressEvent.progress(resourceModel, context),
+                exception,
+                UPDATE_ASSOCIATED_ROLES_ERROR_RULE_SET,
+                requestLogger
+            ))
+            .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> ensureEngineSet(
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
         final ResourceModel model = progress.getResourceModel();
         if (StringUtils.isEmpty(model.getEngine())) {
@@ -805,11 +814,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> updateTags(
-            final AmazonWebServicesClientProxy proxy,
-            final ProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet previousTags,
-            final Tagging.TagSet desiredTags
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final Tagging.TagSet previousTags,
+        final Tagging.TagSet desiredTags
     ) {
 
         final Collection<Tag> effectivePreviousTags = Tagging.translateTagsToSdk(previousTags);
@@ -839,10 +848,10 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             Tagging.addTags(rdsProxyClient, arn, Tagging.translateTagsToSdk(tagsToAdd));
         } catch (Exception exception) {
             return Commons.handleException(
-                    progress,
-                    exception,
-                    DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
-                    requestLogger
+                progress,
+                exception,
+                DEFAULT_DB_INSTANCE_ERROR_RULE_SET.extendWith(Tagging.getUpdateTagsAccessDeniedRuleSet(rulesetTagsToAdd, rulesetTagsToRemove)),
+                requestLogger
             );
         }
 
@@ -850,11 +859,11 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> versioned(
-            final AmazonWebServicesClientProxy proxy,
-            final VersionedProxyClient<RdsClient> rdsProxyClient,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final Tagging.TagSet allTags,
-            final Map<ApiVersion, HandlerMethod<ResourceModel, CallbackContext>> methodVersions
+        final AmazonWebServicesClientProxy proxy,
+        final VersionedProxyClient<RdsClient> rdsProxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final Tagging.TagSet allTags,
+        final Map<ApiVersion, HandlerMethod<ResourceModel, CallbackContext>> methodVersions
     ) {
         final ResourceModel model = progress.getResourceModel();
         final CallbackContext callbackContext = progress.getCallbackContext();
@@ -866,66 +875,67 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> stopAutomaticBackupReplicationInRegion(
-            final String dbInstanceArn,
-            final AmazonWebServicesClientProxy proxy,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final ProxyClient<RdsClient> sourceRegionClient,
-            final String region
+        final String dbInstanceArn,
+        final AmazonWebServicesClientProxy proxy,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final ProxyClient<RdsClient> sourceRegionClient,
+        final String region
     ) {
         final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
 
         return proxy.initiate("rds::stop-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(resourceModel -> Translator.stopDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((request, client) -> rdsClient.injectCredentialsAndInvokeV2(
-                        request,
-                        rdsClient.client()::stopDBInstanceAutomatedBackupsReplication
-                ))
-                .stabilize((request, response, client, model, context) ->
-                        isInstanceStabilizedAfterReplicationStop(sourceRegionClient, model))
-                .handleError((request, exception, client, model, context) -> Commons.handleException(
-                        ProgressEvent.progress(model, context),
-                        exception,
-                        MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
-                        requestLogger
-                ))
-                .progress();
+            .translateToServiceRequest(resourceModel -> Translator.stopDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn))
+            .backoffDelay(config.getBackoff())
+            .makeServiceCall((request, client) -> rdsClient.injectCredentialsAndInvokeV2(
+                request,
+                rdsClient.client()::stopDBInstanceAutomatedBackupsReplication
+            ))
+            .stabilize((request, response, client, model, context) ->
+                isInstanceStabilizedAfterReplicationStop(sourceRegionClient, model))
+            .handleError((request, exception, client, model, context) -> Commons.handleException(
+                ProgressEvent.progress(model, context),
+                exception,
+                MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                requestLogger
+            ))
+            .progress();
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> startAutomaticBackupReplicationInRegion(
-            final String dbInstanceArn,
-            final String kmsKeyId,
-            final AmazonWebServicesClientProxy proxy,
-            final ProgressEvent<ResourceModel, CallbackContext> progress,
-            final ProxyClient<RdsClient> sourceRegionClient,
-            final String region
+        final String dbInstanceArn,
+        final Integer backupRetentionPeriod,
+        final String kmsKeyId,
+        final AmazonWebServicesClientProxy proxy,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final ProxyClient<RdsClient> sourceRegionClient,
+        final String region
     ) {
         final ProxyClient<RdsClient> rdsClient = new LoggingProxyClient<>(requestLogger, proxy.newProxy(() -> new RdsClientProvider().getClientForRegion(region)));
         final String AUTOMATIC_REPLICATION_KMS_KEY_ERROR = "Encrypted instances require a valid KMS key ID";
         final String AUTOMATIC_REPLICATION_KMS_KEY_EVENT_MESSAGE = "Provide a valid value for the AutomaticBackupReplicationKmsKeyId property.";
 
         return proxy.initiate("rds::start-db-instance-automatic-backup-replication", rdsClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn, kmsKeyId))
-                .backoffDelay(config.getBackoff())
-                .makeServiceCall((request, client) -> rdsClient.injectCredentialsAndInvokeV2(
-                        request,
-                        rdsClient.client()::startDBInstanceAutomatedBackupsReplication
-                ))
-                .stabilize((request, response, proxyInvocation, model, context) ->
-                        isInstanceStabilizedAfterReplicationStart(sourceRegionClient, model))
-                .handleError((request, exception, client, model, context) -> {
-                    ProgressEvent<ResourceModel, CallbackContext> progressEvent = Commons.handleException(
-                            ProgressEvent.progress(model, context),
-                            exception,
-                            MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
-                            requestLogger
-                    );
-                    if (exception.getMessage().contains(AUTOMATIC_REPLICATION_KMS_KEY_ERROR)) {
-                        progressEvent.setMessage(StringUtils.trimToEmpty(progressEvent.getMessage())
-                                .concat(" " + AUTOMATIC_REPLICATION_KMS_KEY_EVENT_MESSAGE));
-                    }
-                    return progressEvent;
-                })
-                .progress();
+            .translateToServiceRequest(resourceModel -> Translator.startDbInstanceAutomatedBackupsReplicationRequest(dbInstanceArn, backupRetentionPeriod, kmsKeyId))
+            .backoffDelay(config.getBackoff())
+            .makeServiceCall((request, client) -> rdsClient.injectCredentialsAndInvokeV2(
+                request,
+                rdsClient.client()::startDBInstanceAutomatedBackupsReplication
+            ))
+            .stabilize((request, response, proxyInvocation, model, context) ->
+                isInstanceStabilizedAfterReplicationStart(sourceRegionClient, model))
+            .handleError((request, exception, client, model, context) -> {
+                ProgressEvent<ResourceModel, CallbackContext> progressEvent = Commons.handleException(
+                    ProgressEvent.progress(model, context),
+                    exception,
+                    MODIFY_DB_INSTANCE_AUTOMATIC_BACKUP_REPLICATION_ERROR_RULE_SET,
+                    requestLogger
+                );
+                if (exception.getMessage().contains(AUTOMATIC_REPLICATION_KMS_KEY_ERROR)) {
+                    progressEvent.setMessage(StringUtils.trimToEmpty(progressEvent.getMessage())
+                        .concat(" " + AUTOMATIC_REPLICATION_KMS_KEY_EVENT_MESSAGE));
+                }
+                return progressEvent;
+            })
+            .progress();
     }
 }

@@ -26,6 +26,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean automaticBackupReplicationStopped;
     private boolean automaticBackupReplicationStarted;
     private String dbInstanceArn;
+    private String automaticBackupReplicationArn;
     private String currentRegion;
     private String kmsKeyId;
     private String snapshotIdentifier;

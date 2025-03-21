@@ -1,5 +1,6 @@
 package software.amazon.rds.dbinstance.util;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -158,30 +159,83 @@ public final class ResourceModelHelper {
     public static boolean shouldStartAutomaticBackupReplication(final ResourceModel previous, final ResourceModel desired) {
         final String previousRegion = getAutomaticBackupReplicationRegion(previous);
         final String desiredRegion = getAutomaticBackupReplicationRegion(desired);
-        return !StringUtils.isNullOrEmpty(desiredRegion) && !desiredRegion.equalsIgnoreCase(previousRegion);
+
+        if (StringUtils.isNullOrEmpty(desiredRegion)) {
+            return false;
+        }
+
+        if (StringUtils.isNullOrEmpty(previousRegion)) {
+            return true;
+        }
+
+        return hasAutomaticBackupReplicationChanged(previous, desired);
     }
 
     public static boolean shouldStopAutomaticBackupReplication(final ResourceModel previous, final ResourceModel desired) {
         final String previousRegion = getAutomaticBackupReplicationRegion(previous);
         final String desiredRegion = getAutomaticBackupReplicationRegion(desired);
-        return !StringUtils.isNullOrEmpty(previousRegion) && !previousRegion.equalsIgnoreCase(desiredRegion);
+
+        // if region not provided and previous region was, then we stop replication
+        if (StringUtils.isNullOrEmpty(previousRegion)) {
+            return false;
+        }
+
+        if (StringUtils.isNullOrEmpty(desiredRegion)) {
+            return true;
+        }
+
+        return hasAutomaticBackupReplicationChanged(previous, desired);
     }
 
-    public static int getBackupRetentionPeriod(final ResourceModel model) {
-        if (model == null) {
-            return 0;
+    private static boolean hasBackupRetentionPeriodChangedWithNoOverride(final ResourceModel previous, final ResourceModel desired) {
+        return (!Objects.equals(getBackupRetentionPeriod(previous), getBackupRetentionPeriod(desired))) && (getBackupRetentionPeriod(desired) != null && getAutomaticBackupReplicationRetentionPeriod(desired) == null);
+    }
+
+    private static boolean hasAutomaticBackupReplicationChanged(final ResourceModel previous, final ResourceModel desired) {
+        // we only want to use change status of BackupRetentionPeriod if AutomaticBackupReplicationRetentionPeriod is unset / null
+        if (hasBackupRetentionPeriodChangedWithNoOverride(previous, desired)) {
+            return true;
         }
-        return Optional.ofNullable(model.getBackupRetentionPeriod()).orElse(0);
+
+        // check replication parameters for changes
+        boolean crossRegionRetentionChanged = !Objects.equals(getAutomaticBackupReplicationRetentionPeriod(previous), getAutomaticBackupReplicationRetentionPeriod(desired));
+        boolean regionChanged = !Objects.equals(getAutomaticBackupReplicationRegion(previous), getAutomaticBackupReplicationRegion(desired));
+        boolean kmsKeyIdChanged = !Objects.equals(getAutomaticBackupReplicationKmsKeyId(previous), getAutomaticBackupReplicationKmsKeyId(desired));
+
+        // if any replication parameters have changed
+        return crossRegionRetentionChanged || regionChanged || kmsKeyIdChanged;
+    }
+
+
+    public static Integer getBackupRetentionPeriod(final ResourceModel model) {
+        if (model == null) {
+            return null;
+        }
+
+        return model.getBackupRetentionPeriod();
     }
 
     public static String getAutomaticBackupReplicationRegion(final ResourceModel model) {
         if (model == null) {
             return null;
         }
-        if (getBackupRetentionPeriod(model) == 0) {
+
+        return model.getAutomaticBackupReplicationRegion();
+    }
+
+    public static Integer getAutomaticBackupReplicationRetentionPeriod(final ResourceModel model) {
+        if (model == null) {
             return null;
         }
-        return model.getAutomaticBackupReplicationRegion();
+
+        return model.getAutomaticBackupReplicationRetentionPeriod();
+    }
+
+    public static String getAutomaticBackupReplicationKmsKeyId(final ResourceModel model) {
+        if (model == null) {
+            return null;
+        }
+        return model.getAutomaticBackupReplicationKmsKeyId();
     }
 
     public static boolean isOracleCDBEngine(final String engine) {

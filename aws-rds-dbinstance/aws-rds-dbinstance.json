@@ -138,6 +138,12 @@
       "type": "string",
       "description": "The Amazon Web Services KMS key identifier for encryption of the replicated automated backups. The KMS key ID is the Amazon Resource Name (ARN) for the KMS encryption key in the destination Amazon Web Services Region, for example, `arn:aws:kms:us-east-1:123456789012:key/AKIAIOSFODNN7EXAMPLE` ."
     },
+    "AutomaticBackupReplicationRetentionPeriod": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 35,
+      "description": "The number of days for which automated cross-region replicated backups are retained. If this value is unset, default to BackupRetentionPeriod."
+    },
     "AvailabilityZone": {
       "type": "string",
       "description": "The Availability Zone (AZ) where the database will be created. For information on AWS Regions and Availability Zones."
@@ -145,6 +151,7 @@
     "BackupRetentionPeriod": {
       "type": "integer",
       "minimum": 0,
+      "maximum": 35,
       "description": "The number of days for which automated backups are retained. Setting this parameter to a positive number enables backups. Setting this parameter to 0 disables automated backups."
     },
     "CACertificateIdentifier": {
@@ -641,6 +648,7 @@
         "rds:DescribeDBEngineVersions",
         "rds:DescribeDBInstances",
         "rds:DescribeDBParameterGroups",
+        "rds:DescribeDBInstanceAutomatedBackups",
         "rds:DescribeEvents",
         "rds:ModifyDBInstance",
         "rds:PromoteReadReplica",

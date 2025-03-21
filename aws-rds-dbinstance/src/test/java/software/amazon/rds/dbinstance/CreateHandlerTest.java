@@ -1999,21 +1999,29 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         context.setAutomaticBackupReplicationStarted(false);
 
         proxy = Mockito.spy(proxy);
-
         final RdsClient crossRegionRdsClient = mock(RdsClient.class);
         final ProxyClient<RdsClient> crossRegionRdsProxy = mockProxy(proxy, crossRegionRdsClient);
         doReturn(crossRegionRdsProxy).when(proxy).newProxy(ArgumentMatchers.<Supplier<RdsClient>>any());
 
+        when(crossRegionRdsProxy.client().describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class)))
+            .thenReturn(DescribeDbInstanceAutomatedBackupsResponse.builder()
+                .dbInstanceAutomatedBackups(Collections.singletonList(DBInstanceAutomatedBackup.builder()
+                    .dbInstanceAutomatedBackupsArn(
+                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION))
+                    .backupRetentionPeriod(AUTOMATIC_BACKUP_REPLICATION_RETENTION_PERIOD).build()))
+                .build());
+
         test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceAutomatedBackupsReplications(
-                        Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
-                                .dbInstanceAutomatedBackupsArn(
-                                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build())).build(),
-                () -> RESOURCE_MODEL_BLDR()
-                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
-                        .build(),
-                expectSuccess()
+            context,
+            () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceAutomatedBackupsReplications(
+                Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
+                    .dbInstanceAutomatedBackupsArn(
+                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build())).build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
+                .automaticBackupReplicationRetentionPeriod(1)
+                .build(),
+            expectSuccess()
         );
 
         verify(crossRegionRdsProxy.client(), times(1)).startDBInstanceAutomatedBackupsReplication(any(StartDbInstanceAutomatedBackupsReplicationRequest.class));
@@ -2031,17 +2039,30 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         context.setUpdatedRoles(true);
         context.setAddTagsComplete(true);
 
+        proxy = Mockito.spy(proxy);
+        final RdsClient crossRegionRdsClient = mock(RdsClient.class);
+        final ProxyClient<RdsClient> crossRegionRdsProxy = mockProxy(proxy, crossRegionRdsClient);
+        doReturn(crossRegionRdsProxy).when(proxy).newProxy(ArgumentMatchers.<Supplier<RdsClient>>any());
+
+        when(crossRegionRdsProxy.client().describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class)))
+            .thenReturn(DescribeDbInstanceAutomatedBackupsResponse.builder()
+                .dbInstanceAutomatedBackups(Collections.singletonList(DBInstanceAutomatedBackup.builder()
+                    .dbInstanceAutomatedBackupsArn(
+                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION))
+                    .backupRetentionPeriod(AUTOMATIC_BACKUP_REPLICATION_RETENTION_PERIOD).build()))
+                .build());
+
         test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceAutomatedBackupsReplications(
-                        Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
-                                .dbInstanceAutomatedBackupsArn(
-                                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build())).build(),
-                () -> RESOURCE_MODEL_BLDR()
-                        .automaticBackupReplicationRegion(AUTOMATIC_BACKUP_REPLICATION_REGION)
-                        .backupRetentionPeriod(0)
-                        .build(),
-                expectSuccess()
+            context,
+            () -> DB_INSTANCE_ACTIVE.toBuilder().dbInstanceAutomatedBackupsReplications(
+                Collections.singletonList(DBInstanceAutomatedBackupsReplication.builder()
+                    .dbInstanceAutomatedBackupsArn(
+                        getAutomaticBackupArn(AUTOMATIC_BACKUP_REPLICATION_REGION)).build())).build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .automaticBackupReplicationRegion(null)
+                .backupRetentionPeriod(1)
+                .build(),
+            expectSuccess()
         );
 
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
