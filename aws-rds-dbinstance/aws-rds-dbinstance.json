@@ -141,7 +141,6 @@
     "AutomaticBackupReplicationRetentionPeriod": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 35,
       "description": "The number of days for which automated cross-region replicated backups are retained. If this value is unset, default to BackupRetentionPeriod."
     },
     "AvailabilityZone": {
@@ -151,7 +150,6 @@
     "BackupRetentionPeriod": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 35,
       "description": "The number of days for which automated backups are retained. Setting this parameter to a positive number enables backups. Setting this parameter to 0 disables automated backups."
     },
     "CACertificateIdentifier": {
