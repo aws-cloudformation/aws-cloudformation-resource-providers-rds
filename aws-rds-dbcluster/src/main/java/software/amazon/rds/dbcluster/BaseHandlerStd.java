@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections.CollectionUtils;
@@ -27,6 +28,7 @@ import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbClusterNotFoundException;
@@ -38,6 +40,7 @@ import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundExcept
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeGlobalClustersResponse;
@@ -63,6 +66,7 @@ import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableExceptio
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
+import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
@@ -90,6 +94,7 @@ import software.amazon.rds.common.printer.JsonPrinter;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
+import software.amazon.rds.common.util.ArnHelper;
 
 public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     public static final String RESOURCE_IDENTIFIER = "dbcluster";
@@ -295,6 +300,65 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 proxyClient.client()::describeDBSubnetGroups
         );
         return response.dbSubnetGroups().get(0);
+    }
+
+    protected DBCluster fetchSourceDBCluster(
+        final String awsAccountId,
+        final ProxyClient<RdsClient> proxyClient,
+        final ResourceModel model
+    ) {
+        // RDS API does not accept cross-account cluster identifiers when using --db-cluster-identifier option
+        // therefore resorting to this workaround
+        if (isCrossAccountSourceDBCluster(awsAccountId, model.getSourceDBClusterIdentifier())) {
+            final DescribeDBClustersIterable response = proxyClient.injectCredentialsAndInvokeIterableV2(
+                Translator.describeSourceDbClustersCrossAccountRequest(model),
+                proxyClient.client()::describeDBClustersPaginator
+            );
+
+            final List<DBCluster> matchingClusters = response.dbClusters()
+                .stream()
+                .filter(c -> model.getSourceDBClusterIdentifier().equalsIgnoreCase(Optional.ofNullable(c.dbClusterArn()).orElse("")))
+                .collect(Collectors.toList());
+            if (matchingClusters.isEmpty()) {
+                throw DbClusterNotFoundException.builder()
+                    .message(String.format("SourceDbCluster %s doesn't refer to an existing DB cluster", model.getSourceDBClusterIdentifier()))
+                    .build();
+            }
+            return matchingClusters.get(0);
+        }
+        final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
+            Translator.describeSourceDbClustersRequest(model),
+            proxyClient.client()::describeDBClusters
+        );
+        if (response.dbClusters().isEmpty()) {
+            throw DbClusterNotFoundException.builder()
+                .message(String.format("SourceDbCluster %s doesn't refer to an existing DB cluster", model.getSourceDBClusterIdentifier()))
+                .build();
+        }
+        return response.dbClusters().get(0);
+    }
+
+    private boolean isCrossAccountSourceDBCluster(String awsCustomer, String sourceDBCluster) {
+        if (ArnHelper.isValidArn(sourceDBCluster)) {
+            return !StringUtils.equals(awsCustomer, ArnHelper.getAccountIdFromArn(sourceDBCluster));
+        }
+        return false;
+    }
+
+    protected DBClusterSnapshot fetchDBClusterSnapshot(
+        final ProxyClient<RdsClient> proxyClient,
+        final ResourceModel model
+    ) {
+        final DescribeDbClusterSnapshotsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+            Translator.describeDbClusterSnapshotRequest(model),
+            proxyClient.client()::describeDBClusterSnapshots
+        );
+        if (response.dbClusterSnapshots().isEmpty()) {
+            throw DbClusterSnapshotNotFoundException.builder()
+                .message(String.format("SnapshotIdentifier %s doesn't refer to an existing DB cluster snapshot", model.getSnapshotIdentifier()))
+                .build();
+        }
+        return response.dbClusterSnapshots().get(0);
     }
 
     protected SecurityGroup fetchSecurityGroup(
