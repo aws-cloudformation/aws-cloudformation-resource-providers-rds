@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ClusterScalabilityType;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
@@ -51,7 +52,7 @@ import software.amazon.rds.test.common.core.TestUtils;
 import software.amazon.rds.test.common.verification.AccessPermissionVerificationMode;
 
 public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, ResourceModel, CallbackContext> {
-
+    private static final String DB_CLUSTER_ARN = "arn:partition:rds:region:account-id:dbcluster:resource-id";
     protected static final String LOGICAL_RESOURCE_IDENTIFIER = "dbcluster";
 
     protected static final Credentials MOCK_CREDENTIALS;
@@ -83,13 +84,20 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final DBClusterRole NEW_ROLE;
     protected static final DBClusterRole ROLE;
     protected static final DBClusterRole ROLE_WITH_EMPTY_FEATURE;
+    protected static final int MONITORING_INTERVAL;
+    protected static final boolean ENABLE_PERFORMANCE_INSIGHTS;
+    protected static final int PERFORMANCE_INSIGHTS_RETENTION_PERIOD;
+    protected static final String PERFORMANCE_INSIGHTS_KMS_KEY_ID;
 
     protected static final ResourceModel RESOURCE_MODEL;
     protected static final ResourceModel RESOURCE_MODEL_EMPTY_VPC;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE;
+    protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_WITH_PIEM;
     protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME;
+    protected static final ResourceModel RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM;
     protected static final ResourceModel RESOURCE_MODEL_WITH_GLOBAL_CLUSTER;
     protected static final DBCluster DBCLUSTER_ACTIVE;
+    protected static final DBCluster LIMITLESS_DBCLUSTER_ACTIVE;
     protected static final DBCluster DBCLUSTER_ACTIVE_NO_ROLE;
     protected static final DBCluster DBCLUSTER_DELETED;
     protected static final DBCluster DBCLUSTER_INPROGRESS;
@@ -149,6 +157,11 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         ROLE_WITH_EMPTY_FEATURE = DBClusterRole.builder().roleArn(ROLE_ARN).build();
         VPC_SG_IDS = Arrays.asList("vpc-sg-id-1", "vpc-sg-id-2");
 
+        MONITORING_INTERVAL = 1;
+        ENABLE_PERFORMANCE_INSIGHTS = true;
+        PERFORMANCE_INSIGHTS_RETENTION_PERIOD = 30;
+        PERFORMANCE_INSIGHTS_KMS_KEY_ID = "kmskeyid";
+
         SERVERLESS_V2_SCALING_CONFIGURATION = ServerlessV2ScalingConfiguration.builder()
                 .maxCapacity(10.0)
                 .minCapacity(1.0)
@@ -207,6 +220,22 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .vpcSecurityGroupIds(VPC_SG_IDS)
                 .build();
 
+        RESOURCE_MODEL_ON_RESTORE_WITH_PIEM = ResourceModel.builder()
+                .dBClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                .dBClusterParameterGroupName(DBCLUSTER_PARAMETER_GROUP_NAME)
+                .snapshotIdentifier(SNAPSHOT_IDENTIFIER)
+                .engineMode(ENGINE_MODE)
+                .masterUsername(USER_NAME)
+                .masterUserPassword(USER_PASSWORD)
+                .scalingConfiguration(SCALING_CONFIGURATION)
+                .vpcSecurityGroupIds(VPC_SG_IDS)
+                .monitoringRoleArn(ROLE_ARN)
+                .monitoringInterval(MONITORING_INTERVAL)
+                .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+                .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+                .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
+                .build();
+
         RESOURCE_MODEL_ON_RESTORE_IN_TIME = ResourceModel.builder()
                 .dBClusterIdentifier(null)
                 .dBClusterParameterGroupName(null)
@@ -215,6 +244,21 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .masterUsername(USER_NAME)
                 .masterUserPassword(USER_PASSWORD)
                 .vpcSecurityGroupIds(VPC_SG_IDS)
+                .build();
+
+        RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM = ResourceModel.builder()
+                .dBClusterIdentifier(null)
+                .dBClusterParameterGroupName(null)
+                .sourceDBClusterIdentifier(SOURCE_IDENTIFIER)
+                .engineMode(null)
+                .masterUsername(USER_NAME)
+                .masterUserPassword(USER_PASSWORD)
+                .vpcSecurityGroupIds(VPC_SG_IDS)
+                .monitoringRoleArn(ROLE_ARN)
+                .monitoringInterval(MONITORING_INTERVAL)
+                .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+                .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+                .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
                 .build();
 
         RESOURCE_MODEL_WITH_GLOBAL_CLUSTER = ResourceModel.builder()
@@ -241,6 +285,21 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
                 .masterUsername(RESOURCE_MODEL.getMasterUsername())
                 .status(DBClusterStatus.Available.toString())
                 .scalingConfigurationInfo(SCALING_CONFIGURATION_INFO)
+                .clusterScalabilityType(ClusterScalabilityType.STANDARD)
+                .build();
+
+        LIMITLESS_DBCLUSTER_ACTIVE = DBCluster.builder()
+                .dbClusterArn(DB_CLUSTER_ARN)
+                .associatedRoles(
+                        software.amazon.awssdk.services.rds.model.DBClusterRole.builder().roleArn(ROLE_ARN).featureName(ROLE_FEATURE).build())
+                .dbClusterIdentifier(RESOURCE_MODEL.getDBClusterIdentifier())
+                .deletionProtection(false)
+                .engine(RESOURCE_MODEL.getEngine())
+                .port(RESOURCE_MODEL.getPort())
+                .masterUsername(RESOURCE_MODEL.getMasterUsername())
+                .status(DBClusterStatus.Available.toString())
+                .scalingConfigurationInfo(SCALING_CONFIGURATION_INFO)
+                .clusterScalabilityType(ClusterScalabilityType.LIMITLESS)
                 .build();
 
         DBCLUSTER_ACTIVE_DELETION_ENABLED = DBCluster.builder()

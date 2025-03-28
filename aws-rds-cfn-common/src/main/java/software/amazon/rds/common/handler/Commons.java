@@ -54,6 +54,14 @@ public final class Commons {
                     SdkClientException.class)
             .build();
 
+    public static final ErrorRuleSet ACCESS_DENIED_RULE_SET =  ErrorRuleSet.extend(ErrorRuleSet.EMPTY_RULE_SET)
+        .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.AccessDenied),
+            ErrorCode.AccessDenied,
+            ErrorCode.AccessDeniedException,
+            ErrorCode.NotAuthorized,
+            ErrorCode.UnauthorizedOperation)
+        .build();
+
     private Commons() {
     }
 
