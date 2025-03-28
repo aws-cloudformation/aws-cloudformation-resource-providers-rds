@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.ImmutableList;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ClusterScalabilityType;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DBCluster;
 import software.amazon.awssdk.services.rds.model.DomainMembership;
@@ -30,6 +31,11 @@ public class TranslatorTest extends AbstractHandlerTest {
     private final static String STORAGE_TYPE_GP3 = "gp3";
     private final static boolean IS_NOT_ROLLBACK = false;
     private final static boolean IS_ROLLBACK = true;
+    private final static String MONITORING_ROLE_ARN = "arn:aws:iam::999999999999:role/emaaccess";
+    private final static int MONITORING_INTERVAL = 30;
+    private final static boolean ENABLE_PERFORMANCE_INSIGHTS= true;
+    private final static int PERFORMANCE_INSIGHTS_RETENTION_PERIOD = 31;
+    private final static String PERFORMANCE_INSIGHTS_KMS_KEY_ID = "arn:aws:kms:999999999999:key/key";
 
 
     @Test
@@ -87,6 +93,44 @@ public class TranslatorTest extends AbstractHandlerTest {
         final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
         assertThat(request.storageType()).isEqualTo(STORAGE_TYPE_GP3);
         assertThat(request.iops()).isEqualTo(100);
+    }
+
+    @Test
+    public void restoreDbClusterToPointInTimeRequest_validatePiEmParams_StandardPath() {
+        final ResourceModel model = ResourceModel.builder()
+                .monitoringRoleArn(MONITORING_ROLE_ARN)
+                .monitoringInterval(MONITORING_INTERVAL)
+                .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+                .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+                .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
+                .clusterScalabilityType(ClusterScalabilityType.STANDARD.toString())
+                .build();
+
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.monitoringRoleArn()).isNull();
+        assertThat(request.monitoringInterval()).isNull();
+        assertThat(request.enablePerformanceInsights()).isNull();
+        assertThat(request.performanceInsightsRetentionPeriod()).isNull();
+        assertThat(request.performanceInsightsKMSKeyId()).isNull();
+    }
+
+    @Test
+    public void restoreDbClusterToPointInTimeRequest_validatePiEmParams_LimitlessPath() {
+        final ResourceModel model = ResourceModel.builder()
+            .monitoringRoleArn(MONITORING_ROLE_ARN)
+            .monitoringInterval(MONITORING_INTERVAL)
+            .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+            .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+            .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
+            .clusterScalabilityType(ClusterScalabilityType.LIMITLESS.toString())
+            .build();
+
+        final RestoreDbClusterToPointInTimeRequest request = Translator.restoreLimitlessDbClusterToPointInTimeRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.monitoringRoleArn()).isEqualTo(MONITORING_ROLE_ARN);
+        assertThat(request.monitoringInterval()).isEqualTo(MONITORING_INTERVAL);
+        assertThat(request.enablePerformanceInsights()).isEqualTo(ENABLE_PERFORMANCE_INSIGHTS);
+        assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(PERFORMANCE_INSIGHTS_RETENTION_PERIOD);
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(PERFORMANCE_INSIGHTS_KMS_KEY_ID);
     }
 
     @Test
@@ -592,6 +636,44 @@ public class TranslatorTest extends AbstractHandlerTest {
 
         final ModifyDbClusterRequest modifyRequest = Translator.modifyDbClusterAfterCreateRequest(model);
         assertThat(modifyRequest.serverlessV2ScalingConfiguration()).isNull();
+    }
+
+    @Test
+    public void restoreDbClusterFromSnapshot_validatePiEmParams_LimitlessPath() {
+        final ResourceModel model = ResourceModel.builder()
+                .monitoringRoleArn(MONITORING_ROLE_ARN)
+                .monitoringInterval(MONITORING_INTERVAL)
+                .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+                .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+                .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
+                .clusterScalabilityType(ClusterScalabilityType.LIMITLESS.toString())
+                .build();
+
+        final RestoreDbClusterFromSnapshotRequest request = Translator.restoreLimitlessDbClusterFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.monitoringRoleArn()).isEqualTo(MONITORING_ROLE_ARN);
+        assertThat(request.monitoringInterval()).isEqualTo(MONITORING_INTERVAL);
+        assertThat(request.enablePerformanceInsights()).isEqualTo(ENABLE_PERFORMANCE_INSIGHTS);
+        assertThat(request.performanceInsightsRetentionPeriod()).isEqualTo(PERFORMANCE_INSIGHTS_RETENTION_PERIOD);
+        assertThat(request.performanceInsightsKMSKeyId()).isEqualTo(PERFORMANCE_INSIGHTS_KMS_KEY_ID);
+    }
+
+    @Test
+    public void restoreDbClusterFromSnapshot_validatePiEmParams_StandardPath() {
+        final ResourceModel model = ResourceModel.builder()
+            .monitoringRoleArn(MONITORING_ROLE_ARN)
+            .monitoringInterval(MONITORING_INTERVAL)
+            .performanceInsightsEnabled(ENABLE_PERFORMANCE_INSIGHTS)
+            .performanceInsightsRetentionPeriod(PERFORMANCE_INSIGHTS_RETENTION_PERIOD)
+            .performanceInsightsKmsKeyId(PERFORMANCE_INSIGHTS_KMS_KEY_ID)
+            .clusterScalabilityType(ClusterScalabilityType.STANDARD.toString())
+            .build();
+
+        final RestoreDbClusterFromSnapshotRequest request = Translator.restoreDbClusterFromSnapshotRequest(model, Tagging.TagSet.emptySet());
+        assertThat(request.monitoringRoleArn()).isNull();
+        assertThat(request.monitoringInterval()).isNull();
+        assertThat(request.enablePerformanceInsights()).isNull();
+        assertThat(request.performanceInsightsRetentionPeriod()).isNull();
+        assertThat(request.performanceInsightsKMSKeyId()).isNull();
     }
 
     @Test

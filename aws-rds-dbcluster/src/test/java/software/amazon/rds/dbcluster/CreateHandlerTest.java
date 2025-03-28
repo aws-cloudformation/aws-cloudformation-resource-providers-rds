@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -36,13 +37,16 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterResponse;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
-import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.ClusterScalabilityType;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterResponse;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeEventsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeEventsResponse;
 import software.amazon.awssdk.services.rds.model.DomainNotFoundException;
@@ -56,7 +60,6 @@ import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRe
 import software.amazon.awssdk.services.rds.model.ServerlessV2ScalingConfiguration;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotAvailableException;
 import software.amazon.awssdk.services.rds.model.StorageTypeNotSupportedException;
-import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -281,6 +284,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
                 .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                        .build()).build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -298,6 +305,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         // We expect the default engine-specific port to be set
@@ -314,6 +322,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
                 .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                        .build()).build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -325,6 +337,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -337,6 +350,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                                         .errorCode(ErrorCode.AccessDeniedException.toString())
                                         .build()
                                 ).build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .build()).build());
 
         test_handleRequest_base(
                 new CallbackContext(),
@@ -353,6 +369,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> createCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(createCaptor.capture());
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
 
         final RestoreDbClusterFromSnapshotRequest requestWithAllTags = createCaptor.getAllValues().get(0);
         Assertions.assertThat(requestWithAllTags.tags()).containsExactlyInAnyOrder(
@@ -364,6 +381,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterFromSnapshot_Success() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                        .build()).build());
 
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
@@ -377,6 +398,72 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreLimitlessDbClusterFromSnapshot_Success() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                        .build()).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+
+        test_handleRequest_base(
+                context,
+                () -> LIMITLESS_DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_WITH_PIEM,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreLimitlessDbClusterFromSnapshot_NoPIEMParamsModified() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+                .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                        .engineVersion("xx.x-limitless")
+                        .build()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                () -> LIMITLESS_DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.toBuilder()
+                        .build(),
+                expectSuccess()
+        );
+
+        // for limitless clusters, PIEM params should go to restore API
+        final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(restoreCaptor.capture());
+        Assertions.assertThat(restoreCaptor.getValue().enablePerformanceInsights()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsEnabled());
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsKMSKeyId()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsKmsKeyId());
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsRetentionPeriod()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsRetentionPeriod());
+        Assertions.assertThat(restoreCaptor.getValue().monitoringRoleArn()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getMonitoringRoleArn());
+        Assertions.assertThat(restoreCaptor.getValue().monitoringInterval()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getMonitoringInterval());
+
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+
+        // for limitless clusters, PIEM params should not go to modify
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().enablePerformanceInsights()).isNull();
+        Assertions.assertThat(modifyCaptor.getValue().performanceInsightsKMSKeyId()).isNull();
     }
 
     @Test
@@ -385,6 +472,9 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
                 .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                        .dbClusterIdentifier(DBCLUSTER_IDENTIFIER).build()).build());
 
         final CallbackContext context = new CallbackContext();
 
@@ -400,6 +490,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(captor.capture());
         verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
@@ -418,7 +509,10 @@ public class CreateHandlerTest extends AbstractHandlerTest {
     public void handleRequest_RestoreDbClusterFromSnapshot_SetKmsKeyId() {
         when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
                 .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
-
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+                .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                                .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                                .build()).build());
         final CallbackContext context = new CallbackContext();
         context.setModified(true);
 
@@ -433,6 +527,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> argumentCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(argumentCaptor.capture());
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(argumentCaptor.getValue().kmsKeyId()).isEqualTo(kmsKeyId);
@@ -456,8 +551,68 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreLimitlessDbClusterToPointInTime_Success() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().modifyDBCluster(any(ModifyDbClusterRequest.class)))
+                .thenReturn(ModifyDbClusterResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        test_handleRequest_base(
+                new CallbackContext(),
+                () -> LIMITLESS_DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM,
+                expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
+
+    @Test
+    public void handleRequest_RestoreLimitlessDbClusterToPointInTime_NoPIEMParamsModified() {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+                .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+                .thenReturn(DescribeEventsResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+                context,
+                () -> LIMITLESS_DBCLUSTER_ACTIVE,
+                () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.toBuilder()
+                        .build(),
+                expectSuccess()
+        );
+
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+
+        // for limitless clusters, PIEM params should go to restore API
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(restoreCaptor.capture());
+        Assertions.assertThat(restoreCaptor.getValue().enablePerformanceInsights()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsEnabled());
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsKMSKeyId()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsKmsKeyId());
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsRetentionPeriod()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsRetentionPeriod());
+        Assertions.assertThat(restoreCaptor.getValue().monitoringRoleArn()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getMonitoringRoleArn());
+        Assertions.assertThat(restoreCaptor.getValue().monitoringInterval()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getMonitoringInterval());
+
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        // for limitless clusters, PIEM params should not go to modify
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().enablePerformanceInsights()).isNull();
+        Assertions.assertThat(modifyCaptor.getValue().performanceInsightsKMSKeyId()).isNull();
     }
 
     @Test
@@ -468,6 +623,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .thenReturn(ModifyDbClusterResponse.builder().build());
         when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
                 .thenReturn(DescribeEventsResponse.builder().build());
+
         test_handleRequest_base(
                 new CallbackContext(),
                 () -> DBCLUSTER_ACTIVE,
@@ -481,7 +637,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(argumentCaptor.capture());
         Assertions.assertThat(argumentCaptor.getValue().vpcSecurityGroupIds()).isEqualTo(VPC_SG_IDS);
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -505,7 +661,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isNotNull();
         Assertions.assertThat(captor.getValue().serverlessV2ScalingConfiguration()).isEqualTo(
@@ -540,7 +696,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .systemTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getSystemTags())))
                         .desiredResourceTags(Translator.translateTagsToRequest(Translator.translateTagsFromSdk(TAG_SET.getStackTags()))),
-                null,
+                () -> DBCLUSTER_ACTIVE,
                 null,
                 () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME.toBuilder()
                         .tags(Translator.translateTagsFromSdk(TAG_SET.getResourceTags()))
@@ -579,7 +735,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(restoreCaptor.capture());
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
 
         Assertions.assertThat(restoreCaptor.getValue().enableCloudwatchLogsExports()).containsExactlyElementsOf(cloudwatchLogsExports);
@@ -604,7 +760,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class));
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
         verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
     }
 
@@ -632,7 +788,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> captor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
         verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(captor.capture());
         verify(rdsProxy.client(), times(1)).modifyDBCluster(any(ModifyDbClusterRequest.class));
-        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
 
         Assertions.assertThat(captor.getValue().restoreType()).isEqualTo(RESTORE_TYPE_COPY_ON_WRITE);
@@ -682,6 +838,125 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBClusters(any(DescribeDbClustersRequest.class));
 
         Assertions.assertThat(captor.getValue().port()).isEqualTo(5432);
+    }
+
+    @Test
+    public void getClusterScalabilityType_FromSnapshot_Limitless() {
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+            .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder().engineVersion("16.4-limitless").build()).build());
+        ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSnapshot(rdsProxy, RESOURCE_MODEL_ON_RESTORE_WITH_PIEM);
+        Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.LIMITLESS);
+        rdsClient.serviceName();
+    }
+
+    @Test
+    public void getClusterScalabilityType_FromSnapshot_Standard() {
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+            .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder().engineVersion("16.4").build()).build());
+        ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSnapshot(rdsProxy, RESOURCE_MODEL_ON_RESTORE_WITH_PIEM);
+        Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.STANDARD);
+        rdsClient.serviceName();
+    }
+
+    @Test
+    public void getClusterScalabilityType_PointInTime_Limitless() {
+        when(rdsProxy.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+            .thenReturn(DescribeDbClustersResponse.builder().dbClusters(DBCluster.builder().clusterScalabilityType(ClusterScalabilityType.LIMITLESS).build()).build());
+        ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSourceDBCluster("111111111111", rdsProxy, RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM);
+        Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.LIMITLESS);
+        rdsClient.serviceName();
+    }
+
+    @Test
+    public void getClusterScalabilityType_PointInTime_Standard() {
+        when(rdsProxy.client().describeDBClusters(any(DescribeDbClustersRequest.class)))
+            .thenReturn(DescribeDbClustersResponse.builder().dbClusters(DBCluster.builder().build()).build());
+        ClusterScalabilityType clusterScalabilityType = handler.getClusterScalabilityTypeFromSourceDBCluster("111111111111", rdsProxy, RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM);
+        Assertions.assertThat(clusterScalabilityType).isEqualTo(ClusterScalabilityType.STANDARD);
+        rdsClient.serviceName();
+    }
+
+
+    @Test
+    public void handleRequest_RestoreStandardDbClusterFromSnapshot_NoPIEMParamsRestored() {
+        when(rdsProxy.client().restoreDBClusterFromSnapshot(any(RestoreDbClusterFromSnapshotRequest.class)))
+            .thenReturn(RestoreDbClusterFromSnapshotResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+            .thenReturn(DescribeEventsResponse.builder().build());
+        when(rdsProxy.client().describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class)))
+            .thenReturn(DescribeDbClusterSnapshotsResponse.builder().dbClusterSnapshots(DBClusterSnapshot.builder()
+                .dbClusterIdentifier(DBCLUSTER_IDENTIFIER)
+                .build()).build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+            context,
+            () -> DBCLUSTER_ACTIVE,
+            () -> RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.toBuilder()
+                .build(),
+            expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(3)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeDBClusterSnapshots(any(DescribeDbClusterSnapshotsRequest.class));
+
+        // for standard clusters, PIEM params should go to modify
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().enablePerformanceInsights()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsEnabled());
+        Assertions.assertThat(modifyCaptor.getValue().performanceInsightsKMSKeyId()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsKmsKeyId());
+        Assertions.assertThat(modifyCaptor.getValue().performanceInsightsRetentionPeriod()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getPerformanceInsightsRetentionPeriod());
+        Assertions.assertThat(modifyCaptor.getValue().monitoringRoleArn()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getMonitoringRoleArn());
+        Assertions.assertThat(modifyCaptor.getValue().monitoringInterval()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_WITH_PIEM.getMonitoringInterval());
+
+        // for standard clusters, PIEM params should not got to restore
+        final ArgumentCaptor<RestoreDbClusterFromSnapshotRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterFromSnapshotRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterFromSnapshot(restoreCaptor.capture());
+        Assertions.assertThat(restoreCaptor.getValue().enablePerformanceInsights()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsKMSKeyId()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsRetentionPeriod()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().monitoringRoleArn()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().monitoringInterval()).isNull();
+    }
+
+    @Test
+    public void handleRequest_RestoreStandardDbClusterToPointInTime_NoPIEMParamsRestored () {
+        when(rdsProxy.client().restoreDBClusterToPointInTime(any(RestoreDbClusterToPointInTimeRequest.class)))
+            .thenReturn(RestoreDbClusterToPointInTimeResponse.builder().build());
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+            .thenReturn(DescribeEventsResponse.builder().build());
+
+        final CallbackContext context = new CallbackContext();
+
+        test_handleRequest_base(
+            context,
+            () -> DBCLUSTER_ACTIVE,
+            () -> RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.toBuilder()
+                .build(),
+            expectSuccess()
+        );
+
+        verify(rdsProxy.client(), times(4)).describeDBClusters(any(DescribeDbClustersRequest.class));
+
+        // for standard clusters, PIEM params should go to modify
+        final ArgumentCaptor<ModifyDbClusterRequest> modifyCaptor = ArgumentCaptor.forClass(ModifyDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).modifyDBCluster(modifyCaptor.capture());
+        Assertions.assertThat(modifyCaptor.getValue().enablePerformanceInsights()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.getPerformanceInsightsEnabled());
+        Assertions.assertThat(modifyCaptor.getValue().performanceInsightsKMSKeyId()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.getPerformanceInsightsKmsKeyId());
+        Assertions.assertThat(modifyCaptor.getValue().performanceInsightsRetentionPeriod()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.getPerformanceInsightsRetentionPeriod());
+        Assertions.assertThat(modifyCaptor.getValue().monitoringRoleArn()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.getMonitoringRoleArn());
+        Assertions.assertThat(modifyCaptor.getValue().monitoringInterval()).isEqualTo(RESOURCE_MODEL_ON_RESTORE_IN_TIME_WITH_PIEM.getMonitoringInterval());
+
+        // for standard clusters, PIEM params should not go to restore
+        final ArgumentCaptor<RestoreDbClusterToPointInTimeRequest> restoreCaptor = ArgumentCaptor.forClass(RestoreDbClusterToPointInTimeRequest.class);
+        verify(rdsProxy.client(), times(1)).restoreDBClusterToPointInTime(restoreCaptor.capture());
+        Assertions.assertThat(restoreCaptor.getValue().enablePerformanceInsights()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsKMSKeyId()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().performanceInsightsRetentionPeriod()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().monitoringRoleArn()).isNull();
+        Assertions.assertThat(restoreCaptor.getValue().monitoringInterval()).isNull();
+
     }
 
     static class CreateDBClusterExceptionArgumentsProvider implements ArgumentsProvider {

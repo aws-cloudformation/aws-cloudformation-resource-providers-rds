@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+import software.amazon.awssdk.services.rds.model.ClusterScalabilityType;
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.ProbingContext;
 import software.amazon.rds.common.handler.TaggingContext;
@@ -18,6 +19,7 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private boolean modified;
     private boolean rebooted;
     private boolean deleting;
+    private ClusterScalabilityType clusterScalabilityType;
 
     private Map<String, Long> timestamps;
     private Map<String, Double> timeDelta;
