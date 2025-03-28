@@ -441,6 +441,87 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
     }
 
     @Test
+    void handleRequest_WithUpdateToDefaultVPC2_previousNotNull_desiredNotNull() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+            .thenReturn(DescribeEventsResponse.builder().build());
+
+        final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+        context.setAddTagsComplete(true);
+
+        // When the previous.vPCSecurityGroups != null && desired.vPCSecurityGroups != null
+        test_handleRequest_base(
+            context,
+            ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+            () -> DBCLUSTER_ACTIVE,
+            () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of("group-id")).build(),
+            () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of("group-id")).build(),
+            expectSuccess()
+        );
+
+        // Expect that the security group has NOT been updated
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
+
+    @Test
+    void handleRequest_WithUpdateToDefaultVPC2_previousNull_desiredNotNull() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+            .thenReturn(DescribeEventsResponse.builder().build());
+
+        final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+        context.setAddTagsComplete(true);
+
+        // When the previous.vPCSecurityGroups == null && desired.vPCSecurityGroups != null
+        test_handleRequest_base(
+            context,
+            ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+            () -> DBCLUSTER_ACTIVE,
+            () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of()).build(),
+            () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of("group-id")).build(),
+            expectSuccess()
+        );
+
+        // Expect that the security group has NOT been updated
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
+
+    @Test
+    void handleRequest_WithUpdateToDefaultVPC2_previousNull_desiredNull() {
+        when(rdsProxy.client().describeEvents(any(DescribeEventsRequest.class)))
+            .thenReturn(DescribeEventsResponse.builder().build());
+
+        final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
+        final CallbackContext context = new CallbackContext();
+        context.setModified(true);
+        context.setAddTagsComplete(true);
+
+        // When the previous.vPCSecurityGroups == null && desired.vPCSecurityGroups == null
+        test_handleRequest_base(
+            context,
+            ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
+                .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST)),
+            () -> DBCLUSTER_ACTIVE,
+            () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of()).build(),
+            () -> resourceModel.toBuilder().vpcSecurityGroupIds(ImmutableList.of()).build(),
+            expectSuccess()
+        );
+
+        // Expect that the security group has NOT been updated
+        verify(rdsProxy.client(), times(1)).describeDBClusters(any(DescribeDbClustersRequest.class));
+        verify(rdsProxy.client(), times(1)).describeEvents(any(DescribeEventsRequest.class));
+    }
+
+    @Test
     void handleRequest_WithUpdateToDefaultVpcFromDefaultVpc() {
         final ResourceModel resourceModel = RESOURCE_MODEL_EMPTY_VPC.toBuilder().build();
         final CallbackContext context = new CallbackContext();
