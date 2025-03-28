@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -910,31 +911,114 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
+
     @Test
-    public void handleRequest_SetDefaultVpcId() {
+    public void handleRequest_SetDefaultVpcId_previousNotNull_desiredNotNull() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageAllocated(true);
+
+        // When the previous.vPCSecurityGroups != null && desired.vPCSecurityGroups != null
+        test_handleRequest_base(
+            context,
+            () -> DB_INSTANCE_ACTIVE.toBuilder().dbSubnetGroup(
+                DBSubnetGroup.builder().vpcId(DB_SECURITY_GROUP_VPC_ID).build()
+            ).build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(ImmutableList.of("securityGroupId"))
+                .build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(ImmutableList.of("securityGroupId"))
+                .build(),
+            expectSuccess()
+        );
+
+        // Expect that the security group has NOT been updated
+        verify(ec2Proxy.client(), never()).describeSecurityGroups(any(DescribeSecurityGroupsRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SetDefaultVpcId_previousNull_desiredNotNull() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageAllocated(true);
+
+        // When the previous.vPCSecurityGroups == null && desired.vPCSecurityGroups != null
+        test_handleRequest_base(
+            context,
+            () -> DB_INSTANCE_ACTIVE.toBuilder().dbSubnetGroup(
+                DBSubnetGroup.builder().vpcId(DB_SECURITY_GROUP_VPC_ID).build()
+            ).build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(Collections.emptyList())
+                .build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(ImmutableList.of("securityGroupId"))
+                .build(),
+            expectSuccess()
+        );
+
+        // Expect that the security group has NOT been updated
+        verify(ec2Proxy.client(), never()).describeSecurityGroups(any(DescribeSecurityGroupsRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SetDefaultVpcId_previousNotNull_desiredNull() {
         final DescribeSecurityGroupsResponse describeSecurityGroupsResponse = DescribeSecurityGroupsResponse.builder()
-                .securityGroups(SecurityGroup.builder().groupName(DB_SECURITY_GROUP_DEFAULT).groupId(DB_SECURITY_GROUP_ID).build())
-                .build();
+            .securityGroups(SecurityGroup.builder().groupName(DB_SECURITY_GROUP_DEFAULT).groupId(DB_SECURITY_GROUP_ID).build())
+            .build();
         when(ec2Proxy.client().describeSecurityGroups(any(DescribeSecurityGroupsRequest.class))).thenReturn(describeSecurityGroupsResponse);
 
         final CallbackContext context = new CallbackContext();
         context.setUpdated(true); // this is an emulation of a re-entrance
         context.setStorageAllocated(true);
 
+        // When the previous.vPCSecurityGroups != null && desired.vPCSecurityGroups == null
         test_handleRequest_base(
-                context,
-                () -> DB_INSTANCE_ACTIVE.toBuilder().dbSubnetGroup(
-                        DBSubnetGroup.builder().vpcId(DB_SECURITY_GROUP_VPC_ID).build()
-                ).build(),
-                () -> RESOURCE_MODEL_BLDR().build(),
-                () -> RESOURCE_MODEL_BLDR()
-                        .vPCSecurityGroups(Collections.emptyList())
-                        .build(),
-                expectSuccess()
+            context,
+            () -> DB_INSTANCE_ACTIVE.toBuilder()
+                .dbSubnetGroup(DBSubnetGroup.builder().vpcId(DB_SECURITY_GROUP_VPC_ID).build()
+            ).build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(ImmutableList.of("securityGroupId"))
+                .build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(Collections.emptyList())
+                .build(),
+            expectSuccess()
         );
 
+        // Expect that the security group has been updated
         verify(ec2Proxy.client()).describeSecurityGroups(any(DescribeSecurityGroupsRequest.class));
         verify(rdsProxy.client(), times(3)).describeDBInstances(any(DescribeDbInstancesRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SetDefaultVpcId_previousNull_desiredNull() {
+        final CallbackContext context = new CallbackContext();
+        context.setUpdated(true); // this is an emulation of a re-entrance
+        context.setStorageAllocated(true);
+
+        // When the previous.vPCSecurityGroups == null && desired.vPCSecurityGroups == null
+        test_handleRequest_base(
+            context,
+            () -> DB_INSTANCE_ACTIVE.toBuilder().dbSubnetGroup(
+                DBSubnetGroup.builder().vpcId(DB_SECURITY_GROUP_VPC_ID).build()
+            ).build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(Collections.emptyList())
+                .build(),
+            () -> RESOURCE_MODEL_BLDR()
+                .vPCSecurityGroups(Collections.emptyList())
+                .build(),
+            expectSuccess()
+        );
+
+        // Expect that the security group has NOT been updated
+        verify(ec2Proxy.client(), never()).describeSecurityGroups(any(DescribeSecurityGroupsRequest.class));
+        verify(rdsProxy.client(), times(2)).describeDBInstances(any(DescribeDbInstancesRequest.class));
     }
 
     @Test
