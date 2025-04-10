@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsRequest;
@@ -175,6 +176,36 @@ public class Translator {
                 .build();
     }
 
+    static RestoreDbClusterToPointInTimeRequest restoreLimitlessDbClusterToPointInTimeRequest(
+        final ResourceModel model,
+        final Tagging.TagSet tagSet
+    ) {
+        RestoreDbClusterToPointInTimeRequest request = restoreDbClusterToPointInTimeRequest(model, tagSet);
+        // Restore API for limitless clusters accepts PIEM params
+        return request.toBuilder()
+            .monitoringRoleArn(model.getMonitoringRoleArn())
+            .monitoringInterval(model.getMonitoringInterval())
+            .enablePerformanceInsights(model.getPerformanceInsightsEnabled())
+            .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
+            .performanceInsightsKMSKeyId(model.getPerformanceInsightsKmsKeyId())
+            .build();
+    }
+
+    static RestoreDbClusterFromSnapshotRequest restoreLimitlessDbClusterFromSnapshotRequest(
+            final ResourceModel model,
+            final Tagging.TagSet tagSet
+    ) {
+        RestoreDbClusterFromSnapshotRequest request = restoreDbClusterFromSnapshotRequest(model, tagSet);
+        // Restore API for limitless clusters accepts PIEM params
+        return request.toBuilder()
+            .monitoringRoleArn(model.getMonitoringRoleArn())
+            .monitoringInterval(model.getMonitoringInterval())
+            .enablePerformanceInsights(model.getPerformanceInsightsEnabled())
+            .performanceInsightsRetentionPeriod(model.getPerformanceInsightsRetentionPeriod())
+            .performanceInsightsKMSKeyId(model.getPerformanceInsightsKmsKeyId())
+            .build();
+    }
+
     static Long castToLong(Object object) {
         return object == null ? null : Long.parseLong(String.valueOf(object));
     }
@@ -252,6 +283,22 @@ public class Translator {
         }
 
         return builder.build();
+    }
+
+    // params that are acked by Restore but
+    // not allowed in ModifyDBCluster for limitless usecase should not be passed
+    // https://code.amazon.com/packages/RDSCoralService/blobs/3edd6c5f4e19bd529e30199c7803905b6dc937e5/--/main/java/amazon/rds/admin/service/KermitClusterValidatorImpl.java#L181
+    static ModifyDbClusterRequest modifyLimitlessDbClusterAfterCreateRequest(final ResourceModel desiredModel) {
+        ModifyDbClusterRequest modifyDbClusterRequest = modifyDbClusterAfterCreateRequest(desiredModel);
+        return modifyDbClusterRequest.toBuilder()
+                .storageType(null)
+                .port(null)
+                .vpcSecurityGroupIds((Collection<String>) null)
+                .engineVersion(null)
+                .enablePerformanceInsights(null)
+                .performanceInsightsKMSKeyId(null)
+                .cloudwatchLogsExportConfiguration((CloudwatchLogsExportConfiguration) null)
+                .build();
     }
 
     static ModifyDbClusterRequest modifyDbClusterRequest(
@@ -411,12 +458,39 @@ public class Translator {
                 .build();
     }
 
+    static DescribeDbClustersRequest describeSourceDbClustersRequest(
+        final ResourceModel model
+    ) {
+        return DescribeDbClustersRequest.builder()
+            .dbClusterIdentifier(model.getSourceDBClusterIdentifier())
+            .build();
+    }
+
+    static DescribeDbClustersRequest describeSourceDbClustersCrossAccountRequest(
+        final ResourceModel model
+    ) {
+        return DescribeDbClustersRequest.builder()
+            .includeShared(true)
+            .build();
+    }
+
+
     static EnableHttpEndpointRequest enableHttpEndpointRequest(
             final String clusterArn
     ) {
         return EnableHttpEndpointRequest.builder()
                 .resourceArn(clusterArn)
                 .build();
+    }
+
+    static DescribeDbClusterSnapshotsRequest describeDbClusterSnapshotRequest(
+        final ResourceModel model
+    ) {
+        return DescribeDbClusterSnapshotsRequest.builder()
+            .dbClusterSnapshotIdentifier(model.getSnapshotIdentifier())
+            .includeShared(true)
+            .includePublic(true)
+            .build();
     }
 
     static DisableHttpEndpointRequest disableHttpEndpointRequest(

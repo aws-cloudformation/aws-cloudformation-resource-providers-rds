@@ -8,8 +8,15 @@ import org.apache.commons.lang3.BooleanUtils;
 import com.amazonaws.util.StringUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ClusterScalabilityType;
+import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
+import software.amazon.awssdk.services.rds.model.ModifyDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterFromSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbClusterToPointInTimeRequest;
 import software.amazon.awssdk.services.rds.model.SourceType;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.CallChain;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -20,9 +27,18 @@ import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
+import software.amazon.rds.common.util.ArnHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
+import software.amazon.rds.common.validation.ValidationAccessException;
+import software.amazon.rds.common.validation.ValidationUtils;
+import software.amazon.rds.dbcluster.util.ResourceModelHelper;
+import software.amazon.rds.dbcluster.validators.ClusterScalabilityTypeValidator;
 
 public class CreateHandler extends BaseHandlerStd {
+
+    public final static String DB_CLUSTER_VALIDATION_MISSING_PERMISSIONS_METRIC = "DBClusterValidationMissingPermissions";
+    public final static String LIMITLESS_ENGINE_VERSION_SUFFIX = "limitless";
+    public final static String ENGINE_VERSION_SEPERATOR = "-";
 
     private static final IdentifierFactory dbClusterIdentifierFactory = new IdentifierFactory(
             STACK_NAME,
@@ -44,6 +60,7 @@ public class CreateHandler extends BaseHandlerStd {
     protected void validateRequest(final ResourceHandlerRequest<ResourceModel> request) throws RequestValidationException {
         super.validateRequest(request);
         Validations.validateTimestamp(request.getDesiredResourceState().getRestoreToTime());
+        ClusterScalabilityTypeValidator.validateRequest(request.getDesiredResourceState());
     }
 
     @Override
@@ -70,11 +87,20 @@ public class CreateHandler extends BaseHandlerStd {
                 .resourceTags(new HashSet<>(Translator.translateTagsToSdk(request.getDesiredResourceState().getTags())))
                 .build();
 
+        if(ResourceModelHelper.isRestoreFromSnapshot(model)) {
+            ClusterScalabilityType clusterScalabilityType = getClusterScalabilityTypeFromSnapshot(rdsProxyClient, model);
+            callbackContext.setClusterScalabilityType(clusterScalabilityType);
+        }
+        if(ResourceModelHelper.isRestoreToPointInTime(model)) {
+            ClusterScalabilityType clusterScalabilityType = getClusterScalabilityTypeFromSourceDBCluster(extractAwsAccountId(request), rdsProxyClient, model);
+            callbackContext.setClusterScalabilityType(clusterScalabilityType);
+        }
+
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> {
-                    if (isRestoreToPointInTime(model)) {
-                        return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
-                    } else if (isRestoreFromSnapshot(model)) {
+                    if (ResourceModelHelper.isRestoreToPointInTime(model)) {
+                      return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
+                    } else if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
                         return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterFromSnapshot, progress, allTags);
                     }
                     return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::createDbCluster, progress, allTags);
@@ -87,14 +113,14 @@ public class CreateHandler extends BaseHandlerStd {
                     return updateTags(proxy, rdsProxyClient, progress, Tagging.TagSet.emptySet(), extraTags);
                 }, CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 .then(progress -> {
-                    if (shouldUpdateAfterCreate(progress.getResourceModel())) {
+                    if (ResourceModelHelper.shouldUpdateAfterCreate(progress.getResourceModel())) {
                         return Commons.execOnce(
                                 progress,
                                 () -> {
                                     progress.getCallbackContext().timestampOnce(RESOURCE_UPDATED_AT, Instant.now());
                                     return modifyDBCluster(proxy, rdsProxyClient, progress)
                                             .then(p -> {
-                                                if (shouldEnableHttpEndpointV2AfterCreate(progress.getResourceModel())) {
+                                                if (ResourceModelHelper.shouldEnableHttpEndpointV2AfterCreate(progress.getResourceModel())) {
                                                     return enableHttpEndpointV2(proxy, rdsProxyClient, progress);
                                                 }
                                                 return p;
@@ -159,9 +185,14 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
-        return proxy.initiate("rds::restore-dbcluster-to-point-in-time", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(model -> Translator.restoreDbClusterToPointInTimeRequest(model, tagSet))
-                .backoffDelay(config.getBackoff())
+        CallChain.RequestMaker<RdsClient, ResourceModel, CallbackContext> requestMaker = proxy.initiate("rds::restore-dbcluster-to-point-in-time", proxyClient, progress.getResourceModel(), progress.getCallbackContext());
+        CallChain.Caller<RestoreDbClusterToPointInTimeRequest, RdsClient, ResourceModel, CallbackContext> caller = null;
+        if(progress.getCallbackContext().getClusterScalabilityType().equals(ClusterScalabilityType.LIMITLESS)) {
+            caller = requestMaker.translateToServiceRequest(model -> Translator.restoreLimitlessDbClusterToPointInTimeRequest(model, tagSet));
+        } else {
+            caller = requestMaker.translateToServiceRequest(model -> Translator.restoreDbClusterToPointInTimeRequest(model, tagSet));
+        }
+        return caller.backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterRequest,
                         proxyInvocation.client()::restoreDBClusterToPointInTime
@@ -184,9 +215,15 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
-        return proxy.initiate("rds::restore-dbcluster-from-snapshot", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(model -> Translator.restoreDbClusterFromSnapshotRequest(model, tagSet))
-                .backoffDelay(config.getBackoff())
+        CallChain.RequestMaker<RdsClient, ResourceModel ,CallbackContext> requestMaker = proxy.initiate("rds::restore-dbcluster-from-snapshot", proxyClient, progress.getResourceModel(), progress.getCallbackContext());
+        CallChain.Caller<RestoreDbClusterFromSnapshotRequest, RdsClient, ResourceModel, CallbackContext> caller = null;
+        if(progress.getCallbackContext().getClusterScalabilityType().equals(ClusterScalabilityType.LIMITLESS)) {
+            caller = requestMaker.translateToServiceRequest(model -> Translator.restoreLimitlessDbClusterFromSnapshotRequest(model, tagSet));
+        } else {
+            caller = requestMaker.translateToServiceRequest(model -> Translator.restoreDbClusterFromSnapshotRequest(model, tagSet));
+        }
+
+        return caller.backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterRequest,
                         proxyInvocation.client()::restoreDBClusterFromSnapshot
@@ -208,9 +245,18 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        return proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
-                .translateToServiceRequest(Translator::modifyDbClusterAfterCreateRequest)
-                .backoffDelay(config.getBackoff())
+        ClusterScalabilityType clusterScalabilityType = progress.getCallbackContext().getClusterScalabilityType();
+        CallChain.RequestMaker<RdsClient, ResourceModel, CallbackContext> callContext = proxy.initiate("rds::modify-dbcluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext());
+        CallChain.Caller<ModifyDbClusterRequest, RdsClient, ResourceModel, CallbackContext> caller = null;
+
+        if (clusterScalabilityType.equals(ClusterScalabilityType.LIMITLESS)) {
+            caller = callContext.translateToServiceRequest(Translator::modifyLimitlessDbClusterAfterCreateRequest);
+        }
+        else {
+            caller = callContext.translateToServiceRequest(Translator::modifyDbClusterAfterCreateRequest);
+        }
+
+        return caller.backoffDelay(config.getBackoff())
                 .makeServiceCall((dbClusterModifyRequest, proxyInvocation) -> proxyInvocation.injectCredentialsAndInvokeV2(
                         dbClusterModifyRequest,
                         proxyInvocation.client()::modifyDBCluster
@@ -227,19 +273,49 @@ public class CreateHandler extends BaseHandlerStd {
                 .progress();
     }
 
-    private boolean isRestoreToPointInTime(final ResourceModel model) {
-        return StringUtils.hasValue(model.getSourceDBClusterIdentifier());
+    private String extractAwsAccountId(ValidatedRequest<ResourceModel> request) {
+        if (request != null && StringUtils.hasValue(request.getAwsAccountId())) {
+            return request.getAwsAccountId();
+        }
+        return null;
     }
 
-    private boolean isRestoreFromSnapshot(final ResourceModel model) {
-        return StringUtils.hasValue(model.getSnapshotIdentifier());
+
+    protected ClusterScalabilityType getClusterScalabilityTypeFromSnapshot(final ProxyClient<RdsClient> rdsProxyClient, final ResourceModel resourceModel) {
+        // Source SnapshotIdentifier might belong to either DBClusterSnapshot or DBSnapshot.
+        // Instance snapshot must use ARN format. If the format is not an ARN, treat this as a cluster snapshot
+        try {
+            if (ArnHelper.isValidArn(resourceModel.getSnapshotIdentifier())
+                && (ArnHelper.getResourceType(resourceModel.getSnapshotIdentifier()) == ArnHelper.ResourceType.DB_INSTANCE_SNAPSHOT)) {
+                return ClusterScalabilityType.STANDARD;
+            }
+            else {
+                final DBClusterSnapshot dbClusterSnapshot = ValidationUtils.fetchResourceForValidation(() ->
+                    fetchDBClusterSnapshot(rdsProxyClient, resourceModel), "DescribeDBClusterSnapshots");
+                return getClusterScalabilityTypeFromEngineVersion(dbClusterSnapshot.engineVersion());
+            }
+        }
+        catch (ValidationAccessException e) {
+            ValidationUtils.emitMetric(requestLogger, DB_CLUSTER_VALIDATION_MISSING_PERMISSIONS_METRIC, e);
+            return ClusterScalabilityType.STANDARD;
+        }
     }
 
-    private boolean shouldUpdateAfterCreate(final ResourceModel model) {
-        return isRestoreFromSnapshot(model) || isRestoreToPointInTime(model);
+    protected ClusterScalabilityType getClusterScalabilityTypeFromEngineVersion(final String snapshotEngineVersion) {
+        if (StringUtils.isNullOrEmpty(snapshotEngineVersion)) {
+            return ClusterScalabilityType.STANDARD;
+        }
+        // we are using the engine version suffix until clusterScalabilityType is returned as part of describe snapshot API
+        String[] snapshotEngineVersionParts = snapshotEngineVersion.split(ENGINE_VERSION_SEPERATOR);
+        if(snapshotEngineVersionParts.length > 1 && snapshotEngineVersionParts[1].equals(LIMITLESS_ENGINE_VERSION_SUFFIX)) {
+            return ClusterScalabilityType.LIMITLESS;
+        }
+
+        return ClusterScalabilityType.STANDARD;
     }
 
-    private boolean shouldEnableHttpEndpointV2AfterCreate(final ResourceModel model) {
-        return BooleanUtils.isTrue(model.getEnableHttpEndpoint()) && !EngineMode.Serverless.equals(EngineMode.fromString(model.getEngineMode()))  ;
+    protected ClusterScalabilityType getClusterScalabilityTypeFromSourceDBCluster(final String AwsAccountId, final ProxyClient<RdsClient> rdsProxyClient, final ResourceModel resourceModel) {
+        DBCluster cluster = fetchSourceDBCluster(AwsAccountId, rdsProxyClient, resourceModel);
+        return cluster.clusterScalabilityType() != null ? cluster.clusterScalabilityType() : ClusterScalabilityType.STANDARD;
     }
 }
