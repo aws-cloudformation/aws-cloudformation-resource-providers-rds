@@ -23,6 +23,8 @@ public class ValidatedRequest<T> extends ResourceHandlerRequest<T> {
                 base.getUpdatePolicy(),
                 base.getCreationPolicy(),
                 base.getRegion(),
-                base.getStackId());
+                base.getStackId(),
+                base.getMaxResults()
+                );
     }
 }
