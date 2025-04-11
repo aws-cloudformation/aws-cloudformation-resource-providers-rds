@@ -15,9 +15,9 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.handler.Vpc;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
-import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.VersionedProxyClient;
 import software.amazon.rds.dbinstance.status.DBInstanceStatus;
@@ -25,7 +25,6 @@ import software.amazon.rds.dbinstance.status.DBParameterGroupStatus;
 import software.amazon.rds.dbinstance.util.ImmutabilityHelper;
 import software.amazon.rds.dbinstance.util.ResourceModelHelper;
 import software.amazon.rds.dbinstance.validators.AutomaticBackupReplicationValidator;
-import software.amazon.rds.dbinstance.validators.OracleCustomSystemId;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -383,9 +382,16 @@ public class UpdateHandler extends BaseHandlerStd {
 
     private boolean shouldSetDefaultVpcId(final ResourceHandlerRequest<ResourceModel> request) {
         // DBCluster member instances inherit default vpc security groups from the corresponding umbrella cluster
+        return canInstanceBeSetDefaultVpc(request) &&
+            Vpc.shouldSetDefaultVpcId(request.getPreviousResourceState().getVPCSecurityGroups(), request.getDesiredResourceState().getVPCSecurityGroups());
+    }
+
+    /**
+     * There are some types of databases that can never be set with a default VPC.
+     */
+    private boolean canInstanceBeSetDefaultVpc(final ResourceHandlerRequest<ResourceModel> request) {
         return !DBInstancePredicates.isDBClusterMember(request.getDesiredResourceState()) &&
-                !DBInstancePredicates.isRdsCustomOracleInstance(request.getDesiredResourceState()) &&
-                CollectionUtils.isNullOrEmpty(request.getDesiredResourceState().getVPCSecurityGroups());
+            !DBInstancePredicates.isRdsCustomOracleInstance(request.getDesiredResourceState());
     }
 
     private boolean shouldUnsetMaxAllocatedStorage(final ResourceHandlerRequest<ResourceModel> request) {

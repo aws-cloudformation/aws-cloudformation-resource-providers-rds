@@ -87,6 +87,7 @@ import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Events;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.handler.Vpc;
 import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
@@ -780,17 +781,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected boolean shouldSetDefaultVpcSecurityGroupIds(final ResourceModel previousState,
                                                           final ResourceModel desiredState) {
-        if (previousState != null) {
-            final List<String> previousVpcIds = CollectionUtils.isEmpty(previousState.getVpcSecurityGroupIds()) ?
-                    Collections.emptyList() : previousState.getVpcSecurityGroupIds();
-            final List<String> desiredVpcIds = CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds()) ?
-                    Collections.emptyList() : desiredState.getVpcSecurityGroupIds();
-
-            if (CollectionUtils.isEqualCollection(previousVpcIds, desiredVpcIds)) {
-                return false;
-            }
-        }
-        return CollectionUtils.isEmpty(desiredState.getVpcSecurityGroupIds());
+        return Vpc.shouldSetDefaultVpcId(previousState.getVpcSecurityGroupIds(), desiredState.getVpcSecurityGroupIds());
     }
 
     protected boolean shouldUpdateHttpEndpointV2(final ResourceModel previousState, final ResourceModel desiredState) {
