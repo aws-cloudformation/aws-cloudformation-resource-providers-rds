@@ -23,7 +23,7 @@ jobs:
       with:
         python-version: 3.13
     - name: Install Python packages
-      run: pip install pre-commit cloudformation-cli cloudformation-cli-java-plugin==2.1.1 setuptools
+      run: pip install pre-commit cloudformation-cli cloudformation-cli-java-plugin setuptools
     - name: Run pre-commit
       run: pre-commit run --all-files
     - name: Verify AWS::RDS::Test::Common
