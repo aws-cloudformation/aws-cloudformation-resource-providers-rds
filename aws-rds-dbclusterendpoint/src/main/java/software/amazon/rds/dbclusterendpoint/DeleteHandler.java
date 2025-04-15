@@ -1,7 +1,7 @@
 package software.amazon.rds.dbclusterendpoint;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DbClusterEndpointNotFoundException;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -46,7 +46,7 @@ public class DeleteHandler extends BaseHandlerStd {
         try {
             fetchDBClusterEndpoint(model, proxyClient);
             return false;
-        } catch (DbClusterEndpointNotFoundException e) {
+        } catch (CfnNotFoundException e) {
             return true;
         }
     }

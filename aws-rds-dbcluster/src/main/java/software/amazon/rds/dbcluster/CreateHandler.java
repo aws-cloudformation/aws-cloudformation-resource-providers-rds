@@ -28,6 +28,7 @@ import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
 import software.amazon.rds.common.util.ArnHelper;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.common.validation.ValidationAccessException;
 import software.amazon.rds.common.validation.ValidationUtils;
@@ -97,14 +98,17 @@ public class CreateHandler extends BaseHandlerStd {
         }
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> {
-                    if (ResourceModelHelper.isRestoreToPointInTime(model)) {
-                      return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, progress, allTags);
-                    } else if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
-                        return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterFromSnapshot, progress, allTags);
-                    }
-                    return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::createDbCluster, progress, allTags);
-                })
+                .then(progress ->
+                    IdempotencyHelper.safeCreate(
+                        m -> fetchDBCluster(rdsProxyClient, m),
+                        p -> {
+                            if (ResourceModelHelper.isRestoreToPointInTime(model)) {
+                                return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterToPointInTime, p, allTags);
+                            } else if (ResourceModelHelper.isRestoreFromSnapshot(model)) {
+                                return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::restoreDbClusterFromSnapshot, p, allTags);
+                            }
+                            return Tagging.createWithTaggingFallback(proxy, rdsProxyClient, this::createDbCluster, p, allTags);
+                        }, ResourceModel.TYPE_NAME, model.getDBClusterIdentifier(), progress, requestLogger))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())

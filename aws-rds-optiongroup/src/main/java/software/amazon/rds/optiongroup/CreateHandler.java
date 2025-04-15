@@ -12,6 +12,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -48,7 +49,10 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setOptionGroupNameIfEmpty(request, progress))
-                .then(progress -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createOptionGroup, progress, allTags))
+                .then(progress -> IdempotencyHelper.safeCreate(
+                    m -> fetchOptionGroup(proxyClient, m),
+                    p -> Tagging.createWithTaggingFallback(proxy, proxyClient, this::createOptionGroup, p, allTags),
+                    ResourceModel.TYPE_NAME, progress.getResourceModel().getOptionGroupName(), progress, requestLogger))
                 .then(progress -> Commons.execOnce(progress, () -> {
                         final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                                 .stackTags(allTags.getStackTags())

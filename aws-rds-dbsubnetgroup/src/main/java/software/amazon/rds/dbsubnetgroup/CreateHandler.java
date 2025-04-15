@@ -11,6 +11,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -45,7 +46,10 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(request.getDesiredResourceState(), callbackContext)
                 .then(progress -> setDbSubnetGroupNameIfEmpty(request, progress))
-                .then(progress -> safeCreateDbSubnetGroup(proxy, proxyClient, progress, allTags))
+                .then(progress -> IdempotencyHelper.safeCreate(
+                    m -> fetchDbSubnetGroup(proxyClient, m),
+                    p -> safeCreateDbSubnetGroup(proxy, proxyClient, p, allTags),
+                    ResourceModel.TYPE_NAME, request.getDesiredResourceState().getDBSubnetGroupName(), progress, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, requestLogger));
     }
 

@@ -14,6 +14,7 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.HandlerMethod;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.RequestLogger;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -39,6 +40,7 @@ public class CreateHandler extends BaseHandlerStd {
             final CallbackContext callbackContext
     ) {
         final ResourceModel desiredModel = request.getDesiredResourceState();
+        setDBParameterGroupNameIfEmpty(desiredModel, request);
 
         final Tagging.TagSet allTags = Tagging.TagSet.builder()
                 .systemTags(Tagging.translateTagsToSdk(request.getSystemTags()))
@@ -49,8 +51,13 @@ public class CreateHandler extends BaseHandlerStd {
         final Map<String, Object> desiredParams = request.getDesiredResourceState().getParameters();
 
         return ProgressEvent.progress(desiredModel, callbackContext)
-                .then(progress -> setDBParameterGroupNameIfEmpty(request, progress))
-                .then(progress -> safeCreateDBParameterGroup(proxy, proxyClient, progress, allTags, requestLogger))
+                .then(progress -> IdempotencyHelper.safeCreate(
+                        model -> fetchDbParameterGroup(proxyClient, model),
+                        p -> safeCreateDBParameterGroup(proxy, proxyClient, p, allTags, requestLogger),
+                        ResourceModel.TYPE_NAME,
+                        desiredModel.getDBParameterGroupName(),
+                        progress,
+                        requestLogger))
                 .then(progress -> applyParameters(proxy, proxyClient, progress, desiredParams))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext, requestLogger));
     }
@@ -96,17 +103,13 @@ public class CreateHandler extends BaseHandlerStd {
                 });
     }
 
-    private ProgressEvent<ResourceModel, CallbackContext> setDBParameterGroupNameIfEmpty(
-            final ResourceHandlerRequest<ResourceModel> request,
-            final ProgressEvent<ResourceModel, CallbackContext> progress
-    ) {
-        if (StringUtils.isNullOrEmpty(progress.getResourceModel().getDBParameterGroupName())) {
-            progress.getResourceModel().setDBParameterGroupName(groupIdentifierFactory.newIdentifier()
+    private void setDBParameterGroupNameIfEmpty(ResourceModel model, ResourceHandlerRequest<ResourceModel> request) {
+        if (StringUtils.isNullOrEmpty(model.getDBParameterGroupName())) {
+            model.setDBParameterGroupName(groupIdentifierFactory.newIdentifier()
                     .withStackId(request.getStackId())
                     .withResourceId(request.getLogicalResourceIdentifier())
                     .withRequestToken(request.getClientRequestToken())
                     .toString());
         }
-        return progress;
     }
 }

@@ -69,6 +69,7 @@ import software.amazon.awssdk.services.rds.model.WriteForwardingStatus;
 import software.amazon.awssdk.services.rds.paginators.DescribeDBClustersIterable;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -139,6 +140,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.AlreadyExists),
                     DbClusterAlreadyExistsException.class)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    CfnNotFoundException.class, // FIXME: handle BaseHandlerException in ErrorRuleSet
                     DbClusterNotFoundException.class,
                     DbClusterSnapshotNotFoundException.class,
                     DbClusterParameterGroupNotFoundException.class,
@@ -267,18 +269,20 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> proxyClient,
             final ResourceModel model
     ) {
-        final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbClustersRequest(model),
-                proxyClient.client()::describeDBClusters
-        );
+        try {
+            final DescribeDbClustersResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                    Translator.describeDbClustersRequest(model),
+                    proxyClient.client()::describeDBClusters
+            );
 
-        if (response.dbClusters().isEmpty()) {
-            throw DbClusterNotFoundException.builder()
-                .message(String.format("No clusters of identifier %s returned from describe call", model.getDBClusterIdentifier()))
-                .build();
+            if (!response.hasDbClusters() || response.dbClusters().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBClusterIdentifier());
+            }
+
+            return response.dbClusters().get(0);
+        } catch (DbClusterNotFoundException e) {
+            throw new CfnNotFoundException(e);
         }
-
-        return response.dbClusters().get(0);
     }
 
     protected GlobalCluster fetchGlobalCluster(
@@ -474,7 +478,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     ) {
         try {
             fetchDBCluster(proxyClient, model);
-        } catch (DbClusterNotFoundException e) {
+        } catch (CfnNotFoundException e) {
             return true;
         }
         return false;

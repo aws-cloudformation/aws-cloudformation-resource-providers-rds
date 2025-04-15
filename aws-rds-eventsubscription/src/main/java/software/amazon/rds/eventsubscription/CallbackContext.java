@@ -3,6 +3,7 @@ package software.amazon.rds.eventsubscription;
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.TaggingContext;
 import software.amazon.rds.common.handler.TimestampContext;
+import software.amazon.rds.common.util.IdempotencyHelper;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -13,7 +14,8 @@ import java.util.Map;
 @lombok.Setter
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
-public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider {
+public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider, IdempotencyHelper.PreExistenceContext {
+    private Boolean preExistenceCheckDone;
     private String eventSubscriptionArn;
 
     private Map<String, Long> timestamps;

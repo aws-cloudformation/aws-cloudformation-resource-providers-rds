@@ -14,6 +14,7 @@ import software.amazon.rds.common.error.ErrorStatus;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 import java.util.HashSet;
@@ -80,7 +81,10 @@ public class CreateHandler extends BaseHandlerStd {
 
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> setIntegrationNameIfEmpty(request, progress))
-                .then(progress -> createIntegration(proxy, proxyClient, progress, allTags))
+                .then(progress -> IdempotencyHelper.safeCreate(
+                    m -> fetchIntegration(proxyClient, m),
+                    p -> createIntegration(proxy, proxyClient, p, allTags),
+                    ResourceModel.TYPE_NAME, model.getIntegrationName(), progress, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 

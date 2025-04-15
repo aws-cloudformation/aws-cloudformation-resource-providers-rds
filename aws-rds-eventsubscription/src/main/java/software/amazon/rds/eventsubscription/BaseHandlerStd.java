@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.EventSubscription;
 import software.amazon.awssdk.services.rds.model.EventSubscriptionQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.InvalidEventSubscriptionStateException;
 import software.amazon.awssdk.services.rds.model.SnsTopicArnNotFoundException;
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.rds.model.SourceNotFoundException;
 import software.amazon.awssdk.services.rds.model.SubscriptionAlreadyExistException;
 import software.amazon.awssdk.services.rds.model.SubscriptionNotFoundException;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -197,5 +199,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     context.setEventSubscriptionArn(arn);
                     return ProgressEvent.progress(resourceModel, context);
                 });
+    }
+
+    protected EventSubscription fetchEventSubscription(final ProxyClient<RdsClient> client, final ResourceModel model) {
+        try {
+            final var response = client.injectCredentialsAndInvokeV2(Translator.describeEventSubscriptionsRequest(model), client.client()::describeEventSubscriptions);
+            if (!response.hasEventSubscriptionsList() || response.eventSubscriptionsList().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getSubscriptionName());
+            }
+            return response.eventSubscriptionsList().get(0);
+        } catch (SubscriptionNotFoundException e) {
+            throw new CfnNotFoundException(e);
+        }
     }
 }

@@ -10,6 +10,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -48,7 +49,14 @@ public class CreateHandler extends BaseHandlerStd {
                 .build();
 
         return ProgressEvent.progress(model, callbackContext)
-                .then(progress -> safeCreateCustomEngineVersion(proxy, proxyClient, progress, allTags))
+                .then(progress -> IdempotencyHelper.safeCreate(
+                        m -> fetchDBEngineVersion(m, proxyClient),
+                        p -> safeCreateCustomEngineVersion(proxy, proxyClient, p, allTags),
+                        ResourceModel.TYPE_NAME,
+                        model.getEngineVersion(),
+                        progress,
+                        requestLogger
+                ))
                 .then(progress -> {
                     if (shouldModifyEngineVersionAfterCreate(progress)) {
                         return Commons.execOnce(

@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.rds.model.InvalidDbClusterEndpointStateEx
 import software.amazon.awssdk.services.rds.model.InvalidDbClusterStateException;
 import software.amazon.awssdk.services.rds.model.InvalidDbInstanceStateException;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.*;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorRuleSet;
@@ -156,15 +157,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ResourceModel model,
             final ProxyClient<RdsClient> proxyClient
     ) {
-        final DescribeDbClusterEndpointsResponse response = proxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbClustersEndpointRequest(model),
-                proxyClient.client()::describeDBClusterEndpoints
-        );
+        try {
+            final DescribeDbClusterEndpointsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                    Translator.describeDbClustersEndpointRequest(model),
+                    proxyClient.client()::describeDBClusterEndpoints
+            );
 
-        final Optional<DBClusterEndpoint> clusterEndpoint = response
-                .dbClusterEndpoints().stream().findFirst();
+            final Optional<DBClusterEndpoint> clusterEndpoint = response
+                    .dbClusterEndpoints().stream().findFirst();
 
-        return clusterEndpoint.orElseThrow(() -> DbClusterEndpointNotFoundException.builder().message(
-                "DBClusterEndpoint " + model.getDBClusterEndpointIdentifier() + " not found").build());
+            return clusterEndpoint.orElseThrow(() -> new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBClusterEndpointIdentifier()));
+        } catch (DbClusterEndpointNotFoundException e) {
+            throw new CfnNotFoundException(e);
+        }
     }
 }

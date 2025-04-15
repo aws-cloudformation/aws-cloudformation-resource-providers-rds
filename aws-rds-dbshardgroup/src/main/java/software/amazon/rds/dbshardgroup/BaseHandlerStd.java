@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.rds.model.MaxDbShardGroupLimitReachedExce
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.UnsupportedDbEngineVersionException;
 import software.amazon.awssdk.utils.ImmutableMap;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -259,5 +260,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         .withResource(dbShardGroupResourceId)
                         .build().toString())
                 .build().toString();
+    }
+
+    protected DBShardGroup fetchDbShardGroup(final ProxyClient<RdsClient> client, final ResourceModel model) {
+        try {
+            final var response = client.injectCredentialsAndInvokeV2(Translator.describeDbShardGroupsRequest(model), client.client()::describeDBShardGroups);
+            if (!response.hasDbShardGroups() || response.dbShardGroups().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBShardGroupIdentifier());
+            }
+            return response.dbShardGroups().get(0);
+        } catch (DbShardGroupNotFoundException e) {
+            throw new CfnNotFoundException(e);
+        }
     }
 }

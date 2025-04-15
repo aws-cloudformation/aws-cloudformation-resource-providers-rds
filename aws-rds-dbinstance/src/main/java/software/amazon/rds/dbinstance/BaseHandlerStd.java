@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.*;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.cloudformation.resource.ResourceTypeSchema;
@@ -130,6 +131,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.DBSnapshotNotFound,
                     ErrorCode.DBSubnetGroupNotFoundFault)
             .withErrorClasses(ErrorStatus.failWith(HandlerErrorCode.NotFound),
+                    CfnNotFoundException.class, // FIXME: handle BaseHandlerException in ErrorRuleSet
                     CertificateNotFoundException.class,
                     DbClusterNotFoundException.class,
                     DbInstanceNotFoundException.class,
@@ -429,22 +431,25 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ResourceModel model
     ) {
-        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbInstancesRequest(model),
-                rdsProxyClient.client()::describeDBInstances
-        );
-        return response.dbInstances().get(0);
+        return fetchDBInstance(rdsProxyClient, model.getDBInstanceIdentifier());
     }
 
     protected DBInstance fetchDBInstance(
             final ProxyClient<RdsClient> rdsProxyClient,
             final String dbInstanceIdentifier
     ) {
-        final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
-                Translator.describeDbInstanceByDBInstanceIdentifierRequest(dbInstanceIdentifier),
-                rdsProxyClient.client()::describeDBInstances
-        );
-        return response.dbInstances().get(0);
+        try {
+            final DescribeDbInstancesResponse response = rdsProxyClient.injectCredentialsAndInvokeV2(
+                    Translator.describeDbInstanceByDBInstanceIdentifierRequest(dbInstanceIdentifier),
+                    rdsProxyClient.client()::describeDBInstances
+            );
+            if (!response.hasDbInstances() || response.dbInstances().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, dbInstanceIdentifier);
+            }
+            return response.dbInstances().get(0);
+        } catch (DbInstanceNotFoundException e) {
+            throw new CfnNotFoundException(e);
+        }
     }
 
     protected DBInstance fetchDBInstanceByResourceId(
@@ -536,7 +541,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         DBInstance dbInstance;
         try {
             fetchDBInstance(rdsProxyClient, model);
-        } catch (DbInstanceNotFoundException e) {
+        } catch (CfnNotFoundException e) {
             // the instance is gone, exactly what we need
             return true;
         }
