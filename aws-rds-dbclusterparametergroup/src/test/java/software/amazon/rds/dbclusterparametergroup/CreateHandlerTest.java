@@ -60,6 +60,7 @@ import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -146,6 +147,8 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 .parameters(PARAMS)
                 .tags(TAG_SET)
                 .build();
+
+        IdempotencyHelper.setBypass(true);
     }
 
     @AfterEach

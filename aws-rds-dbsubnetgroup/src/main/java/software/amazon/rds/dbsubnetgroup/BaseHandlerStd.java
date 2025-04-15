@@ -1,6 +1,7 @@
 package software.amazon.rds.dbsubnetgroup;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
@@ -8,6 +9,7 @@ import software.amazon.awssdk.services.rds.model.DbSubnetGroupQuotaExceededExcep
 import software.amazon.awssdk.services.rds.model.InvalidDbSubnetGroupStateException;
 import software.amazon.awssdk.services.rds.model.InvalidSubnetException;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -119,12 +121,22 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     protected boolean isDeleted(final ResourceModel model,
                                 final ProxyClient<RdsClient> proxyClient) {
         try {
-            proxyClient.injectCredentialsAndInvokeV2(
-                    Translator.describeDbSubnetGroupsRequest(model),
-                    proxyClient.client()::describeDBSubnetGroups);
+            fetchDbSubnetGroup(proxyClient, model);
             return false;
-        } catch (DbSubnetGroupNotFoundException e) {
+        } catch (CfnNotFoundException e) {
             return true;
+        }
+    }
+
+    protected DBSubnetGroup fetchDbSubnetGroup(final ProxyClient<RdsClient> client, final ResourceModel model) {
+        try {
+            final var response = client.injectCredentialsAndInvokeV2(Translator.describeDbSubnetGroupsRequest(model), client.client()::describeDBSubnetGroups);
+            if (!response.hasDbSubnetGroups() || response.dbSubnetGroups().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBSubnetGroupName());
+            }
+            return response.dbSubnetGroups().get(0);
+        } catch (DbSubnetGroupNotFoundException e) {
+            throw new CfnNotFoundException(e);
         }
     }
 

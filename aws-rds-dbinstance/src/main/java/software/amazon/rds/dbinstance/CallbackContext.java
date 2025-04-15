@@ -8,12 +8,14 @@ import java.util.Map;
 import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.rds.common.handler.TaggingContext;
 import software.amazon.rds.common.handler.TimestampContext;
+import software.amazon.rds.common.util.IdempotencyHelper;
 
 @lombok.Getter
 @lombok.Setter
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
-public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider {
+public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, TimestampContext.Provider, IdempotencyHelper.PreExistenceContext {
+    private Boolean preExistenceCheckDone;
     private boolean described;
     private boolean created;
     private boolean deleted;

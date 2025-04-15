@@ -43,6 +43,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.test.common.core.HandlerName;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,6 +74,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsProxy = mockProxy(proxy, rdsClient);
+        IdempotencyHelper.setBypass(true);
     }
 
     @AfterEach

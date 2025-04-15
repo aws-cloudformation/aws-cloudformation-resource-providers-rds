@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.NonNull;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupQuotaExceededException;
@@ -571,6 +572,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         }
 
         return progress;
+    }
+
+    protected DBParameterGroup fetchDbParameterGroup(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model
+    ) {
+        try {
+            final var response = proxyClient.injectCredentialsAndInvokeV2(
+                    Translator.describeDbParameterGroupsRequest(model),
+                    proxyClient.client()::describeDBParameterGroups
+            );
+            return response.dbParameterGroups().stream().findFirst().orElse(null);
+        } catch (final DbParameterGroupNotFoundException e) {
+            return null;
+        }
     }
 
     @VisibleForTesting

@@ -97,6 +97,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.dbinstance.status.DomainMembershipStatus;
 import software.amazon.rds.dbinstance.status.OptionGroupStatus;
 import software.amazon.rds.test.common.core.HandlerName;
@@ -163,6 +164,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         rdsProxyV12 = mockProxy(proxy, rdsClientV12);
         ec2Proxy = mockProxy(proxy, ec2Client);
         expectServiceInvocation = true;
+        IdempotencyHelper.setBypass(true);
     }
 
     @AfterEach

@@ -3,9 +3,8 @@ package software.amazon.rds.customdbengineversion;
 import java.util.function.Function;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.CustomDbEngineVersionNotFoundException;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
@@ -67,7 +66,7 @@ public class DeleteHandler extends BaseHandlerStd {
         try {
             fetchDBEngineVersion(model, proxyClient);
             return false;
-        } catch (CustomDbEngineVersionNotFoundException e) {
+        } catch (CfnNotFoundException e) {
             return true;
         }
     }

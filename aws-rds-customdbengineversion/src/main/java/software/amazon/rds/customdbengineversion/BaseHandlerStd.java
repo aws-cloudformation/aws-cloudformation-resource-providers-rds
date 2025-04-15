@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.rds.model.InvalidCustomDbEngineVersionSta
 import software.amazon.awssdk.services.rds.model.InvalidS3BucketException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.utils.StringUtils;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -164,15 +165,19 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected DBEngineVersion fetchDBEngineVersion(final ResourceModel model,
                                                    final ProxyClient<RdsClient> proxyClient) {
-        DescribeDbEngineVersionsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+        try {
+            DescribeDbEngineVersionsResponse response = proxyClient.injectCredentialsAndInvokeV2(
                 Translator.describeDbEngineVersionsRequest(model),
                 proxyClient.client()::describeDBEngineVersions);
 
-        final Optional<DBEngineVersion> engineVersion = response
-                .dbEngineVersions().stream().findFirst();
+            if (!response.hasDbEngineVersions() || response.dbEngineVersions().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getEngineVersion());
+            }
 
-        return engineVersion.orElseThrow(() -> CustomDbEngineVersionNotFoundException.builder().message(
-                "CustomDBEngineVersion " + model.getEngineVersion() + " not found").build());
+            return response.dbEngineVersions().get(0);
+        } catch (CustomDbEngineVersionNotFoundException e) {
+            throw new CfnNotFoundException(e);
+        }
     }
 
 
