@@ -42,6 +42,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.test.common.core.HandlerName;
 import software.amazon.rds.test.common.verification.AccessPermissionAlias;
 import software.amazon.rds.test.common.verification.AccessPermissionFactory;
@@ -71,6 +72,7 @@ public class CreateHandlerTest extends AbstractTestBase {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsClient = mock(RdsClient.class);
         proxyClient = MOCK_PROXY(proxy, rdsClient);
+        IdempotencyHelper.setBypass(true);
     }
 
     @AfterEach

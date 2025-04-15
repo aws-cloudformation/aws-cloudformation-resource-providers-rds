@@ -27,6 +27,7 @@ import software.amazon.rds.common.logging.LoggingProxyClient;
 import software.amazon.rds.common.request.RequestValidationException;
 import software.amazon.rds.common.request.ValidatedRequest;
 import software.amazon.rds.common.request.Validations;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 import software.amazon.rds.dbinstance.client.ApiVersion;
 import software.amazon.rds.dbinstance.client.RdsClientProvider;
@@ -107,41 +108,43 @@ public class CreateHandler extends BaseHandlerStd {
                     }
                     return progress;
                 })
-                .then(progress -> Commons.execOnce(progress, () -> {
-                    if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
-                        // restoreDBInstanceToPointInTime is not a versioned call.
-                        return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
-                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
-                        // createDBInstanceReadReplica is not a versioned call.
-                        return safeAddTags(this::createDbInstanceReadReplica)
-                                .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
-                    } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
-                            ResourceModelHelper.isRestoreFromClusterSnapshot(progress.getResourceModel())) {
-                        if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && !isMultiAZ) {
-                            try {
-                                final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
-                                final String engine = snapshot.engine();
-                                if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
-                                    progress.getResourceModel().setEngine(engine);
+                .then(progress -> IdempotencyHelper.safeCreate(
+                    m -> fetchDBInstance(rdsProxyClient.defaultClient(), m),
+                    p -> Commons.execOnce(progress, () -> {
+                        if (ResourceModelHelper.isRestoreToPointInTime(progress.getResourceModel())) {
+                            // restoreDBInstanceToPointInTime is not a versioned call.
+                            return safeAddTags(this::restoreDbInstanceToPointInTimeRequest)
+                                    .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
+                        } else if (ResourceModelHelper.isReadReplica(progress.getResourceModel())) {
+                            // createDBInstanceReadReplica is not a versioned call.
+                            return safeAddTags(this::createDbInstanceReadReplica)
+                                    .invoke(proxy, rdsProxyClient.defaultClient(), progress, allTags);
+                        } else if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) ||
+                                ResourceModelHelper.isRestoreFromClusterSnapshot(progress.getResourceModel())) {
+                            if (ResourceModelHelper.isRestoreFromSnapshot(progress.getResourceModel()) && !isMultiAZ) {
+                                try {
+                                    final DBSnapshot snapshot = fetchDBSnapshot(rdsProxyClient.defaultClient(), model);
+                                    final String engine = snapshot.engine();
+                                    if (StringUtils.isNullOrEmpty(progress.getResourceModel().getEngine())) {
+                                        progress.getResourceModel().setEngine(engine);
+                                    }
+                                    if (progress.getResourceModel().getMultiAZ() == null) {
+                                        progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
+                                    }
+                                } catch (Exception e) {
+                                    return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
                                 }
-                                if (progress.getResourceModel().getMultiAZ() == null) {
-                                    progress.getResourceModel().setMultiAZ(ResourceModelHelper.getDefaultMultiAzForEngine(engine));
-                                }
-                            } catch (Exception e) {
-                                return Commons.handleException(progress, e, RESTORE_DB_INSTANCE_ERROR_RULE_SET, requestLogger);
                             }
+                            return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
+                                    ApiVersion.V12, this::restoreDbInstanceFromSnapshotV12,
+                                    ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot)
+                            ));
                         }
                         return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
-                                ApiVersion.V12, this::restoreDbInstanceFromSnapshotV12,
-                                ApiVersion.DEFAULT, safeAddTags(this::restoreDbInstanceFromSnapshot)
+                                ApiVersion.V12, this::createDbInstanceV12,
+                                ApiVersion.DEFAULT, safeAddTags(this::createDbInstance)
                         ));
-                    }
-                    return versioned(proxy, rdsProxyClient, progress, allTags, ImmutableMap.of(
-                            ApiVersion.V12, this::createDbInstanceV12,
-                            ApiVersion.DEFAULT, safeAddTags(this::createDbInstance)
-                    ));
-                }, CallbackContext::isCreated, CallbackContext::setCreated))
+                    }, CallbackContext::isCreated, CallbackContext::setCreated), ResourceModel.TYPE_NAME, model.getDBInstanceIdentifier(), progress, requestLogger))
                 .then(progress -> Commons.execOnce(progress, () -> {
                     final Tagging.TagSet extraTags = Tagging.TagSet.builder()
                             .stackTags(allTags.getStackTags())

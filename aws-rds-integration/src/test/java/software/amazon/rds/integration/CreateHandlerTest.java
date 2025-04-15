@@ -20,6 +20,7 @@ import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.test.common.core.HandlerName;
 
 import java.time.Duration;
@@ -69,6 +70,7 @@ public class CreateHandlerTest extends AbstractHandlerTest {
         rdsClient = mock(RdsClient.class);
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
         rdsProxy = MOCK_PROXY(proxy, rdsClient);
+        IdempotencyHelper.setBypass(true);
     }
 
     @AfterEach

@@ -5,10 +5,12 @@ import java.time.Instant;
 import java.util.Collection;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.OptionGroup;
 import software.amazon.awssdk.services.rds.model.OptionGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.OptionGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.OptionGroupQuotaExceededException;
 import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -176,5 +178,17 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     }
                     return ProgressEvent.progress(resourceModel, ctx);
                 });
+    }
+
+    protected OptionGroup fetchOptionGroup(final ProxyClient<RdsClient> client, final ResourceModel model) {
+        try {
+            final var response = client.injectCredentialsAndInvokeV2(Translator.describeOptionGroupsRequest(model), client.client()::describeOptionGroups);
+            if (!response.hasOptionGroupsList() || response.optionGroupsList().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getOptionGroupName());
+            }
+            return response.optionGroupsList().get(0);
+        } catch (OptionGroupNotFoundException e) {
+            throw new CfnNotFoundException(e);
+        }
     }
 }

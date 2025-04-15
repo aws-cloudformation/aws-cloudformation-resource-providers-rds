@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.NonNull;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBClusterParameterGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterParameterGroupNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.DbParameterGroupNotFoundException;
@@ -37,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.InvalidDbParameterGroupStateExc
 import software.amazon.awssdk.services.rds.model.Parameter;
 import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.CallChain.Completed;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -279,6 +281,21 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     "Invalid / Unmodifiable / Unsupported DB Parameter: " + invalidParameters.stream().findFirst().get());
         }
         return progress;
+    }
+
+    protected DBClusterParameterGroup fetchDBClusterParameterGroup(
+            final ProxyClient<RdsClient> proxyClient,
+            final ResourceModel model) {
+        try {
+            final var response = proxyClient.injectCredentialsAndInvokeV2(Translator.describeDbClusterParameterGroupsRequest(model), proxyClient.client()::describeDBClusterParameterGroups);
+            if (!response.hasDbClusterParameterGroups() || response.dbClusterParameterGroups().isEmpty()) {
+                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getDBClusterParameterGroupName());
+            }
+            return response.dbClusterParameterGroups().get(0);
+        } catch (DbParameterGroupNotFoundException e) {
+            // !!!: DescribeDBClusterParameterGroups throws DbParameterGroupNotFound, NOT DBClusterParameterGroupNotFound!
+            throw new CfnNotFoundException(e);
+        }
     }
 
     private Iterable<Parameter> fetchDBClusterParametersIterable(

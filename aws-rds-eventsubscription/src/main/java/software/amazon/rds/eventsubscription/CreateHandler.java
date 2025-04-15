@@ -10,6 +10,7 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.IdempotencyHelper;
 import software.amazon.rds.common.util.IdentifierFactory;
 
 public class CreateHandler extends BaseHandlerStd {
@@ -37,7 +38,10 @@ public class CreateHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
                 .then(progress -> setEnabledDefaultValue(progress))
                 .then(progress -> setEventSubscriptionNameIfEmpty(request, progress))
-                .then(progress -> safeCreateEventSubscription(proxy, proxyClient, progress, allTags))
+                .then(progress -> IdempotencyHelper.safeCreate(
+                    m -> fetchEventSubscription(proxyClient, m),
+                    p -> safeCreateEventSubscription(proxy, proxyClient, p, allTags),
+                    ResourceModel.TYPE_NAME, model.getSubscriptionName(), progress, requestLogger))
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
     }
 
