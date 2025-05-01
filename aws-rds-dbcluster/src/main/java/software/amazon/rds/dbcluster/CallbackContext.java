@@ -11,12 +11,13 @@ import software.amazon.rds.common.handler.ProbingContext;
 import software.amazon.rds.common.handler.TaggingContext;
 import software.amazon.rds.common.handler.TimestampContext;
 import software.amazon.rds.common.util.IdempotencyHelper;
+import software.amazon.rds.common.util.WaiterHelper;
 
 @lombok.Getter
 @lombok.Setter
 @lombok.ToString
 @lombok.EqualsAndHashCode(callSuper = true)
-public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, ProbingContext.Provider, TimestampContext.Provider, IdempotencyHelper.PreExistenceContext {
+public class CallbackContext extends StdCallbackContext implements TaggingContext.Provider, ProbingContext.Provider, TimestampContext.Provider, IdempotencyHelper.PreExistenceContext, WaiterHelper.DelayContext {
     private Boolean preExistenceCheckDone;
     private boolean modified;
     private boolean rebooted;
@@ -29,12 +30,17 @@ public class CallbackContext extends StdCallbackContext implements TaggingContex
     private TaggingContext taggingContext;
     private ProbingContext probingContext;
 
+    // wait time is used for delaying in Aurora Serverless V2 due to async workflows modifying properties
+    // which may occur after the DBCluster is available
+    private int waitTime;
+
     public CallbackContext() {
         super();
         this.taggingContext = new TaggingContext();
         this.probingContext = new ProbingContext();
         this.timestamps = new HashMap<>();
         this.timeDelta = new HashMap<>();
+        this.waitTime = 0;
     }
 
     @Override
