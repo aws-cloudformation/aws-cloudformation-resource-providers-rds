@@ -23,9 +23,13 @@ import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Probing;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.request.ValidatedRequest;
+import software.amazon.rds.common.util.WaiterHelper;
 import software.amazon.rds.dbcluster.util.ImmutabilityHelper;
+import software.amazon.rds.dbcluster.util.ResourceModelHelper;
 
 public class UpdateHandler extends BaseHandlerStd {
+    static final int AURORA_SERVERLESS_V2_MAX_WAIT_SECONDS = 300;
+    static final int AURORA_SERVERLESS_V2_POLL_SECONDS = 10;
 
     public UpdateHandler() {
         this(DB_CLUSTER_HANDLER_CONFIG_36H);
@@ -124,7 +128,16 @@ public class UpdateHandler extends BaseHandlerStd {
                         requestLogger
                 ))
                 .then(progress -> updateTags(proxy, rdsProxyClient, progress, previousTags, desiredTags))
-                .then(progress -> {
+            .then(progress -> {
+                // Required delay for Aurora Serverless V2, because when scaling capacity, it kicks off an async
+                // workflow which could occur after the DBCluster has completed CFN update
+                // This delay attempts to force the async workflow to complete before the DBCluster update returns
+                if (ResourceModelHelper.hasServerlessV2ScalingConfigurationChanged(previousResourceState, desiredResourceState)) {
+                    return WaiterHelper.delay(progress, AURORA_SERVERLESS_V2_MAX_WAIT_SECONDS, AURORA_SERVERLESS_V2_POLL_SECONDS);
+                }
+                return progress;
+            })
+            .then(progress -> {
                     desiredResourceState.setTags(Translator.translateTagsFromSdk(Tagging.translateTagsToSdk(desiredTags)));
                     return Commons.reportResourceDrift(
                             desiredResourceState,

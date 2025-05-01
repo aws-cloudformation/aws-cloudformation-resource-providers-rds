@@ -944,8 +944,11 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 .secondsUntilAutoPause(secondsUntilAutoPauseAfter)
                 .build();
 
+        final CallbackContext callbackContext = new CallbackContext();
+        callbackContext.setWaitTime(301); // force a large wait time so we don't have to wait during tests
+
         test_handleRequest_base(
-                new CallbackContext(),
+                callbackContext,
                 ResourceHandlerRequest.<ResourceModel>builder()
                         .previousResourceTags(Translator.translateTagsToRequest(TAG_LIST))
                         .desiredResourceTags(Translator.translateTagsToRequest(TAG_LIST_ALTER)),
