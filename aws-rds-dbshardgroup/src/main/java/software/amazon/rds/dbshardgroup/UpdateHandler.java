@@ -9,6 +9,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.rds.common.handler.Commons;
 import software.amazon.rds.common.handler.HandlerConfig;
 import software.amazon.rds.common.handler.Tagging;
+import software.amazon.rds.common.util.WaiterHelper;
 
 import java.util.HashSet;
 
@@ -58,7 +59,7 @@ public class UpdateHandler extends BaseHandlerStd {
                                 .progress(), CallbackContext::isUpdated, CallbackContext::setUpdated))
                 .then(progress -> Commons.execOnce(progress, () -> updateTags(proxyClient, request, progress, previousTags, desiredTags), CallbackContext::isAddTagsComplete, CallbackContext::setAddTagsComplete))
                 // There is a lag between the modifyDbShardGroup request call and the shard group state moving to "modifying", so we introduce a fixed delay prior to stabilization
-                .then((progress) -> delay(progress, POST_MODIFY_DELAY_SEC))
+                .then((progress) -> WaiterHelper.delay(progress, POST_MODIFY_DELAY_SEC, CALLBACK_DELAY))
                 .then(progress -> proxy.initiate("rds::update-db-shard-group-stabilize", proxyClient, request.getDesiredResourceState(), callbackContext)
                         .translateToServiceRequest(Function.identity())
                         .backoffDelay(config.getBackoff())
@@ -72,16 +73,5 @@ public class UpdateHandler extends BaseHandlerStd {
                         ))
                         .progress())
                 .then(progress -> new ReadHandler().handleRequest(proxy, proxyClient, request, callbackContext));
-    }
-
-    /** Inserts an artificial delay */
-    private ProgressEvent<ResourceModel, CallbackContext> delay(final ProgressEvent<ResourceModel, CallbackContext> evt, final int seconds) {
-        CallbackContext callbackContext = evt.getCallbackContext();
-        if (callbackContext.getWaitTime() <= seconds) {
-            callbackContext.setWaitTime(callbackContext.getWaitTime() + CALLBACK_DELAY);
-            return ProgressEvent.defaultInProgressHandler(callbackContext, CALLBACK_DELAY, evt.getResourceModel());
-        } else {
-            return ProgressEvent.progress(evt.getResourceModel(), callbackContext);
-        }
     }
 }
