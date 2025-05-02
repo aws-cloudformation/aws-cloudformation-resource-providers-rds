@@ -9,8 +9,12 @@ import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.json.JSONObject;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
@@ -42,6 +46,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.rds.common.error.ErrorCode;
 import software.amazon.rds.common.handler.Tagging;
 import software.amazon.rds.common.logging.RequestLogger;
 import software.amazon.rds.common.printer.FilteredJsonPrinter;
@@ -200,6 +205,7 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
     protected static final Integer AUTOMATIC_BACKUP_REPLICATION_RETENTION_PERIOD = 1;
     protected static final String CURRENT_REGION = "eu-west-1";
 
+    protected static final int CALLBACK_DELAY = 6;
 
     protected static final ResourceModel RESOURCE_MODEL_NO_IDENTIFIER;
     protected static final ResourceModel RESOURCE_MODEL_ALTER;
@@ -888,5 +894,15 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBInstance, R
 
     protected static String getAutomaticBackupArn(final String region) {
         return String.format("arn:aws:rds:%s:1234567890:auto-backup:ab-test", region);
+    }
+
+    static class ThrottleExceptionArgumentsProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) throws Exception {
+            return Stream.of(
+                Arguments.of(ErrorCode.ThrottlingException),
+                Arguments.of(ErrorCode.Throttling)
+            );
+        }
     }
 }

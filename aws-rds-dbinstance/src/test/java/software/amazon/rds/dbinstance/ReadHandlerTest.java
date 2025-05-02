@@ -18,6 +18,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -36,6 +38,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBack
 import software.amazon.awssdk.services.rds.model.DescribeDbInstanceAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.rds.test.common.core.HandlerName;
 
@@ -192,5 +195,19 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         verify(rdsProxy.client(), times(1)).describeDBInstances(any(DescribeDbInstancesRequest.class));
         verify(crossRegionRdsProxy.client(), times(1)).describeDBInstanceAutomatedBackups(any(DescribeDbInstanceAutomatedBackupsRequest.class));
         Assertions.assertThat(context.isAutomaticBackupReplicationStarted()).isFalse();
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_DescribeDBInstance_HandleThrottleException(
+        final Object requestException
+    ) {
+        test_handleRequest_error(
+            expectDescribeDBInstancesCall(),
+            new CallbackContext(),
+            () -> RESOURCE_MODEL_BLDR().build(),
+            requestException,
+            HandlerErrorCode.Throttling
+        );
     }
 }

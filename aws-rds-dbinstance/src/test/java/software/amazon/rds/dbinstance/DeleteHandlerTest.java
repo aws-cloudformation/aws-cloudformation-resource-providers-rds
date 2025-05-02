@@ -445,4 +445,36 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 expectResponseCode
         );
     }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_DeleteDBInstance_HandleThrottleExceptionInDelete(
+        final Object requestException
+    ) {
+        when(rdsProxy.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+            .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(DB_INSTANCE_ACTIVE).build());
+
+        test_handleRequest_throttle(
+            expectDeleteDBInstanceCall(),
+            new CallbackContext(),
+            () -> RESOURCE_MODEL_BLDR().build(),
+            requestException,
+            CALLBACK_DELAY
+        );
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_DeleteDBInstance_HandleThrottleExceptionInDescribe(
+        final Object requestException
+    ) {
+        expectServiceInvocation = false;
+        test_handleRequest_throttle(
+            expectDescribeDBInstancesCall(),
+            new CallbackContext(),
+            () -> RESOURCE_MODEL_BLDR().build(),
+            requestException,
+            CALLBACK_DELAY
+        );
+    }
 }

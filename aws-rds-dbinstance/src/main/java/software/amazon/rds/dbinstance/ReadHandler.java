@@ -72,7 +72,7 @@ public class ReadHandler extends BaseHandlerStd {
             .handleError((describeRequest, exception, client, model, context) -> Commons.handleException(
                 ProgressEvent.progress(model, context),
                 exception,
-                DEFAULT_DB_INSTANCE_ERROR_RULE_SET,
+                READ_HANDLER_ERROR_RULE_SET,
                 requestLogger
             ))
             .done((describeRequest, describeResponse, automatedBackupProxyInvocation, model, context) -> {
