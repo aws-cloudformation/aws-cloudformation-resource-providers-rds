@@ -1627,7 +1627,6 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                     Arguments.of(ErrorCode.DBSubnetGroupNotAllowedFault, HandlerErrorCode.InvalidRequest),
                     Arguments.of(ErrorCode.InvalidParameterCombination, HandlerErrorCode.InvalidRequest),
                     Arguments.of(ErrorCode.StorageTypeNotSupportedFault, HandlerErrorCode.InvalidRequest),
-                    Arguments.of(ErrorCode.ThrottlingException, HandlerErrorCode.Throttling),
                     // Put exception classes below
                     Arguments.of(AuthorizationNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.InvalidRequest),
                     Arguments.of(CertificateNotFoundException.builder().message(MSG_GENERIC_ERR).build(), HandlerErrorCode.NotFound),
@@ -2353,6 +2352,55 @@ public class CreateHandlerTest extends AbstractHandlerTest {
                 null,
                 () -> RESOURCE_MODEL_BAREBONE_BLDR().build(),
                 expectFailed(HandlerErrorCode.InvalidRequest)
+        );
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_CreateDBInstance_HandleThrottleException(
+        final Object requestException
+    ) {
+        test_handleRequest_throttle(
+            expectCreateDBInstanceCall(),
+            new CallbackContext(),
+            () -> RESOURCE_MODEL_BLDR().build(),
+            requestException,
+            CALLBACK_DELAY
+        );
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_CreateDBInstanceReadReplica_HandleThrottleException(
+        final Object requestException
+    ) {
+        test_handleRequest_throttle(
+            expectCreateDBInstanceReadReplicaCall(),
+            new CallbackContext(),
+            () -> RESOURCE_MODEL_READ_REPLICA,
+            requestException,
+            CALLBACK_DELAY
+        );
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_RestoreDBInstanceFromSnapshot_HandleThrottleException(
+        final Object requestException
+    ) {
+        when(rdsProxy.client().describeDBSnapshots(any(DescribeDbSnapshotsRequest.class)))
+            .thenReturn(DescribeDbSnapshotsResponse.builder()
+                .dbSnapshots(DBSnapshot.builder()
+                    .engine(ENGINE_MYSQL)
+                    .build())
+                .build());
+
+        test_handleRequest_throttle(
+            expectRestoreDBInstanceFromDBSnapshotCall(),
+            new CallbackContext(),
+            () -> RESOURCE_MODEL_RESTORING_FROM_SNAPSHOT,
+            requestException,
+            CALLBACK_DELAY
         );
     }
 }

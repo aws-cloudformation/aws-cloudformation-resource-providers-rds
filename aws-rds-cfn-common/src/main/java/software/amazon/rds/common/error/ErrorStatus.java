@@ -20,7 +20,11 @@ public interface ErrorStatus {
     }
 
     static ErrorStatus retry(final int callbackDelay) {
-        return new RetryErrorStatus(OperationStatus.IN_PROGRESS, callbackDelay);
+        return retry(callbackDelay, null);
+    }
+
+    static ErrorStatus retry(final int callbackDelay, final HandlerErrorCode handlerErrorCode) {
+        return new RetryErrorStatus(OperationStatus.IN_PROGRESS, callbackDelay, handlerErrorCode);
     }
 
     static ErrorStatus conditional(Function<Exception, ErrorStatus> condition) {

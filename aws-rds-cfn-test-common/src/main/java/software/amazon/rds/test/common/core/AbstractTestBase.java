@@ -33,13 +33,17 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
     }
 
     protected Consumer<ProgressEvent<ModelT, ContextT>> expectInProgress(int pause) {
+        return expectInProgress(pause, null);
+    }
+
+    protected Consumer<ProgressEvent<ModelT, ContextT>> expectInProgress(int pause, final HandlerErrorCode errorCode) {
         return (response) -> {
             Assertions.assertThat(response).isNotNull();
             Assertions.assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
             Assertions.assertThat(response.getCallbackDelaySeconds()).isEqualTo(pause);
             Assertions.assertThat(response.getResourceModels()).isNull();
             Assertions.assertThat(response.getMessage()).isNull();
-            Assertions.assertThat(response.getErrorCode()).isNull();
+            Assertions.assertThat(response.getErrorCode()).isEqualTo(errorCode);
         };
     }
 
@@ -167,6 +171,41 @@ public abstract class AbstractTestBase<ResourceT, ModelT, ContextT> {
                 previousStateSupplier,
                 desiredStateSupplier,
                 expectFailed(expectErrorCode)
+        );
+        expectation.verify();
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    protected <RequestT extends AwsRequest, ResponseT extends AwsResponse> void test_handleRequest_throttle(
+        final MethodCallExpectation<RequestT, ResponseT> expectation,
+        final ContextT context,
+        final Supplier<ModelT> desiredStateSupplier,
+        final Object requestException,
+        final int callbackDelay
+    ) {
+        test_handleRequest_throttle(expectation, context, null, desiredStateSupplier, requestException, callbackDelay);
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    protected <RequestT extends AwsRequest, ResponseT extends AwsResponse> void test_handleRequest_throttle(
+        final MethodCallExpectation<RequestT, ResponseT> expectation,
+        final ContextT context,
+        final Supplier<ModelT> previousStateSupplier,
+        final Supplier<ModelT> desiredStateSupplier,
+        final Object requestException,
+        final int callbackDelay
+    ) {
+        final Exception exception = requestException instanceof Exception ? (Exception) requestException : newAwsServiceException(requestException);
+
+        expectation.setup()
+            .thenThrow(exception);
+
+        test_handleRequest_base(
+            context,
+            null,
+            previousStateSupplier,
+            desiredStateSupplier,
+            expectInProgress(callbackDelay, HandlerErrorCode.Throttling)
         );
         expectation.verify();
     }
