@@ -1979,4 +1979,26 @@ public class UpdateHandlerTest extends AbstractHandlerTest {
                 expectFailed(HandlerErrorCode.InvalidRequest)
         );
     }
+
+    @ParameterizedTest
+    @ArgumentsSource(ThrottleExceptionArgumentsProvider.class)
+    public void handleRequest_ModifyDBInstance_HandleThrottleException(
+        final Object requestException
+    ) {
+        final DBInstance fakeDBInstance = DBInstance.builder().build();
+        when(rdsProxy.client().describeDBInstances(any(DescribeDbInstancesRequest.class)))
+            .thenReturn(DescribeDbInstancesResponse.builder().dbInstances(fakeDBInstance).build());
+
+        final CallbackContext context = new CallbackContext();
+        context.setStorageAllocated(true);
+
+        test_handleRequest_throttle(
+            expectModifyDBInstanceCall(),
+            context,
+            () -> RESOURCE_MODEL_BLDR().build(),
+            () -> RESOURCE_MODEL_ALTER,
+            requestException,
+            CALLBACK_DELAY
+        );
+    }
 }

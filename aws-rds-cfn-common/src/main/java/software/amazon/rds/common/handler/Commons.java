@@ -12,6 +12,7 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.rds.common.error.ErrorRuleSet;
@@ -93,7 +94,17 @@ public final class Commons {
             }
         } else if (errorStatus instanceof RetryErrorStatus) {
             RetryErrorStatus retryErrorStatus = (RetryErrorStatus) errorStatus;
-            return ProgressEvent.defaultInProgressHandler(context, retryErrorStatus.getCallbackDelay(), model);
+            if (retryErrorStatus.getHandlerErrorCode() == null) {
+                return ProgressEvent.defaultInProgressHandler(context, retryErrorStatus.getCallbackDelay(), model);
+            } else {
+                return ProgressEvent.<M, C>builder()
+                    .callbackContext(context)
+                    .resourceModel(model)
+                    .errorCode(retryErrorStatus.getHandlerErrorCode())
+                    .callbackDelaySeconds(retryErrorStatus.getCallbackDelay())
+                    .status(OperationStatus.IN_PROGRESS)
+                    .build();
+            }
         } else if (errorStatus instanceof HandlerErrorStatus) {
             final HandlerErrorStatus handlerErrorStatus = (HandlerErrorStatus) errorStatus;
             // We need to set model and context to null in case of AlreadyExists errors

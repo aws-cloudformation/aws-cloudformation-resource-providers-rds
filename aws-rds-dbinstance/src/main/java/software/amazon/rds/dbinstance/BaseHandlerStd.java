@@ -75,6 +75,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     protected static final String DB_INSTANCE_STABILIZATION_TIME = "dbinstance-stabilization-time";
 
+    protected static final int CALLBACK_DELAY = 6;
+
     protected final HandlerConfig config;
 
     protected RequestLogger requestLogger;
@@ -115,6 +117,9 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     ErrorCode.InsufficientDBInstanceCapacity,
                     ErrorCode.SnapshotQuotaExceeded,
                     ErrorCode.StorageQuotaExceeded)
+            .withErrorCodes(ErrorStatus.retry(CALLBACK_DELAY, HandlerErrorCode.Throttling),
+                    ErrorCode.ThrottlingException,
+                    ErrorCode.Throttling)
             .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.InvalidRequest),
                     ErrorCode.DBSubnetGroupNotAllowedFault,
                     ErrorCode.InvalidParameterCombination,
@@ -167,8 +172,16 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     InvalidSubnetException.class)
             .build();
 
-    protected static final ErrorRuleSet DESCRIBE_AUTOMATED_BACKUPS_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
+
+    protected static final ErrorRuleSet READ_HANDLER_ERROR_RULE_SET = ErrorRuleSet
         .extend(DEFAULT_DB_INSTANCE_ERROR_RULE_SET)
+        .withErrorCodes(ErrorStatus.failWith(HandlerErrorCode.Throttling),
+            ErrorCode.ThrottlingException,
+            ErrorCode.Throttling)
+        .build();
+
+    protected static final ErrorRuleSet DESCRIBE_AUTOMATED_BACKUPS_SOFTFAIL_ERROR_RULE_SET = ErrorRuleSet
+        .extend(READ_HANDLER_ERROR_RULE_SET)
         .withErrorClasses(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
             DbInstanceAutomatedBackupNotFoundException.class)
         .withErrorCodes(ErrorStatus.ignore(OperationStatus.IN_PROGRESS),
