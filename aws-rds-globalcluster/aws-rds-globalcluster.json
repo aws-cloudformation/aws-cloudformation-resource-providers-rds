@@ -41,9 +41,19 @@
         }
       ]
     },
-    "StorageEncrypted": {
+    "StorageEncrypted": { 
       "description": " The storage encryption setting for the new global database cluster.\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
       "type": "boolean"
+    },
+    "GlobalEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Address": {
+          "description": "The writer endpoint for the global database cluster. This endpoint always points to the writer DB instance in the current primary cluster.",
+          "type": "string"
+        }
+      }
     }
   },
   "oneOf": [
@@ -62,6 +72,9 @@
   "propertyTransform": {
     "/properties/GlobalClusterIdentifier": "$lowercase(GlobalClusterIdentifier)"
   },
+  "readOnly": [
+    "/properties/GlobalEndpoint"
+  ],
   "createOnlyProperties": [
     "/properties/GlobalClusterIdentifier",
     "/properties/SourceDBClusterIdentifier",
