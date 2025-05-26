@@ -1,7 +1,6 @@
 package software.amazon.rds.integration;
 
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.Integration;
 import software.amazon.awssdk.services.rds.model.IntegrationAlreadyExistsException;
 import software.amazon.awssdk.services.rds.model.IntegrationConflictOperationException;
 import software.amazon.awssdk.services.rds.model.IntegrationNotFoundException;
@@ -10,7 +9,6 @@ import software.amazon.awssdk.services.rds.model.IntegrationStatus;
 import software.amazon.awssdk.services.rds.model.InvalidIntegrationStateException;
 import software.amazon.awssdk.services.rds.model.KmsKeyNotAccessibleException;
 import software.amazon.awssdk.services.rds.model.Tag;
-import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -238,18 +236,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                     context.setIntegrationArn(arn);
                     return ProgressEvent.progress(resourceModel, context);
                 });
-    }
-
-    protected Integration fetchIntegration(final ProxyClient<RdsClient> client, final ResourceModel model) {
-        try {
-            final var response = client.injectCredentialsAndInvokeV2(Translator.describeIntegrationsRequest(model), client.client()::describeIntegrations);
-            if (!response.hasIntegrations() || response.integrations().isEmpty()) {
-                // !!!: integration's PrimaryIdentifier is ARN not name
-                throw new CfnNotFoundException(ResourceModel.TYPE_NAME, model.getIntegrationName());
-            }
-            return response.integrations().get(0);
-        } catch (IntegrationNotFoundException e) {
-            throw new CfnNotFoundException(e);
-        }
     }
 }
