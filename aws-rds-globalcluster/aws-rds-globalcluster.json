@@ -41,7 +41,7 @@
         }
       ]
     },
-    "StorageEncrypted": { 
+    "StorageEncrypted": {
       "description": " The storage encryption setting for the new global database cluster.\nIf you specify the SourceDBClusterIdentifier property, don't specify this property. The value is inherited from the cluster.",
       "type": "boolean"
     },
