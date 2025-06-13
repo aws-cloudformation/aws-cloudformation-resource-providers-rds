@@ -20,12 +20,16 @@ public class WaiterHelper {
      */
     public static <ResourceT, CallbackT extends DelayContext> ProgressEvent<ResourceT, CallbackT> delay(final ProgressEvent<ResourceT, CallbackT> evt, final int maxSeconds, final int pollSeconds) {
         final CallbackT callbackContext = evt.getCallbackContext();
-        if (callbackContext.getWaitTime() <= maxSeconds) {
+        if (shouldDelay(callbackContext, maxSeconds)) {
             callbackContext.setWaitTime(callbackContext.getWaitTime() + pollSeconds);
             return ProgressEvent.defaultInProgressHandler(callbackContext, pollSeconds, evt.getResourceModel());
         } else {
             return ProgressEvent.progress(evt.getResourceModel(), callbackContext);
         }
+    }
+
+    public static <CallbackT extends DelayContext> boolean shouldDelay(CallbackT callbackContext, int maxSeconds) {
+        return callbackContext.getWaitTime() <= maxSeconds;
     }
 
     public interface DelayContext {
