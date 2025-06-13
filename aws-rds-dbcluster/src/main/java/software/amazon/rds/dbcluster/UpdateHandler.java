@@ -5,6 +5,7 @@ import static software.amazon.rds.dbcluster.ModelAdapter.setDefaults;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -133,7 +134,7 @@ public class UpdateHandler extends BaseHandlerStd {
                 // workflow which could occur after the DBCluster has completed CFN update
                 // This delay attempts to force the async workflow to complete before the DBCluster update returns
                 if (ResourceModelHelper.hasServerlessV2ScalingConfigurationChanged(previousResourceState, desiredResourceState)) {
-                    return WaiterHelper.delay(progress, AURORA_SERVERLESS_V2_MAX_WAIT_SECONDS, AURORA_SERVERLESS_V2_POLL_SECONDS);
+                    return awaitDBClusterStabilization(proxy, rdsProxyClient, progress, desiredResourceState, AURORA_SERVERLESS_V2_MAX_WAIT_SECONDS, AURORA_SERVERLESS_V2_POLL_SECONDS);
                 }
                 return progress;
             })
@@ -147,6 +148,38 @@ public class UpdateHandler extends BaseHandlerStd {
                             handlerOperation
                     );
                 });
+    }
+
+    protected ProgressEvent<ResourceModel, CallbackContext> awaitDBClusterStabilization(
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<RdsClient> proxyClient,
+        final ProgressEvent<ResourceModel, CallbackContext> progress,
+        final ResourceModel desiredResourceState,
+        final int maxDelaySeconds,
+        final int pollSeconds
+    ) {
+        if (WaiterHelper.shouldDelay(progress.getCallbackContext(), maxDelaySeconds)) {
+            return WaiterHelper.delay(progress, maxDelaySeconds, pollSeconds);
+        } else {
+            return proxy.initiate("rds::stabilize-db-cluster", proxyClient, progress.getResourceModel(), progress.getCallbackContext())
+                .translateToServiceRequest(Function.identity())
+                .backoffDelay(config.getBackoff())
+                .makeServiceCall(NOOP_CALL)
+                .stabilize((modifyRequest, modifyResponse, proxyInvocation, model, context) ->
+                    Probing.withProbing(
+                        context.getProbingContext(),
+                        "db-cluster-stabilized",
+                        3,
+                        () -> isDBClusterStabilized(proxyClient, desiredResourceState))
+                )
+                .handleError((createRequest, exception, client, resourceModel, callbackCtx) -> Commons.handleException(
+                    ProgressEvent.progress(resourceModel, callbackCtx),
+                    exception,
+                    DEFAULT_DB_CLUSTER_ERROR_RULE_SET,
+                    requestLogger
+                ))
+                .progress();
+        }
     }
 
     protected ProgressEvent<ResourceModel, CallbackContext> modifyDBCluster(
