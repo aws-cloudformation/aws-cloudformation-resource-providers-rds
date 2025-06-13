@@ -690,6 +690,16 @@ public class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void translateDbClusterFromSdk() {
+        final ResourceModel model = Translator.translateDbClusterFromSdk(
+                DBCluster.builder()
+                        .globalClusterIdentifier("global cluster identifier")
+                        .build()
+        );
+        assertThat(model.getGlobalClusterIdentifier()).isEqualTo("global cluster identifier");
+    }
+
+    @Test
     public void translateDbClusterFromSdk_setDefaultStorageType() {
         final ResourceModel model = Translator.translateDbClusterFromSdk(
                 DBCluster.builder().build()
