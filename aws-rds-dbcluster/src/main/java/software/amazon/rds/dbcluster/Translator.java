@@ -422,7 +422,8 @@ public class Translator {
             final String finalDBSnapshotIdentifier
     ) {
         final DeleteDbClusterRequest.Builder builder = DeleteDbClusterRequest.builder()
-                .dbClusterIdentifier(model.getDBClusterIdentifier());
+                .dbClusterIdentifier(model.getDBClusterIdentifier())
+                .deleteAutomatedBackups(model.getDeleteAutomatedBackups());
         if (StringUtils.isNullOrEmpty(finalDBSnapshotIdentifier)) {
             builder.skipFinalSnapshot(true);
         } else {
