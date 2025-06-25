@@ -1,5 +1,6 @@
 package software.amazon.rds.dbcluster;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -152,6 +153,31 @@ public class DeleteHandlerTest extends AbstractHandlerTest {
                 () -> RESOURCE_MODEL,
                 expectFailed(HandlerErrorCode.NotFound)
         );
+    }
+
+    @Test
+    public void handleRequest_DeleteAutomatedBackups() {
+        when(rdsProxy.client().deleteDBCluster(any(DeleteDbClusterRequest.class)))
+            .thenReturn(DeleteDbClusterResponse.builder().build());
+
+        final Queue<DBCluster> transitions = new ConcurrentLinkedQueue<>();
+        transitions.add(DBCLUSTER_ACTIVE);
+
+        test_handleRequest_base(
+            new CallbackContext(),
+            () -> {
+                if (transitions.size() > 0) {
+                    return transitions.remove();
+                }
+                throw DbClusterNotFoundException.builder().message(MSG_NOT_FOUND).build();
+            },
+            () -> RESOURCE_MODEL.toBuilder().deleteAutomatedBackups(true).build(),
+            expectSuccess()
+        );
+
+        final ArgumentCaptor<DeleteDbClusterRequest> argument = ArgumentCaptor.forClass(DeleteDbClusterRequest.class);
+        verify(rdsProxy.client(), times(1)).deleteDBCluster(argument.capture());
+        assertThat(argument.getValue().deleteAutomatedBackups()).isTrue();
     }
 
     @Test
