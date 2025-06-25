@@ -152,6 +152,9 @@
       "minimum": 0,
       "description": "The number of days for which automated backups are retained. Setting this parameter to a positive number enables backups. Setting this parameter to 0 disables automated backups."
     },
+    "BackupTarget": {
+      "type": "string"
+    },
     "CACertificateIdentifier": {
       "type": "string",
       "description": "The identifier of the CA certificate for this DB instance."
@@ -507,6 +510,7 @@
     "/properties/StorageType": "$lowercase(StorageType)"
   },
   "createOnlyProperties": [
+    "/properties/BackupTarget",
     "/properties/CharacterSetName",
     "/properties/CustomIAMInstanceProfile",
     "/properties/DBClusterIdentifier",
