@@ -206,6 +206,10 @@
       "maxLength": 63,
       "description": "A name for the DB instance. If you specify a name, AWS CloudFormation converts it to lowercase. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the DB instance."
     },
+    "DBInstanceStatus": {
+      "type": "string",
+      "description": "The current state of this DB instance."
+    },
     "DbiResourceId": {
       "type": "string",
       "description": "The AWS Region-unique, immutable identifier for the DB instance. This identifier is found in AWS CloudTrail log entries whenever the AWS KMS key for the DB instance is accessed."
@@ -312,17 +316,35 @@
       "type": "boolean",
       "description": "A value that indicates whether to manage the master user password with AWS Secrets Manager."
     },
+    "InstanceCreateTime": {
+      "type": "string",
+      "description": "The date and time when the DB instance was created.",
+      "format": "date-time"
+    },
     "Iops": {
       "type": "integer",
       "description": "The number of I/O operations per second (IOPS) that the database provisions."
+    },
+    "IsStorageConfigUpgradeAvailable": {
+      "type": "boolean",
+      "description": "Indicates whether an upgrade is recommended for the storage file system configuration on the DB instance."
     },
     "KmsKeyId": {
       "type": "string",
       "description": "The ARN of the AWS Key Management Service (AWS KMS) master key that's used to encrypt the DB instance."
     },
+    "LatestRestorableTime": {
+      "type": "string",
+      "description": "The latest time to which a database in this DB instance can be restored with point-in-time restore.",
+      "format": "date-time"
+    },
     "LicenseModel": {
       "type": "string",
       "description": "License model information for this DB instance."
+    },
+    "ListenerEndpoint": {
+      "$ref": "#/definitions/Endpoint",
+      "description": "The listener connection endpoint for SQL Server Always On."
     },
     "MasterUsername": {
       "type": "string",
@@ -403,6 +425,20 @@
     "PubliclyAccessible": {
       "type": "boolean",
       "description": "Indicates whether the DB instance is an internet-facing instance. If you specify true, AWS CloudFormation creates an instance with a publicly resolvable DNS name, which resolves to a public IP address. If you specify false, AWS CloudFormation creates an internal instance with a DNS name that resolves to a private IP address."
+    },
+    "ReadReplicaDBClusterIdentifiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The identifiers of Aurora DB clusters to which the RDS DB instance is replicated as a read replica."
+    },
+    "ReadReplicaDBInstanceIdentifiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The identifiers of the read replicas associated with this DB instance."
     },
     "ReplicaMode": {
       "description": "The open mode of an Oracle read replica. The default is open-read-only.",
@@ -566,16 +602,26 @@
     "/properties/ApplyImmediately"
   ],
   "readOnlyProperties": [
+    "/properties/CertificateDetails",
+    "/properties/CertificateDetails/CAIdentifier",
+    "/properties/CertificateDetails/ValidTill",
     "/properties/Endpoint",
     "/properties/Endpoint/Address",
     "/properties/Endpoint/Port",
     "/properties/Endpoint/HostedZoneId",
     "/properties/DbiResourceId",
     "/properties/DBInstanceArn",
+    "/properties/DBInstanceStatus",
+    "/properties/InstanceCreateTime",
+    "/properties/IsStorageConfigUpgradeAvailable",
+    "/properties/LatestRestorableTime",
+    "/properties/ListenerEndpoint",
+    "/properties/ListenerEndpoint/Address",
+    "/properties/ListenerEndpoint/Port",
+    "/properties/ListenerEndpoint/HostedZoneId",
     "/properties/MasterUserSecret/SecretArn",
-    "/properties/CertificateDetails",
-    "/properties/CertificateDetails/CAIdentifier",
-    "/properties/CertificateDetails/ValidTill"
+    "/properties/ReadReplicaDBClusterIdentifiers",
+    "/properties/ReadReplicaDBInstanceIdentifiers"
   ],
   "primaryIdentifier": [
     "/properties/DBInstanceIdentifier"
