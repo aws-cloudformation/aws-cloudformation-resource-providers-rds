@@ -382,6 +382,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        // !!!: certain parameters are ignored by this code path
+        // this is documented at https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-rds-dbinstance.html#cfn-rds-dbinstance-dbsecuritygroups
         requestLogger.log("UpdateDbInstanceAPIv12Invoked");
         requestLogger.log("Detected API Version 12", "Detected modifyDbInstanceRequestV12. " +
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +

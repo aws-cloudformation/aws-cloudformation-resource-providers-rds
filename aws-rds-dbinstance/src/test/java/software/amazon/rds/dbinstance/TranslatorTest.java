@@ -985,6 +985,16 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void translateDbInstanceFromSdk_backupTarget() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .backupTarget("region")
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getBackupTarget()).isEqualTo("region");
+    }
+
+    @Test
     public void modifyDbInstanceRequest_shouldIncludeAllocatedStorage_ifStorageTypeIsIo1_andIopsOnlyChanged() {
         final ResourceModel previous = RESOURCE_MODEL_BLDR().storageType("io1").iops(1000).build();
         final ResourceModel desired = RESOURCE_MODEL_BLDR().storageType("io1").iops(1200).build();

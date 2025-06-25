@@ -290,6 +290,8 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        // !!!: certain parameters are ignored by this code path
+        // this is documented at https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-rds-dbinstance.html#cfn-rds-dbinstance-dbsecuritygroups
         requestLogger.log("CreateDbInstanceAPIv12Invoked");
         requestLogger.log("API version 12 create detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
@@ -350,6 +352,8 @@ public class CreateHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final Tagging.TagSet tagSet
     ) {
+        // !!!: certain parameters are ignored by this code path
+        // this is documented at https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-rds-dbinstance.html#cfn-rds-dbinstance-dbsecuritygroups
         requestLogger.log("RestoreDbInstanceFromSnapshotAPIv12Invoked");
         requestLogger.log("API version 12 restore detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
@@ -467,6 +471,8 @@ public class CreateHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> rdsProxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
+        // !!!: certain parameters are ignored by this code path
+        // this is documented at https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-rds-dbinstance.html#cfn-rds-dbinstance-dbsecuritygroups
         requestLogger.log("UpdateDbInstanceAfterCreateAPIv12Invoked");
         requestLogger.log("API version 12 modify after create detected",
                 "This indicates that the customer is using DBSecurityGroup, which may result in certain features not" +
