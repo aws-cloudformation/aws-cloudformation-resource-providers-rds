@@ -113,7 +113,6 @@ public class ReadHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
-        verify(proxyClient.client()).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
         verify(proxyClient.client()).describeDBParameters(any(DescribeDbParametersRequest.class));
     }
 
@@ -170,23 +169,11 @@ public class ReadHandlerTest extends AbstractTestBase {
         when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
                 .thenReturn(DescribeDbParametersResponse.builder()
                         .parameters(
-                                Parameter.builder().parameterName("param1").parameterValue("value1").build(),
-                                Parameter.builder().parameterName("param2").parameterValue("value2-modified").build(),
-                                Parameter.builder().parameterName("param3").build()
+                                Parameter.builder().parameterName("param1").parameterValue("value1").source("system").build(),
+                                Parameter.builder().parameterName("param2").parameterValue("value2-modified").source("user").build(),
+                                Parameter.builder().parameterName("param3").source("engine-default").build()
                         )
                         .marker(null)
-                        .build());
-
-        when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
-                .thenReturn(DescribeEngineDefaultParametersResponse.builder()
-                        .engineDefaults(EngineDefaults.builder()
-                                .parameters(
-                                        Parameter.builder().parameterName("param1").parameterValue("value1").build(),
-                                        Parameter.builder().parameterName("param2").parameterValue("value2").build(),
-                                        Parameter.builder().parameterName("param3").build()
-                                )
-                                .marker(null)
-                                .build())
                         .build());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
@@ -209,7 +196,6 @@ public class ReadHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client()).describeDBParameterGroups(any(DescribeDbParameterGroupsRequest.class));
         verify(proxyClient.client()).listTagsForResource(any(ListTagsForResourceRequest.class));
-        verify(proxyClient.client()).describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class));
         verify(proxyClient.client()).describeDBParameters(any(DescribeDbParametersRequest.class));
     }
 }
