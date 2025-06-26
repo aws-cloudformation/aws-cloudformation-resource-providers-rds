@@ -77,15 +77,12 @@ public class ReadHandler extends BaseHandlerStd {
             final ProgressEvent<ResourceModel, CallbackContext> progress,
             final RequestLogger logger
     ) {
-        final Map<String, Parameter> engineDefaultParameters = new HashMap<>();
         final Map<String, Parameter> currentDBParameters = new HashMap<>();
-
         return progress
-                .then(p -> describeEngineDefaultParameters(proxy, proxyClient, p, null, engineDefaultParameters, logger))
                 .then(p -> describeCurrentDBParameters(proxy, proxyClient, p, null, currentDBParameters, logger))
                 .then(p -> {
                     p.getResourceModel().setParameters(
-                            Translator.translateParametersFromSdk(computeModifiedDBParameters(engineDefaultParameters, currentDBParameters))
+                            Translator.translateParametersFromSdk(computeModifiedDBParameters(currentDBParameters))
                     );
                     return p;
                 });

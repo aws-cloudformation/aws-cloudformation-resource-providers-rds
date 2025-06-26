@@ -169,8 +169,6 @@ public abstract class AbstractTestBase {
     protected void expectEmptyDescribeParametersResponse(final ProxyClient<RdsClient> proxyClient) {
         when(proxyClient.client().describeDBParameters(any(DescribeDbParametersRequest.class)))
                 .thenReturn(DescribeDbParametersResponse.builder().build());
-        when(proxyClient.client().describeEngineDefaultParameters(any(DescribeEngineDefaultParametersRequest.class)))
-                .thenReturn(DescribeEngineDefaultParametersResponse.builder().build());
     }
 
     void mockDescribeDbParametersResponse(
