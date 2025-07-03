@@ -102,6 +102,8 @@ public class ListHandlerTest extends AbstractHandlerTest {
                 .tags(Collections.emptyList())
                 .dBSecurityGroups(Collections.emptyList())
                 .vPCSecurityGroups(Collections.emptyList())
+                .readReplicaDBClusterIdentifiers(Collections.emptyList())
+                .readReplicaDBInstanceIdentifiers(Collections.emptyList())
                 .dBInstanceIdentifier(DB_INSTANCE_IDENTIFIER)
                 .build();
 
