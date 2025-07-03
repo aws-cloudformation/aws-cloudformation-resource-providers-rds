@@ -974,6 +974,89 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void translateDbInstanceFromSdk_setdBInstanceStatus() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .dbInstanceStatus(DB_INSTANCE_STATUS_AVAILABLE)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getDBInstanceStatus()).isEqualTo(DB_INSTANCE_STATUS_AVAILABLE);
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_setInstanceCreateTime() {
+        final Instant instanceCreateTime = Instant.parse("2023-01-09T15:55:37.123Z");
+
+        final DBInstance dbInstance = DBInstance.builder()
+                .instanceCreateTime(instanceCreateTime)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getInstanceCreateTime()).isEqualTo(instanceCreateTime.toString());
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_setIsStorageConfigUpgradeAvailable() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .isStorageConfigUpgradeAvailable(AUTO_MINOR_VERSION_UPGRADE_NO)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getIsStorageConfigUpgradeAvailable()).isEqualTo(AUTO_MINOR_VERSION_UPGRADE_NO);
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_setLatestRestorableTime() {
+        final Instant latestRestorableTime = Instant.parse("2023-01-09T15:55:37.123Z");
+
+        final DBInstance dbInstance = DBInstance.builder()
+                .latestRestorableTime(latestRestorableTime)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getLatestRestorableTime()).isEqualTo(latestRestorableTime.toString());
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_setListenerEndpoint() {
+        final Endpoint listenerEndpoint = Endpoint.builder()
+                .address("mydb-instance.c123456789.us-east-1.rds.amazonaws.com")
+                .port(3306)
+                .hostedZoneId("Z2R2ITUGPM61AM")
+                .build();
+
+        final DBInstance dbInstance = DBInstance.builder()
+                .listenerEndpoint(listenerEndpoint)
+                .dbInstancePort(0)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getListenerEndpoint().getAddress()).isEqualTo("mydb-instance.c123456789.us-east-1.rds.amazonaws.com");
+        assertThat(model.getListenerEndpoint().getPort()).isEqualTo("3306");
+        assertThat(model.getListenerEndpoint().getHostedZoneId()).isEqualTo("Z2R2ITUGPM61AM");
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_readReplicaDBClusterIdentifiers() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .readReplicaDBClusterIdentifiers("cluster-replica-1", "cluster-replica-2")
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getReadReplicaDBClusterIdentifiers()).containsExactly("cluster-replica-1", "cluster-replica-2");
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_readReplicaDBInstanceIdentifiers() {
+        final DBInstance dbInstance = DBInstance.builder()
+                .readReplicaDBInstanceIdentifiers("instance-replica-1", "instance-replica-2")
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getReadReplicaDBInstanceIdentifiers()).containsExactly("instance-replica-1", "instance-replica-2");
+    }
+
+    @Test
     public void translateDbInstanceFromSdk_port_getFromEndpoint() {
         final DBInstance dbInstance = DBInstance.builder()
                 .endpoint(Endpoint.builder().port(123).build())

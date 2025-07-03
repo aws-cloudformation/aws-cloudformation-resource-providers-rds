@@ -834,6 +834,11 @@ public class Translator {
             endpoint = translateEndpointFromSdk(dbInstance.endpoint());
         }
 
+        Endpoint listenerEndpoint = null;
+        if (dbInstance.listenerEndpoint() != null) {
+            listenerEndpoint = translateEndpointFromSdk(dbInstance.listenerEndpoint());
+        }
+
         final List<Tag> tags = translateTagsFromSdk(dbInstance.tagList());
 
         String allocatedStorage = null;
@@ -886,6 +891,7 @@ public class Translator {
                 .dBInstanceArn(dbInstance.dbInstanceArn())
                 .dBInstanceClass(dbInstance.dbInstanceClass())
                 .dBInstanceIdentifier(dbInstance.dbInstanceIdentifier())
+                .dBInstanceStatus(dbInstance.dbInstanceStatus())
                 .dBName(dbInstance.dbName())
                 .dBParameterGroupName(dbParameterGroupName)
                 .dBSecurityGroups(translateDbSecurityGroupsFromSdk(dbInstance.dbSecurityGroups()))
@@ -908,8 +914,12 @@ public class Translator {
                 .engineLifecycleSupport(dbInstance.engineLifecycleSupport())
                 .engineVersion(dbInstance.engineVersion())
                 .iops(dbInstance.iops())
+                .instanceCreateTime(dbInstance.instanceCreateTime() == null ? null : dbInstance.instanceCreateTime().toString())
+                .isStorageConfigUpgradeAvailable(dbInstance.isStorageConfigUpgradeAvailable())
                 .kmsKeyId(dbInstance.kmsKeyId())
+                .latestRestorableTime(dbInstance.latestRestorableTime() == null ? null : dbInstance.latestRestorableTime().toString())
                 .licenseModel(dbInstance.licenseModel())
+                .listenerEndpoint(listenerEndpoint)
                 .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
                 .masterUserSecret(translateMasterUserSecret(dbInstance.masterUserSecret()))
                 .masterUsername(dbInstance.masterUsername())
@@ -929,6 +939,8 @@ public class Translator {
                 .promotionTier(dbInstance.promotionTier())
                 .publiclyAccessible(dbInstance.publiclyAccessible())
                 .sourceDBClusterIdentifier(dbInstance.readReplicaSourceDBClusterIdentifier())
+                .readReplicaDBClusterIdentifiers(translateReadReplicaDBClusterIdentifiers(dbInstance.readReplicaDBClusterIdentifiers()))
+                .readReplicaDBInstanceIdentifiers(translateReadReplicaDBInstanceIdentifiers(dbInstance.readReplicaDBInstanceIdentifiers()))
                 .replicaMode(dbInstance.replicaModeAsString())
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
                 .storageEncrypted(dbInstance.storageEncrypted())
@@ -960,6 +972,14 @@ public class Translator {
 
     public static List<String> translateEnableCloudwatchLogsExport(final Collection<String> enabledCloudwatchLogsExports) {
         return enabledCloudwatchLogsExports == null ? null : new ArrayList<>(enabledCloudwatchLogsExports);
+    }
+
+    public static List<String> translateReadReplicaDBClusterIdentifiers(final Collection<String> readReplicaDBClusterIdentifiers) {
+        return readReplicaDBClusterIdentifiers == null ? null : new ArrayList<>(readReplicaDBClusterIdentifiers);
+    }
+
+    public static List<String> translateReadReplicaDBInstanceIdentifiers(final Collection<String> readReplicaDBInstanceIdentifiers) {
+        return readReplicaDBInstanceIdentifiers == null ? null : new ArrayList<>(readReplicaDBInstanceIdentifiers);
     }
 
     public static List<String> translateVpcSecurityGroupsFromSdk(
