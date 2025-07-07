@@ -121,21 +121,11 @@ public class ReadHandlerTest extends AbstractHandlerTest {
         when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
 
-        when(rdsClient.describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class)))
-                .thenReturn(DescribeEngineDefaultClusterParametersResponse.builder()
-                        .engineDefaults(
-                                EngineDefaults.builder().parameters(
-                                        Parameter.builder().parameterName(PARAM_1.parameterName()).parameterValue("default").build(),
-                                        Parameter.builder().parameterName(PARAM_2.parameterName()).parameterValue("default").build()
-                                ).build()
-                        )
-                        .build());
-
         when(rdsClient.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
                 .thenReturn(DescribeDbClusterParametersResponse.builder()
                         .parameters(
-                                Parameter.builder().parameterName(PARAM_1.parameterName()).parameterValue(PARAM_1.parameterValue()).build(),
-                                Parameter.builder().parameterName(PARAM_2.parameterName()).parameterValue(PARAM_2.parameterValue()).build()
+                                Parameter.builder().parameterName(PARAM_1.parameterName()).parameterValue(PARAM_1.parameterValue()).source("user").build(),
+                                Parameter.builder().parameterName(PARAM_2.parameterName()).parameterValue(PARAM_2.parameterValue()).source("user").build()
                         )
                         .build()
                 );
@@ -158,7 +148,6 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
-        verify(rdsProxy.client(), times(1)).describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class));
         verify(rdsProxy.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 
@@ -166,16 +155,6 @@ public class ReadHandlerTest extends AbstractHandlerTest {
     public void handleRequest_ReadParametersWithDefaultValues() {
         when(rdsClient.listTagsForResource(any(ListTagsForResourceRequest.class)))
                 .thenReturn(ListTagsForResourceResponse.builder().build());
-
-        when(rdsClient.describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class)))
-                .thenReturn(DescribeEngineDefaultClusterParametersResponse.builder()
-                        .engineDefaults(
-                                EngineDefaults.builder().parameters(
-                                        Parameter.builder().parameterName(PARAM_1.parameterName()).parameterValue("default").build(),
-                                        Parameter.builder().parameterName(PARAM_2.parameterName()).parameterValue("default").build()
-                                ).build()
-                        )
-                        .build());
 
         when(rdsClient.describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class)))
                 .thenReturn(DescribeDbClusterParametersResponse.builder()
@@ -201,7 +180,6 @@ public class ReadHandlerTest extends AbstractHandlerTest {
 
         verify(rdsProxy.client(), times(1)).describeDBClusterParameterGroups(any(DescribeDbClusterParameterGroupsRequest.class));
         verify(rdsProxy.client(), times(1)).describeDBClusterParameters(any(DescribeDbClusterParametersRequest.class));
-        verify(rdsProxy.client(), times(1)).describeEngineDefaultClusterParameters(any(DescribeEngineDefaultClusterParametersRequest.class));
         verify(rdsProxy.client(), times(1)).listTagsForResource(any(ListTagsForResourceRequest.class));
     }
 }

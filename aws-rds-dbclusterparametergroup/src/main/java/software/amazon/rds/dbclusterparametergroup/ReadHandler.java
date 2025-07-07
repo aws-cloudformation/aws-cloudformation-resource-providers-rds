@@ -58,15 +58,13 @@ public class ReadHandler extends BaseHandlerStd {
             final ProxyClient<RdsClient> proxyClient,
             final ProgressEvent<ResourceModel, CallbackContext> progress
     ) {
-        final Map<String, Parameter> engineDefaultClusterParameters = new HashMap<>();
         final Map<String, Parameter> currentDBClusterParameters = new HashMap<>();
 
         return progress
-                .then(p -> describeEngineDefaultClusterParameters(proxy, proxyClient, p, null, engineDefaultClusterParameters))
                 .then(p -> describeDBClusterParameters(proxy, proxyClient, p, null, currentDBClusterParameters))
                 .then(p -> {
                     p.getResourceModel().setParameters(
-                            Translator.translateParametersFromSdk(computeModifiedDBParameters(engineDefaultClusterParameters, currentDBClusterParameters))
+                            Translator.translateParametersFromSdk(computeModifiedDBParameters(currentDBClusterParameters))
                     );
                     return p;
                 });
