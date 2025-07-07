@@ -481,20 +481,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
 
     @VisibleForTesting
     static Map<String, Parameter> computeModifiedDBParameters(
-            @NonNull final Map<String, Parameter> engineDefaultParameters,
-            @NonNull final Map<String, Parameter> currentDBParameters
+        @NonNull final Map<String, Parameter> currentDBParameters
     ) {
-        final Map<String, Parameter> modifiedParameters = new HashMap<>();
-        for (final String paramName : currentDBParameters.keySet()) {
-            final Parameter currentParam = currentDBParameters.get(paramName);
-            final Parameter defaultParam = engineDefaultParameters.get(paramName);
-
-            if (defaultParam == null || !Objects.equals(defaultParam.parameterValue(), currentParam.parameterValue())) {
-                modifiedParameters.put(paramName, currentParam);
-            }
-        }
-
-        return modifiedParameters;
+        // Parameter 'source' can either be 'engine-default', 'user' or 'system'
+        // Here, we should only consider parameters modified by the user
+        return currentDBParameters.entrySet().stream()
+            .filter(entry -> "user".equals(entry.getValue().source()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**
