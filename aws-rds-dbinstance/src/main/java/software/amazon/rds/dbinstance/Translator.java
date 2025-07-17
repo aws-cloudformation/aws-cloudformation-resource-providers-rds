@@ -877,6 +877,7 @@ public class Translator {
                 .allocatedStorage(allocatedStorage)
                 .associatedRoles(translateAssociatedRolesFromSdk(dbInstance.associatedRoles()))
                 .automaticBackupReplicationRegion(automatedReplicationRegion)
+                .automaticRestartTime(translateInstantToString(dbInstance.automaticRestartTime()))
                 .autoMinorVersionUpgrade(dbInstance.autoMinorVersionUpgrade())
                 .availabilityZone(dbInstance.availabilityZone())
                 .backupRetentionPeriod(dbInstance.backupRetentionPeriod())
@@ -914,10 +915,10 @@ public class Translator {
                 .engineLifecycleSupport(dbInstance.engineLifecycleSupport())
                 .engineVersion(dbInstance.engineVersion())
                 .iops(dbInstance.iops())
-                .instanceCreateTime(dbInstance.instanceCreateTime() == null ? null : dbInstance.instanceCreateTime().toString())
+                .instanceCreateTime(translateInstantToString(dbInstance.instanceCreateTime()))
                 .isStorageConfigUpgradeAvailable(dbInstance.isStorageConfigUpgradeAvailable())
                 .kmsKeyId(dbInstance.kmsKeyId())
-                .latestRestorableTime(dbInstance.latestRestorableTime() == null ? null : dbInstance.latestRestorableTime().toString())
+                .latestRestorableTime(translateInstantToString(dbInstance.latestRestorableTime()))
                 .licenseModel(dbInstance.licenseModel())
                 .listenerEndpoint(listenerEndpoint)
                 .manageMasterUserPassword(dbInstance.masterUserSecret() != null)
@@ -930,6 +931,7 @@ public class Translator {
                 .ncharCharacterSetName(dbInstance.ncharCharacterSetName())
                 .networkType(dbInstance.networkType())
                 .optionGroupName(optionGroupName)
+                .percentProgress(dbInstance.percentProgress())
                 .performanceInsightsKMSKeyId(dbInstance.performanceInsightsKMSKeyId())
                 .performanceInsightsRetentionPeriod(dbInstance.performanceInsightsRetentionPeriod())
                 .port(port == null ? null : port.toString())
@@ -941,8 +943,11 @@ public class Translator {
                 .sourceDBClusterIdentifier(dbInstance.readReplicaSourceDBClusterIdentifier())
                 .readReplicaDBClusterIdentifiers(translateReadReplicaDBClusterIdentifiers(dbInstance.readReplicaDBClusterIdentifiers()))
                 .readReplicaDBInstanceIdentifiers(translateReadReplicaDBInstanceIdentifiers(dbInstance.readReplicaDBInstanceIdentifiers()))
+                .resumeFullAutomationModeTime(translateInstantToString(dbInstance.resumeFullAutomationModeTime()))
                 .replicaMode(dbInstance.replicaModeAsString())
+                .secondaryAvailabilityZone(dbInstance.secondaryAvailabilityZone())
                 .sourceDBInstanceIdentifier(dbInstance.readReplicaSourceDBInstanceIdentifier())
+                .statusInfos(translateStatusInfosFromSdk(dbInstance.statusInfos()))
                 .storageEncrypted(dbInstance.storageEncrypted())
                 .storageThroughput(dbInstance.storageThroughput())
                 .storageType(dbInstance.storageType())
@@ -974,12 +979,30 @@ public class Translator {
         return enabledCloudwatchLogsExports == null ? null : new ArrayList<>(enabledCloudwatchLogsExports);
     }
 
+    private static String translateInstantToString(final Instant instant) {
+        return instant == null ? null : instant.toString();
+    }
+
     public static List<String> translateReadReplicaDBClusterIdentifiers(final Collection<String> readReplicaDBClusterIdentifiers) {
         return readReplicaDBClusterIdentifiers == null ? null : new ArrayList<>(readReplicaDBClusterIdentifiers);
     }
 
     public static List<String> translateReadReplicaDBInstanceIdentifiers(final Collection<String> readReplicaDBInstanceIdentifiers) {
         return readReplicaDBInstanceIdentifiers == null ? null : new ArrayList<>(readReplicaDBInstanceIdentifiers);
+    }
+
+    public static List<DBInstanceStatusInfo> translateStatusInfosFromSdk(
+            final Collection<software.amazon.awssdk.services.rds.model.DBInstanceStatusInfo> statusInfos
+    ) {
+        return streamOfOrEmpty(statusInfos)
+                .map(statusInfo -> DBInstanceStatusInfo
+                        .builder()
+                        .message(statusInfo.message())
+                        .normal(statusInfo.normal())
+                        .status(statusInfo.status())
+                        .statusType(statusInfo.statusType())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     public static List<String> translateVpcSecurityGroupsFromSdk(
