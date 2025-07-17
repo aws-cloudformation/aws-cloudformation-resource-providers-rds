@@ -1018,6 +1018,30 @@ class TranslatorTest extends AbstractHandlerTest {
     }
 
     @Test
+    public void translateDbInstanceFromSdk_setAutomaticRestartTime() {
+        final Instant automaticRestartTime = Instant.parse("2023-01-09T15:55:37.123Z");
+
+        final DBInstance dbInstance = DBInstance.builder()
+                .automaticRestartTime(automaticRestartTime)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getAutomaticRestartTime()).isEqualTo(automaticRestartTime.toString());
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_setResumeFullAutomationModeTime() {
+        final Instant resumeFullAutomationModeTime = Instant.parse("2023-01-09T15:55:37.123Z");
+
+        final DBInstance dbInstance = DBInstance.builder()
+                .resumeFullAutomationModeTime(resumeFullAutomationModeTime)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getResumeFullAutomationModeTime()).isEqualTo(resumeFullAutomationModeTime.toString());
+    }
+
+    @Test
     public void translateDbInstanceFromSdk_setListenerEndpoint() {
         final Endpoint listenerEndpoint = Endpoint.builder()
                 .address("mydb-instance.c123456789.us-east-1.rds.amazonaws.com")
@@ -1054,6 +1078,27 @@ class TranslatorTest extends AbstractHandlerTest {
 
         final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
         assertThat(model.getReadReplicaDBInstanceIdentifiers()).containsExactly("instance-replica-1", "instance-replica-2");
+    }
+
+    @Test
+    public void translateDbInstanceFromSdk_statusInfos() {
+        final software.amazon.awssdk.services.rds.model.DBInstanceStatusInfo statusInfo =
+                software.amazon.awssdk.services.rds.model.DBInstanceStatusInfo.builder()
+                        .message("test message")
+                        .normal(true)
+                        .status("replicating")
+                        .statusType("read replication")
+                        .build();
+
+        final DBInstance dbInstance = DBInstance.builder()
+                .statusInfos(statusInfo)
+                .build();
+
+        final ResourceModel model = Translator.translateDbInstanceFromSdk(dbInstance);
+        assertThat(model.getStatusInfos().get(0).getMessage()).isEqualTo("test message");
+        assertThat(model.getStatusInfos().get(0).getNormal()).isTrue();
+        assertThat(model.getStatusInfos().get(0).getStatus()).isEqualTo("replicating");
+        assertThat(model.getStatusInfos().get(0).getStatusType()).isEqualTo("read replication");
     }
 
     @Test
