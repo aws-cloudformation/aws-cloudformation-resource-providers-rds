@@ -29,6 +29,7 @@ import software.amazon.awssdk.services.ec2.model.SecurityGroup;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.ClusterPendingModifiedValues;
 import software.amazon.awssdk.services.rds.model.DBCluster;
+import software.amazon.awssdk.services.rds.model.DBClusterAutomatedBackup;
 import software.amazon.awssdk.services.rds.model.DBClusterSnapshot;
 import software.amazon.awssdk.services.rds.model.DBSubnetGroup;
 import software.amazon.awssdk.services.rds.model.DbClusterAlreadyExistsException;
@@ -41,6 +42,7 @@ import software.amazon.awssdk.services.rds.model.DbClusterSnapshotNotFoundExcept
 import software.amazon.awssdk.services.rds.model.DbInstanceNotFoundException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupDoesNotCoverEnoughAZsException;
 import software.amazon.awssdk.services.rds.model.DbSubnetGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterAutomatedBackupsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersResponse;
 import software.amazon.awssdk.services.rds.model.DescribeDbSubnetGroupsResponse;
@@ -344,6 +346,23 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                 .build();
         }
         return response.dbClusters().get(0);
+    }
+
+    protected DBClusterAutomatedBackup fetchSourceDBClusterAutomatedBackup(
+        final ProxyClient<RdsClient> proxyClient,
+        final ResourceModel model
+    ) {
+        final DescribeDbClusterAutomatedBackupsResponse response = proxyClient.injectCredentialsAndInvokeV2(
+                        Translator.describeDbClusterAutomatedBackupsRequest(model),
+                        proxyClient.client()::describeDBClusterAutomatedBackups);
+        if (response.dbClusterAutomatedBackups().isEmpty()) {
+                throw DbClusterNotFoundException.builder()
+                                .message(String.format(
+                                                "SourceDbCluster %s doesn't refer to an existing DB cluster or retained automated backup",
+                                                model.getSourceDbClusterResourceId()))
+                                .build();
+        }
+        return response.dbClusterAutomatedBackups().get(0);
     }
 
     private boolean isCrossAccountSourceDBCluster(String awsCustomer, String sourceDBCluster) {

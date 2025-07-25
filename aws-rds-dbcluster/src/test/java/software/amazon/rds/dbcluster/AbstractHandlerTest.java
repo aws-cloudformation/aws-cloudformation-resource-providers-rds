@@ -69,6 +69,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
     protected static final String SNAPSHOT_IDENTIFIER;
     protected static final String INSTANCE_SNAPSHOT_IDENTIFIER;
     protected static final String SOURCE_IDENTIFIER;
+    protected static final String SOURCE_DB_CLUSTER_RESOURCE_ID;
+    protected static final String RESTORE_TO_TIME;
     protected static final String ENGINE;
     protected static final String ENGINE_AURORA_POSTGRESQL;
     protected static final String ENGINE_MODE;
@@ -141,6 +143,8 @@ public abstract class AbstractHandlerTest extends AbstractTestBase<DBCluster, Re
         SNAPSHOT_IDENTIFIER = "my-sample-dbcluster-snapshot";
         INSTANCE_SNAPSHOT_IDENTIFIER = "arn:aws:rds:us-east-1:123456789012:snapshot:my-db-snapshot";
         SOURCE_IDENTIFIER = "my-source-dbcluster-identifier";
+        SOURCE_DB_CLUSTER_RESOURCE_ID = "my-source-dbcluster-resource-id";
+        RESTORE_TO_TIME = "2025-01-01T12:00:00.000Z";
         ENGINE = "aurora";
         ENGINE_AURORA_POSTGRESQL = "aurora-postgresql";
         ENGINE_MODE = "serverless";
