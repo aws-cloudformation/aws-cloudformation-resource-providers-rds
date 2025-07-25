@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.rds.model.AddRoleToDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.CloudwatchLogsExportConfiguration;
 import software.amazon.awssdk.services.rds.model.CreateDbClusterRequest;
 import software.amazon.awssdk.services.rds.model.DeleteDbClusterRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbClusterAutomatedBackupsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClusterSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
@@ -125,6 +126,7 @@ public class Translator {
                 .scalingConfiguration(translateScalingConfigurationToSdk(model.getScalingConfiguration()))
                 .serverlessV2ScalingConfiguration(translateServerlessV2ScalingConfiguration(model.getServerlessV2ScalingConfiguration()))
                 .sourceDBClusterIdentifier(model.getSourceDBClusterIdentifier())
+                .sourceDbClusterResourceId(model.getSourceDbClusterResourceId())
                 .storageType(model.getStorageType())
                 .restoreType(model.getRestoreType())
                 .tags(Tagging.translateTagsToSdk(tagSet))
@@ -475,6 +477,13 @@ public class Translator {
             .build();
     }
 
+    static DescribeDbClusterAutomatedBackupsRequest describeDbClusterAutomatedBackupsRequest(
+        final ResourceModel model
+    ) {
+        return DescribeDbClusterAutomatedBackupsRequest.builder()
+            .dbClusterResourceId(model.getDBClusterResourceId())
+            .build();
+    }
 
     static EnableHttpEndpointRequest enableHttpEndpointRequest(
             final String clusterArn

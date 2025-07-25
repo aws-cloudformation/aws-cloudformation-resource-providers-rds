@@ -10,7 +10,7 @@ import static software.amazon.rds.common.util.DifferenceUtils.diff;
 public class ResourceModelHelper {
 
     public static boolean isRestoreToPointInTime(final ResourceModel model) {
-        return StringUtils.hasValue(model.getSourceDBClusterIdentifier());
+        return StringUtils.hasValue(model.getSourceDBClusterIdentifier()) || StringUtils.hasValue(model.getSourceDbClusterResourceId());
     }
 
     public static boolean isRestoreFromSnapshot(final ResourceModel model) {
