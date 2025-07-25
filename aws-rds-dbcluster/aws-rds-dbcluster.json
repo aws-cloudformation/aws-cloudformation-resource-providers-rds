@@ -252,6 +252,10 @@
       "description": "The identifier of the source DB cluster from which to restore.",
       "type": "string"
     },
+    "SourceDbClusterResourceId": {
+      "description": "The resource ID of the source DB cluster from which to restore.",
+      "type": "string"
+    },
     "SourceRegion": {
       "description": "The AWS Region which contains the source DB cluster when replicating a DB cluster. For example, us-east-1.",
       "type": "string"
@@ -462,6 +466,7 @@
     "/properties/RestoreType",
     "/properties/SnapshotIdentifier",
     "/properties/SourceDBClusterIdentifier",
+    "/properties/SourceDbClusterResourceId",
     "/properties/SourceRegion",
     "/properties/StorageEncrypted",
     "/properties/UseLatestRestorableTime"
@@ -496,6 +501,7 @@
         "rds:CreateDBCluster",
         "rds:CreateDBInstance",
         "rds:DescribeDBClusters",
+        "rds:DescribeDBClusterAutomatedBackups",
         "rds:DescribeEvents",
         "rds:EnableHttpEndpoint",
         "rds:ModifyDBCluster",
