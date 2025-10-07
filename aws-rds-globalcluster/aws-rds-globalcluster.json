@@ -72,7 +72,7 @@
   "propertyTransform": {
     "/properties/GlobalClusterIdentifier": "$lowercase(GlobalClusterIdentifier)"
   },
-  "readOnly": [
+  "readOnlyProperties": [
     "/properties/GlobalEndpoint"
   ],
   "createOnlyProperties": [
